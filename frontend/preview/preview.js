@@ -3,6 +3,7 @@ import { createMockHass } from "./mock-hass.js";
 
 const el = document.createElement("resolvia-panel");
 el.panel = { url_path: "resolvia", title: "ResolvIA" };
+el.env = { topbar: true }; // inside Home Assistant the app gets HA's own top bar
 el.narrow = window.innerWidth < 870;
 el.hass = createMockHass((next) => {
   el.hass = next;

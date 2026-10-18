@@ -464,6 +464,59 @@ export const styles = css`
     background: var(--rv-today-soft);
     color: var(--rv-today);
   }
+  .tag.rep {
+    border-color: transparent;
+    background: var(--rv-surface-2);
+    color: var(--rv-text-2);
+  }
+  .item.done .tag.rep {
+    background: var(--cs, var(--rv-accent-soft));
+    color: var(--ci, var(--rv-accent-ink));
+  }
+  .field-hint {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 14.5px;
+    line-height: 1.45;
+    color: var(--rv-muted);
+    margin-top: 2px;
+  }
+  .field-hint .i {
+    width: 17px;
+    height: 17px;
+    margin-top: 1px;
+    color: var(--rv-accent-ink);
+  }
+  .field input.num {
+    width: 84px;
+    border: 1.5px solid var(--rv-line-strong);
+    background: var(--rv-bg);
+    border-radius: 12px;
+    padding: 9px 12px;
+    font-size: 16px;
+    outline: 0;
+    text-align: center;
+  }
+  .field input.num:focus {
+    border-color: var(--rv-accent);
+  }
+  .offline {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 9px 16px;
+    font-size: 14px;
+    font-weight: 650;
+    background: var(--rv-late-soft);
+    color: var(--rv-late);
+  }
+  .offline .i {
+    width: 17px;
+    height: 17px;
+  }
   .tag.list {
     border-color: transparent;
     background: var(--cs);
@@ -1349,8 +1402,10 @@ export const styles = css`
   .toast span {
     min-width: 0;
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    line-height: 1.35;
   }
   .toast button {
     flex: none;

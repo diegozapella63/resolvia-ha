@@ -1,59 +1,56 @@
-# ResolvIA
+# ResolvIA para Home Assistant
 
-Um painel na barra lateral do Home Assistant para as suas **listas de tarefas nativas** (`todo.*`), com um visual bem mais caprichado que a tela padrão.
+![ResolvIA](resolvia/logo.png)
 
-Nada é copiado nem duplicado: o ResolvIA lê e edita as mesmas listas que o HA já tem (Lista de tarefas local, Shopping list, Alexa, Google Tasks, CalDAV…), em tempo real, pela API oficial de to-do do Home Assistant.
+Um App do Home Assistant que mostra suas **listas de tarefas nativas** (`todo.*`) num visual bem mais caprichado, e que traz **tarefas que voltam sozinhas** X dias depois de concluídas.
+
+## Instalação
+
+1. No Home Assistant: **Configurações → Aplicativos → Loja de aplicativos**.
+2. No menu **⋮ → Repositórios**, adicione:
+   ```
+   https://github.com/diegozapella63/resolvia-ha
+   ```
+3. Procure **ResolvIA** na loja, toque em **Instalar** e depois em **Iniciar**.
+4. Ative **Mostrar na barra lateral**.
+
+A primeira instalação leva alguns minutos, porque o app é montado no próprio Home Assistant.
 
 ## O que tem
 
 - **Início** com um "caderno" mostrando quantos itens estão pendentes, quantos vencem hoje e quantos estão atrasados.
 - **Listas agrupadas por dispositivo**: "Notas e Rotinas do Alexa To-do list" vira **To-do list** dentro do grupo *Notas e Rotinas do Alexa*.
-- **Lista aberta** com campo de adicionar sempre à mão (colar várias linhas cria um item por linha), marcar como resolvido com animação e **Desfazer**, arrastar para reordenar, e concluídos recolhidos.
-- **Links bonitos**: `Ver sobre: https://github.com/fulano/projeto` aparece como um chip `fulano/projeto` que abre o link.
-- **Editar item**: texto, notas, prazo (Hoje, Amanhã, Sábado, outra data, horário) e **mover para outra lista**.
-- **Prazos**: tudo que tem data, de todas as listas, em Atrasados / Hoje / Amanhã / Próximos 7 dias.
+- **Lista aberta** com campo de adicionar sempre à mão (colar várias linhas cria um item por linha), marcar como resolvido com **Desfazer**, arrastar para reordenar e concluídos recolhidos.
+- **Links bonitos**: `Ver sobre: https://github.com/fulano/projeto` vira um chip `fulano/projeto`.
+- **Editar item**: texto, notas, prazo, horário, **repetição** e **mover para outra lista**.
+- **Tarefas recorrentes**: "Passar pano" com repetição de 3 dias volta como pendente 3 dias depois de você marcar como feito, mesmo se você concluir pela Alexa.
+- **Prazos** de todas as listas, incluindo o que vai voltar sozinho.
 - **Buscar** em todas as listas, sem se importar com acentos.
-- **Personalizar cada lista**: nome, cor e ícone, e ocultar listas da tela inicial. Fica salvo no HA e vale para todos os aparelhos.
-- **Tema claro e escuro**: segue o modo do Home Assistant, ou force claro/escuro por aparelho.
-- Funciona offline (fontes e ícones vão junto) e responde ao botão Voltar do Android.
+- **Personalizar cada lista** (nome, cor, ícone, ocultar), sincronizado entre aparelhos.
+- **Tema claro e escuro** seguindo o Home Assistant.
 
-O que dá para fazer em cada lista depende da integração dela. Ex.: a Lista de tarefas local aceita prazos, notas e reordenar; a Shopping list aceita reordenar mas não prazos. O ResolvIA mostra só o que a lista suporta.
+Mais detalhes em [resolvia/DOCS.md](resolvia/DOCS.md).
 
-## Instalação
+## Estrutura
 
-### Pelo HACS (repositório personalizado)
-
-1. No HA: **HACS → ⋮ → Repositórios personalizados**.
-2. Cole `https://github.com/diegozapella63/resolvia-ha` e escolha o tipo **Integração**.
-3. Procure **ResolvIA** no HACS, baixe e **reinicie o Home Assistant**.
-4. **Configurações → Dispositivos e serviços → Adicionar integração → ResolvIA**.
-
-### Manual
-
-1. Copie a pasta `custom_components/resolvia` para `/config/custom_components/resolvia` (Samba, File editor ou Studio Code Server).
-2. Reinicie o Home Assistant.
-3. **Configurações → Dispositivos e serviços → Adicionar integração → ResolvIA**.
-
-Depois disso aparece **ResolvIA** na barra lateral. Nas opções da integração dá para trocar o nome, o ícone e deixar visível só para administradores.
-
-## Como funciona
-
-- O painel se inscreve em `todo/item/subscribe` para cada lista, então tudo atualiza na hora (inclusive o que a Alexa adicionar).
-- As alterações usam as ações nativas `todo.add_item`, `todo.update_item`, `todo.remove_item`, `todo.remove_completed_items` e o comando `todo/item/move`.
-- As personalizações (nome, cor, ícone, listas ocultas) ficam em `.storage/resolvia.prefs`. O tema é escolhido por aparelho.
-- Compatível com o Home Assistant 2025.1 em diante, incluindo as versões 2026.x.
+```
+repository.yaml          repositório de apps
+resolvia/                o app (config, Dockerfile, servidor Node.js)
+frontend/                código-fonte da interface (Lit)
+preview/                 prévia da interface com dados de exemplo
+dev/fake-ha.mjs          Home Assistant falso para desenvolver sem o HA
+```
 
 ## Desenvolvimento
 
-O código-fonte do painel está em `frontend/src` (Lit + JavaScript puro). Para gerar o `custom_components/resolvia/frontend/resolvia-panel.js` e a prévia em `preview/`:
-
 ```bash
-cd frontend
-npm install
-npm run build
+cd frontend && npm install && npm run build      # gera resolvia/rootfs/app/www/resolvia.js
+node dev/fake-ha.mjs                             # HA falso em :8123 (token "dev")
+RESOLVIA_DEV=1 HA_WS_URL=ws://127.0.0.1:8123/api/websocket HA_TOKEN=dev DATA_DIR=./.data \
+  node resolvia/rootfs/app/server.js             # abre em http://127.0.0.1:8099
 ```
 
-`preview/resolvia-preview.html` abre no navegador com dados de exemplo, sem precisar do Home Assistant.
+Com `RESOLVIA_DAY_MS=4000` (só em modo dev) um "dia" de repetição dura 4 segundos, para testar.
 
 ## Créditos
 

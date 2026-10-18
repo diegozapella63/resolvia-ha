@@ -71,6 +71,9 @@ export function createMockHass(onChange) {
         it("Levar o carro na revisão", { due: dt(3, 9) }),
         it("Comprar lâmpadas da varanda", { description: "E27, 9W, branca quente — 4 unidades" }),
         it("Consertar a torneira do tanque", { due: d(9) }),
+        it("Passar pano na casa"),
+        it("Trocar roupa de cama"),
+        done("Regar as plantas da varanda"),
         done("Limpar calhas"),
       ],
     },
@@ -83,6 +86,49 @@ export function createMockHass(onChange) {
 
   const subs = new Map(); // entity_id -> Set(callback)
   const prefs = { lists: {}, app: {} };
+
+  // Recurring rules, like the app backend keeps them.
+  const startOfDayPlus = (ms, days) => {
+    const x = new Date(ms);
+    return new Date(x.getFullYear(), x.getMonth(), x.getDate() + days).getTime();
+  };
+  const findUid = (id, summary) => lists[id].items.find((i) => i.summary === summary).uid;
+  let ruleSeq = 1;
+  const rules = [];
+  const addRule = (id, summary, days, completedAgoDays = null) => {
+    const r = { id: `r${ruleSeq++}`, entity_id: id, uid: findUid(id, summary), match: null, summary, days, completed_at: null, reopen_at: null };
+    if (completedAgoDays != null) {
+      r.completed_at = Date.now() - completedAgoDays * 86400000;
+      r.reopen_at = startOfDayPlus(r.completed_at, days);
+    }
+    rules.push(r);
+  };
+  addRule("todo.casa", "Passar pano na casa", 3);
+  addRule("todo.casa", "Trocar roupa de cama", 7);
+  addRule("todo.casa", "Regar as plantas da varanda", 2, 1);
+  const ruleSubs = new Set();
+  const emitRules = () => {
+    for (const cb of ruleSubs) setTimeout(() => cb({ rules: rules.map((r) => ({ ...r })) }), 30);
+  };
+  const syncRules = (id) => {
+    for (const r of rules.filter((x) => x.entity_id === id)) {
+      if (!r.uid && r.match) {
+        const it = lists[id].items.find((i) => i.summary === r.match && i.status === "needs_action");
+        if (it) Object.assign(r, { uid: it.uid, match: null });
+      }
+      const it = lists[id].items.find((i) => i.uid === r.uid);
+      if (!it) continue;
+      r.summary = it.summary;
+      if (it.status === "completed" && !r.completed_at) {
+        r.completed_at = Date.now();
+        r.reopen_at = startOfDayPlus(r.completed_at, r.days);
+      } else if (it.status === "needs_action" && r.completed_at) {
+        r.completed_at = null;
+        r.reopen_at = null;
+      }
+    }
+    emitRules();
+  };
 
   const clone = (items) => items.map((i) => ({ ...i }));
 
@@ -165,6 +211,7 @@ export function createMockHass(onChange) {
       } else if (service === "remove_completed_items") {
         l.items = l.items.filter((i) => i.status !== "completed");
       }
+      syncRules(id);
       emit(id);
     },
     async callWS(msg) {
@@ -178,6 +225,15 @@ export function createMockHass(onChange) {
         const prev = msg.previous_uid ? l.items.findIndex((i) => i.uid === msg.previous_uid) : -1;
         l.items.splice(prev + 1, 0, item);
         emit(msg.entity_id);
+        return null;
+      }
+      if (msg.type === "resolvia/recurring/set") {
+        const i = rules.findIndex((r) => r.entity_id === msg.entity_id && (msg.uid ? r.uid === msg.uid : r.match === msg.summary));
+        if (!msg.days) {
+          if (i >= 0) rules.splice(i, 1);
+        } else if (i >= 0) rules[i].days = msg.days;
+        else rules.push({ id: `r${ruleSeq++}`, entity_id: msg.entity_id, uid: msg.uid || null, match: msg.uid ? null : msg.summary, summary: msg.summary, days: msg.days, completed_at: null, reopen_at: null });
+        syncRules(msg.entity_id);
         return null;
       }
       if (msg.type === "resolvia/prefs/get") return JSON.parse(JSON.stringify(prefs));
@@ -196,6 +252,11 @@ export function createMockHass(onChange) {
     },
     connection: {
       subscribeMessage(cb, msg) {
+        if (msg.type === "resolvia/recurring/subscribe") {
+          ruleSubs.add(cb);
+          emitRules();
+          return Promise.resolve(() => ruleSubs.delete(cb));
+        }
         if (msg.type !== "todo/item/subscribe") return Promise.reject(new Error("unknown"));
         const set = subs.get(msg.entity_id) || new Set();
         set.add(cb);

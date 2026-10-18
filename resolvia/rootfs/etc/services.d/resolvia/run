@@ -1,0 +1,8 @@
+#!/usr/bin/with-contenv bashio
+# shellcheck shell=bash
+# ==============================================================================
+# Start ResolvIA
+# ==============================================================================
+bashio::log.info "Iniciando o ResolvIA..."
+cd /app || bashio::exit.nok "Pasta /app não encontrada"
+exec node /app/server.js

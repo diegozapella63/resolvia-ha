@@ -29,9 +29,10 @@ import {
   shortDate,
   greeting,
   splitLinks,
+  ymd,
 } from "./util.js";
 
-const VERSION = "1.0.0";
+const VERSION = "2.0.0";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -58,6 +59,14 @@ const store = {
 };
 
 const isDone = (item) => item.status === "completed";
+const REPEAT_PICKS = [
+  { days: 1, label: "Todo dia" },
+  { days: 2, label: "2 dias" },
+  { days: 3, label: "3 dias" },
+  { days: 7, label: "1 semana" },
+  { days: 14, label: "2 semanas" },
+  { days: 30, label: "1 mês" },
+];
 const keyOf = (item) => item.uid || item.summary;
 
 class ResolviaPanel extends LitElement {
@@ -76,6 +85,9 @@ class ResolviaPanel extends LitElement {
     _searchDone: { state: true },
     _theme: { state: true },
     _doneOpen: { state: true },
+    _rules: { state: true },
+    _rulesOk: { state: true },
+    env: { attribute: false },
   };
 
   static styles = styles;
@@ -99,6 +111,10 @@ class ResolviaPanel extends LitElement {
     this._doneOpen = {};
     this._lastTodoStates = null;
     this._L = [];
+    this._rules = [];
+    this._rulesOk = false;
+    this._rulesUnsub = null;
+    this.env = null;
     this._onPopState = this._onPopState.bind(this);
     this._onResize = this._checkHeight.bind(this);
     this._mql = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
@@ -126,6 +142,8 @@ class ResolviaPanel extends LitElement {
     for (const [, t] of this._recent) clearTimeout(t);
     this._recent.clear();
     clearTimeout(this._toastTimer);
+    if (this._rulesUnsub) this._rulesUnsub.then((f) => f && f()).catch(() => {});
+    this._rulesUnsub = null;
   }
 
   shouldUpdate(changed) {
@@ -133,7 +151,7 @@ class ResolviaPanel extends LitElement {
     const old = changed.get("hass");
     if (!old || !this.hass) return true;
     // hass changes on every state change in the house; only re-render for ours.
-    if (old.themes !== this.hass.themes || old.entities !== this.hass.entities || old.devices !== this.hass.devices || old.user !== this.hass.user) return true;
+    if (old.themes !== this.hass.themes || old.entities !== this.hass.entities || old.devices !== this.hass.devices || old.user !== this.hass.user || old.connected !== this.hass.connected) return true;
     const ids = Object.keys(this.hass.states).filter((id) => id.startsWith("todo."));
     const oldIds = Object.keys(old.states).filter((id) => id.startsWith("todo."));
     if (ids.length !== oldIds.length) return true;
@@ -149,6 +167,7 @@ class ResolviaPanel extends LitElement {
         this._prefsLoaded = true;
         this._loadPrefs();
       }
+      if (!this._rulesUnsub && this.isConnected) this._subscribeRules();
       this._syncSubscriptions();
       this._refreshPolled(changed.get("hass"));
     }
@@ -463,6 +482,7 @@ class ResolviaPanel extends LitElement {
 
   _openInHA(path) {
     this._closeSheet(true);
+    if (this.env && this.env.openInHA) return this.env.openInHA(path);
     history.pushState(null, "", path);
     window.dispatchEvent(new CustomEvent("location-changed", { detail: { replace: false } }));
   }
@@ -470,7 +490,63 @@ class ResolviaPanel extends LitElement {
   // ------------------------------------------------------------ feedback
 
   _haptic(type) {
+    if (this.env && this.env.haptic) return this.env.haptic(type);
     window.dispatchEvent(new CustomEvent("haptic", { detail: type }));
+  }
+
+  // ------------------------------------------------------------ recurring
+
+  _subscribeRules() {
+    if (!this.hass || !this.hass.connection) return;
+    this._rulesUnsub = this.hass.connection
+      .subscribeMessage((ev) => (this._rules = (ev && ev.rules) || []), { type: "resolvia/recurring/subscribe" })
+      .then((unsub) => {
+        this._rulesOk = true;
+        return unsub;
+      })
+      .catch(() => {
+        this._rulesOk = false;
+        return null;
+      });
+  }
+
+  _ruleFor(listId, item) {
+    if (!item) return null;
+    return (
+      this._rules.find((r) => r.entity_id === listId && r.uid && r.uid === item.uid) ||
+      (item.status !== "completed" && this._rules.find((r) => r.entity_id === listId && !r.uid && r.match === item.summary)) ||
+      null
+    );
+  }
+
+  _everyLabel(days) {
+    if (days === 1) return "todo dia";
+    if (days === 7) return "toda semana";
+    if (days === 14) return "a cada 2 semanas";
+    if (days === 30) return "todo mês";
+    return `a cada ${days} dias`;
+  }
+
+  _returnLabel(ms) {
+    const d = new Date(ms);
+    const info = dueInfo(ymd(d));
+    if (!info) return "";
+    if (info.diff <= 0) return "hoje";
+    if (info.diff === 1) return "amanhã";
+    if (info.diff < 7) return info.text.toLowerCase();
+    return info.text;
+  }
+
+  _reopenAt(days, from = Date.now()) {
+    const d = new Date(from);
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate() + days).getTime();
+  }
+
+  _setRule(entityId, { uid, summary, days }) {
+    if (!this._rulesOk) return Promise.resolve();
+    return this.hass
+      .callWS({ type: "resolvia/recurring/set", entity_id: entityId, uid: uid || undefined, summary, days: days || null })
+      .catch(() => this._showToast("Não consegui salvar a repetição"));
   }
 
   _showToast(text, action = null) {
@@ -520,7 +596,9 @@ class ResolviaPanel extends LitElement {
       return;
     }
     if (completing) {
-      this._showToast(`Resolvido: ${clip(item.summary, 30)}`, {
+      const rule = this._ruleFor(list.id, item);
+      const back = rule ? ` · volta ${this._returnLabel(this._reopenAt(rule.days))}` : "";
+      this._showToast(`Resolvido: ${clip(item.summary, rule ? 22 : 30)}${back}`, {
         label: "Desfazer",
         run: () => {
           this._patchItem(list.id, key, { status: "needs_action" });
@@ -601,6 +679,9 @@ class ResolviaPanel extends LitElement {
       description: "",
       date: null,
       time: null,
+      repeat: 0,
+      repeatOrig: 0,
+      repeatCustom: false,
     });
     this.updateComplete.then(() => {
       const ta = this.renderRoot.querySelector(".sheet textarea");
@@ -610,6 +691,8 @@ class ResolviaPanel extends LitElement {
 
   _openEdit(list, item) {
     const due = parseDue(item.due);
+    const rule = this._ruleFor(list.id, item);
+    const days = rule ? rule.days : 0;
     this._openSheet("item", {
       mode: "edit",
       listId: list.id,
@@ -619,6 +702,9 @@ class ResolviaPanel extends LitElement {
       description: item.description || "",
       date: due ? due.date : null,
       time: due ? due.time : null,
+      repeat: days,
+      repeatOrig: days,
+      repeatCustom: !!days && !REPEAT_PICKS.some((p) => p.days === days),
     });
   }
 
@@ -643,6 +729,7 @@ class ResolviaPanel extends LitElement {
       this._closeSheet();
       this._haptic("light");
       const ok = await this._addFull(target, { summary, description, date: f.date, time: f.time });
+      if (ok && f.repeat) await this._setRule(target.id, { summary, days: f.repeat });
       if (ok && this._view().id !== target.id) this._showToast(`Adicionado em ${clip(target.name, 28)}`);
       return;
     }
@@ -658,6 +745,8 @@ class ResolviaPanel extends LitElement {
       this._closeSheet();
       const ok = await this._addFull(target, { summary, description, date: f.date, time: f.time });
       if (ok) {
+        if (f.repeat) await this._setRule(target.id, { summary, days: f.repeat });
+        if (f.repeatOrig) await this._setRule(list.id, { uid: item.uid, summary: item.summary, days: null });
         await this._call("remove_item", { item: [f.key] }, list.id);
         this._showToast(`Movido para ${clip(target.name, 28)}`);
       }
@@ -673,6 +762,10 @@ class ResolviaPanel extends LitElement {
     const changedDue = (before ? before.date : null) !== (f.date || null) || (before ? before.time : null) !== (f.time || null);
     if (changedDue) Object.assign(data, this._dueFields(list, f.date, f.time, true));
     this._closeSheet();
+    if ((f.repeat || 0) !== (f.repeatOrig || 0)) {
+      await this._setRule(list.id, { uid: item.uid, summary, days: f.repeat });
+      if (f.repeat) this._showToast(`Repete ${this._everyLabel(f.repeat)} depois de concluir`);
+    }
     if (Object.keys(data).length > 1) {
       if (data.rename) this._patchItem(list.id, f.key, { summary });
       await this._call("update_item", data, list.id);
@@ -864,10 +957,15 @@ class ResolviaPanel extends LitElement {
     return html`
       <div class="root" style=${style}>
         <div class="app">
-          <header class="topbar">
-            <button class="icon-btn" @click=${this._toggleMenu} aria-label="Menu">${icon("menu")}</button>
-            <div class="title">${(this.panel && this.panel.title) || "ResolvIA"}</div>
-          </header>
+          ${!this.env || this.env.topbar
+            ? html`<header class="topbar">
+                <button class="icon-btn" @click=${this._toggleMenu} aria-label="Menu">${icon("menu")}</button>
+                <div class="title">${(this.panel && this.panel.title) || "ResolvIA"}</div>
+              </header>`
+            : nothing}
+          ${this.hass.connected === false
+            ? html`<div class="offline">${icon("wifi-off")}<span>Sem conexão com o Home Assistant. Reconectando…</span></div>`
+            : nothing}
           <main>${page}</main>
           ${this._renderNav(view)}
         </div>
@@ -1118,6 +1216,12 @@ class ResolviaPanel extends LitElement {
     const done = isDone(item);
     const due = !done && dueInfo(item.due);
     const canUpdate = has(l.features, F.UPDATE);
+    const rule = this._ruleFor(l.id, item);
+    const rep = rule
+      ? done && rule.reopen_at
+        ? html`<span class="tag rep">${icon("repeat")}volta ${this._returnLabel(rule.reopen_at)}</span>`
+        : html`<span class="tag rep">${icon("repeat")}${this._everyLabel(rule.days)}</span>`
+      : nothing;
     return html`
       <div class="item ${done ? "done" : ""}" data-key=${keyOf(item)} ?data-drag=${opts.draggable} style=${opts.showList ? colorVars(l.color, this._dark) : ""}>
         <button class="check ${done ? "on" : ""}" role="checkbox" aria-checked=${done ? "true" : "false"} aria-label=${done ? "Marcar como pendente" : "Marcar como resolvido"} ?disabled=${!canUpdate} @click=${() => this._toggle(l, item)}>
@@ -1126,10 +1230,11 @@ class ResolviaPanel extends LitElement {
         <div class="it-body" @click=${() => canUpdate && this._openEdit(l, item)}>
           <div class="it-text">${this._renderText(item.summary || "", opts.query)}</div>
           ${item.description ? html`<div class="it-desc">${this._renderText(item.description, opts.query)}</div>` : nothing}
-          ${due || opts.showList
+          ${due || opts.showList || rule
             ? html`<div class="chips">
                 ${opts.showList ? html`<span class="tag list">${icon(l.icon)}${clip(l.name, 24)}</span>` : nothing}
                 ${due ? html`<span class="tag ${due.tone === "late" ? "late" : due.tone === "today" ? "today" : ""}">${icon(due.time ? "clock" : "calendar")}${due.text}</span>` : nothing}
+                ${rep}
               </div>`
             : nothing}
         </div>
@@ -1170,19 +1275,52 @@ class ResolviaPanel extends LitElement {
       })
       .filter((g) => g.rows.length);
 
+    // Recurring tasks waiting to come back.
+    const coming = this._rules
+      .filter((r) => r.reopen_at)
+      .map((r) => {
+        const l = this._list(r.entity_id);
+        const item = l && l.items && r.uid ? l.items.find((i) => i.uid === r.uid) : null;
+        return { r, l, item };
+      })
+      .filter((x) => x.l && !x.l.hidden)
+      .sort((a, b) => a.r.reopen_at - b.r.reopen_at);
+    const comingPanel = coming.length
+      ? html`<div class="panel items">
+          <div class="overline">Voltam sozinhas · ${coming.length}</div>
+          ${repeat(
+            coming,
+            (x) => x.r.id,
+            (x) =>
+              x.item
+                ? this._renderItem(x.l, x.item, { showList: true })
+                : html`<div class="item done" style=${colorVars(x.l.color, this._dark)}>
+                    <span class="check on">${icon("repeat")}</span>
+                    <div class="it-body" @click=${() => this._go(`/lista/${x.l.id}`)}>
+                      <div class="it-text">${x.r.summary}</div>
+                      <div class="chips">
+                        <span class="tag list">${icon(x.l.icon)}${clip(x.l.name, 24)}</span>
+                        <span class="tag rep">${icon("repeat")}volta ${this._returnLabel(x.r.reopen_at)}</span>
+                      </div>
+                    </div>
+                  </div>`,
+          )}
+        </div>`
+      : nothing;
+
     return html`
       <section class="page">
         <div class="page-head"><h1 class="display">Prazos</h1></div>
         <p class="page-sub">Tudo que tem data, de todas as listas, em ordem.</p>
-        ${groups.length
-          ? groups.map(
+        ${groups.length || coming.length
+          ? [groups.map(
               (g) => html`
                 <div class="panel items">
                   <div class="overline" style=${g.title === "Atrasados" ? "color:var(--rv-late)" : ""}>${g.title} · ${g.rows.length}</div>
                   ${repeat(g.rows, (r) => r.l.id + keyOf(r.i), (r) => this._renderItem(r.l, r.i, { showList: true }))}
                 </div>
               `,
-            )
+            ), comingPanel]
           : html`<div class="panel">
               <div class="empty">
                 <div class="em-icon">${icon("calendar-days")}</div>
@@ -1293,6 +1431,26 @@ class ResolviaPanel extends LitElement {
               )
             : html`<div class="row"><div class="hint">Nenhuma lista encontrada.</div></div>`}
         </div>
+
+        ${this._rulesOk
+          ? html`<div class="panel">
+              <div class="overline">Tarefas que se repetem</div>
+              ${this._rules.length
+                ? this._rules.map((r) => {
+                    const l = this._list(r.entity_id);
+                    if (!l) return nothing;
+                    return html`<div class="row" style=${colorVars(l.color, this._dark)}>
+                      <span class="tile">${icon("repeat")}</span>
+                      <button class="grow" style="text-align:left" @click=${() => this._go(`/lista/${l.id}`)}>
+                        <div class="label">${r.summary || r.match}</div>
+                        <div class="hint">${l.name} · ${this._everyLabel(r.days)}${r.reopen_at ? ` · volta ${this._returnLabel(r.reopen_at)}` : ""}</div>
+                      </button>
+                      <button class="icon-btn" style="color:var(--rv-muted)" aria-label="Parar de repetir" @click=${() => this._setRule(r.entity_id, { uid: r.uid, summary: r.match || r.summary, days: null })}>${icon("x")}</button>
+                    </div>`;
+                  })
+                : html`<div class="row"><div class="hint" style="white-space:normal">Nenhuma ainda. Abra um item e escolha “Repetir depois de concluir” — ex.: passar pano 3 dias depois de feito.</div></div>`}
+            </div>`
+          : nothing}
 
         <div class="panel">
           <div class="overline">Exibição</div>
@@ -1412,6 +1570,28 @@ class ResolviaPanel extends LitElement {
                   <input type="time" .value=${f.time || ""} @change=${(e) => this._setForm({ time: e.target.value || null })} />
                   ${f.time ? html`<button class="text-btn" @click=${() => this._setForm({ time: null })}>Dia todo</button>` : nothing}
                 </div>`
+              : nothing}
+          </div>`
+        : nothing}
+      ${this._rulesOk && (has(feat, F.UPDATE) || has(feat, F.CREATE))
+        ? html`<div class="field">
+            <span class="flabel">Repetir depois de concluir</span>
+            <div class="chip-row">
+              <button class="pick ${!f.repeat ? "on" : ""}" @click=${() => this._setForm({ repeat: 0, repeatCustom: false })}>Não</button>
+              ${REPEAT_PICKS.map(
+                (p) => html`<button class="pick ${f.repeat === p.days && !f.repeatCustom ? "on" : ""}" @click=${() => this._setForm({ repeat: p.days, repeatCustom: false })}>${p.label}</button>`,
+              )}
+              <button class="pick ${f.repeatCustom ? "on" : ""}" @click=${() => this._setForm({ repeatCustom: true, repeat: f.repeat || 4 })}>${icon("repeat")}<span>Outro</span></button>
+            </div>
+            ${f.repeatCustom
+              ? html`<div class="time-row">
+                  <span class="tl">A cada</span>
+                  <input type="number" inputmode="numeric" min="1" max="365" class="num" .value=${String(f.repeat || "")} @input=${(e) => this._setForm({ repeat: Math.max(0, Math.min(365, parseInt(e.target.value, 10) || 0)) })} />
+                  <span class="tl">dias</span>
+                </div>`
+              : nothing}
+            ${f.repeat
+              ? html`<div class="field-hint">${icon("repeat")}<span>Quando você concluir, volta sozinha ${f.repeat === 1 ? "no dia seguinte" : `em ${f.repeat} dias`} (no começo do dia).</span></div>`
               : nothing}
           </div>`
         : nothing}
