@@ -34,7 +34,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.2.0";
+const VERSION = "2.2.1";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -1716,8 +1716,8 @@ class ResolviaPanel extends LitElement {
       ${f.mode === "add" && this._canImport()
         ? html`<div class="imp-strip">
             <button @click=${() => this._openImport(f.target, "text")}>${icon("clipboard-paste")}<span>Colar mensagem</span></button>
-            <button @click=${() => this._openImport(f.target, "photos")}>${icon("images")}<span>Fotos</span></button>
-            <button @click=${() => this._openImport(f.target, "scan")}>${icon("scan-text")}<span>Digitalizar</span></button>
+            <button @click=${() => this._openImport(f.target, "photos")}>${icon("images")}<span>Escolher fotos</span></button>
+            <button @click=${() => this._openImport(f.target, "scan")}>${icon("scan-text")}<span>Digitalizar com IA</span></button>
           </div>`
         : nothing}
       <label class="field">
@@ -1890,7 +1890,7 @@ class ResolviaPanel extends LitElement {
         </button>
         <button class="imp-opt" ?disabled=${!ai.images} @click=${() => this._pickFiles("scan")}>
           <span class="imp-ic">${icon("scan-text")}</span>
-          <span class="imp-tx"><b>Digitalizar</b><small>Tire uma foto de uma lista em papel</small></span>
+          <span class="imp-tx"><b>Digitalizar com IA</b><small>Tire uma foto de uma lista em papel</small></span>
           ${icon("chevron-right")}
         </button>
       </div>

@@ -16,7 +16,7 @@ No botão **Adicionar** (ou no ícone ao lado do campo de adicionar de uma lista
 
 - **Colar mensagem**: cole uma mensagem do WhatsApp, e-mail ou anotação ("amor compra leite, ovos e café"). A IA separa os itens.
 - **Escolher fotos**: prints ou fotos de listas da galeria (até 6 por vez).
-- **Digitalizar**: abre a câmera para fotografar uma lista em papel, mesmo escrita à mão.
+- **Digitalizar com IA**: abre a câmera para fotografar uma lista em papel, mesmo escrita à mão.
 
 Você revisa os itens (dá para corrigir, desmarcar ou incluir linhas) e escolhe a lista antes de adicionar.
 

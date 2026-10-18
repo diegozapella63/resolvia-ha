@@ -24,7 +24,7 @@ A primeira instalação leva alguns minutos, porque o app é montado no próprio
 - **Links bonitos**: `Ver sobre: https://github.com/fulano/projeto` vira um chip `fulano/projeto`.
 - **Editar item**: texto, notas, prazo, horário, **repetição** e **mover para outra lista**.
 - **Tarefas recorrentes**: "Passar pano" com repetição de 3 dias volta como pendente 3 dias depois de você marcar como feito, mesmo se você concluir pela Alexa.
-- **Importar itens**: cole uma mensagem do WhatsApp, escolha fotos ou digitalize uma lista em papel; a IA do Home Assistant (ou o Gemini) separa os itens e você revisa antes de adicionar.
+- **Importar itens**: cole uma mensagem do WhatsApp, escolha fotos ou digitalize com IA uma lista em papel; a IA do Home Assistant (ou o Gemini) separa os itens e você revisa antes de adicionar.
 - **Prazos** de todas as listas, incluindo o que vai voltar sozinho.
 - **Buscar** em todas as listas, sem se importar com acentos.
 - **Personalizar cada lista** (nome, cor, ícone, ocultar), sincronizado entre aparelhos.

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.2.1
+
+- Botões renomeados: "Escolher fotos" e "Digitalizar com IA".
+
 ## 2.2.0
 
 - Mesma tipografia da InventarIA: Barlow no texto (400/500/600) e Barlow Condensed em títulos, números e valores (500/600/700), com números tabulares.

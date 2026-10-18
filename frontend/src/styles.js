@@ -1425,6 +1425,11 @@ export const styles = css`
     font-weight: 500;
     color: var(--rv-text-2);
   }
+  .imp-strip span {
+    text-wrap: balance;
+    text-align: center;
+    line-height: 1.3;
+  }
   .imp-strip .i {
     width: 21px;
     height: 21px;
