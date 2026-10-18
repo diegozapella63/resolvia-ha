@@ -15,8 +15,8 @@ Nada é copiado: o ResolvIA mostra e edita as mesmas listas que o HA já tem.
 No botão **Adicionar** (ou no ícone ao lado do campo de adicionar de uma lista) há três caminhos:
 
 - **Colar mensagem**: cole uma mensagem do WhatsApp, e-mail ou anotação ("amor compra leite, ovos e café"). A IA separa os itens.
-- **Escolher fotos**: prints ou fotos de listas da galeria (até 6 por vez).
-- **Digitalizar com IA**: abre a câmera para fotografar uma lista em papel, mesmo escrita à mão.
+- **Escolher fotos**: prints ou fotos de listas da galeria. No app Android do Home Assistant é uma foto por vez (limitação da versão atual do app); use **Mais fotos** na revisão para juntar outras.
+- **Digitalizar com IA**: abre a câmera dentro do ResolvIA para fotografar uma lista em papel, mesmo escrita à mão. Dá para tirar várias páginas e usar a lanterna. Na primeira vez, o celular pede permissão de câmera para o app do Home Assistant.
 
 Você revisa os itens (dá para corrigir, desmarcar ou incluir linhas) e escolhe a lista antes de adicionar.
 

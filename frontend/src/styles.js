@@ -201,7 +201,7 @@ export const styles = css`
   /* ---------- hero (spiral notebook page) ---------- */
   .hero {
     position: relative;
-    margin: 26px 4px 28px;
+    margin: 28px 4px 30px;
     transform: rotate(-1.4deg);
   }
   .hero-card {
@@ -1166,21 +1166,24 @@ export const styles = css`
   }
   .tab .badge {
     position: absolute;
-    top: 2px;
-    left: calc(50% + 6px);
-    min-width: 19px;
-    height: 19px;
-    padding: 0 5px;
-    border-radius: 10px;
+    top: 0;
+    left: calc(50% + 5px);
+    min-width: 22px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 11px;
     background: var(--rv-late);
     color: #fff;
-    font-size: 12px;
     font-family: var(--rv-display);
+    font-size: 13px;
     font-weight: 600;
-    display: grid;
-    place-items: center;
-    border: 2px solid var(--rv-nav);
+    line-height: 1;
     font-variant-numeric: tabular-nums;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 0 2px var(--rv-nav);
+    box-sizing: border-box;
   }
   .tab.fab {
     color: var(--rv-text);
@@ -1619,6 +1622,263 @@ export const styles = css`
   }
   .btn:disabled {
     opacity: 0.5;
+  }
+
+  /* ---------- page header (same values as EconomIA / InventarIA) ---------- */
+  .brand-head {
+    margin: 2px 2px 18px;
+  }
+  .eyebrow {
+    margin: 0;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--rv-muted);
+    font-weight: 600;
+  }
+  .brand {
+    font-family: var(--rv-display);
+    font-size: 21px;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--rv-text);
+  }
+  .brand span {
+    color: var(--rv-accent-ink);
+  }
+  .page-title {
+    font-family: var(--rv-display);
+    font-size: clamp(34px, 8vw, 46px);
+    font-weight: 700;
+    line-height: 1.02;
+    margin: 4px 0 0;
+    text-wrap: balance;
+  }
+  .status {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 10px;
+    margin: 12px 0 0;
+    color: var(--rv-muted);
+    font-size: 14px;
+  }
+  .status .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex: none;
+    background: var(--rv-accent);
+    box-shadow: 0 0 0 3px var(--rv-accent-soft);
+  }
+  .status .dot.late {
+    background: var(--rv-late);
+    box-shadow: 0 0 0 3px var(--rv-late-soft);
+  }
+  .status .dot.off {
+    background: var(--rv-faint);
+    box-shadow: 0 0 0 3px rgba(127, 127, 127, 0.18);
+  }
+
+  /* ---------- camera ("Digitalizar com IA") ---------- */
+  .cam {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    background: #000;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    animation: rv-fade 0.2s ease both;
+  }
+  .cam video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .cam-flash {
+    position: absolute;
+    inset: 0;
+    background: #fff;
+    animation: rv-flash 0.35s ease-out both;
+    pointer-events: none;
+  }
+  @keyframes rv-flash {
+    from {
+      opacity: 0.85;
+    }
+    to {
+      opacity: 0;
+    }
+  }
+  .cam-top {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: calc(10px + env(safe-area-inset-top, 0px)) 12px 10px;
+    background: linear-gradient(rgba(0, 0, 0, 0.55), transparent);
+  }
+  .cam-title {
+    font-family: var(--rv-display);
+    font-weight: 600;
+    font-size: 21px;
+  }
+  .cam-btn {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: rgba(0, 0, 0, 0.35);
+    color: #fff;
+  }
+  .cam-btn.on {
+    background: #ffd54a;
+    color: #1d0f10;
+  }
+  .cam-btn.ghost {
+    background: none;
+  }
+  .cam-frame {
+    position: relative;
+    flex: 1;
+    margin: 18px 26px 6px;
+    pointer-events: none;
+  }
+  .cam-frame i {
+    position: absolute;
+    width: 38px;
+    height: 38px;
+    border: 4px solid rgba(255, 255, 255, 0.92);
+    filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.5));
+  }
+  .cam-frame i:nth-child(1) {
+    top: 0;
+    left: 0;
+    border-right: 0;
+    border-bottom: 0;
+    border-radius: 14px 0 0 0;
+  }
+  .cam-frame i:nth-child(2) {
+    top: 0;
+    right: 0;
+    border-left: 0;
+    border-bottom: 0;
+    border-radius: 0 14px 0 0;
+  }
+  .cam-frame i:nth-child(3) {
+    bottom: 0;
+    left: 0;
+    border-right: 0;
+    border-top: 0;
+    border-radius: 0 0 0 14px;
+  }
+  .cam-frame i:nth-child(4) {
+    bottom: 0;
+    right: 0;
+    border-left: 0;
+    border-top: 0;
+    border-radius: 0 0 14px 0;
+  }
+  .cam-hint {
+    position: relative;
+    text-align: center;
+    margin: 6px 24px 10px;
+    font-size: 15px;
+    font-weight: 500;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+  }
+  .cam-msg {
+    position: relative;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 0 32px;
+    text-align: center;
+    font-size: 16px;
+    line-height: 1.5;
+  }
+  .cam-msg > .i {
+    width: 44px;
+    height: 44px;
+    opacity: 0.8;
+  }
+  .cam-msg .btn {
+    flex: none;
+  }
+  .cam-bottom {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 12px;
+    padding: 18px 20px calc(22px + env(safe-area-inset-bottom, 0px));
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.6));
+  }
+  .cam-shots {
+    display: flex;
+    align-items: center;
+  }
+  .cam-shots img {
+    width: 44px;
+    height: 56px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 2px solid #fff;
+    margin-right: -18px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  }
+  .cam-shots span {
+    margin-left: 24px;
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .cam-shutter {
+    width: 76px;
+    height: 76px;
+    border-radius: 50%;
+    border: 4px solid #fff;
+    display: grid;
+    place-items: center;
+  }
+  .cam-shutter span {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: var(--rv-accent);
+    transition: transform 0.1s;
+  }
+  .cam-shutter:active span {
+    transform: scale(0.88);
+  }
+  .cam-shutter:disabled {
+    opacity: 0.4;
+  }
+  .cam-done {
+    justify-self: end;
+    padding: 12px 16px;
+    border-radius: 14px;
+    background: var(--rv-accent);
+    color: var(--rv-on-accent);
+    font-weight: 600;
+    font-size: 15px;
+  }
+  .cam-done:disabled {
+    background: rgba(255, 255, 255, 0.18);
+    color: rgba(255, 255, 255, 0.6);
+  }
+  .more-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin: -6px 0 18px;
   }
 
   /* ---------- toast ---------- */

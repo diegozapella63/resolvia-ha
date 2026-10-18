@@ -34,7 +34,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.2.1";
+const VERSION = "2.3.0";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -88,6 +88,7 @@ class ResolviaPanel extends LitElement {
     _theme: { state: true },
     _doneOpen: { state: true },
     _rules: { state: true },
+    _cam: { state: true },
     _rulesOk: { state: true },
     env: { attribute: false },
   };
@@ -114,6 +115,7 @@ class ResolviaPanel extends LitElement {
     this._lastTodoStates = null;
     this._L = [];
     this._rules = [];
+    this._cam = null;
     this._rulesOk = false;
     this._rulesUnsub = null;
     this.env = null;
@@ -144,6 +146,7 @@ class ResolviaPanel extends LitElement {
     for (const [, t] of this._recent) clearTimeout(t);
     this._recent.clear();
     clearTimeout(this._toastTimer);
+    this._stopStream();
     if (this._rulesUnsub) this._rulesUnsub.then((f) => f && f()).catch(() => {});
     this._rulesUnsub = null;
   }
@@ -448,6 +451,7 @@ class ResolviaPanel extends LitElement {
   }
 
   _onPopState() {
+    if (this._cam && !(history.state && history.state.rvCam)) this._closeCamera(true);
     if (this._sheet && !(history.state && history.state.rvSheet)) {
       this._sheet = null;
       this._form = null;
@@ -729,7 +733,8 @@ class ResolviaPanel extends LitElement {
       error: null,
       note: null,
     });
-    if (start === "photos" || start === "scan") this._pickFiles(start);
+    if (start === "photos") this._pickFiles("photos");
+    if (start === "scan") this._openCamera();
     if (start === "text") this._focusImportText();
   }
 
@@ -752,17 +757,220 @@ class ResolviaPanel extends LitElement {
     if (f && f.images) for (const img of f.images) if (img.url) URL.revokeObjectURL(img.url);
   }
 
+  /**
+   * The Home Assistant Android app (2026.10.x and older) drops selections made
+   * with `multiple` and ignores `capture`, so it gets one photo at a time and
+   * our own camera screen instead.
+   */
+  _isHaAndroid() {
+    return /Home Assistant\//.test(navigator.userAgent) && /Android/.test(navigator.userAgent);
+  }
+
   async _onFiles(ev) {
-    const files = [...(ev.target.files || [])].filter((f) => f.type.startsWith("image/") || !f.type).slice(0, 6);
+    const files = [...(ev.target.files || [])].filter((f) => !f.type || f.type.startsWith("image/")).slice(0, 6);
+    ev.target.value = "";
     if (!files.length) return;
     if (this._sheet !== "import") this._openImport(null, "pick");
-    this._releaseImages();
-    this._setForm({ step: "loading", error: null, note: null, images: [], loadingText: "Preparando as fotos…" });
+    const appending = this._form.step === "review";
+    this._setForm({ step: "loading", error: null, loadingText: "Preparando as fotos…", prevStep: appending ? "review" : "pick" });
     const images = [];
     for (const file of files) images.push(await prepareImage(file));
-    if (this._sheet !== "import") return;
-    this._setForm({ images, loadingText: images.length > 1 ? `Lendo ${images.length} fotos com IA…` : "Lendo a foto com IA…" });
-    this._runExtract({ images });
+    this._readImages(images, appending);
+  }
+
+  /** Send photos to the AI. With `appending`, items found are added to the ones under review. */
+  _readImages(images, appending) {
+    if (this._sheet !== "import" || !images.length) return;
+    const all = appending ? [...(this._form.images || []), ...images] : (this._releaseImages(), images);
+    this._setForm({
+      step: "loading",
+      images: all,
+      prevStep: appending ? "review" : "pick",
+      loadingText: images.length > 1 ? `Lendo ${images.length} fotos com IA…` : "Lendo a foto com IA…",
+    });
+    this._runExtract({ images, appending });
+  }
+
+  async _runExtract({ text, images, appending = false }) {
+    const token = (this._importToken = Date.now());
+    const target = this._list(this._form.target);
+    const live = () => token === this._importToken && this._sheet === "import";
+    const keep = appending ? this._form.items || [] : [];
+    const merge = (found) => {
+      const seen = new Set(keep.map((i) => i.text.trim().toLowerCase()));
+      return [...keep, ...found.filter((t) => !seen.has(t.trim().toLowerCase())).map((t) => ({ text: t, on: true }))];
+    };
+    try {
+      const res = await this.hass.resolvia.extract({
+        text,
+        images: images ? images.map(({ data, mime }) => ({ data, mime })) : undefined,
+        list_name: target ? target.name : undefined,
+      });
+      if (!live()) return;
+      const found = res.items || [];
+      if (!found.length) {
+        const msg = text ? "Não encontrei itens nessa mensagem." : "Não consegui achar itens nessa foto. Tente mais de perto e com boa luz.";
+        if (appending) this._setForm({ step: "review", note: msg });
+        else this._setForm({ step: text ? "text" : "pick", error: msg });
+        return;
+      }
+      this._haptic("success");
+      this._setForm({ step: "review", items: merge(found), provider: res.provider || null, note: null, error: null });
+    } catch (err) {
+      if (!live()) return;
+      if (text) {
+        const local = parseListText(text);
+        if (local.length) {
+          this._setForm({
+            step: "review",
+            items: merge(local),
+            provider: "local",
+            note: "A IA não respondeu, então separei por linhas e vírgulas.",
+          });
+          return;
+        }
+      }
+      if (appending) this._setForm({ step: "review", note: err.message || "Algo deu errado" });
+      else this._setForm({ step: text ? "text" : "pick", error: err.message || "Algo deu errado" });
+    }
+  }
+
+  // ------------------------------------------------------------ camera ("Digitalizar com IA")
+
+  async _openCamera() {
+    const md = navigator.mediaDevices;
+    if (!md || !md.getUserMedia) {
+      this._pickFiles("scan");
+      return;
+    }
+    const appending = !!(this._form && this._form.step === "review");
+    this._cam = { status: "starting", shots: [], torch: false, torchOk: false, appending, flash: 0 };
+    try {
+      history.pushState({ ...(history.state || {}), rvCam: true }, "");
+    } catch (e) {
+      /* ignore */
+    }
+    try {
+      const stream = await md.getUserMedia({
+        audio: false,
+        video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1440 } },
+      });
+      if (!this._cam) {
+        stream.getTracks().forEach((t) => t.stop());
+        return;
+      }
+      this._stream = stream;
+      const track = stream.getVideoTracks()[0];
+      const caps = track && track.getCapabilities ? track.getCapabilities() : {};
+      this._cam = { ...this._cam, status: "live", torchOk: !!caps.torch };
+      await this.updateComplete;
+      const video = this.renderRoot.querySelector(".cam video");
+      if (video) {
+        video.srcObject = stream;
+        video.play().catch(() => {});
+      }
+    } catch (err) {
+      if (!this._cam) return;
+      const denied = err && (err.name === "NotAllowedError" || err.name === "SecurityError");
+      this._cam = {
+        ...this._cam,
+        status: "error",
+        error: denied
+          ? "Sem permissão para usar a câmera. Libere a câmera para o app do Home Assistant nas configurações do celular, ou escolha uma foto."
+          : "Não consegui abrir a câmera. Você pode escolher uma foto da galeria.",
+      };
+    }
+  }
+
+  _stopStream() {
+    if (this._stream) this._stream.getTracks().forEach((t) => t.stop());
+    this._stream = null;
+  }
+
+  _closeCamera(fromHistory = false) {
+    if (!this._cam) return;
+    this._stopStream();
+    const shots = this._cam.shots || [];
+    if (!this._cam.used) for (const s of shots) URL.revokeObjectURL(s.url);
+    this._cam = null;
+    if (!fromHistory && history.state && history.state.rvCam) history.back();
+  }
+
+  async _toggleTorch() {
+    const track = this._stream && this._stream.getVideoTracks()[0];
+    if (!track) return;
+    const on = !this._cam.torch;
+    try {
+      await track.applyConstraints({ advanced: [{ torch: on }] });
+      this._cam = { ...this._cam, torch: on };
+    } catch (e) {
+      this._cam = { ...this._cam, torchOk: false };
+    }
+  }
+
+  async _shoot() {
+    const video = this.renderRoot.querySelector(".cam video");
+    if (!video || !video.videoWidth || !this._cam || this._cam.shots.length >= 6) return;
+    const max = 1800;
+    const scale = Math.min(1, max / Math.max(video.videoWidth, video.videoHeight));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(video.videoWidth * scale);
+    canvas.height = Math.round(video.videoHeight * scale);
+    canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.86));
+    if (!blob || !this._cam) return;
+    const shot = await prepareImage(blob, max);
+    this._haptic("light");
+    this._cam = { ...this._cam, shots: [...this._cam.shots, shot], flash: Date.now() };
+  }
+
+  _useShots() {
+    if (!this._cam || !this._cam.shots.length) return;
+    const shots = this._cam.shots;
+    const appending = this._cam.appending;
+    this._cam = { ...this._cam, used: true };
+    this._closeCamera();
+    if (this._sheet !== "import") this._openImport(null, "pick");
+    this._readImages(shots, appending && this._form.step === "review");
+  }
+
+  _cameraFallback() {
+    const appending = this._cam && this._cam.appending;
+    this._closeCamera();
+    if (appending && this._form) this._setForm({ step: "review" });
+    this._pickFiles("scan");
+  }
+
+  _renderCamera() {
+    const c = this._cam;
+    if (!c) return nothing;
+    const n = c.shots.length;
+    return html`
+      <div class="cam" role="dialog" aria-label="Digitalizar com IA">
+        <video playsinline muted autoplay></video>
+        ${c.flash ? html`<div class="cam-flash" .key=${c.flash}></div>` : nothing}
+        <div class="cam-top">
+          <button class="cam-btn" aria-label="Fechar" @click=${() => this._closeCamera()}>${icon("x")}</button>
+          <span class="cam-title">Digitalizar com IA</span>
+          ${c.torchOk
+            ? html`<button class="cam-btn ${c.torch ? "on" : ""}" aria-label="Lanterna" @click=${() => this._toggleTorch()}>${icon("zap")}</button>`
+            : html`<span class="cam-btn ghost"></span>`}
+        </div>
+        ${c.status === "error"
+          ? html`<div class="cam-msg">
+              ${icon("camera")}
+              <p>${c.error}</p>
+              <button class="btn primary" @click=${() => this._cameraFallback()}>${icon("images")}Escolher foto</button>
+            </div>`
+          : html`<div class="cam-frame"><i></i><i></i><i></i><i></i></div>
+              <p class="cam-hint">${c.status === "starting" ? "Abrindo a câmera…" : n ? `${plural(n, "página", "páginas")}. Fotografe outra ou toque em Pronto.` : "Enquadre a lista e toque no botão"}</p>`}
+        <div class="cam-bottom">
+          <div class="cam-shots">${c.shots.slice(-3).map((s) => html`<img src=${s.url} alt="" />`)}${n > 3 ? html`<span>+${n - 3}</span>` : nothing}</div>
+          <button class="cam-shutter" aria-label="Fotografar" ?disabled=${c.status !== "live" || n >= 6} @click=${() => this._shoot()}><span></span></button>
+          <button class="cam-done" ?disabled=${!n} @click=${() => this._useShots()}>Pronto${n ? ` (${n})` : ""}</button>
+        </div>
+      </div>
+    `;
   }
 
   _readText() {
@@ -779,42 +987,6 @@ class ResolviaPanel extends LitElement {
     const items = parseListText(text);
     if (items.length) this._setForm({ step: "review", items: items.map((t) => ({ text: t, on: true })), provider: "local", error: null });
     else this._setForm({ error: "Não encontrei itens nesse texto." });
-  }
-
-  async _runExtract({ text, images }) {
-    const token = (this._importToken = Date.now());
-    const target = this._list(this._form.target);
-    const live = () => token === this._importToken && this._sheet === "import";
-    try {
-      const res = await this.hass.resolvia.extract({
-        text,
-        images: images ? images.map(({ data, mime }) => ({ data, mime })) : undefined,
-        list_name: target ? target.name : undefined,
-      });
-      if (!live()) return;
-      const items = (res.items || []).map((t) => ({ text: t, on: true }));
-      if (!items.length) {
-        this._setForm({ step: text ? "text" : "pick", error: text ? "Não encontrei itens nessa mensagem." : "Não consegui achar itens nessa foto. Tente uma foto mais de perto e com boa luz." });
-        return;
-      }
-      this._haptic("success");
-      this._setForm({ step: "review", items, provider: res.provider || null });
-    } catch (err) {
-      if (!live()) return;
-      if (text) {
-        const local = parseListText(text);
-        if (local.length) {
-          this._setForm({
-            step: "review",
-            items: local.map((t) => ({ text: t, on: true })),
-            provider: "local",
-            note: "A IA não respondeu, então separei por linhas e vírgulas.",
-          });
-          return;
-        }
-      }
-      this._setForm({ step: text ? "text" : "pick", error: err.message || "Algo deu errado" });
-    }
   }
 
   async _pasteClipboard() {
@@ -1131,9 +1303,9 @@ class ResolviaPanel extends LitElement {
           <main>${page}</main>
           ${this._renderNav(view)}
         </div>
-        ${this._renderSheet()} ${this._renderToast()}
+        ${this._renderSheet()} ${this._renderToast()} ${this._renderCamera()}
         ${this._canImport()
-          ? html`<input id="rv-photos" class="sr" type="file" accept="image/*" multiple tabindex="-1" aria-hidden="true" @change=${(e) => this._onFiles(e)} />
+          ? html`<input id="rv-photos" class="sr" type="file" accept="image/*" ?multiple=${!this._isHaAndroid()} tabindex="-1" aria-hidden="true" @change=${(e) => this._onFiles(e)} />
               <input id="rv-scan" class="sr" type="file" accept="image/*" capture="environment" tabindex="-1" aria-hidden="true" @change=${(e) => this._onFiles(e)} />`
           : nothing}
       </div>
@@ -1159,6 +1331,19 @@ class ResolviaPanel extends LitElement {
         </div>
       </nav>
     `;
+  }
+
+  // ---------- page header (same pattern as EconomIA / InventarIA)
+
+  _renderPageHead(title, status) {
+    const name = ((this.hass.user && this.hass.user.name) || "").trim().split(/\s+/)[0];
+    const offline = this.hass.connected === false;
+    const st = offline ? { text: "Reconectando ao Home Assistant…", tone: "off" } : status;
+    return html`<header class="brand-head">
+      <p class="eyebrow"><span class="brand">Resolv<span>IA</span></span>${name ? ` · Olá, ${name}` : ""}</p>
+      <h1 class="page-title">${title}</h1>
+      ${st ? html`<p class="status"><span class="dot ${st.tone || ""}" aria-hidden="true"></span><span>${st.text}</span></p>` : nothing}
+    </header>`;
   }
 
   // ---------- home
@@ -1189,10 +1374,9 @@ class ResolviaPanel extends LitElement {
 
     return html`
       <section class="page">
-        <div class="page-head">
-          <h1 class="display">Início</h1>
-          <button class="icon-btn" @click=${() => this._go("/buscar")} aria-label="Buscar">${icon("search")}</button>
-        </div>
+        ${this._renderPageHead("Minhas listas", {
+          text: `${plural(lists.length, "lista", "listas")} · ao vivo com o Home Assistant`,
+        })}
 
         <div class="hero">
           <div class="rings">${Array.from({ length: 9 }, () => html`<span class="ring"></span>`)}</div>
@@ -1217,12 +1401,6 @@ class ResolviaPanel extends LitElement {
               </div>
             </div>`
           : html`
-              <div class="sec-head">
-                <h2 class="display">Suas listas</h2>
-                ${hiddenCount
-                  ? html`<button class="text-btn" @click=${() => this._go("/mais")}>${plural(hiddenCount, "oculta", "ocultas")}</button>`
-                  : nothing}
-              </div>
               ${groups.map(
                 (g) => html`
                   <div class="panel">
@@ -1232,6 +1410,9 @@ class ResolviaPanel extends LitElement {
                 `,
               )}
             `}
+        ${hiddenCount
+          ? html`<button class="text-btn" style="display:block;margin:-4px auto 10px" @click=${() => this._go("/mais")}>${plural(hiddenCount, "lista oculta", "listas ocultas")} · ver em Mais</button>`
+          : nothing}
         ${this.hass.user && this.hass.user.is_admin
           ? html`<button class="pick ghost" style="margin:4px auto 0;display:flex" @click=${() => this._openInHA("/config/integrations/dashboard/add?domain=local_todo")}>
               ${icon("list-plus")}<span>Nova lista</span>
@@ -1479,8 +1660,15 @@ class ResolviaPanel extends LitElement {
 
     return html`
       <section class="page">
-        <div class="page-head"><h1 class="display">Prazos</h1></div>
-        <p class="page-sub">Tudo que tem data, de todas as listas, em ordem.</p>
+        ${this._renderPageHead("Prazos", (() => {
+          const late = rows.filter((r) => r.d.overdue).length;
+          const today = rows.filter((r) => !r.d.overdue && r.d.diff === 0).length;
+          const bits = [];
+          if (late) bits.push(plural(late, "atrasado", "atrasados"));
+          if (today) bits.push(`${today} para hoje`);
+          if (coming.length) bits.push(`${coming.length} ${coming.length === 1 ? "volta" : "voltam"} sozinha${coming.length === 1 ? "" : "s"}`);
+          return { text: bits.length ? bits.join(" · ") : "Nada atrasado", tone: late ? "late" : "" };
+        })())}
         ${groups.length || coming.length
           ? [groups.map(
               (g) => html`
@@ -1525,7 +1713,7 @@ class ResolviaPanel extends LitElement {
     }
     return html`
       <section class="page">
-        <div class="page-head"><h1 class="display">Buscar</h1></div>
+        ${this._renderPageHead("Buscar", { text: `Em ${plural(this._L.length, "lista", "listas")} · acentos não importam` })}
         <label class="search-box">
           ${icon("search")}
           <input type="search" placeholder="Buscar em todas as listas" .value=${this._query} @input=${(e) => (this._query = e.target.value)} autofocus enterkeyhint="search" aria-label="Buscar" />
@@ -1535,7 +1723,7 @@ class ResolviaPanel extends LitElement {
           <button class="pick ${this._searchDone ? "on" : ""}" @click=${() => (this._searchDone = !this._searchDone)}>${icon("circle-check")}<span>Incluir concluídos</span></button>
         </div>
         ${!needle
-          ? html`<p class="page-sub" style="margin-top:0">Procure por qualquer palavra em ${plural(this._L.length, "lista", "listas")}. Acentos não importam.</p>`
+          ? html`<p class="page-sub" style="margin-top:0">Procure por qualquer palavra, em todas as listas.</p>`
           : results.length
             ? html`<p class="page-sub" style="margin-top:0">${plural(count, "resultado", "resultados")}</p>
                 ${results.map(
@@ -1558,7 +1746,7 @@ class ResolviaPanel extends LitElement {
     const sw = (on, label, ev) => html`<label class="switch"><input type="checkbox" role="switch" .checked=${on} @change=${ev} aria-label=${label} /><span class="track"></span></label>`;
     return html`
       <section class="page">
-        <div class="page-head"><h1 class="display">Mais</h1></div>
+        ${this._renderPageHead("Mais", { text: `ResolvIA ${VERSION}${this._prefsRemote ? " · personalizações sincronizadas" : ""}` })}
 
         <div class="panel">
           <div class="overline">Aparência</div>
@@ -1826,7 +2014,7 @@ class ResolviaPanel extends LitElement {
           <span class="spin">${icon("loader-circle")}</span>
           <span>${f.loadingText || "Lendo…"}</span>
         </div>
-        <div class="sheet-actions"><button class="btn outline" @click=${toPick}>Cancelar</button></div>
+        <div class="sheet-actions"><button class="btn outline" @click=${() => (f.prevStep === "review" ? ((this._importToken = 0), this._setForm({ step: "review" })) : toPick())}>Cancelar</button></div>
       `;
     }
 
@@ -1857,6 +2045,12 @@ class ResolviaPanel extends LitElement {
             });
           }}>${icon("plus")}<span>Adicionar linha</span></button>
         </div>
+        ${ai.images
+          ? html`<div class="more-row">
+              <button class="pick" @click=${() => this._pickFiles("photos")}>${icon("images")}<span>Mais fotos</span></button>
+              <button class="pick" @click=${() => this._openCamera()}>${icon("scan-text")}<span>Digitalizar mais</span></button>
+            </div>`
+          : nothing}
         ${targets.length > 1
           ? html`<div class="field">
               <span class="flabel">Adicionar em</span>
@@ -1885,10 +2079,10 @@ class ResolviaPanel extends LitElement {
         </button>
         <button class="imp-opt" ?disabled=${!ai.images} @click=${() => this._pickFiles("photos")}>
           <span class="imp-ic">${icon("images")}</span>
-          <span class="imp-tx"><b>Escolher fotos</b><small>Prints e fotos da galeria (até 6)</small></span>
+          <span class="imp-tx"><b>Escolher fotos</b><small>${this._isHaAndroid() ? "Prints e fotos da galeria, uma por vez" : "Prints e fotos da galeria (até 6)"}</small></span>
           ${icon("chevron-right")}
         </button>
-        <button class="imp-opt" ?disabled=${!ai.images} @click=${() => this._pickFiles("scan")}>
+        <button class="imp-opt" ?disabled=${!ai.images} @click=${() => this._openCamera()}>
           <span class="imp-ic">${icon("scan-text")}</span>
           <span class="imp-tx"><b>Digitalizar com IA</b><small>Tire uma foto de uma lista em papel</small></span>
           ${icon("chevron-right")}

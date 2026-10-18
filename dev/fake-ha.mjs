@@ -134,7 +134,11 @@ function fakeAI(msg) {
   aiCalls.push({ entity_id: d.entity_id, files });
   console.log("fake AI call", JSON.stringify({ entity_id: d.entity_id, files }));
   let items;
-  if (files.length) items = ["Leite integral (2 caixas)", "Ovos (1 dúzia)", "Pão francês"];
+  if (files.length) {
+    // Alternate answers so "add more photos" can be tested.
+    const photoCalls = aiCalls.filter((c) => c.files.length).length;
+    items = photoCalls % 2 ? ["Leite integral (2 caixas)", "Ovos (1 dúzia)", "Pão francês"] : ["Café 500 g", "Ovos (1 dúzia)", "Detergente"];
+  }
   else {
     const m = (d.instructions || "").split('"""')[1] || "";
     items = m.split(/[\n,]|\se\s/).map((x) => x.replace(/^.*?:\s*/, "").trim()).filter(Boolean);

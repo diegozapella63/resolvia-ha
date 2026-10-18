@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.3.0
+
+- Corrigido: "Escolher fotos" não fazia nada no app Android do Home Assistant. A versão atual do app descarta seleções de várias fotos, então lá a escolha é de uma foto por vez (como na InventarIA), com "Mais fotos" na revisão para juntar outras.
+- "Digitalizar com IA" agora abre uma câmera dentro do próprio ResolvIA, com moldura, lanterna e várias páginas seguidas. Se a câmera não estiver liberada, oferece escolher uma foto.
+- Topo das páginas no mesmo padrão do EconomIA: "ResolvIA · Olá, Diego", título grande e linha de status.
+- Corrigido o número cortado no selo da aba Prazos.
+
 ## 2.2.1
 
 - Botões renomeados: "Escolher fotos" e "Digitalizar com IA".

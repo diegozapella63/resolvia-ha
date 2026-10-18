@@ -13,7 +13,7 @@ import { Store } from "./lib/store.js";
 import { Recurring } from "./lib/recurring.js";
 import { AI } from "./lib/ai.js";
 
-const VERSION = "2.2.1";
+const VERSION = "2.3.0";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const WWW = path.join(HERE, "www");
 const DEV = process.env.RESOLVIA_DEV === "1";
