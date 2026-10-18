@@ -10,6 +10,22 @@ Nada é copiado: o ResolvIA mostra e edita as mesmas listas que o HA já tem.
 2. Ative **Mostrar na barra lateral** (e, se quiser, **Watchdog**).
 3. Abra o **ResolvIA** pela barra lateral.
 
+## Importar de mensagem ou foto
+
+No botão **Adicionar** (ou no ícone ao lado do campo de adicionar de uma lista) há três caminhos:
+
+- **Colar mensagem**: cole uma mensagem do WhatsApp, e-mail ou anotação ("amor compra leite, ovos e café"). A IA separa os itens.
+- **Escolher fotos**: prints ou fotos de listas da galeria (até 6 por vez).
+- **Digitalizar**: abre a câmera para fotografar uma lista em papel, mesmo escrita à mão.
+
+Você revisa os itens (dá para corrigir, desmarcar ou incluir linhas) e escolhe a lista antes de adicionar.
+
+### Qual IA é usada
+
+1. **A IA do seu Home Assistant** (AI Task), se houver uma integração de IA configurada com tarefa de IA, como Google Gemini ou OpenAI. Não precisa de chave nova. As fotos ficam por alguns segundos em `/media/resolvia/` para a IA ler e são apagadas em seguida.
+2. Se o HA não tiver isso, uma **chave da API do Gemini** colocada na aba **Configuração** do app.
+3. Sem nenhuma das duas, a mensagem colada é separada por linhas, vírgulas e "e"; a leitura de fotos fica desativada.
+
 ## Tarefas que voltam sozinhas
 
 Abra um item e escolha **Repetir depois de concluir** (todo dia, 2 ou 3 dias, 1 ou 2 semanas, 1 mês ou outro número de dias).

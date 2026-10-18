@@ -11,8 +11,9 @@ import { acceptUpgrade } from "./lib/ws.js";
 import { HAClient } from "./lib/ha.js";
 import { Store } from "./lib/store.js";
 import { Recurring } from "./lib/recurring.js";
+import { AI } from "./lib/ai.js";
 
-const VERSION = "2.0.0";
+const VERSION = "2.1.0";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const WWW = path.join(HERE, "www");
 const DEV = process.env.RESOLVIA_DEV === "1";
@@ -22,6 +23,9 @@ const TOKEN = process.env.SUPERVISOR_TOKEN || process.env.HA_TOKEN || "";
 const DATA_DIR = process.env.DATA_DIR || "/data";
 const DAY_MS = DEV ? Number(process.env.RESOLVIA_DAY_MS || 0) : 0;
 const INGRESS_IPS = new Set(["172.30.32.2"]);
+const MEDIA_DIR = process.env.MEDIA_DIR || "/media";
+const OPTIONS_FILE = process.env.OPTIONS_FILE || path.join(DATA_DIR, "options.json");
+const MAX_UPLOAD = 30 * 1024 * 1024;
 const SERVICES = new Set(["add_item", "update_item", "remove_item", "remove_completed_items"]);
 
 const stamp = () => new Date().toISOString().replace("T", " ").slice(0, 19);
@@ -39,6 +43,7 @@ const store = new Store(DATA_DIR, log);
 const ha = new HAClient(HA_URL, TOKEN, log);
 const todoStates = new Map();
 const recurring = new Recurring({ ha, store, log, states: todoStates, dayMs: DAY_MS });
+const ai = new AI({ ha, log, mediaDir: MEDIA_DIR, optionsFile: OPTIONS_FILE, geminiUrl: DEV ? process.env.GEMINI_URL : undefined });
 const itemSubs = new Map(); // entity_id -> subscription (for the recurring engine)
 const listWatchers = new Set(); // {session, id}
 const ruleWatchers = new Set(); // {session, id}
@@ -207,9 +212,10 @@ class Session {
       case "resolvia/bootstrap": {
         await ha.whenReady();
         if (!todoStates.size) await loadStates().catch(() => {});
-        const reg = await registry();
+        const [reg, aiStatus] = await Promise.all([registry(), ai.status().catch(() => ({ available: false }))]);
         return this.result(id, {
           version: VERSION,
+          ai: aiStatus,
           user: this.user,
           time_zone: process.env.TZ || null,
           states: Object.fromEntries(todoStates),
@@ -306,12 +312,54 @@ function allowed(req) {
   return INGRESS_IPS.has(ip);
 }
 
+function sendJson(res, status, obj) {
+  const body = JSON.stringify(obj);
+  res.writeHead(status, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
+  res.end(body);
+}
+
+/** POST /api/extract {text?, images?: [{data(base64), mime}], list_name?} -> {items, provider} */
+function handleExtract(req, res) {
+  const chunks = [];
+  let size = 0;
+  let aborted = false;
+  req.on("data", (c) => {
+    size += c.length;
+    if (size > MAX_UPLOAD) {
+      aborted = true;
+      sendJson(res, 413, { error: "Arquivo grande demais" });
+      req.destroy();
+      return;
+    }
+    chunks.push(c);
+  });
+  req.on("end", async () => {
+    if (aborted) return;
+    let body;
+    try {
+      body = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+    } catch (e) {
+      return sendJson(res, 400, { error: "JSON inválido" });
+    }
+    const started = Date.now();
+    try {
+      const out = await ai.extract({ text: body.text, images: body.images, listName: body.list_name });
+      log.info(`Importação: ${out.items.length} itens via ${out.provider} em ${((Date.now() - started) / 1000).toFixed(1)}s`);
+      sendJson(res, 200, out);
+    } catch (err) {
+      log.warn(`Importação falhou: ${err.message}`);
+      sendJson(res, err.code === "no_ai" ? 409 : 502, { error: err.message, code: err.code || "failed" });
+    }
+  });
+}
+
 const server = http.createServer((req, res) => {
   if (!allowed(req)) {
     res.writeHead(403).end("Forbidden");
     return;
   }
   const url = new URL(req.url, "http://x");
+  if (url.pathname === "/api/extract" && req.method === "POST") return handleExtract(req, res);
   const file = FILES[url.pathname];
   if (!file || (req.method !== "GET" && req.method !== "HEAD")) {
     res.writeHead(404).end("Not found");

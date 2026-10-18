@@ -193,6 +193,23 @@ export async function createAppHass(onChange) {
     language: "pt-BR",
     connected: true,
     version: boot.version,
+    resolvia: {
+      ai: boot.ai || { available: false },
+      async extract(payload) {
+        const res = await fetch(new URL("api/extract", location.href), {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const err = new Error(body.error || `Erro ${res.status}`);
+          err.code = body.code;
+          throw err;
+        }
+        return body;
+      },
+    },
     connection: conn,
     callWS: (msg) => conn.sendMessagePromise(msg),
     callService: (domain, service, data, target) =>

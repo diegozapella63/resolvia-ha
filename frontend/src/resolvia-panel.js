@@ -30,9 +30,11 @@ import {
   greeting,
   splitLinks,
   ymd,
+  parseListText,
+  prepareImage,
 } from "./util.js";
 
-const VERSION = "2.0.0";
+const VERSION = "2.1.0";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -689,6 +691,166 @@ class ResolviaPanel extends LitElement {
     });
   }
 
+  // ------------------------------------------------------------ import (message / photos / scan)
+
+  _aiInfo() {
+    return (this.hass && this.hass.resolvia && this.hass.resolvia.ai) || { available: false };
+  }
+
+  _canImport() {
+    return !!(this.hass && this.hass.resolvia && this.hass.resolvia.extract);
+  }
+
+  _importTarget(listId) {
+    const ok = (id) => {
+      const l = id && this._list(id);
+      return l && has(l.features, F.CREATE) && !l.unavailable ? id : null;
+    };
+    const candidates = this._visible().filter((l) => has(l.features, F.CREATE) && !l.unavailable);
+    return ok(listId) || ok(store.get(LAST_LIST_KEY, null)) || (candidates[0] && candidates[0].id) || null;
+  }
+
+  /** start: "pick" | "text" | "photos" | "scan". Photos/scan open the file chooser right away. */
+  _openImport(listId, start = "pick") {
+    const target = this._importTarget(listId);
+    if (!target) {
+      this._showToast("Nenhuma lista aceita itens novos");
+      return;
+    }
+    this._releaseImages();
+    this._importToken = 0;
+    this._openSheet("import", {
+      target,
+      step: start === "text" ? "text" : "pick",
+      text: "",
+      images: [],
+      items: [],
+      provider: null,
+      error: null,
+      note: null,
+    });
+    if (start === "photos" || start === "scan") this._pickFiles(start);
+    if (start === "text") this._focusImportText();
+  }
+
+  _focusImportText() {
+    this.updateComplete.then(() => {
+      const ta = this.renderRoot.querySelector(".sheet textarea");
+      if (ta) ta.focus();
+    });
+  }
+
+  _pickFiles(kind) {
+    const input = this.renderRoot.querySelector(kind === "scan" ? "#rv-scan" : "#rv-photos");
+    if (!input) return;
+    input.value = "";
+    input.click();
+  }
+
+  _releaseImages() {
+    const f = this._form;
+    if (f && f.images) for (const img of f.images) if (img.url) URL.revokeObjectURL(img.url);
+  }
+
+  async _onFiles(ev) {
+    const files = [...(ev.target.files || [])].filter((f) => f.type.startsWith("image/") || !f.type).slice(0, 6);
+    if (!files.length) return;
+    if (this._sheet !== "import") this._openImport(null, "pick");
+    this._releaseImages();
+    this._setForm({ step: "loading", error: null, note: null, images: [], loadingText: "Preparando as fotos…" });
+    const images = [];
+    for (const file of files) images.push(await prepareImage(file));
+    if (this._sheet !== "import") return;
+    this._setForm({ images, loadingText: images.length > 1 ? `Lendo ${images.length} fotos com IA…` : "Lendo a foto com IA…" });
+    this._runExtract({ images });
+  }
+
+  _readText() {
+    const text = (this._form.text || "").trim();
+    if (!text) {
+      this._focusImportText();
+      return;
+    }
+    if (this._aiInfo().available) {
+      this._setForm({ step: "loading", error: null, note: null, loadingText: "Separando os itens com IA…" });
+      this._runExtract({ text });
+      return;
+    }
+    const items = parseListText(text);
+    if (items.length) this._setForm({ step: "review", items: items.map((t) => ({ text: t, on: true })), provider: "local", error: null });
+    else this._setForm({ error: "Não encontrei itens nesse texto." });
+  }
+
+  async _runExtract({ text, images }) {
+    const token = (this._importToken = Date.now());
+    const target = this._list(this._form.target);
+    const live = () => token === this._importToken && this._sheet === "import";
+    try {
+      const res = await this.hass.resolvia.extract({
+        text,
+        images: images ? images.map(({ data, mime }) => ({ data, mime })) : undefined,
+        list_name: target ? target.name : undefined,
+      });
+      if (!live()) return;
+      const items = (res.items || []).map((t) => ({ text: t, on: true }));
+      if (!items.length) {
+        this._setForm({ step: text ? "text" : "pick", error: text ? "Não encontrei itens nessa mensagem." : "Não consegui achar itens nessa foto. Tente uma foto mais de perto e com boa luz." });
+        return;
+      }
+      this._haptic("success");
+      this._setForm({ step: "review", items, provider: res.provider || null });
+    } catch (err) {
+      if (!live()) return;
+      if (text) {
+        const local = parseListText(text);
+        if (local.length) {
+          this._setForm({
+            step: "review",
+            items: local.map((t) => ({ text: t, on: true })),
+            provider: "local",
+            note: "A IA não respondeu, então separei por linhas e vírgulas.",
+          });
+          return;
+        }
+      }
+      this._setForm({ step: text ? "text" : "pick", error: err.message || "Algo deu errado" });
+    }
+  }
+
+  async _pasteClipboard() {
+    try {
+      const t = await navigator.clipboard.readText();
+      if (!t) throw new Error("empty");
+      this._setForm({ text: t, error: null });
+    } catch (e) {
+      this._focusImportText();
+      this._showToast("Toque e segure no campo para colar");
+    }
+  }
+
+  _setImportItem(i, changes) {
+    const items = this._form.items.slice();
+    items[i] = { ...items[i], ...changes };
+    this._setForm({ items });
+  }
+
+  async _importAdd() {
+    const f = this._form;
+    const target = this._list(f.target);
+    const items = f.items.filter((i) => i.on && i.text.trim());
+    if (!target || !items.length) return;
+    store.set(LAST_LIST_KEY, target.id);
+    this._releaseImages();
+    this._closeSheet();
+    this._haptic("success");
+    let n = 0;
+    for (const it of items) {
+      if (await this._call("add_item", { item: it.text.trim() }, target.id)) n++;
+      else break;
+    }
+    if (n) this._showToast(`${plural(n, "item adicionado", "itens adicionados")} em ${clip(target.name, 24)}`);
+  }
+
   _openEdit(list, item) {
     const due = parseDue(item.due);
     const rule = this._ruleFor(list.id, item);
@@ -970,6 +1132,10 @@ class ResolviaPanel extends LitElement {
           ${this._renderNav(view)}
         </div>
         ${this._renderSheet()} ${this._renderToast()}
+        ${this._canImport()
+          ? html`<input id="rv-photos" class="sr" type="file" accept="image/*" multiple tabindex="-1" aria-hidden="true" @change=${(e) => this._onFiles(e)} />
+              <input id="rv-scan" class="sr" type="file" accept="image/*" capture="environment" tabindex="-1" aria-hidden="true" @change=${(e) => this._onFiles(e)} />`
+          : nothing}
       </div>
     `;
   }
@@ -1146,6 +1312,9 @@ class ResolviaPanel extends LitElement {
           ? html`<div class="quick">
               <form @submit=${(e) => this._quickAdd(e, l)}>
                 <input type="text" enterkeyhint="done" autocomplete="off" placeholder="Adicionar item…" aria-label="Novo item" @paste=${(e) => this._onQuickPaste(e, l)} />
+                ${this._canImport()
+                  ? html`<button class="imp-btn" type="button" aria-label="Importar de mensagem ou foto" @click=${() => this._openImport(l.id)}>${icon("scan-text")}</button>`
+                  : nothing}
                 <button class="add-btn" type="submit" aria-label="Adicionar">${icon("plus")}</button>
               </form>
             </div>`
@@ -1493,6 +1662,7 @@ class ResolviaPanel extends LitElement {
     else if (this._sheet === "listmenu") body = this._renderListMenu();
     else if (this._sheet === "customize") body = this._renderCustomize();
     else if (this._sheet === "confirm") body = this._renderConfirm();
+    else if (this._sheet === "import") body = this._renderImportSheet();
     return html`
       <div class="scrim" @click=${() => this._closeSheet()}></div>
       <div class="sheet" role="dialog" aria-modal="true" style=${this._sheetStyle()} @keydown=${(e) => e.key === "Escape" && this._closeSheet()}>
@@ -1543,6 +1713,13 @@ class ResolviaPanel extends LitElement {
         <h3 class="display">${f.mode === "add" ? "Novo item" : "Editar item"}</h3>
         <button class="icon-btn" @click=${() => this._closeSheet()} aria-label="Fechar">${icon("x")}</button>
       </div>
+      ${f.mode === "add" && this._canImport()
+        ? html`<div class="imp-strip">
+            <button @click=${() => this._openImport(f.target, "text")}>${icon("clipboard-paste")}<span>Colar mensagem</span></button>
+            <button @click=${() => this._openImport(f.target, "photos")}>${icon("images")}<span>Fotos</span></button>
+            <button @click=${() => this._openImport(f.target, "scan")}>${icon("scan-text")}<span>Digitalizar</span></button>
+          </div>`
+        : nothing}
       <label class="field">
         <span class="flabel">Item</span>
         <textarea rows="2" .value=${f.summary} @input=${(e) => this._setForm({ summary: e.target.value })} @keydown=${(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), this._saveItem())} placeholder="O que precisa ser resolvido?"></textarea>
@@ -1607,6 +1784,120 @@ class ResolviaPanel extends LitElement {
         ${canDelete ? html`<button class="btn danger" @click=${() => this._deleteItem()} aria-label="Excluir">${icon("trash")}</button>` : nothing}
         <button class="btn primary" @click=${() => this._saveItem()}>${f.mode === "add" ? "Adicionar" : f.target !== f.listId ? "Mover" : "Salvar"}</button>
       </div>
+    `;
+  }
+
+  _renderImportSheet() {
+    const f = this._form;
+    const ai = this._aiInfo();
+    const head = (title, back) => html`<div class="sheet-head">
+      ${back ? html`<button class="icon-btn back" @click=${back} aria-label="Voltar">${icon("chevron-left")}</button>` : nothing}
+      <h3 class="display">${title}</h3>
+      <button class="icon-btn" @click=${() => this._closeSheet()} aria-label="Fechar">${icon("x")}</button>
+    </div>`;
+    const toPick = () => {
+      this._importToken = 0;
+      this._setForm({ step: "pick", error: null, note: null });
+    };
+    const error = f.error ? html`<div class="imp-error">${icon("circle-alert")}<span>${f.error}</span></div>` : nothing;
+    const thumbs = f.images && f.images.length ? html`<div class="thumbs">${f.images.map((img) => html`<img src=${img.url} alt="" />`)}</div>` : nothing;
+
+    if (f.step === "text") {
+      return html`
+        ${head("Colar mensagem", toPick)}
+        <label class="field">
+          <span class="flabel">Mensagem</span>
+          <textarea rows="7" .value=${f.text} placeholder="Cole aqui a mensagem do WhatsApp, e-mail ou anotação…" @input=${(e) => this._setForm({ text: e.target.value, error: null })}></textarea>
+        </label>
+        ${error}
+        <div class="sheet-actions">
+          <button class="btn outline" @click=${() => this._pasteClipboard()}>${icon("clipboard-paste")}Colar</button>
+          <button class="btn primary" ?disabled=${!(f.text || "").trim()} @click=${() => this._readText()}>${ai.available ? icon("sparkles") : nothing}Separar itens</button>
+        </div>
+        <p class="sheet-note">${ai.available ? "A IA do seu Home Assistant separa os itens, mesmo de mensagens corridas." : "Sem IA configurada: separo por linhas, vírgulas e “e”."}</p>
+      `;
+    }
+
+    if (f.step === "loading") {
+      return html`
+        ${head("Lendo…")}
+        ${thumbs}
+        <div class="imp-loading">
+          <span class="spin">${icon("loader-circle")}</span>
+          <span>${f.loadingText || "Lendo…"}</span>
+        </div>
+        <div class="sheet-actions"><button class="btn outline" @click=${toPick}>Cancelar</button></div>
+      `;
+    }
+
+    if (f.step === "review") {
+      const target = this._list(f.target);
+      const chosen = f.items.filter((i) => i.on && i.text.trim()).length;
+      const targets = this._L.filter((l) => has(l.features, F.CREATE) && !l.unavailable && (!l.hidden || l.id === f.target));
+      const from =
+        f.provider === "local" ? "separados por linha" : f.provider === "gemini" ? "lidos pelo Gemini" : f.provider ? "lidos pela IA do Home Assistant" : "";
+      return html`
+        ${head("Revisar itens", toPick)}
+        ${thumbs}
+        <p class="sheet-note top">${plural(f.items.length, "item encontrado", "itens encontrados")}${from ? ` · ${from}` : ""}. Toque no texto para corrigir.</p>
+        ${f.note ? html`<div class="imp-error soft">${icon("sparkles")}<span>${f.note}</span></div>` : nothing}
+        <div class="imp-list">
+          ${f.items.map(
+            (it, i) => html`<div class="imp-row ${it.on ? "" : "off"}">
+              <button class="check ${it.on ? "on" : ""}" role="checkbox" aria-checked=${it.on ? "true" : "false"} aria-label="Incluir" @click=${() => this._setImportItem(i, { on: !it.on })}>${icon("check")}</button>
+              <input type="text" .value=${it.text} aria-label="Item" @input=${(e) => this._setImportItem(i, { text: e.target.value })} />
+              <button class="icon-btn mini" aria-label="Remover" @click=${() => this._setForm({ items: f.items.filter((_, j) => j !== i) })}>${icon("x")}</button>
+            </div>`,
+          )}
+          <button class="pick ghost add-row" @click=${() => {
+            this._setForm({ items: [...f.items, { text: "", on: true }] });
+            this.updateComplete.then(() => {
+              const rows = this.renderRoot.querySelectorAll(".imp-row input");
+              if (rows.length) rows[rows.length - 1].focus();
+            });
+          }}>${icon("plus")}<span>Adicionar linha</span></button>
+        </div>
+        ${targets.length > 1
+          ? html`<div class="field">
+              <span class="flabel">Adicionar em</span>
+              <div class="chip-row">
+                ${targets.map((t) => html`<button class="pick list ${f.target === t.id ? "on" : ""}" style=${colorVars(t.color, this._dark)} @click=${() => this._setForm({ target: t.id })}><span class="dot"></span><span>${clip(t.name, 26)}</span></button>`)}
+              </div>
+            </div>`
+          : nothing}
+        <div class="sheet-actions">
+          <button class="btn primary" ?disabled=${!chosen} @click=${() => this._importAdd()}>
+            ${chosen ? `Adicionar ${plural(chosen, "item", "itens")}` : "Nenhum item marcado"}${target && targets.length <= 1 ? ` em ${clip(target.name, 18)}` : ""}
+          </button>
+        </div>
+      `;
+    }
+
+    // pick
+    return html`
+      ${head("Importar itens")}
+      <p class="sheet-note top">Traga uma lista pronta de uma mensagem ou de uma foto. ${ai.available ? "A IA separa os itens e você revisa antes de adicionar." : ""}</p>
+      <div class="imp-options">
+        <button class="imp-opt" @click=${() => (this._setForm({ step: "text", error: null }), this._focusImportText())}>
+          <span class="imp-ic">${icon("message-square-text")}</span>
+          <span class="imp-tx"><b>Colar mensagem</b><small>WhatsApp, e-mail, anotação</small></span>
+          ${icon("chevron-right")}
+        </button>
+        <button class="imp-opt" ?disabled=${!ai.images} @click=${() => this._pickFiles("photos")}>
+          <span class="imp-ic">${icon("images")}</span>
+          <span class="imp-tx"><b>Escolher fotos</b><small>Prints e fotos da galeria (até 6)</small></span>
+          ${icon("chevron-right")}
+        </button>
+        <button class="imp-opt" ?disabled=${!ai.images} @click=${() => this._pickFiles("scan")}>
+          <span class="imp-ic">${icon("scan-text")}</span>
+          <span class="imp-tx"><b>Digitalizar</b><small>Tire uma foto de uma lista em papel</small></span>
+          ${icon("chevron-right")}
+        </button>
+      </div>
+      ${!ai.images
+        ? html`<div class="imp-error soft">${icon("sparkles")}<span>Para ler fotos, configure uma IA no Home Assistant com <b>tarefa de IA</b> (por exemplo a integração Google Gemini) ou coloque uma chave do Gemini nas opções do app ResolvIA.</span></div>`
+        : nothing}
+      ${error}
     `;
   }
 

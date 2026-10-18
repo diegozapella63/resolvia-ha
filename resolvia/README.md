@@ -7,4 +7,5 @@ Suas listas de tarefas do Home Assistant num visual caprichado, com tarefas que 
 - Prazos de todas as listas num lugar só
 - Busca em todas as listas
 - Tarefas recorrentes: "passar pano 3 dias depois de feito"
+- Importar itens de mensagens, fotos e listas em papel, com a IA do Home Assistant
 - Tema claro e escuro seguindo o Home Assistant

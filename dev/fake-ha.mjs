@@ -2,10 +2,16 @@
 // ResolvIA without a real Home Assistant.
 //   node dev/fake-ha.mjs            (listens on ws://127.0.0.1:8123/api/websocket, token "dev")
 import http from "node:http";
+import fs from "node:fs";
+import path from "node:path";
 import { acceptUpgrade } from "../resolvia/rootfs/app/lib/ws.js";
 
 const PORT = Number(process.env.FAKE_HA_PORT || 8123);
 const TOKEN = process.env.FAKE_HA_TOKEN || "dev";
+// The app writes photos here (same folder Home Assistant sees as /media).
+const MEDIA_DIR = process.env.FAKE_MEDIA_DIR || process.env.MEDIA_DIR || "./.data/media";
+const WITH_AI = process.env.FAKE_HA_NO_AI !== "1";
+const aiCalls = [];
 const F = { CREATE: 1, DELETE: 2, UPDATE: 4, MOVE: 8, DUE_DATE: 16, DUE_DATETIME: 32, DESCRIPTION: 64 };
 
 let seq = 1;
@@ -112,6 +118,30 @@ function callService(msg) {
   return { context: { id: "ctx" } };
 }
 
+// Pretend AI: checks the attachments exist where Home Assistant would look for them.
+function fakeAI(msg) {
+  if (!WITH_AI) fail("not_found", "Service not found");
+  if (!msg.return_response) fail("service_validation_error", "return_response required");
+  const d = msg.service_data || {};
+  if (!d.structure || !d.structure.items) fail("service_validation_error", "structure missing");
+  const files = (d.attachments || []).map((a) => {
+    const prefix = "media-source://media_source/local/";
+    if (!a.media_content_id.startsWith(prefix)) fail("service_validation_error", "bad media id");
+    const p = path.join(MEDIA_DIR, a.media_content_id.slice(prefix.length));
+    if (!fs.existsSync(p)) fail("service_validation_error", `attachment not found: ${p}`);
+    return { path: p, bytes: fs.statSync(p).size, type: a.media_content_type };
+  });
+  aiCalls.push({ entity_id: d.entity_id, files });
+  console.log("fake AI call", JSON.stringify({ entity_id: d.entity_id, files }));
+  let items;
+  if (files.length) items = ["Leite integral (2 caixas)", "Ovos (1 dúzia)", "Pão francês"];
+  else {
+    const m = (d.instructions || "").split('"""')[1] || "";
+    items = m.split(/[\n,]|\se\s/).map((x) => x.replace(/^.*?:\s*/, "").trim()).filter(Boolean);
+  }
+  return { context: { id: "ctx" }, response: { conversation_id: "c1", data: { items } } };
+}
+
 class Conn {
   constructor(ws) {
     this.ws = ws;
@@ -141,7 +171,13 @@ class Conn {
     try {
       switch (msg.type) {
         case "get_states":
-          return ok([...Object.keys(lists).map(stateOf), { entity_id: "light.sala", state: "on", attributes: {} }]);
+          return ok([
+            ...Object.keys(lists).map(stateOf),
+            { entity_id: "light.sala", state: "on", attributes: {} },
+            ...(WITH_AI ? [{ entity_id: "ai_task.google_ai_task", state: "unknown", attributes: { supported_features: 3 } }] : []),
+          ]);
+        case "ai_task/preferences/get":
+          return ok({ gen_data_entity_id: WITH_AI ? "ai_task.google_ai_task" : null });
         case "get_config":
           return ok({ time_zone: "America/Sao_Paulo", version: "2026.10.2" });
         case "config/entity_registry/list_for_display":
@@ -177,6 +213,7 @@ class Conn {
           return ok();
         }
         case "call_service":
+          if (msg.domain === "ai_task") return ok(fakeAI(msg));
           return ok(callService(msg));
         default:
           fail("unknown_command", `Unknown command ${msg.type}`);

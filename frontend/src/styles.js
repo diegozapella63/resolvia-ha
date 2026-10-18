@@ -25,7 +25,7 @@ export const styles = css`
     --rv-skeleton: #efe5e3;
     --rv-header-bg: var(--app-header-background-color, #fbf6f4);
     --rv-header-fg: var(--app-header-text-color, #231a1b);
-    --rv-nav-h: 74px;
+    --rv-nav-h: 68px;
     color-scheme: light;
     display: block;
     height: 100%;
@@ -152,7 +152,7 @@ export const styles = css`
   .page {
     max-width: 720px;
     margin: 0 auto;
-    padding: 22px 18px 40px;
+    padding: 18px 18px 36px;
     animation: rv-in 0.28s ease both;
   }
   @keyframes rv-in {
@@ -174,19 +174,19 @@ export const styles = css`
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    margin: 4px 2px 18px;
+    margin: 2px 2px 12px;
   }
   .page-head h1 {
-    font-size: 40px;
+    font-size: 26px;
   }
   .page-sub {
     color: var(--rv-muted);
-    font-size: 15.5px;
+    font-size: 14.5px;
     line-height: 1.5;
     margin: -8px 2px 20px;
   }
   .overline {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 700;
     letter-spacing: 0.09em;
     text-transform: uppercase;
@@ -196,7 +196,7 @@ export const styles = css`
   /* ---------- hero (spiral notebook page) ---------- */
   .hero {
     position: relative;
-    margin: 30px 4px 34px;
+    margin: 26px 4px 28px;
     transform: rotate(-1.4deg);
   }
   .hero-card {
@@ -210,9 +210,9 @@ export const styles = css`
     background-position: 0 30px;
     color: var(--rv-on-accent);
     border-radius: 8px 8px 8px 8px;
-    padding: 40px 24px 24px 30px;
+    padding: 36px 22px 20px 28px;
     clip-path: polygon(0 0, 100% 0, 100% calc(100% - 30px), calc(100% - 30px) 100%, 0 100%);
-    min-height: 196px;
+    min-height: 160px;
   }
   .hero-card::before {
     content: "";
@@ -275,14 +275,14 @@ export const styles = css`
   }
   .hero-kicker {
     font-weight: 700;
-    font-size: 16px;
+    font-size: 14px;
     opacity: 0.72;
     margin-bottom: 8px;
   }
   .hero-big {
     font-family: var(--rv-display);
     font-weight: 800;
-    font-size: 64px;
+    font-size: 50px;
     line-height: 0.9;
     letter-spacing: -0.5px;
     display: flex;
@@ -291,12 +291,12 @@ export const styles = css`
     flex-wrap: wrap;
   }
   .hero-big small {
-    font-size: 34px;
+    font-size: 26px;
     letter-spacing: 0;
   }
   .hero-sub {
     margin-top: 12px;
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 600;
     opacity: 0.78;
   }
@@ -310,7 +310,7 @@ export const styles = css`
     padding: 4px 10px 3px;
     font-family: var(--rv-display);
     font-weight: 800;
-    font-size: 26px;
+    font-size: 22px;
     letter-spacing: 1.5px;
     opacity: 0.32;
     color: var(--rv-on-accent);
@@ -331,12 +331,12 @@ export const styles = css`
     margin: 0 2px 12px;
   }
   .sec-head h2 {
-    font-size: 30px;
+    font-size: 24px;
   }
   .text-btn {
     color: var(--rv-accent-ink);
     font-weight: 700;
-    font-size: 15px;
+    font-size: 14px;
     padding: 8px 4px;
   }
   .panel {
@@ -350,7 +350,7 @@ export const styles = css`
     padding: 16px 0 6px;
   }
   .panel-title {
-    font-size: 26px;
+    font-size: 22px;
     padding: 18px 0 2px;
   }
 
@@ -358,8 +358,8 @@ export const styles = css`
     width: 100%;
     display: flex;
     align-items: center;
-    gap: 14px;
-    padding: 16px 0;
+    gap: 13px;
+    padding: 14px 0;
     text-align: left;
     border-top: 1px solid var(--rv-line);
   }
@@ -371,8 +371,8 @@ export const styles = css`
     opacity: 0.5;
   }
   .tile {
-    width: 46px;
-    height: 46px;
+    width: 42px;
+    height: 42px;
     border-radius: 14px;
     display: grid;
     place-items: center;
@@ -381,8 +381,8 @@ export const styles = css`
     flex: none;
   }
   .tile .i {
-    width: 23px;
-    height: 23px;
+    width: 21px;
+    height: 21px;
   }
   .lc-main {
     flex: 1;
@@ -392,14 +392,14 @@ export const styles = css`
     gap: 4px;
   }
   .lc-title {
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 700;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
   .lc-meta {
-    font-size: 14.5px;
+    font-size: 13.5px;
     color: var(--rv-muted);
     display: flex;
     align-items: center;
@@ -423,7 +423,7 @@ export const styles = css`
   .lc-num {
     font-family: var(--rv-display);
     font-weight: 700;
-    font-size: 36px;
+    font-size: 26px;
     line-height: 1;
     min-width: 34px;
     text-align: right;
@@ -433,8 +433,8 @@ export const styles = css`
     color: var(--ci);
   }
   .lc-num .i {
-    width: 26px;
-    height: 26px;
+    width: 22px;
+    height: 22px;
     margin-left: auto;
   }
 
@@ -445,14 +445,14 @@ export const styles = css`
     border: 1px solid var(--rv-line-strong);
     border-radius: 9px;
     padding: 2px 8px;
-    font-size: 13.5px;
+    font-size: 12.5px;
     font-weight: 700;
     color: var(--rv-text-2);
     white-space: nowrap;
   }
   .tag .i {
-    width: 14px;
-    height: 14px;
+    width: 13px;
+    height: 13px;
   }
   .tag.late {
     border-color: transparent;
@@ -477,7 +477,7 @@ export const styles = css`
     display: flex;
     align-items: flex-start;
     gap: 8px;
-    font-size: 14.5px;
+    font-size: 13.5px;
     line-height: 1.45;
     color: var(--rv-muted);
     margin-top: 2px;
@@ -508,7 +508,7 @@ export const styles = css`
     justify-content: center;
     gap: 8px;
     padding: 9px 16px;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 650;
     background: var(--rv-late-soft);
     color: var(--rv-late);
@@ -536,7 +536,7 @@ export const styles = css`
     padding-top: 6px;
   }
   .detail-head h1 {
-    font-size: 40px;
+    font-size: 28px;
     overflow-wrap: anywhere;
   }
   .detail-head .overline {
@@ -547,7 +547,7 @@ export const styles = css`
     align-items: center;
     gap: 12px;
     margin: 8px 2px 16px;
-    font-size: 14.5px;
+    font-size: 13.5px;
     color: var(--rv-muted);
     font-weight: 600;
   }
@@ -584,15 +584,15 @@ export const styles = css`
     border: 0;
     outline: 0;
     background: none;
-    font-size: 17px;
+    font-size: 16px;
     padding: 10px 0;
   }
   .quick input::placeholder {
     color: var(--rv-faint);
   }
   .add-btn {
-    width: 46px;
-    height: 46px;
+    width: 42px;
+    height: 42px;
     border-radius: 14px;
     background: var(--rv-accent);
     color: var(--rv-on-accent);
@@ -613,8 +613,8 @@ export const styles = css`
     position: relative;
     display: flex;
     align-items: flex-start;
-    gap: 14px;
-    padding: 15px 0;
+    gap: 12px;
+    padding: 13px 0;
     border-top: 1px solid var(--rv-line);
   }
   .items > .item:first-child,
@@ -633,8 +633,8 @@ export const styles = css`
     transition: transform 0.18s ease;
   }
   .check {
-    width: 28px;
-    height: 28px;
+    width: 24px;
+    height: 24px;
     margin-top: -1px;
     border-radius: 9px;
     border: 2.2px solid var(--rv-line-strong);
@@ -652,8 +652,8 @@ export const styles = css`
     inset: -10px;
   }
   .check .i {
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
     stroke-width: 3.2;
   }
   .check:active {
@@ -679,7 +679,7 @@ export const styles = css`
     gap: 6px;
   }
   .it-text {
-    font-size: 17px;
+    font-size: 15.5px;
     font-weight: 500;
     line-height: 1.38;
     overflow-wrap: anywhere;
@@ -691,7 +691,7 @@ export const styles = css`
     text-decoration-thickness: 1.5px;
   }
   .it-desc {
-    font-size: 14.5px;
+    font-size: 13.5px;
     color: var(--rv-muted);
     line-height: 1.45;
     display: -webkit-box;
@@ -725,8 +725,8 @@ export const styles = css`
     text-overflow: ellipsis;
   }
   .lnk .i {
-    width: 15px;
-    height: 15px;
+    width: 14px;
+    height: 14px;
   }
   .item.done .lnk {
     opacity: 0.6;
@@ -764,7 +764,7 @@ export const styles = css`
     gap: 6px;
     font-family: var(--rv-display);
     font-weight: 700;
-    font-size: 24px;
+    font-size: 20px;
   }
   .done-toggle .count {
     color: var(--rv-muted);
@@ -791,7 +791,7 @@ export const styles = css`
     padding: 6px 16px 4px;
     font-family: var(--rv-display);
     font-weight: 800;
-    font-size: 34px;
+    font-size: 28px;
     letter-spacing: 2px;
     margin-bottom: 16px;
     animation: rv-stamp2 0.5s cubic-bezier(0.2, 1.6, 0.4, 1) both;
@@ -803,8 +803,8 @@ export const styles = css`
     }
   }
   .empty .em-icon {
-    width: 56px;
-    height: 56px;
+    width: 50px;
+    height: 50px;
     border-radius: 18px;
     background: var(--rv-accent-soft);
     color: var(--rv-accent-ink);
@@ -815,7 +815,7 @@ export const styles = css`
   .empty h3 {
     color: var(--rv-text);
     font-family: var(--rv-display);
-    font-size: 28px;
+    font-size: 22px;
     font-weight: 800;
     margin: 0 0 6px;
   }
@@ -823,7 +823,7 @@ export const styles = css`
     margin: 0 auto;
     max-width: 340px;
     line-height: 1.5;
-    font-size: 15.5px;
+    font-size: 14.5px;
   }
 
   .skeleton {
@@ -861,7 +861,7 @@ export const styles = css`
     border: 0;
     outline: 0;
     background: none;
-    font-size: 17px;
+    font-size: 16px;
     padding: 12px 0;
     color: var(--rv-text);
   }
@@ -883,7 +883,7 @@ export const styles = css`
     border: 1.5px solid var(--rv-line-strong);
     border-radius: 12px;
     padding: 8px 13px;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 650;
     color: var(--rv-text-2);
     white-space: nowrap;
@@ -895,8 +895,8 @@ export const styles = css`
     text-overflow: ellipsis;
   }
   .pick .i {
-    width: 17px;
-    height: 17px;
+    width: 16px;
+    height: 16px;
   }
   .pick.on {
     background: var(--rv-accent);
@@ -939,11 +939,11 @@ export const styles = css`
     display: flex;
     align-items: center;
     gap: 14px;
-    padding: 15px 0;
+    padding: 13px 0;
     border-top: 1px solid var(--rv-line);
     width: 100%;
     text-align: left;
-    min-height: 60px;
+    min-height: 54px;
   }
   .panel > .overline + .row,
   .panel > .row:first-child {
@@ -958,11 +958,11 @@ export const styles = css`
     min-width: 0;
   }
   .row .label {
-    font-size: 16.5px;
+    font-size: 15.5px;
     font-weight: 600;
   }
   .row .hint {
-    font-size: 14px;
+    font-size: 13px;
     color: var(--rv-muted);
     margin-top: 2px;
     white-space: nowrap;
@@ -990,7 +990,7 @@ export const styles = css`
     padding: 9px 6px;
     border-radius: 10px;
     font-weight: 650;
-    font-size: 14.5px;
+    font-size: 13.5px;
     color: var(--rv-muted);
     display: flex;
     align-items: center;
@@ -1097,13 +1097,13 @@ export const styles = css`
   .foot {
     text-align: center;
     color: var(--rv-faint);
-    font-size: 13.5px;
+    font-size: 12.5px;
     margin: 26px 0 8px;
     line-height: 1.6;
   }
   .foot b {
     font-family: var(--rv-display);
-    font-size: 17px;
+    font-size: 16px;
     color: var(--rv-muted);
     letter-spacing: 0.3px;
   }
@@ -1128,15 +1128,15 @@ export const styles = css`
     flex-direction: column;
     align-items: center;
     gap: 5px;
-    font-size: 14px;
+    font-size: 12.5px;
     font-weight: 600;
     color: var(--rv-muted);
     padding: 8px 0;
     position: relative;
   }
   .tab .i {
-    width: 25px;
-    height: 25px;
+    width: 23px;
+    height: 23px;
   }
   .tab.on {
     color: var(--rv-text);
@@ -1166,8 +1166,8 @@ export const styles = css`
     font-weight: 750;
   }
   .tab.fab .pill {
-    width: 62px;
-    height: 42px;
+    width: 58px;
+    height: 38px;
     border-radius: 14px;
     background: var(--rv-accent);
     color: var(--rv-on-accent);
@@ -1180,8 +1180,8 @@ export const styles = css`
     transform: scale(0.92);
   }
   .tab.fab .pill .i {
-    width: 26px;
-    height: 26px;
+    width: 24px;
+    height: 24px;
     stroke-width: 2.4;
   }
 
@@ -1235,7 +1235,7 @@ export const styles = css`
     margin-bottom: 14px;
   }
   .sheet-head h3 {
-    font-size: 30px;
+    font-size: 24px;
   }
   .sheet-head .icon-btn {
     width: 42px;
@@ -1250,7 +1250,7 @@ export const styles = css`
     margin-bottom: 18px;
   }
   .field > .flabel {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 750;
     letter-spacing: 0.08em;
     text-transform: uppercase;
@@ -1264,7 +1264,7 @@ export const styles = css`
     background: var(--rv-bg);
     border-radius: 14px;
     padding: 12px 14px;
-    font-size: 17px;
+    font-size: 16px;
     outline: 0;
     resize: none;
     line-height: 1.4;
@@ -1287,7 +1287,7 @@ export const styles = css`
   .field .time-row .tl {
     color: var(--rv-muted);
     font-weight: 600;
-    font-size: 15px;
+    font-size: 14px;
   }
   .sheet-actions {
     display: flex;
@@ -1300,10 +1300,10 @@ export const styles = css`
     align-items: center;
     justify-content: center;
     gap: 8px;
-    min-height: 52px;
+    min-height: 48px;
     border-radius: 15px;
     font-weight: 750;
-    font-size: 17px;
+    font-size: 16px;
     padding: 0 18px;
     transition: transform 0.12s;
   }
@@ -1327,8 +1327,8 @@ export const styles = css`
     align-items: center;
     gap: 14px;
     width: 100%;
-    padding: 15px 4px;
-    font-size: 17px;
+    padding: 13px 4px;
+    font-size: 15.5px;
     font-weight: 600;
     text-align: left;
     border-top: 1px solid var(--rv-line);
@@ -1347,7 +1347,7 @@ export const styles = css`
     margin-left: auto;
     color: var(--rv-muted);
     font-weight: 500;
-    font-size: 15px;
+    font-size: 14px;
   }
   .preview-tile {
     display: flex;
@@ -1359,13 +1359,236 @@ export const styles = css`
     margin-bottom: 18px;
   }
   .preview-tile .lc-title {
-    font-size: 19px;
+    font-size: 17px;
   }
   .confirm-text {
     color: var(--rv-text-2);
-    font-size: 16.5px;
+    font-size: 15.5px;
     line-height: 1.5;
     margin: -4px 0 20px;
+  }
+
+  /* ---------- import ---------- */
+  .imp-btn {
+    width: 42px;
+    height: 42px;
+    border-radius: 13px;
+    display: grid;
+    place-items: center;
+    flex: none;
+    color: var(--rv-accent-ink);
+    background: var(--rv-accent-soft);
+  }
+  .imp-btn .i {
+    width: 20px;
+    height: 20px;
+  }
+  .imp-strip {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin: -4px 0 18px;
+  }
+  .imp-strip button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 11px 6px;
+    border-radius: 14px;
+    background: var(--rv-surface-2);
+    font-size: 12.5px;
+    font-weight: 650;
+    color: var(--rv-text-2);
+  }
+  .imp-strip .i {
+    width: 21px;
+    height: 21px;
+    color: var(--rv-accent-ink);
+  }
+  .imp-options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .imp-opt {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    padding: 13px 14px;
+    border-radius: 16px;
+    border: 1.5px solid var(--rv-line-strong);
+    text-align: left;
+  }
+  .imp-opt:disabled {
+    opacity: 0.45;
+  }
+  .imp-opt > .i {
+    color: var(--rv-faint);
+    width: 18px;
+    height: 18px;
+  }
+  .imp-ic {
+    width: 42px;
+    height: 42px;
+    border-radius: 13px;
+    display: grid;
+    place-items: center;
+    background: var(--rv-accent-soft);
+    color: var(--rv-accent-ink);
+    flex: none;
+  }
+  .imp-ic .i {
+    width: 21px;
+    height: 21px;
+  }
+  .imp-tx {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .imp-tx b {
+    font-size: 15.5px;
+  }
+  .imp-tx small {
+    font-size: 13px;
+    color: var(--rv-muted);
+  }
+  .imp-error {
+    display: flex;
+    gap: 9px;
+    align-items: flex-start;
+    padding: 11px 13px;
+    border-radius: 13px;
+    background: var(--rv-late-soft);
+    color: var(--rv-late);
+    font-size: 13.5px;
+    line-height: 1.45;
+    margin-bottom: 14px;
+  }
+  .imp-error.soft {
+    background: var(--rv-surface-2);
+    color: var(--rv-text-2);
+  }
+  .imp-error .i {
+    width: 17px;
+    height: 17px;
+    margin-top: 1px;
+    flex: none;
+  }
+  .imp-error.soft .i {
+    color: var(--rv-accent-ink);
+  }
+  .thumbs {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    margin: -2px 0 14px;
+    padding-bottom: 2px;
+  }
+  .thumbs img {
+    width: 64px;
+    height: 64px;
+    object-fit: cover;
+    border-radius: 12px;
+    flex: none;
+    border: 1px solid var(--rv-line);
+  }
+  .imp-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 26px 0 30px;
+    color: var(--rv-muted);
+    font-weight: 600;
+    font-size: 14.5px;
+  }
+  .spin {
+    color: var(--rv-accent-ink);
+    animation: rv-spin 0.9s linear infinite;
+  }
+  .spin .i {
+    width: 34px;
+    height: 34px;
+  }
+  @keyframes rv-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  .imp-list {
+    border: 1px solid var(--rv-line);
+    border-radius: 16px;
+    padding: 4px 6px 10px 12px;
+    margin-bottom: 18px;
+  }
+  .imp-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid var(--rv-line);
+    padding: 4px 0;
+  }
+  .imp-row .check {
+    width: 22px;
+    height: 22px;
+    border-radius: 7px;
+    margin: 0;
+  }
+  .imp-row .check .i {
+    width: 14px;
+    height: 14px;
+  }
+  .imp-row input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    outline: 0;
+    background: none;
+    font-size: 16px;
+    padding: 10px 0;
+  }
+  .imp-row.off input {
+    color: var(--rv-faint);
+    text-decoration: line-through;
+  }
+  .icon-btn.mini {
+    width: 36px;
+    height: 36px;
+    color: var(--rv-faint);
+  }
+  .icon-btn.mini .i {
+    width: 18px;
+    height: 18px;
+  }
+  .imp-list .add-row {
+    margin-top: 10px;
+  }
+  .sheet-note {
+    color: var(--rv-muted);
+    font-size: 13.5px;
+    line-height: 1.5;
+    margin: 12px 2px 0;
+  }
+  .sheet-note.top {
+    margin: -6px 2px 14px;
+  }
+  .sheet-head .back {
+    width: 40px;
+    height: 40px;
+    margin-left: -10px;
+    margin-right: -6px;
+    color: var(--rv-text);
+  }
+  .sheet-head h3 {
+    flex: 1;
+  }
+  .btn:disabled {
+    opacity: 0.5;
   }
 
   /* ---------- toast ---------- */
@@ -1384,7 +1607,7 @@ export const styles = css`
     border-radius: 16px;
     background: #2b2223;
     color: #f5eeee;
-    font-size: 15.5px;
+    font-size: 14.5px;
     font-weight: 600;
     box-shadow: 0 12px 34px rgba(0, 0, 0, 0.35);
     animation: rv-toast 0.28s cubic-bezier(0.2, 1.3, 0.4, 1) both;

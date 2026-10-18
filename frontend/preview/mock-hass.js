@@ -1,6 +1,6 @@
 // A small fake of the parts of `hass` the panel uses, for the preview page.
 // Mirrors Home Assistant's validation so feature checks behave the same.
-import { F, has, ymd, addDays } from "../src/util.js";
+import { F, has, ymd, addDays, parseListText } from "../src/util.js";
 
 let uidSeq = 1000;
 const uid = () => `u${uidSeq++}`;
@@ -187,6 +187,20 @@ export function createMockHass(onChange) {
     user: { name: "Diego Zapella", is_admin: true },
     themes: { darkMode: true },
     language: "pt-BR",
+    // Simulated photo/message reading (the real app uses Home Assistant's AI).
+    resolvia: {
+      ai: { available: true, provider: "ha", text: true, images: true },
+      async extract({ text, images }) {
+        await new Promise((r) => setTimeout(r, images ? 1800 : 900));
+        if (images && images.length) {
+          return {
+            provider: "ha:ai_task.google_ai_task",
+            items: ["Leite integral (2 caixas)", "Ovos (1 dúzia)", "Pão francês", "Café 500 g", "Detergente", "Papel toalha"],
+          };
+        }
+        return { provider: "ha:ai_task.google_ai_task", items: parseListText(text) };
+      },
+    },
     async callService(domain, service, data, target) {
       await new Promise((r) => setTimeout(r, 80));
       const id = target.entity_id;

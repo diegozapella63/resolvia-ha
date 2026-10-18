@@ -2,7 +2,7 @@
 
 ![ResolvIA](resolvia/logo.png)
 
-Um App do Home Assistant que mostra suas **listas de tarefas nativas** (`todo.*`) num visual bem mais caprichado, e que traz **tarefas que voltam sozinhas** X dias depois de concluídas.
+Um App do Home Assistant que mostra suas **listas de tarefas nativas** (`todo.*`) num visual bem mais caprichado, traz **tarefas que voltam sozinhas** X dias depois de concluídas e **importa itens de mensagens e fotos** com IA.
 
 ## Instalação
 
@@ -24,6 +24,7 @@ A primeira instalação leva alguns minutos, porque o app é montado no próprio
 - **Links bonitos**: `Ver sobre: https://github.com/fulano/projeto` vira um chip `fulano/projeto`.
 - **Editar item**: texto, notas, prazo, horário, **repetição** e **mover para outra lista**.
 - **Tarefas recorrentes**: "Passar pano" com repetição de 3 dias volta como pendente 3 dias depois de você marcar como feito, mesmo se você concluir pela Alexa.
+- **Importar itens**: cole uma mensagem do WhatsApp, escolha fotos ou digitalize uma lista em papel; a IA do Home Assistant (ou o Gemini) separa os itens e você revisa antes de adicionar.
 - **Prazos** de todas as listas, incluindo o que vai voltar sozinho.
 - **Buscar** em todas as listas, sem se importar com acentos.
 - **Personalizar cada lista** (nome, cor, ícone, ocultar), sincronizado entre aparelhos.
@@ -50,7 +51,7 @@ RESOLVIA_DEV=1 HA_WS_URL=ws://127.0.0.1:8123/api/websocket HA_TOKEN=dev DATA_DIR
   node resolvia/rootfs/app/server.js             # abre em http://127.0.0.1:8099
 ```
 
-Com `RESOLVIA_DAY_MS=4000` (só em modo dev) um "dia" de repetição dura 4 segundos, para testar.
+Com `RESOLVIA_DAY_MS=4000` (só em modo dev) um "dia" de repetição dura 4 segundos, para testar. O HA falso também simula uma IA (`ai_task.google_ai_task`); use `MEDIA_DIR` igual a `FAKE_MEDIA_DIR` para testar a leitura de fotos, ou `FAKE_HA_NO_AI=1` para testar sem IA.
 
 ## Créditos
 

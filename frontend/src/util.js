@@ -243,3 +243,58 @@ export function splitLinks(text) {
   if (last < s.length) out.push({ text: s.slice(last) });
   return out;
 }
+
+// ---------- import (no AI) ----------
+
+const BULLET = /^(\s*([-*•·▪◦‣–—>]|\d{1,3}[.)-]|\[[ xX✓✔]?\]|[☐☑✅✔️🔲🔳⬜]))+\s*/u;
+// WhatsApp exports: "[18/10/26, 20:15] Fulano: texto" or "18/10/2026 20:15 - Fulano: texto"
+const CHAT_PREFIX = /^\[?\d{1,2}[/.]\d{1,2}(?:[/.]\d{2,4})?,?\s+\d{1,2}:\d{2}(?::\d{2})?\]?\s*(?:-\s*)?[^:]{1,40}:\s*/;
+
+/** Split a pasted message into items without AI. */
+export function parseListText(text) {
+  let lines = (text || "")
+    .split(/\r?\n/)
+    .map((l) => l.replace(CHAT_PREFIX, "").trim())
+    .filter(Boolean);
+  if (lines.length === 1 && /[,;]|\se\s/i.test(lines[0])) {
+    const one = lines[0].replace(/^[^:,;]{0,40}:\s*/, ""); // "compra: leite, ovos e pão"
+    lines = one.split(/\s*[,;]\s*|\s+e\s+/i);
+  }
+  const seen = new Set();
+  const out = [];
+  for (let l of lines) {
+    if (/^\s*(?:[-*•]\s*)?(?:\[[xX✓✔]\]|[☑✅✔])/u.test(l)) continue; // already done
+    l = l.replace(BULLET, "").replace(/[.;,]+$/, "").trim();
+    if (!l || l.length < 2 || /^~.*~$/.test(l)) continue; // skip empty and ~struck~ lines
+    l = l.charAt(0).toUpperCase() + l.slice(1);
+    const k = l.toLowerCase();
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(l.slice(0, 255));
+  }
+  return out;
+}
+
+/** Shrink a photo before upload (keeps text readable, saves bandwidth). */
+export async function prepareImage(file, max = 1800) {
+  const toBase64 = (blob) =>
+    new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(String(r.result).split(",")[1] || "");
+      r.onerror = () => reject(r.error);
+      r.readAsDataURL(blob);
+    });
+  try {
+    const bmp = await createImageBitmap(file, { imageOrientation: "from-image" });
+    const scale = Math.min(1, max / Math.max(bmp.width, bmp.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(bmp.width * scale);
+    canvas.height = Math.round(bmp.height * scale);
+    canvas.getContext("2d").drawImage(bmp, 0, 0, canvas.width, canvas.height);
+    if (bmp.close) bmp.close();
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.86));
+    return { mime: "image/jpeg", data: await toBase64(blob), url: URL.createObjectURL(blob) };
+  } catch (e) {
+    return { mime: file.type || "image/jpeg", data: await toBase64(file), url: URL.createObjectURL(file) };
+  }
+}
