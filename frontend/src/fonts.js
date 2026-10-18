@@ -1,19 +1,30 @@
-// Fonts are bundled (subset to Latin) so the panel looks right offline.
+// Same typography as InventarIA: Barlow for text, Barlow Condensed for titles,
+// numbers and values. Font files ship inside the app (no Google Fonts at runtime).
 // @font-face does not work inside shadow roots, so it goes in document.head.
-import figtree from "../fonts/figtree-var.woff2";
-import barlow700 from "../fonts/barlow-700.woff2";
-import barlow800 from "../fonts/barlow-800.woff2";
+import barlow400 from "../fonts/barlow-400.woff2";
+import barlow500 from "../fonts/barlow-500.woff2";
+import barlow600 from "../fonts/barlow-600.woff2";
+import cond500 from "../fonts/barlow-condensed-500.woff2";
+import cond600 from "../fonts/barlow-condensed-600.woff2";
+import cond700 from "../fonts/barlow-condensed-700.woff2";
 
-export const FONT_BODY = `"RV Figtree", "Figtree", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`;
-export const FONT_DISPLAY = `"RV Barlow Condensed", "Barlow Condensed", "Roboto Condensed", "Arial Narrow", sans-serif`;
+const FALLBACK = `system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`;
+export const FONT_BODY = `"RV Barlow", ${FALLBACK}`;
+export const FONT_DISPLAY = `"RV Barlow Condensed", ${FALLBACK}`;
 
 export function ensureFonts() {
   if (document.getElementById("resolvia-fonts")) return;
+  const face = (family, src, weight) =>
+    `@font-face{font-family:"${family}";src:url(${JSON.stringify(src)}) format("woff2");font-weight:${weight};font-style:normal;font-display:swap}`;
   const style = document.createElement("style");
   style.id = "resolvia-fonts";
-  style.textContent = `
-@font-face{font-family:"RV Figtree";src:url(${figtree}) format("woff2");font-weight:300 900;font-style:normal;font-display:swap}
-@font-face{font-family:"RV Barlow Condensed";src:url(${barlow700}) format("woff2");font-weight:700;font-style:normal;font-display:swap}
-@font-face{font-family:"RV Barlow Condensed";src:url(${barlow800}) format("woff2");font-weight:800 900;font-style:normal;font-display:swap}`;
+  style.textContent = [
+    face("RV Barlow", barlow400, 400),
+    face("RV Barlow", barlow500, 500),
+    face("RV Barlow", barlow600, "600 900"),
+    face("RV Barlow Condensed", cond500, 500),
+    face("RV Barlow Condensed", cond600, 600),
+    face("RV Barlow Condensed", cond700, "700 900"),
+  ].join("\n");
   document.head.appendChild(style);
 }

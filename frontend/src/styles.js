@@ -33,6 +33,8 @@ export const styles = css`
     font-family: var(--rv-body);
     color: var(--rv-text);
     -webkit-tap-highlight-color: transparent;
+    font-size: 16px;
+    line-height: 1.5;
   }
   :host([dark]) {
     --rv-bg: #171213;
@@ -120,13 +122,14 @@ export const styles = css`
     color: var(--rv-header-fg);
   }
   .topbar .title {
-    font-size: 20px;
-    font-weight: 400;
-    letter-spacing: 0.1px;
+    font-size: 21px;
+    font-weight: 600;
+    letter-spacing: 0;
     margin-left: 12px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    font-family: var(--rv-display);
   }
   .topbar .title b {
     font-weight: 700;
@@ -164,9 +167,9 @@ export const styles = css`
 
   .display {
     font-family: var(--rv-display);
-    font-weight: 800;
-    letter-spacing: -0.2px;
-    line-height: 0.98;
+    font-weight: 700;
+    letter-spacing: 0;
+    line-height: 1.05;
     margin: 0;
   }
   .page-head {
@@ -177,18 +180,20 @@ export const styles = css`
     margin: 2px 2px 12px;
   }
   .page-head h1 {
-    font-size: 26px;
+    font-size: 21px;
+    font-weight: 600;
+    line-height: 1.2;
   }
   .page-sub {
     color: var(--rv-muted);
-    font-size: 14.5px;
+    font-size: 16px;
     line-height: 1.5;
     margin: -8px 2px 20px;
   }
   .overline {
     font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0.09em;
+    font-weight: 600;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--rv-muted);
   }
@@ -274,30 +279,32 @@ export const styles = css`
     opacity: 0.85;
   }
   .hero-kicker {
-    font-weight: 700;
-    font-size: 14px;
-    opacity: 0.72;
+    font-weight: 500;
+    font-size: 15px;
+    opacity: 0.75;
     margin-bottom: 8px;
   }
   .hero-big {
     font-family: var(--rv-display);
-    font-weight: 800;
-    font-size: 50px;
-    line-height: 0.9;
-    letter-spacing: -0.5px;
+    font-weight: 700;
+    font-size: clamp(48px, 14vw, 76px);
+    line-height: 0.95;
+    letter-spacing: 0;
     display: flex;
     align-items: baseline;
     gap: 10px;
     flex-wrap: wrap;
+    font-variant-numeric: tabular-nums;
   }
   .hero-big small {
-    font-size: 26px;
+    font-size: 25px;
     letter-spacing: 0;
+    font-weight: 600;
   }
   .hero-sub {
     margin-top: 12px;
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 500;
     opacity: 0.78;
   }
   .stamp {
@@ -309,7 +316,7 @@ export const styles = css`
     border-radius: 10px;
     padding: 4px 10px 3px;
     font-family: var(--rv-display);
-    font-weight: 800;
+    font-weight: 700;
     font-size: 22px;
     letter-spacing: 1.5px;
     opacity: 0.32;
@@ -331,11 +338,13 @@ export const styles = css`
     margin: 0 2px 12px;
   }
   .sec-head h2 {
-    font-size: 24px;
+    font-size: 25px;
+    font-weight: 600;
+    line-height: 1.1;
   }
   .text-btn {
     color: var(--rv-accent-ink);
-    font-weight: 700;
+    font-weight: 600;
     font-size: 14px;
     padding: 8px 4px;
   }
@@ -350,8 +359,10 @@ export const styles = css`
     padding: 16px 0 6px;
   }
   .panel-title {
-    font-size: 22px;
+    font-size: 25px;
     padding: 18px 0 2px;
+    font-weight: 600;
+    line-height: 1.1;
   }
 
   .list-card {
@@ -393,13 +404,13 @@ export const styles = css`
   }
   .lc-title {
     font-size: 16px;
-    font-weight: 700;
+    font-weight: 600;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
   .lc-meta {
-    font-size: 13.5px;
+    font-size: 14px;
     color: var(--rv-muted);
     display: flex;
     align-items: center;
@@ -422,10 +433,10 @@ export const styles = css`
   }
   .lc-num {
     font-family: var(--rv-display);
-    font-weight: 700;
-    font-size: 26px;
+    font-weight: 600;
+    font-size: 19px;
     line-height: 1;
-    min-width: 34px;
+    min-width: 26px;
     text-align: right;
     font-variant-numeric: tabular-nums;
   }
@@ -433,8 +444,8 @@ export const styles = css`
     color: var(--ci);
   }
   .lc-num .i {
-    width: 22px;
-    height: 22px;
+    width: 20px;
+    height: 20px;
     margin-left: auto;
   }
 
@@ -443,10 +454,10 @@ export const styles = css`
     align-items: center;
     gap: 5px;
     border: 1px solid var(--rv-line-strong);
-    border-radius: 9px;
+    border-radius: 8px;
     padding: 2px 8px;
-    font-size: 12.5px;
-    font-weight: 700;
+    font-size: 12px;
+    font-weight: 600;
     color: var(--rv-text-2);
     white-space: nowrap;
   }
@@ -477,7 +488,7 @@ export const styles = css`
     display: flex;
     align-items: flex-start;
     gap: 8px;
-    font-size: 13.5px;
+    font-size: 13px;
     line-height: 1.45;
     color: var(--rv-muted);
     margin-top: 2px;
@@ -508,8 +519,8 @@ export const styles = css`
     justify-content: center;
     gap: 8px;
     padding: 9px 16px;
-    font-size: 13px;
-    font-weight: 650;
+    font-size: 15px;
+    font-weight: 500;
     background: var(--rv-late-soft);
     color: var(--rv-late);
   }
@@ -536,8 +547,10 @@ export const styles = css`
     padding-top: 6px;
   }
   .detail-head h1 {
-    font-size: 28px;
+    font-size: clamp(34px, 9vw, 46px);
     overflow-wrap: anywhere;
+    font-weight: 700;
+    line-height: 1;
   }
   .detail-head .overline {
     margin-bottom: 6px;
@@ -547,9 +560,10 @@ export const styles = css`
     align-items: center;
     gap: 12px;
     margin: 8px 2px 16px;
-    font-size: 13.5px;
+    font-size: 14px;
     color: var(--rv-muted);
-    font-weight: 600;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
   }
   .progress .bar {
     flex: 1;
@@ -679,9 +693,9 @@ export const styles = css`
     gap: 6px;
   }
   .it-text {
-    font-size: 15.5px;
+    font-size: 16px;
     font-weight: 500;
-    line-height: 1.38;
+    line-height: 1.4;
     overflow-wrap: anywhere;
     transition: color 0.2s;
   }
@@ -691,7 +705,7 @@ export const styles = css`
     text-decoration-thickness: 1.5px;
   }
   .it-desc {
-    font-size: 13.5px;
+    font-size: 14px;
     color: var(--rv-muted);
     line-height: 1.45;
     display: -webkit-box;
@@ -712,7 +726,7 @@ export const styles = css`
     max-width: 100%;
     vertical-align: bottom;
     color: var(--ci, var(--rv-accent-ink));
-    font-weight: 650;
+    font-weight: 600;
     text-decoration: none;
     background: var(--cs, var(--rv-accent-soft));
     border-radius: 8px;
@@ -763,8 +777,9 @@ export const styles = css`
     align-items: center;
     gap: 6px;
     font-family: var(--rv-display);
-    font-weight: 700;
-    font-size: 20px;
+    font-weight: 600;
+    font-size: 25px;
+    line-height: 1.1;
   }
   .done-toggle .count {
     color: var(--rv-muted);
@@ -790,7 +805,7 @@ export const styles = css`
     border-radius: 12px;
     padding: 6px 16px 4px;
     font-family: var(--rv-display);
-    font-weight: 800;
+    font-weight: 700;
     font-size: 28px;
     letter-spacing: 2px;
     margin-bottom: 16px;
@@ -816,14 +831,15 @@ export const styles = css`
     color: var(--rv-text);
     font-family: var(--rv-display);
     font-size: 22px;
-    font-weight: 800;
+    font-weight: 600;
     margin: 0 0 6px;
+    line-height: 1.1;
   }
   .empty p {
     margin: 0 auto;
     max-width: 340px;
     line-height: 1.5;
-    font-size: 14.5px;
+    font-size: 16px;
   }
 
   .skeleton {
@@ -884,7 +900,7 @@ export const styles = css`
     border-radius: 12px;
     padding: 8px 13px;
     font-size: 14px;
-    font-weight: 650;
+    font-weight: 500;
     color: var(--rv-text-2);
     white-space: nowrap;
     max-width: 100%;
@@ -902,6 +918,7 @@ export const styles = css`
     background: var(--rv-accent);
     border-color: var(--rv-accent);
     color: var(--rv-on-accent);
+    font-weight: 600;
   }
   .pick.list .dot {
     width: 10px;
@@ -958,11 +975,11 @@ export const styles = css`
     min-width: 0;
   }
   .row .label {
-    font-size: 15.5px;
-    font-weight: 600;
+    font-size: 16px;
+    font-weight: 500;
   }
   .row .hint {
-    font-size: 13px;
+    font-size: 14px;
     color: var(--rv-muted);
     margin-top: 2px;
     white-space: nowrap;
@@ -989,8 +1006,8 @@ export const styles = css`
     flex: 1;
     padding: 9px 6px;
     border-radius: 10px;
-    font-weight: 650;
-    font-size: 13.5px;
+    font-weight: 500;
+    font-size: 14px;
     color: var(--rv-muted);
     display: flex;
     align-items: center;
@@ -1005,6 +1022,7 @@ export const styles = css`
     background: var(--rv-surface);
     color: var(--rv-text);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+    font-weight: 600;
   }
   :host([dark]) .seg button.on {
     background: var(--rv-line-strong);
@@ -1097,15 +1115,16 @@ export const styles = css`
   .foot {
     text-align: center;
     color: var(--rv-faint);
-    font-size: 12.5px;
+    font-size: 13px;
     margin: 26px 0 8px;
     line-height: 1.6;
   }
   .foot b {
     font-family: var(--rv-display);
-    font-size: 16px;
+    font-size: 19px;
     color: var(--rv-muted);
     letter-spacing: 0.3px;
+    font-weight: 600;
   }
 
   /* ---------- bottom nav ---------- */
@@ -1127,9 +1146,9 @@ export const styles = css`
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 5px;
-    font-size: 12.5px;
-    font-weight: 600;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 500;
     color: var(--rv-muted);
     padding: 8px 0;
     position: relative;
@@ -1140,7 +1159,7 @@ export const styles = css`
   }
   .tab.on {
     color: var(--rv-text);
-    font-weight: 750;
+    font-weight: 600;
   }
   .tab.on .i {
     color: var(--rv-accent-ink);
@@ -1155,15 +1174,17 @@ export const styles = css`
     border-radius: 10px;
     background: var(--rv-late);
     color: #fff;
-    font-size: 11.5px;
-    font-weight: 800;
+    font-size: 12px;
+    font-family: var(--rv-display);
+    font-weight: 600;
     display: grid;
     place-items: center;
     border: 2px solid var(--rv-nav);
+    font-variant-numeric: tabular-nums;
   }
   .tab.fab {
     color: var(--rv-text);
-    font-weight: 750;
+    font-weight: 600;
   }
   .tab.fab .pill {
     width: 58px;
@@ -1235,7 +1256,9 @@ export const styles = css`
     margin-bottom: 14px;
   }
   .sheet-head h3 {
-    font-size: 24px;
+    font-size: 22px;
+    font-weight: 600;
+    line-height: 1.15;
   }
   .sheet-head .icon-btn {
     width: 42px;
@@ -1250,11 +1273,11 @@ export const styles = css`
     margin-bottom: 18px;
   }
   .field > .flabel {
-    font-size: 12px;
-    font-weight: 750;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--rv-muted);
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--rv-text-2);
   }
   .field textarea,
   .field input[type="text"],
@@ -1286,7 +1309,7 @@ export const styles = css`
   }
   .field .time-row .tl {
     color: var(--rv-muted);
-    font-weight: 600;
+    font-weight: 500;
     font-size: 14px;
   }
   .sheet-actions {
@@ -1302,8 +1325,8 @@ export const styles = css`
     gap: 8px;
     min-height: 48px;
     border-radius: 15px;
-    font-weight: 750;
-    font-size: 16px;
+    font-weight: 500;
+    font-size: 15px;
     padding: 0 18px;
     transition: transform 0.12s;
   }
@@ -1313,6 +1336,7 @@ export const styles = css`
   .btn.primary {
     background: var(--rv-accent);
     color: var(--rv-on-accent);
+    font-weight: 600;
   }
   .btn.outline {
     border: 1.5px solid var(--rv-line-strong);
@@ -1328,8 +1352,8 @@ export const styles = css`
     gap: 14px;
     width: 100%;
     padding: 13px 4px;
-    font-size: 15.5px;
-    font-weight: 600;
+    font-size: 16px;
+    font-weight: 500;
     text-align: left;
     border-top: 1px solid var(--rv-line);
   }
@@ -1346,7 +1370,7 @@ export const styles = css`
   .menu-row .sub {
     margin-left: auto;
     color: var(--rv-muted);
-    font-weight: 500;
+    font-weight: 400;
     font-size: 14px;
   }
   .preview-tile {
@@ -1363,7 +1387,7 @@ export const styles = css`
   }
   .confirm-text {
     color: var(--rv-text-2);
-    font-size: 15.5px;
+    font-size: 16px;
     line-height: 1.5;
     margin: -4px 0 20px;
   }
@@ -1397,8 +1421,8 @@ export const styles = css`
     padding: 11px 6px;
     border-radius: 14px;
     background: var(--rv-surface-2);
-    font-size: 12.5px;
-    font-weight: 650;
+    font-size: 13px;
+    font-weight: 500;
     color: var(--rv-text-2);
   }
   .imp-strip .i {
@@ -1451,7 +1475,8 @@ export const styles = css`
     gap: 2px;
   }
   .imp-tx b {
-    font-size: 15.5px;
+    font-size: 16px;
+    font-weight: 600;
   }
   .imp-tx small {
     font-size: 13px;
@@ -1465,7 +1490,7 @@ export const styles = css`
     border-radius: 13px;
     background: var(--rv-late-soft);
     color: var(--rv-late);
-    font-size: 13.5px;
+    font-size: 13px;
     line-height: 1.45;
     margin-bottom: 14px;
   }
@@ -1504,8 +1529,8 @@ export const styles = css`
     gap: 12px;
     padding: 26px 0 30px;
     color: var(--rv-muted);
-    font-weight: 600;
-    font-size: 14.5px;
+    font-weight: 500;
+    font-size: 15px;
   }
   .spin {
     color: var(--rv-accent-ink);
@@ -1570,7 +1595,7 @@ export const styles = css`
   }
   .sheet-note {
     color: var(--rv-muted);
-    font-size: 13.5px;
+    font-size: 13px;
     line-height: 1.5;
     margin: 12px 2px 0;
   }
@@ -1607,8 +1632,8 @@ export const styles = css`
     border-radius: 16px;
     background: #2b2223;
     color: #f5eeee;
-    font-size: 14.5px;
-    font-weight: 600;
+    font-size: 15px;
+    font-weight: 500;
     box-shadow: 0 12px 34px rgba(0, 0, 0, 0.35);
     animation: rv-toast 0.28s cubic-bezier(0.2, 1.3, 0.4, 1) both;
   }
@@ -1633,7 +1658,7 @@ export const styles = css`
   .toast button {
     flex: none;
     color: var(--rv-accent);
-    font-weight: 800;
+    font-weight: 600;
     padding: 6px 8px;
     border-radius: 8px;
   }

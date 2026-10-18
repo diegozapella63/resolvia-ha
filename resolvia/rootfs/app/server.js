@@ -13,7 +13,7 @@ import { Store } from "./lib/store.js";
 import { Recurring } from "./lib/recurring.js";
 import { AI } from "./lib/ai.js";
 
-const VERSION = "2.1.0";
+const VERSION = "2.2.0";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const WWW = path.join(HERE, "www");
 const DEV = process.env.RESOLVIA_DEV === "1";
@@ -360,7 +360,8 @@ const server = http.createServer((req, res) => {
   }
   const url = new URL(req.url, "http://x");
   if (url.pathname === "/api/extract" && req.method === "POST") return handleExtract(req, res);
-  const file = FILES[url.pathname];
+  const font = url.pathname.match(/^\/fonts\/([a-z0-9-]+\.woff2)$/);
+  const file = font ? [`fonts/${font[1]}`, "font/woff2", true] : FILES[url.pathname];
   if (!file || (req.method !== "GET" && req.method !== "HEAD")) {
     res.writeHead(404).end("Not found");
     return;
@@ -374,7 +375,7 @@ const server = http.createServer((req, res) => {
     const etag = `"${st.size.toString(16)}-${st.mtimeMs.toString(16)}"`;
     const headers = {
       "Content-Type": file[1],
-      "Cache-Control": "no-cache",
+      "Cache-Control": file[2] ? "public, max-age=604800" : "no-cache",
       ETag: etag,
       "X-Content-Type-Options": "nosniff",
     };

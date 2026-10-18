@@ -55,4 +55,4 @@ Com `RESOLVIA_DAY_MS=4000` (só em modo dev) um "dia" de repetição dura 4 segu
 
 ## Créditos
 
-[Lit](https://lit.dev) (BSD-3-Clause), ícones [Lucide](https://lucide.dev) (ISC), fontes [Barlow Condensed](https://fonts.google.com/specimen/Barlow+Condensed) e [Figtree](https://fonts.google.com/specimen/Figtree) (SIL Open Font License).
+[Lit](https://lit.dev) (BSD-3-Clause), ícones [Lucide](https://lucide.dev) (ISC), fontes [Barlow](https://fonts.google.com/specimen/Barlow) e [Barlow Condensed](https://fonts.google.com/specimen/Barlow+Condensed) (SIL Open Font License).
