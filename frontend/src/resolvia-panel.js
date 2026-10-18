@@ -1,0 +1,1525 @@
+import {
+  LitElement,
+  html,
+  nothing,
+  repeat,
+  unsafeSVG,
+} from "../vendor/lit-all.min.js";
+import { ICONS } from "./icons.js";
+import { ensureFonts } from "./fonts.js";
+import { styles } from "./styles.js";
+import {
+  F,
+  has,
+  PALETTE,
+  colorById,
+  autoColor,
+  colorVars,
+  hexToRgba,
+  fold,
+  foldKeepLength,
+  plural,
+  clip,
+  listMeta,
+  guessIcon,
+  LIST_ICONS,
+  parseDue,
+  dueInfo,
+  quickDates,
+  shortDate,
+  greeting,
+  splitLinks,
+} from "./util.js";
+
+const VERSION = "1.0.0";
+const THEME_KEY = "resolvia.theme";
+const LOCAL_PREFS_KEY = "resolvia.prefs";
+const LAST_LIST_KEY = "resolvia.lastList";
+
+const icon = (name, cls = "") =>
+  html`<svg class="i ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${unsafeSVG(ICONS[name] || ICONS["list-checks"])}</svg>`;
+
+const store = {
+  get(key, fallback) {
+    try {
+      const v = localStorage.getItem(key);
+      return v == null ? fallback : JSON.parse(v);
+    } catch (e) {
+      return fallback;
+    }
+  },
+  set(key, value) {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+    } catch (e) {
+      /* private mode etc. */
+    }
+  },
+};
+
+const isDone = (item) => item.status === "completed";
+const keyOf = (item) => item.uid || item.summary;
+
+class ResolviaPanel extends LitElement {
+  static properties = {
+    hass: { attribute: false },
+    narrow: { type: Boolean },
+    route: { attribute: false },
+    panel: { attribute: false },
+    _items: { state: true },
+    _prefs: { state: true },
+    _path: { state: true },
+    _sheet: { state: true },
+    _form: { state: true },
+    _toast: { state: true },
+    _query: { state: true },
+    _searchDone: { state: true },
+    _theme: { state: true },
+    _doneOpen: { state: true },
+  };
+
+  static styles = styles;
+
+  constructor() {
+    super();
+    this._items = new Map();
+    this._subs = new Map();
+    this._polling = new Set();
+    this._recent = new Map();
+    this._prefs = { lists: {}, app: {} };
+    this._prefsLoaded = false;
+    this._prefsRemote = false;
+    this._path = "";
+    this._sheet = null;
+    this._form = null;
+    this._toast = null;
+    this._query = "";
+    this._searchDone = false;
+    this._theme = store.get(THEME_KEY, "auto");
+    this._doneOpen = {};
+    this._lastTodoStates = null;
+    this._L = [];
+    this._onPopState = this._onPopState.bind(this);
+    this._onResize = this._checkHeight.bind(this);
+    this._mql = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+    this._onScheme = () => this.requestUpdate();
+  }
+
+  // ------------------------------------------------------------ lifecycle
+
+  connectedCallback() {
+    super.connectedCallback();
+    ensureFonts();
+    window.addEventListener("popstate", this._onPopState);
+    window.addEventListener("resize", this._onResize);
+    if (this._mql && this._mql.addEventListener) this._mql.addEventListener("change", this._onScheme);
+    if (this.hass) this._syncSubscriptions();
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    window.removeEventListener("popstate", this._onPopState);
+    window.removeEventListener("resize", this._onResize);
+    if (this._mql && this._mql.removeEventListener) this._mql.removeEventListener("change", this._onScheme);
+    for (const [, unsub] of this._subs) this._unsub(unsub);
+    this._subs.clear();
+    for (const [, t] of this._recent) clearTimeout(t);
+    this._recent.clear();
+    clearTimeout(this._toastTimer);
+  }
+
+  shouldUpdate(changed) {
+    if (changed.size !== 1 || !changed.has("hass")) return true;
+    const old = changed.get("hass");
+    if (!old || !this.hass) return true;
+    // hass changes on every state change in the house; only re-render for ours.
+    if (old.themes !== this.hass.themes || old.entities !== this.hass.entities || old.devices !== this.hass.devices || old.user !== this.hass.user) return true;
+    const ids = Object.keys(this.hass.states).filter((id) => id.startsWith("todo."));
+    const oldIds = Object.keys(old.states).filter((id) => id.startsWith("todo."));
+    if (ids.length !== oldIds.length) return true;
+    return ids.some((id) => old.states[id] !== this.hass.states[id]);
+  }
+
+  willUpdate(changed) {
+    if (changed.has("route") && this.route) {
+      this._path = this.route.path || "";
+    }
+    if (changed.has("hass") && this.hass) {
+      if (!this._prefsLoaded) {
+        this._prefsLoaded = true;
+        this._loadPrefs();
+      }
+      this._syncSubscriptions();
+      this._refreshPolled(changed.get("hass"));
+    }
+    this._dark = this._isDark();
+    this._L = this.hass ? this._computeLists() : [];
+  }
+
+  updated(changed) {
+    this.toggleAttribute("dark", this._dark);
+    if (changed.has("_path") && this._view().name === "search") {
+      const input = this.renderRoot.querySelector(".search-box input");
+      if (input) input.focus({ preventScroll: true });
+    }
+  }
+
+  firstUpdated() {
+    this._checkHeight();
+  }
+
+  _checkHeight() {
+    // If the panel's container doesn't give us a height, size to the viewport.
+    if (this.hasAttribute("vh")) return;
+    const h = this.getBoundingClientRect().height;
+    if (h > window.innerHeight + 4 || h < 100) this.setAttribute("vh", "");
+  }
+
+  _isDark() {
+    if (this._theme === "dark") return true;
+    if (this._theme === "light") return false;
+    if (this.hass && this.hass.themes && typeof this.hass.themes.darkMode === "boolean") return this.hass.themes.darkMode;
+    return !!(this._mql && this._mql.matches);
+  }
+
+  // ------------------------------------------------------------ data
+
+  _todoIds() {
+    return Object.keys(this.hass.states).filter((id) => id.startsWith("todo."));
+  }
+
+  _syncSubscriptions() {
+    if (!this.hass || !this.hass.connection || !this.isConnected) return;
+    const ids = this._todoIds();
+    for (const id of ids) {
+      if (!this._subs.has(id)) this._subscribe(id);
+    }
+    for (const [id, unsub] of [...this._subs]) {
+      if (!ids.includes(id)) {
+        this._unsub(unsub);
+        this._subs.delete(id);
+        this._polling.delete(id);
+        const next = new Map(this._items);
+        next.delete(id);
+        this._items = next;
+      }
+    }
+  }
+
+  _subscribe(id) {
+    const p = this.hass.connection
+      .subscribeMessage((msg) => this._setItems(id, (msg && msg.items) || []), {
+        type: "todo/item/subscribe",
+        entity_id: id,
+      })
+      .catch(() => {
+        // Older/odd integrations: fall back to fetching on state change.
+        this._polling.add(id);
+        this._fetchItems(id);
+        return null;
+      });
+    this._subs.set(id, p);
+  }
+
+  _unsub(promise) {
+    Promise.resolve(promise)
+      .then((fn) => typeof fn === "function" && fn())
+      .catch(() => {});
+  }
+
+  async _fetchItems(id) {
+    try {
+      const res = await this.hass.callWS({ type: "todo/item/list", entity_id: id });
+      this._setItems(id, (res && res.items) || []);
+    } catch (e) {
+      this._setItems(id, this._items.get(id) || []);
+    }
+  }
+
+  _refreshPolled(oldHass) {
+    if (!oldHass || !this._polling.size) return;
+    for (const id of this._polling) {
+      if (oldHass.states[id] !== this.hass.states[id]) this._fetchItems(id);
+    }
+  }
+
+  _setItems(id, items) {
+    const next = new Map(this._items);
+    next.set(id, items);
+    this._items = next;
+  }
+
+  _patchItem(listId, key, changes) {
+    const items = this._items.get(listId);
+    if (!items) return;
+    this._setItems(
+      listId,
+      items.map((i) => (keyOf(i) === key ? { ...i, ...changes } : i)),
+    );
+  }
+
+  _computeLists() {
+    const prefs = (this._prefs && this._prefs.lists) || {};
+    const ids = this._todoIds();
+    const rows = ids.map((id) => {
+      const st = this.hass.states[id];
+      const meta = listMeta(this.hass, id);
+      return { id, st, meta };
+    });
+    rows.sort(
+      (a, b) =>
+        (a.meta.group || "").localeCompare(b.meta.group || "", "pt-BR") ||
+        a.meta.name.localeCompare(b.meta.name, "pt-BR"),
+    );
+    return rows.map(({ id, st, meta }, index) => {
+      const p = prefs[id] || {};
+      const items = this._items.get(id);
+      const pendingItems = items ? items.filter((i) => !isDone(i)) : null;
+      const pending = pendingItems ? pendingItems.length : Number(st.state) || 0;
+      const done = items ? items.length - pendingItems.length : 0;
+      const color = colorById(p.color) || autoColor(index);
+      const dues = pendingItems ? pendingItems.map((i) => dueInfo(i.due)).filter(Boolean) : [];
+      return {
+        id,
+        name: p.name || meta.name,
+        origName: meta.name,
+        group: meta.group,
+        color,
+        colorId: p.color || null,
+        icon: p.icon || guessIcon(`${meta.name} ${meta.group || ""} ${id}`),
+        iconPref: p.icon || null,
+        hidden: !!p.hidden,
+        features: st.attributes.supported_features || 0,
+        unavailable: st.state === "unavailable" || st.state === "unknown",
+        items,
+        pending,
+        done,
+        late: dues.filter((d) => d.overdue).length,
+        today: dues.filter((d) => !d.overdue && d.diff === 0).length,
+      };
+    });
+  }
+
+  _list(id) {
+    return this._L.find((l) => l.id === id);
+  }
+
+  _visible() {
+    return this._L.filter((l) => !l.hidden);
+  }
+
+  _app(key, fallback) {
+    const v = this._prefs && this._prefs.app ? this._prefs.app[key] : undefined;
+    return v === undefined ? fallback : v;
+  }
+
+  _accent() {
+    return colorById(this._app("accent", "vermelho")) || PALETTE[0];
+  }
+
+  // ------------------------------------------------------------ prefs
+
+  async _loadPrefs() {
+    try {
+      const res = await this.hass.callWS({ type: "resolvia/prefs/get" });
+      this._prefs = { lists: res.lists || {}, app: res.app || {} };
+      this._prefsRemote = true;
+    } catch (e) {
+      // Integration's websocket not available (e.g. preview): keep it local.
+      this._prefs = store.get(LOCAL_PREFS_KEY, { lists: {}, app: {} });
+      this._prefsRemote = false;
+    }
+  }
+
+  async _saveListPrefs(id, changes) {
+    const lists = { ...this._prefs.lists };
+    const merged = { ...(lists[id] || {}) };
+    for (const [k, v] of Object.entries(changes)) {
+      if (v === null || v === "") delete merged[k];
+      else merged[k] = v;
+    }
+    if (Object.keys(merged).length) lists[id] = merged;
+    else delete lists[id];
+    this._prefs = { ...this._prefs, lists };
+    if (this._prefsRemote) {
+      try {
+        const res = await this.hass.callWS({ type: "resolvia/prefs/set_list", entity_id: id, prefs: changes });
+        this._prefs = { lists: res.lists || {}, app: res.app || {} };
+      } catch (e) {
+        this._showToast("Não consegui salvar a personalização");
+      }
+    } else store.set(LOCAL_PREFS_KEY, this._prefs);
+  }
+
+  async _saveAppPrefs(changes) {
+    const app = { ...this._prefs.app };
+    for (const [k, v] of Object.entries(changes)) {
+      if (v === null || v === "") delete app[k];
+      else app[k] = v;
+    }
+    this._prefs = { ...this._prefs, app };
+    if (this._prefsRemote) {
+      try {
+        const res = await this.hass.callWS({ type: "resolvia/prefs/set_app", prefs: changes });
+        this._prefs = { lists: res.lists || {}, app: res.app || {} };
+      } catch (e) {
+        this._showToast("Não consegui salvar a preferência");
+      }
+    } else store.set(LOCAL_PREFS_KEY, this._prefs);
+  }
+
+  _setTheme(theme) {
+    this._theme = theme;
+    store.set(THEME_KEY, theme);
+  }
+
+  // ------------------------------------------------------------ navigation
+
+  _inHA() {
+    return !!this.route;
+  }
+
+  _view() {
+    const p = (this._path || "").replace(/\/+$/, "");
+    let m;
+    if ((m = p.match(/^\/lista\/(todo\.[^/]+)$/))) return { name: "list", id: decodeURIComponent(m[1]) };
+    if (p === "/prazos") return { name: "due" };
+    if (p === "/buscar") return { name: "search" };
+    if (p === "/mais") return { name: "more" };
+    return { name: "home" };
+  }
+
+  _go(path, replace = false) {
+    if (this._sheet) this._closeSheet(true);
+    const depth = ((history.state && history.state.rvDepth) || 0) + (replace ? 0 : 1);
+    if (this._inHA()) {
+      const url = `/${(this.panel && this.panel.url_path) || "resolvia"}${path}`;
+      if (replace) history.replaceState({ rvDepth: depth }, "", url);
+      else history.pushState({ rvDepth: depth }, "", url);
+      window.dispatchEvent(new CustomEvent("location-changed", { detail: { replace } }));
+    } else {
+      if (replace) history.replaceState({ rvDepth: depth, rvPath: path }, "");
+      else history.pushState({ rvDepth: depth, rvPath: path }, "");
+      this._path = path;
+    }
+    const main = this.renderRoot && this.renderRoot.querySelector("main");
+    if (main) main.scrollTo({ top: 0, behavior: "instant" });
+  }
+
+  _back() {
+    if (history.state && history.state.rvDepth > 0) history.back();
+    else this._go("", true);
+  }
+
+  _goTab(path) {
+    const view = this._view().name;
+    if (path === "") {
+      if (view === "home") {
+        const main = this.renderRoot.querySelector("main");
+        if (main) main.scrollTo({ top: 0 });
+        return;
+      }
+      this._back();
+      return;
+    }
+    // Switching between tabs replaces the entry so Back always returns home.
+    this._go(path, view !== "home" && view !== "list");
+  }
+
+  _onPopState() {
+    if (this._sheet && !(history.state && history.state.rvSheet)) {
+      this._sheet = null;
+      this._form = null;
+    }
+    if (!this._inHA()) this._path = (history.state && history.state.rvPath) || "";
+  }
+
+  _openSheet(sheet, form = null) {
+    const wasOpen = !!this._sheet;
+    this._sheet = sheet;
+    this._form = form;
+    if (!wasOpen) {
+      try {
+        history.pushState({ ...(history.state || {}), rvSheet: true }, "");
+      } catch (e) {
+        /* ignore */
+      }
+    }
+  }
+
+  _closeSheet(silent = false) {
+    if (!this._sheet) return;
+    this._sheet = null;
+    this._form = null;
+    if (history.state && history.state.rvSheet) {
+      if (silent) history.replaceState({ ...history.state, rvSheet: false }, "");
+      else history.back();
+    }
+  }
+
+  _toggleMenu() {
+    this.dispatchEvent(new CustomEvent("hass-toggle-menu", { bubbles: true, composed: true }));
+  }
+
+  _openInHA(path) {
+    this._closeSheet(true);
+    history.pushState(null, "", path);
+    window.dispatchEvent(new CustomEvent("location-changed", { detail: { replace: false } }));
+  }
+
+  // ------------------------------------------------------------ feedback
+
+  _haptic(type) {
+    window.dispatchEvent(new CustomEvent("haptic", { detail: type }));
+  }
+
+  _showToast(text, action = null) {
+    clearTimeout(this._toastTimer);
+    this._toast = { text, action, id: Date.now() };
+    this._toastTimer = setTimeout(() => (this._toast = null), action ? 4500 : 2600);
+  }
+
+  async _call(service, data, entityId) {
+    try {
+      await this.hass.callService("todo", service, data, { entity_id: entityId });
+      return true;
+    } catch (err) {
+      // Home Assistant already shows its own error toast for failed actions.
+      // eslint-disable-next-line no-console
+      console.error("ResolvIA:", service, err);
+      if (!this._inHA()) this._showToast((err && err.message) || "Algo deu errado");
+      return false;
+    }
+  }
+
+  // ------------------------------------------------------------ actions
+
+  async _toggle(list, item) {
+    if (!has(list.features, F.UPDATE)) return;
+    const key = keyOf(item);
+    const completing = !isDone(item);
+    const status = completing ? "completed" : "needs_action";
+    this._haptic(completing ? "success" : "light");
+    if (completing) {
+      clearTimeout(this._recent.get(key));
+      this._recent.set(
+        key,
+        setTimeout(() => {
+          this._recent.delete(key);
+          this.requestUpdate();
+        }, 950),
+      );
+    } else {
+      clearTimeout(this._recent.get(key));
+      this._recent.delete(key);
+    }
+    this._patchItem(list.id, key, { status });
+    const ok = await this._call("update_item", { item: key, status }, list.id);
+    if (!ok) {
+      this._patchItem(list.id, key, { status: item.status });
+      return;
+    }
+    if (completing) {
+      this._showToast(`Resolvido: ${clip(item.summary, 30)}`, {
+        label: "Desfazer",
+        run: () => {
+          this._patchItem(list.id, key, { status: "needs_action" });
+          this._call("update_item", { item: key, status: "needs_action" }, list.id);
+        },
+      });
+    }
+  }
+
+  _quickAdd(ev, list) {
+    ev.preventDefault();
+    const input = ev.currentTarget.querySelector("input");
+    this._addLines(list, [input.value], input);
+  }
+
+  _onQuickPaste(ev, list) {
+    // Pasting several lines adds one item per line.
+    const text = ev.clipboardData && ev.clipboardData.getData("text");
+    if (text && /\n/.test(text.trim())) {
+      ev.preventDefault();
+      this._addLines(list, text.split(/\r?\n/), ev.currentTarget);
+    }
+  }
+
+  async _addLines(list, rawLines, input) {
+    const lines = rawLines.map((s) => s.trim()).filter(Boolean);
+    if (!lines.length) return;
+    const before = input.value;
+    input.value = "";
+    input.focus();
+    this._haptic("light");
+    for (const line of lines) {
+      const ok = await this._call("add_item", { item: line }, list.id);
+      if (!ok) {
+        input.value = before || line;
+        return;
+      }
+    }
+    if (lines.length > 1) this._showToast(`${lines.length} itens adicionados`);
+  }
+
+  _dueFields(list, date, time, clearing) {
+    const f = list.features;
+    if (!date) {
+      if (!clearing) return {};
+      if (has(f, F.DUE_DATE)) return { due_date: null };
+      if (has(f, F.DUE_DATETIME)) return { due_datetime: null };
+      return {};
+    }
+    if (time && has(f, F.DUE_DATETIME)) return { due_datetime: `${date} ${time}:00` };
+    if (has(f, F.DUE_DATE)) return { due_date: date };
+    if (has(f, F.DUE_DATETIME)) return { due_datetime: `${date} ${time || "09:00"}:00` };
+    return {};
+  }
+
+  async _addFull(list, { summary, description, date, time }) {
+    const data = { item: summary, ...this._dueFields(list, date, time, false) };
+    if (description && has(list.features, F.DESCRIPTION)) data.description = description;
+    return this._call("add_item", data, list.id);
+  }
+
+  _openAdd(listId) {
+    const candidates = this._visible().filter((l) => has(l.features, F.CREATE) && !l.unavailable);
+    const last = store.get(LAST_LIST_KEY, null);
+    const target =
+      (listId && this._list(listId) && has(this._list(listId).features, F.CREATE) && listId) ||
+      (candidates.find((l) => l.id === last) && last) ||
+      (candidates[0] && candidates[0].id);
+    if (!target) {
+      this._showToast("Nenhuma lista aceita itens novos");
+      return;
+    }
+    this._openSheet("item", {
+      mode: "add",
+      listId: target,
+      target,
+      summary: "",
+      description: "",
+      date: null,
+      time: null,
+    });
+    this.updateComplete.then(() => {
+      const ta = this.renderRoot.querySelector(".sheet textarea");
+      if (ta) ta.focus();
+    });
+  }
+
+  _openEdit(list, item) {
+    const due = parseDue(item.due);
+    this._openSheet("item", {
+      mode: "edit",
+      listId: list.id,
+      key: keyOf(item),
+      target: list.id,
+      summary: item.summary || "",
+      description: item.description || "",
+      date: due ? due.date : null,
+      time: due ? due.time : null,
+    });
+  }
+
+  _setForm(changes) {
+    this._form = { ...this._form, ...changes };
+  }
+
+  async _saveItem() {
+    const f = this._form;
+    const summary = (f.summary || "").trim();
+    if (!summary) {
+      const ta = this.renderRoot.querySelector(".sheet textarea");
+      if (ta) ta.focus();
+      return;
+    }
+    const description = (f.description || "").trim();
+    const target = this._list(f.target);
+
+    if (f.mode === "add") {
+      if (!target) return;
+      store.set(LAST_LIST_KEY, target.id);
+      this._closeSheet();
+      this._haptic("light");
+      const ok = await this._addFull(target, { summary, description, date: f.date, time: f.time });
+      if (ok && this._view().id !== target.id) this._showToast(`Adicionado em ${clip(target.name, 28)}`);
+      return;
+    }
+
+    const list = this._list(f.listId);
+    const item = list && list.items && list.items.find((i) => keyOf(i) === f.key);
+    if (!list || !item) {
+      this._closeSheet();
+      return;
+    }
+
+    if (target && target.id !== list.id) {
+      this._closeSheet();
+      const ok = await this._addFull(target, { summary, description, date: f.date, time: f.time });
+      if (ok) {
+        await this._call("remove_item", { item: [f.key] }, list.id);
+        this._showToast(`Movido para ${clip(target.name, 28)}`);
+      }
+      return;
+    }
+
+    const data = { item: f.key };
+    if (summary !== item.summary) data.rename = summary;
+    if (has(list.features, F.DESCRIPTION) && description !== (item.description || "")) {
+      data.description = description || null;
+    }
+    const before = parseDue(item.due);
+    const changedDue = (before ? before.date : null) !== (f.date || null) || (before ? before.time : null) !== (f.time || null);
+    if (changedDue) Object.assign(data, this._dueFields(list, f.date, f.time, true));
+    this._closeSheet();
+    if (Object.keys(data).length > 1) {
+      if (data.rename) this._patchItem(list.id, f.key, { summary });
+      await this._call("update_item", data, list.id);
+    }
+  }
+
+  async _deleteItem() {
+    const f = this._form;
+    const list = this._list(f.listId);
+    const item = list && list.items && list.items.find((i) => keyOf(i) === f.key);
+    this._closeSheet();
+    if (!list || !item) return;
+    this._setItems(
+      list.id,
+      list.items.filter((i) => keyOf(i) !== f.key),
+    );
+    this._haptic("warning");
+    const ok = await this._call("remove_item", { item: [f.key] }, list.id);
+    if (!ok) {
+      this._setItems(list.id, list.items);
+      return;
+    }
+    const due = parseDue(item.due);
+    this._showToast("Item excluído", {
+      label: "Desfazer",
+      run: () =>
+        this._addFull(list, {
+          summary: item.summary,
+          description: item.description,
+          date: due ? due.date : null,
+          time: due ? due.time : null,
+        }),
+    });
+  }
+
+  _confirmClearDone(list) {
+    this._openSheet("confirm", {
+      title: "Limpar concluídos?",
+      text: `${plural(list.done, "item concluído vai", "itens concluídos vão")} ser apagado${list.done === 1 ? "" : "s"} de “${list.name}”.`,
+      label: "Limpar",
+      run: async () => {
+        this._closeSheet();
+        this._haptic("warning");
+        if (await this._call("remove_completed_items", {}, list.id)) this._showToast("Concluídos apagados");
+      },
+    });
+  }
+
+  _openCustomize(list) {
+    this._openSheet("customize", {
+      listId: list.id,
+      name: list.name === list.origName ? "" : list.name,
+      color: list.colorId,
+      icon: list.iconPref,
+      hidden: list.hidden,
+    });
+  }
+
+  async _saveCustomize() {
+    const f = this._form;
+    this._closeSheet();
+    await this._saveListPrefs(f.listId, {
+      name: (f.name || "").trim() || null,
+      color: f.color || null,
+      icon: f.icon || null,
+      hidden: f.hidden ? true : null,
+    });
+  }
+
+  // ------------------------------------------------------------ drag to reorder
+
+  _dragStart(ev, list, item) {
+    if (ev.pointerType === "mouse" && ev.button !== 0) return;
+    ev.preventDefault();
+    const handle = ev.currentTarget;
+    const row = handle.closest(".item");
+    const container = row.parentElement;
+    const rows = [...container.querySelectorAll(":scope > .item[data-drag]")];
+    const index = rows.indexOf(row);
+    if (index < 0) return;
+    const scroller = this.renderRoot.querySelector("main");
+    const rects = rows.map((r) => r.getBoundingClientRect());
+    const startScroll = scroller.scrollTop;
+    const mids = rects.map((r) => r.top + r.height / 2 + startScroll);
+    const height = rects[index].height;
+    const st = { y: ev.clientY, target: index, raf: 0, lastY: ev.clientY };
+    try {
+      handle.setPointerCapture(ev.pointerId);
+    } catch (e) {
+      /* ignore */
+    }
+    row.classList.add("dragging");
+    rows.forEach((r, i) => i !== index && r.classList.add("shifting"));
+    this._haptic("selection");
+
+    const layout = () => {
+      const delta = st.lastY - st.y + (scroller.scrollTop - startScroll);
+      row.style.transform = `translateY(${delta}px)`;
+      const center = mids[index] + delta;
+      let t = 0;
+      for (let i = 0; i < rows.length; i++) if (i !== index && mids[i] < center) t++;
+      if (t !== st.target) {
+        st.target = t;
+        this._haptic("selection");
+      }
+      rows.forEach((r, i) => {
+        if (i === index) return;
+        let shift = 0;
+        if (index < t && i > index && i <= t) shift = -height;
+        if (t < index && i >= t && i < index) shift = height;
+        r.style.transform = shift ? `translateY(${shift}px)` : "";
+      });
+    };
+    const autoScroll = () => {
+      const box = scroller.getBoundingClientRect();
+      const edge = 70;
+      let dy = 0;
+      if (st.lastY < box.top + edge) dy = -Math.ceil((box.top + edge - st.lastY) / 6);
+      else if (st.lastY > box.bottom - edge) dy = Math.ceil((st.lastY - (box.bottom - edge)) / 6);
+      if (dy) {
+        scroller.scrollTop += dy;
+        layout();
+      }
+      st.raf = requestAnimationFrame(autoScroll);
+    };
+    st.raf = requestAnimationFrame(autoScroll);
+
+    const move = (e) => {
+      st.lastY = e.clientY;
+      layout();
+    };
+    const end = () => {
+      cancelAnimationFrame(st.raf);
+      handle.removeEventListener("pointermove", move);
+      handle.removeEventListener("pointerup", end);
+      handle.removeEventListener("pointercancel", end);
+      rows.forEach((r) => {
+        r.classList.remove("shifting", "dragging");
+        r.style.transform = "";
+      });
+      if (st.target !== index) this._commitMove(list, item, rows.map((r) => r.dataset.key), index, st.target);
+    };
+    handle.addEventListener("pointermove", move);
+    handle.addEventListener("pointerup", end);
+    handle.addEventListener("pointercancel", end);
+  }
+
+  async _commitMove(list, item, keys, from, to) {
+    const order = keys.slice();
+    const [moved] = order.splice(from, 1);
+    order.splice(to, 0, moved);
+    const previous = to === 0 ? undefined : order[to - 1];
+    // Optimistic reorder of the full list (completed items keep their spots).
+    const items = list.items.slice();
+    const curIdx = items.findIndex((i) => keyOf(i) === moved);
+    const [obj] = items.splice(curIdx, 1);
+    const prevIdx = previous ? items.findIndex((i) => keyOf(i) === previous) : -1;
+    items.splice(prevIdx + 1, 0, obj);
+    this._setItems(list.id, items);
+    const msg = { type: "todo/item/move", entity_id: list.id, uid: moved };
+    if (previous) msg.previous_uid = previous;
+    try {
+      await this.hass.callWS(msg);
+    } catch (e) {
+      this._setItems(list.id, list.items);
+      this._showToast("Não deu para reordenar esta lista");
+    }
+  }
+
+  // ------------------------------------------------------------ render
+
+  render() {
+    if (!this.hass) return nothing;
+    const dark = this._dark;
+    const accent = this._accent();
+    const view = this._view();
+    const viewList = view.name === "list" ? this._list(view.id) : null;
+    const local = viewList ? viewList.color : accent;
+    const style =
+      `--rv-accent:${local.fill};--rv-accent-ink:${dark ? local.fill : local.ink};` +
+      `--rv-accent-soft:${hexToRgba(local.fill, dark ? 0.18 : 0.14)};--rv-accent-ink-light:${local.ink};`;
+    let page;
+    if (view.name === "list") page = this._renderList(view.id);
+    else if (view.name === "due") page = this._renderDue();
+    else if (view.name === "search") page = this._renderSearch();
+    else if (view.name === "more") page = this._renderMore();
+    else page = this._renderHome();
+
+    return html`
+      <div class="root" style=${style}>
+        <div class="app">
+          <header class="topbar">
+            <button class="icon-btn" @click=${this._toggleMenu} aria-label="Menu">${icon("menu")}</button>
+            <div class="title">${(this.panel && this.panel.title) || "ResolvIA"}</div>
+          </header>
+          <main>${page}</main>
+          ${this._renderNav(view)}
+        </div>
+        ${this._renderSheet()} ${this._renderToast()}
+      </div>
+    `;
+  }
+
+  _renderNav(view) {
+    const lateCount = this._visible().reduce((n, l) => n + l.late + l.today, 0);
+    const tab = (name, path, label, ic, badge = 0) => html`
+      <button class="tab ${view.name === name || (name === "home" && view.name === "list") ? "on" : ""}" @click=${() => this._goTab(path)} aria-label=${label}>
+        ${icon(ic)}<span>${label}</span>
+        ${badge ? html`<span class="badge">${badge > 99 ? "99+" : badge}</span>` : nothing}
+      </button>
+    `;
+    return html`
+      <nav>
+        <div class="tabs">
+          ${tab("home", "", "Listas", "list-checks")} ${tab("due", "/prazos", "Prazos", "calendar-clock", lateCount)}
+          <button class="tab fab" @click=${() => this._openAdd(view.name === "list" ? view.id : null)} aria-label="Adicionar item">
+            <span class="pill">${icon("plus")}</span><span>Adicionar</span>
+          </button>
+          ${tab("search", "/buscar", "Buscar", "search")} ${tab("more", "/mais", "Mais", "sliders-horizontal")}
+        </div>
+      </nav>
+    `;
+  }
+
+  // ---------- home
+
+  _renderHome() {
+    const lists = this._visible();
+    const hiddenCount = this._L.length - lists.length;
+    const pending = lists.reduce((n, l) => n + l.pending, 0);
+    const late = lists.reduce((n, l) => n + l.late, 0);
+    const today = lists.reduce((n, l) => n + l.today, 0);
+    const withPending = lists.filter((l) => l.pending > 0).length;
+    const subBits = [];
+    if (pending) subBits.push(`em ${plural(withPending, "lista", "listas")}`);
+    if (today) subBits.push(`${today} pra hoje`);
+    if (late) subBits.push(`${plural(late, "atrasado", "atrasados")}`);
+
+    const groupBy = this._app("group_by_device", true);
+    const groups = [];
+    if (groupBy) {
+      for (const l of lists) {
+        const g = l.group || "";
+        let grp = groups.find((x) => x.name === g);
+        if (!grp) groups.push((grp = { name: g, lists: [] }));
+        grp.lists.push(l);
+      }
+      groups.sort((a, b) => (a.name ? 1 : 0) - (b.name ? 1 : 0));
+    } else groups.push({ name: null, lists });
+
+    return html`
+      <section class="page">
+        <div class="page-head">
+          <h1 class="display">Início</h1>
+          <button class="icon-btn" @click=${() => this._go("/buscar")} aria-label="Buscar">${icon("search")}</button>
+        </div>
+
+        <div class="hero">
+          <div class="rings">${Array.from({ length: 9 }, () => html`<span class="ring"></span>`)}</div>
+          <div class="hero-card">
+            <div class="hero-kicker">${greeting(this.hass.user && this.hass.user.name)}</div>
+            ${pending
+              ? html`<div class="hero-big">${pending}<small>${pending === 1 ? "pendente" : "pendentes"}</small></div>
+                  <div class="hero-sub">${subBits.join(" · ")}</div>`
+              : html`<div class="hero-big">Tudo<small>resolvido</small></div>
+                  <div class="hero-sub">Nenhum item pendente. Aproveita.</div>
+                  <div class="stamp">RESOLVIDO</div>`}
+            <div class="hero-fold"></div>
+          </div>
+        </div>
+
+        ${this._L.length === 0
+          ? html`<div class="panel">
+              <div class="empty">
+                <div class="em-icon">${icon("clipboard-list")}</div>
+                <h3>Nenhuma lista ainda</h3>
+                <p>Crie uma lista em Configurações › Dispositivos e serviços › Adicionar integração › “Lista de tarefas local”.</p>
+              </div>
+            </div>`
+          : html`
+              <div class="sec-head">
+                <h2 class="display">Suas listas</h2>
+                ${hiddenCount
+                  ? html`<button class="text-btn" @click=${() => this._go("/mais")}>${plural(hiddenCount, "oculta", "ocultas")}</button>`
+                  : nothing}
+              </div>
+              ${groups.map(
+                (g) => html`
+                  <div class="panel">
+                    ${groupBy && (g.name || groups.length > 1) ? html`<div class="overline">${g.name || "Listas"}</div>` : nothing}
+                    ${g.lists.map((l) => this._renderListCard(l, !groupBy))}
+                  </div>
+                `,
+              )}
+            `}
+        ${this.hass.user && this.hass.user.is_admin
+          ? html`<button class="pick ghost" style="margin:4px auto 0;display:flex" @click=${() => this._openInHA("/config/integrations/dashboard/add?domain=local_todo")}>
+              ${icon("list-plus")}<span>Nova lista</span>
+            </button>`
+          : nothing}
+      </section>
+    `;
+  }
+
+  _renderListCard(l, showGroup) {
+    const total = l.pending + l.done;
+    const pct = total ? Math.round((l.done / total) * 100) : 0;
+    const meta = [];
+    if (l.unavailable) meta.push(html`<span>Indisponível</span>`);
+    else if (!l.items) meta.push(html`<span>Carregando…</span>`);
+    else {
+      meta.push(html`<span>${l.pending ? plural(l.pending, "pendente", "pendentes") : "Tudo resolvido"}${l.done ? ` · ${l.done} ${l.done === 1 ? "feito" : "feitos"}` : ""}</span>`);
+      if (l.late) meta.push(html`<span class="tag late">${icon("circle-alert")}${l.late}</span>`);
+      else if (l.today) meta.push(html`<span class="tag today">${icon("clock")}${l.today} hoje</span>`);
+    }
+    return html`
+      <button class="list-card ${l.unavailable ? "off" : ""}" style=${colorVars(l.color, this._dark)} @click=${() => this._go(`/lista/${l.id}`)}>
+        <span class="tile">${icon(l.icon)}</span>
+        <span class="lc-main">
+          <span class="lc-title">${l.name}</span>
+          <span class="lc-meta">${showGroup && l.group ? html`<span>${l.group} ·</span>` : nothing}${meta}</span>
+          ${total ? html`<span class="bar"><i style="width:${pct}%"></i></span>` : nothing}
+        </span>
+        <span class="lc-num ${l.pending ? "" : "zero"}">${l.pending || icon("circle-check")}</span>
+      </button>
+    `;
+  }
+
+  // ---------- list detail
+
+  _renderList(id) {
+    const l = this._list(id);
+    if (!l) {
+      return html`<section class="page">
+        <div class="panel">
+          <div class="empty">
+            <div class="em-icon">${icon("circle-alert")}</div>
+            <h3>Lista não encontrada</h3>
+            <p>Ela pode ter sido removida ou renomeada no Home Assistant.</p>
+          </div>
+        </div>
+        <button class="btn outline" style="width:100%" @click=${() => this._go("", true)}>Voltar para o início</button>
+      </section>`;
+    }
+    const canCreate = has(l.features, F.CREATE) && !l.unavailable;
+    const canUpdate = has(l.features, F.UPDATE);
+    const canMove = has(l.features, F.MOVE);
+    const canDelete = has(l.features, F.DELETE);
+    const items = l.items;
+    const pending = items ? items.filter((i) => !isDone(i) || this._recent.has(keyOf(i))) : [];
+    const done = items ? items.filter((i) => isDone(i) && !this._recent.has(keyOf(i))) : [];
+    const total = items ? items.length : 0;
+    const doneOpen = this._doneOpen[id] !== undefined ? this._doneOpen[id] : this._app("show_done", false);
+
+    return html`
+      <section class="page" style=${colorVars(l.color, this._dark)}>
+        <div class="detail-head">
+          <button class="icon-btn" @click=${() => this._back()} aria-label="Voltar">${icon("chevron-left")}</button>
+          <div class="dh-text">
+            ${l.group ? html`<div class="overline">${l.group}</div>` : nothing}
+            <h1 class="display">${l.name}</h1>
+          </div>
+          <button class="icon-btn" @click=${() => this._openSheet("listmenu", { listId: l.id })} aria-label="Opções da lista">${icon("ellipsis")}</button>
+        </div>
+
+        ${total
+          ? html`<div class="progress">
+              <span>${l.done} de ${total} resolvidos</span>
+              <span class="bar"><i style="width:${Math.round((l.done / total) * 100)}%"></i></span>
+            </div>`
+          : nothing}
+        ${canCreate
+          ? html`<div class="quick">
+              <form @submit=${(e) => this._quickAdd(e, l)}>
+                <input type="text" enterkeyhint="done" autocomplete="off" placeholder="Adicionar item…" aria-label="Novo item" @paste=${(e) => this._onQuickPaste(e, l)} />
+                <button class="add-btn" type="submit" aria-label="Adicionar">${icon("plus")}</button>
+              </form>
+            </div>`
+          : nothing}
+        ${l.unavailable
+          ? html`<div class="panel"><div class="empty"><div class="em-icon">${icon("circle-alert")}</div><h3>Lista indisponível</h3><p>O Home Assistant não está conseguindo falar com a integração desta lista agora.</p></div></div>`
+          : !items
+            ? html`<div class="panel">${[70, 52, 84].map((w) => html`<div class="skeleton" style="width:${w}%"></div>`)}</div>`
+            : pending.length
+              ? html`<div class="panel items">
+                  ${repeat(pending, keyOf, (i) => this._renderItem(l, i, { draggable: canMove && canUpdate && !isDone(i) }))}
+                </div>`
+              : html`<div class="panel">
+                  <div class="empty">
+                    ${total
+                      ? html`<div class="big-stamp">RESOLVIDO</div>
+                          <h3>Nada pendente</h3>
+                          <p>Tudo nesta lista foi feito.</p>`
+                      : html`<div class="em-icon">${icon(l.icon)}</div>
+                          <h3>Lista vazia</h3>
+                          <p>${canCreate ? "Escreva acima e toque em + para adicionar o primeiro item." : "Esta lista não aceita itens novos por aqui."}</p>`}
+                  </div>
+                </div>`}
+        ${done.length
+          ? html`
+              <div class="done-head">
+                <button class="done-toggle ${doneOpen ? "open" : ""}" @click=${() => (this._doneOpen = { ...this._doneOpen, [id]: !doneOpen })} aria-expanded=${doneOpen ? "true" : "false"}>
+                  Concluídos <span class="count">· ${done.length}</span>${icon("chevron-down")}
+                </button>
+                ${canDelete ? html`<button class="text-btn" @click=${() => this._confirmClearDone(l)}>Limpar</button>` : nothing}
+              </div>
+              ${doneOpen ? html`<div class="panel items">${repeat(done, keyOf, (i) => this._renderItem(l, i))}</div>` : nothing}
+            `
+          : nothing}
+        ${!canUpdate && items && items.length
+          ? html`<p class="foot">Esta lista é só leitura: a integração dela não permite editar itens.</p>`
+          : nothing}
+      </section>
+    `;
+  }
+
+  _renderText(text, query) {
+    return splitLinks(text).map((seg) =>
+      seg.url
+        ? html`<a class="lnk" href=${seg.url} target="_blank" rel="noopener noreferrer" @click=${(e) => e.stopPropagation()} title=${seg.url}>${icon(seg.icon)}<span>${seg.label}</span></a>`
+        : this._highlight(seg.text, query),
+    );
+  }
+
+  _highlight(text, query) {
+    if (!query) return text;
+    const hay = foldKeepLength(text);
+    const needle = fold(query);
+    if (!needle) return text;
+    const out = [];
+    let from = 0;
+    let at;
+    while ((at = hay.indexOf(needle, from)) !== -1) {
+      if (at > from) out.push(text.slice(from, at));
+      out.push(html`<mark>${text.slice(at, at + needle.length)}</mark>`);
+      from = at + needle.length;
+    }
+    if (from < text.length) out.push(text.slice(from));
+    return out;
+  }
+
+  _renderItem(l, item, opts = {}) {
+    const done = isDone(item);
+    const due = !done && dueInfo(item.due);
+    const canUpdate = has(l.features, F.UPDATE);
+    return html`
+      <div class="item ${done ? "done" : ""}" data-key=${keyOf(item)} ?data-drag=${opts.draggable} style=${opts.showList ? colorVars(l.color, this._dark) : ""}>
+        <button class="check ${done ? "on" : ""}" role="checkbox" aria-checked=${done ? "true" : "false"} aria-label=${done ? "Marcar como pendente" : "Marcar como resolvido"} ?disabled=${!canUpdate} @click=${() => this._toggle(l, item)}>
+          ${icon("check")}
+        </button>
+        <div class="it-body" @click=${() => canUpdate && this._openEdit(l, item)}>
+          <div class="it-text">${this._renderText(item.summary || "", opts.query)}</div>
+          ${item.description ? html`<div class="it-desc">${this._renderText(item.description, opts.query)}</div>` : nothing}
+          ${due || opts.showList
+            ? html`<div class="chips">
+                ${opts.showList ? html`<span class="tag list">${icon(l.icon)}${clip(l.name, 24)}</span>` : nothing}
+                ${due ? html`<span class="tag ${due.tone === "late" ? "late" : due.tone === "today" ? "today" : ""}">${icon(due.time ? "clock" : "calendar")}${due.text}</span>` : nothing}
+              </div>`
+            : nothing}
+        </div>
+        ${opts.draggable
+          ? html`<button class="grip" aria-label="Arrastar para reordenar" @pointerdown=${(e) => this._dragStart(e, l, item)} @click=${(e) => e.preventDefault()}>${icon("grip-vertical")}</button>`
+          : nothing}
+      </div>
+    `;
+  }
+
+  // ---------- due
+
+  _renderDue() {
+    const lists = this._visible();
+    const supportsDue = lists.some((l) => has(l.features, F.DUE_DATE) || has(l.features, F.DUE_DATETIME));
+    const rows = [];
+    for (const l of lists) {
+      for (const i of l.items || []) {
+        if (isDone(i) && !this._recent.has(keyOf(i))) continue;
+        const d = dueInfo(i.due);
+        if (d) rows.push({ l, i, d });
+      }
+    }
+    rows.sort((a, b) => a.d.at - b.d.at);
+    const buckets = [
+      { title: "Atrasados", test: (d) => d.overdue },
+      { title: "Hoje", test: (d) => d.diff === 0 },
+      { title: "Amanhã", test: (d) => d.diff === 1 },
+      { title: "Próximos 7 dias", test: (d) => d.diff > 1 && d.diff < 7 },
+      { title: "Mais adiante", test: () => true },
+    ];
+    const used = new Set();
+    const groups = buckets
+      .map((b) => {
+        const list = rows.filter((r) => !used.has(r) && b.test(r.d));
+        list.forEach((r) => used.add(r));
+        return { ...b, rows: list };
+      })
+      .filter((g) => g.rows.length);
+
+    return html`
+      <section class="page">
+        <div class="page-head"><h1 class="display">Prazos</h1></div>
+        <p class="page-sub">Tudo que tem data, de todas as listas, em ordem.</p>
+        ${groups.length
+          ? groups.map(
+              (g) => html`
+                <div class="panel items">
+                  <div class="overline" style=${g.title === "Atrasados" ? "color:var(--rv-late)" : ""}>${g.title} · ${g.rows.length}</div>
+                  ${repeat(g.rows, (r) => r.l.id + keyOf(r.i), (r) => this._renderItem(r.l, r.i, { showList: true }))}
+                </div>
+              `,
+            )
+          : html`<div class="panel">
+              <div class="empty">
+                <div class="em-icon">${icon("calendar-days")}</div>
+                ${supportsDue
+                  ? html`<h3>Nada com prazo</h3>
+                      <p>Quando um item tiver data, ele aparece aqui. Toque num item para definir um prazo.</p>`
+                  : html`<h3>Sem prazos por aqui</h3>
+                      <p>Suas listas atuais não aceitam datas. Listas locais (“Lista de tarefas local”), Google Tasks e CalDAV aceitam.</p>`}
+              </div>
+            </div>`}
+      </section>
+    `;
+  }
+
+  // ---------- search
+
+  _renderSearch() {
+    const q = this._query.trim();
+    const needle = fold(q);
+    const results = [];
+    let count = 0;
+    if (needle) {
+      for (const l of this._L) {
+        const hits = (l.items || []).filter(
+          (i) => (this._searchDone || !isDone(i)) && (fold(i.summary).includes(needle) || fold(i.description).includes(needle)),
+        );
+        if (hits.length) {
+          hits.sort((a, b) => Number(isDone(a)) - Number(isDone(b)));
+          results.push({ l, hits });
+          count += hits.length;
+        }
+      }
+    }
+    return html`
+      <section class="page">
+        <div class="page-head"><h1 class="display">Buscar</h1></div>
+        <label class="search-box">
+          ${icon("search")}
+          <input type="search" placeholder="Buscar em todas as listas" .value=${this._query} @input=${(e) => (this._query = e.target.value)} autofocus enterkeyhint="search" aria-label="Buscar" />
+          ${this._query ? html`<button class="icon-btn" style="width:40px;height:40px" @click=${() => (this._query = "")} aria-label="Limpar">${icon("x")}</button>` : nothing}
+        </label>
+        <div class="filters">
+          <button class="pick ${this._searchDone ? "on" : ""}" @click=${() => (this._searchDone = !this._searchDone)}>${icon("circle-check")}<span>Incluir concluídos</span></button>
+        </div>
+        ${!needle
+          ? html`<p class="page-sub" style="margin-top:0">Procure por qualquer palavra em ${plural(this._L.length, "lista", "listas")}. Acentos não importam.</p>`
+          : results.length
+            ? html`<p class="page-sub" style="margin-top:0">${plural(count, "resultado", "resultados")}</p>
+                ${results.map(
+                  ({ l, hits }) => html`
+                    <div class="panel items" style=${colorVars(l.color, this._dark)}>
+                      <div class="overline">${l.name}${l.group ? ` · ${l.group}` : ""}</div>
+                      ${repeat(hits, keyOf, (i) => this._renderItem(l, i, { query: q }))}
+                    </div>
+                  `,
+                )}`
+            : html`<div class="panel"><div class="empty"><div class="em-icon">${icon("search")}</div><h3>Nada encontrado</h3><p>Nenhum item com “${clip(q, 30)}”.</p></div></div>`}
+      </section>
+    `;
+  }
+
+  // ---------- more / settings
+
+  _renderMore() {
+    const accent = this._app("accent", "vermelho");
+    const sw = (on, label, ev) => html`<label class="switch"><input type="checkbox" role="switch" .checked=${on} @change=${ev} aria-label=${label} /><span class="track"></span></label>`;
+    return html`
+      <section class="page">
+        <div class="page-head"><h1 class="display">Mais</h1></div>
+
+        <div class="panel">
+          <div class="overline">Aparência</div>
+          <div class="row col">
+            <div class="label">Tema</div>
+            <div class="seg" role="radiogroup" aria-label="Tema">
+              ${[
+                ["auto", "Automático", "sun-moon"],
+                ["light", "Claro", "sun"],
+                ["dark", "Escuro", "moon"],
+              ].map(([k, label, ic]) => html`<button class=${this._theme === k ? "on" : ""} role="radio" aria-checked=${this._theme === k ? "true" : "false"} @click=${() => this._setTheme(k)}>${icon(ic)}${label}</button>`)}
+            </div>
+            <div class="hint" style="white-space:normal">${this._theme === "auto" ? "Segue o modo claro/escuro do Home Assistant." : "Vale só para este aparelho."}</div>
+          </div>
+          <div class="row col">
+            <div class="label">Cor do app</div>
+            <div class="swatches">
+              ${PALETTE.map(
+                (c) => html`<button class="sw ${accent === c.id ? "on" : ""}" style="--c:${c.fill}" aria-label=${c.label} @click=${() => this._saveAppPrefs({ accent: c.id === "vermelho" ? null : c.id })}>${accent === c.id ? icon("check") : nothing}</button>`,
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="overline">Listas</div>
+          ${this._L.length
+            ? this._L.map(
+                (l) => html`
+                  <div class="row" style=${colorVars(l.color, this._dark)}>
+                    <button class="tile" @click=${() => this._openCustomize(l)} aria-label="Personalizar ${l.name}">${icon(l.icon)}</button>
+                    <button class="grow" style="text-align:left" @click=${() => this._openCustomize(l)}>
+                      <div class="label">${l.name}</div>
+                      <div class="hint">${l.group || l.id}</div>
+                    </button>
+                    ${sw(!l.hidden, `Mostrar ${l.name}`, (e) => this._saveListPrefs(l.id, { hidden: e.target.checked ? null : true }))}
+                  </div>
+                `,
+              )
+            : html`<div class="row"><div class="hint">Nenhuma lista encontrada.</div></div>`}
+        </div>
+
+        <div class="panel">
+          <div class="overline">Exibição</div>
+          <div class="row">
+            <div class="grow"><div class="label">Agrupar por dispositivo</div><div class="hint">Ex.: as listas da Alexa juntas</div></div>
+            ${sw(this._app("group_by_device", true), "Agrupar por dispositivo", (e) => this._saveAppPrefs({ group_by_device: e.target.checked }))}
+          </div>
+          <div class="row">
+            <div class="grow"><div class="label">Concluídos abertos</div><div class="hint">Mostra os concluídos sem precisar tocar</div></div>
+            ${sw(this._app("show_done", false), "Concluídos abertos", (e) => this._saveAppPrefs({ show_done: e.target.checked }))}
+          </div>
+        </div>
+
+        ${this.hass.user && this.hass.user.is_admin
+          ? html`<div class="panel">
+              <button class="row" @click=${() => this._openInHA("/config/integrations/dashboard/add?domain=local_todo")}>
+                <span class="tile" style=${colorVars(this._accent(), this._dark)}>${icon("list-plus")}</span>
+                <span class="grow"><div class="label">Criar nova lista</div><div class="hint">Lista de tarefas local do Home Assistant</div></span>
+                ${icon("chevron-right")}
+              </button>
+              <button class="row" @click=${() => this._openInHA("/todo")}>
+                <span class="tile" style=${colorVars(PALETTE[9], this._dark)}>${icon("external-link")}</span>
+                <span class="grow"><div class="label">Abrir listas padrão do HA</div><div class="hint">A tela original de tarefas</div></span>
+                ${icon("chevron-right")}
+              </button>
+            </div>`
+          : nothing}
+
+        <p class="foot"><b>ResolvIA</b><br />v${VERSION} · usa as listas nativas do Home Assistant.<br />${this._prefsRemote ? "Personalizações sincronizadas entre aparelhos." : "Personalizações salvas neste aparelho."}</p>
+      </section>
+    `;
+  }
+
+  // ---------- sheets
+
+  _renderSheet() {
+    if (!this._sheet) return nothing;
+    let body = nothing;
+    if (this._sheet === "item") body = this._renderItemSheet();
+    else if (this._sheet === "listmenu") body = this._renderListMenu();
+    else if (this._sheet === "customize") body = this._renderCustomize();
+    else if (this._sheet === "confirm") body = this._renderConfirm();
+    return html`
+      <div class="scrim" @click=${() => this._closeSheet()}></div>
+      <div class="sheet" role="dialog" aria-modal="true" style=${this._sheetStyle()} @keydown=${(e) => e.key === "Escape" && this._closeSheet()}>
+        <div class="grab"></div>
+        ${body}
+      </div>
+    `;
+  }
+
+  _sheetStyle() {
+    const f = this._form || {};
+    const l = this._list(f.target || f.listId);
+    const c = this._sheet === "customize" ? colorById(f.color) || (l && l.color) : l && l.color;
+    if (!c) return "";
+    return `--rv-accent:${c.fill};--rv-accent-ink:${this._dark ? c.fill : c.ink};--rv-accent-soft:${hexToRgba(c.fill, this._dark ? 0.18 : 0.14)};${colorVars(c, this._dark)}`;
+  }
+
+  _renderItemSheet() {
+    const f = this._form;
+    const src = this._list(f.listId);
+    const target = this._list(f.target) || src;
+    if (!src || !target) return nothing;
+    const feat = target.features;
+    const canDesc = has(feat, F.DESCRIPTION);
+    const canDate = has(feat, F.DUE_DATE) || has(feat, F.DUE_DATETIME);
+    const canTime = has(feat, F.DUE_DATETIME);
+    const canDelete = f.mode === "edit" && has(src.features, F.DELETE);
+    const quick = quickDates();
+    const isQuick = quick.some((q) => q.date === f.date);
+    const targets =
+      f.mode === "add"
+        ? this._L.filter((l) => has(l.features, F.CREATE) && !l.unavailable && (!l.hidden || l.id === f.target))
+        : has(src.features, F.DELETE)
+          ? this._L.filter((l) => has(l.features, F.CREATE) && !l.unavailable && (!l.hidden || l.id === src.id))
+          : [];
+    const openPicker = (sel) => {
+      const input = this.renderRoot.querySelector(sel);
+      if (!input) return;
+      try {
+        input.showPicker();
+      } catch (e) {
+        input.focus();
+        input.click();
+      }
+    };
+    return html`
+      <div class="sheet-head">
+        <h3 class="display">${f.mode === "add" ? "Novo item" : "Editar item"}</h3>
+        <button class="icon-btn" @click=${() => this._closeSheet()} aria-label="Fechar">${icon("x")}</button>
+      </div>
+      <label class="field">
+        <span class="flabel">Item</span>
+        <textarea rows="2" .value=${f.summary} @input=${(e) => this._setForm({ summary: e.target.value })} @keydown=${(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), this._saveItem())} placeholder="O que precisa ser resolvido?"></textarea>
+      </label>
+      ${canDesc
+        ? html`<label class="field">
+            <span class="flabel">Notas</span>
+            <textarea rows="3" .value=${f.description} @input=${(e) => this._setForm({ description: e.target.value })} placeholder="Detalhes, links…"></textarea>
+          </label>`
+        : nothing}
+      ${canDate
+        ? html`<div class="field">
+            <span class="flabel">Prazo</span>
+            <div class="chip-row">
+              ${quick.map((q) => html`<button class="pick ${f.date === q.date ? "on" : ""}" @click=${() => this._setForm({ date: f.date === q.date ? null : q.date })}>${q.label}</button>`)}
+              <button class="pick ${f.date && !isQuick ? "on" : ""}" @click=${() => openPicker("#rv-date")}>
+                ${icon("calendar")}<span>${f.date && !isQuick ? shortDate(f.date) : "Outra data"}</span>
+                <input id="rv-date" class="hidden-input" type="date" tabindex="-1" .value=${f.date || ""} @change=${(e) => this._setForm({ date: e.target.value || null })} />
+              </button>
+              ${f.date ? html`<button class="pick ghost" @click=${() => this._setForm({ date: null, time: null })}>${icon("x")}<span>Sem prazo</span></button>` : nothing}
+            </div>
+            ${canTime && f.date
+              ? html`<div class="time-row">
+                  <span class="tl">Horário</span>
+                  <input type="time" .value=${f.time || ""} @change=${(e) => this._setForm({ time: e.target.value || null })} />
+                  ${f.time ? html`<button class="text-btn" @click=${() => this._setForm({ time: null })}>Dia todo</button>` : nothing}
+                </div>`
+              : nothing}
+          </div>`
+        : nothing}
+      ${targets.length > 1
+        ? html`<div class="field">
+            <span class="flabel">${f.mode === "add" ? "Lista" : "Lista (mover)"}</span>
+            <div class="chip-row">
+              ${targets.map((t) => html`<button class="pick list ${f.target === t.id ? "on" : ""}" style=${colorVars(t.color, this._dark)} @click=${() => this._setForm({ target: t.id })}><span class="dot"></span><span>${clip(t.name, 26)}</span></button>`)}
+            </div>
+          </div>`
+        : nothing}
+      <div class="sheet-actions">
+        ${canDelete ? html`<button class="btn danger" @click=${() => this._deleteItem()} aria-label="Excluir">${icon("trash")}</button>` : nothing}
+        <button class="btn primary" @click=${() => this._saveItem()}>${f.mode === "add" ? "Adicionar" : f.target !== f.listId ? "Mover" : "Salvar"}</button>
+      </div>
+    `;
+  }
+
+  _renderListMenu() {
+    const l = this._list(this._form.listId);
+    if (!l) return nothing;
+    return html`
+      <div class="sheet-head">
+        <h3 class="display">${l.name}</h3>
+        <button class="icon-btn" @click=${() => this._closeSheet()} aria-label="Fechar">${icon("x")}</button>
+      </div>
+      <button class="menu-row" @click=${() => this._openCustomize(l)}>${icon("palette")}Personalizar<span class="sub">nome, cor, ícone</span></button>
+      <button class="menu-row" @click=${() => (this._closeSheet(), this._saveListPrefs(l.id, { hidden: l.hidden ? null : true }))}>${icon(l.hidden ? "eye" : "eye-off")}${l.hidden ? "Mostrar no início" : "Ocultar do início"}</button>
+      ${this.hass.user && this.hass.user.is_admin
+        ? html`<button class="menu-row" @click=${() => this._openInHA(`/todo?entity_id=${l.id}`)}>${icon("external-link")}Abrir na tela padrão do HA</button>`
+        : nothing}
+      ${has(l.features, F.DELETE) && l.done
+        ? html`<button class="menu-row danger" @click=${() => this._confirmClearDone(l)}>${icon("brush-cleaning")}Limpar concluídos<span class="sub">${l.done}</span></button>`
+        : nothing}
+    `;
+  }
+
+  _renderCustomize() {
+    const f = this._form;
+    const l = this._list(f.listId);
+    if (!l) return nothing;
+    const color = colorById(f.color) || l.color;
+    const ic = f.icon || guessIcon(`${l.origName} ${l.group || ""} ${l.id}`);
+    return html`
+      <div class="sheet-head">
+        <h3 class="display">Personalizar</h3>
+        <button class="icon-btn" @click=${() => this._closeSheet()} aria-label="Fechar">${icon("x")}</button>
+      </div>
+      <div class="preview-tile" style=${colorVars(color, this._dark)}>
+        <span class="tile">${icon(ic)}</span>
+        <span class="lc-main"><span class="lc-title">${(f.name || "").trim() || l.origName}</span><span class="lc-meta">${l.group || l.id}</span></span>
+      </div>
+      <label class="field">
+        <span class="flabel">Nome</span>
+        <input type="text" .value=${f.name} placeholder=${l.origName} @input=${(e) => this._setForm({ name: e.target.value })} />
+      </label>
+      <div class="field">
+        <span class="flabel">Cor</span>
+        <div class="swatches">
+          ${PALETTE.map(
+            (c) => html`<button class="sw ${color.id === c.id ? "on" : ""}" style="--c:${c.fill}" aria-label=${c.label} @click=${() => this._setForm({ color: c.id })}>${color.id === c.id ? icon("check") : nothing}</button>`,
+          )}
+        </div>
+      </div>
+      <div class="field">
+        <span class="flabel">Ícone</span>
+        <div class="icon-grid" style=${colorVars(color, this._dark)}>
+          ${LIST_ICONS.map((n) => html`<button class="ig ${ic === n ? "on" : ""}" aria-label=${n} @click=${() => this._setForm({ icon: n })}>${icon(n)}</button>`)}
+        </div>
+      </div>
+      <div class="row" style="border:0;padding-top:0">
+        <div class="grow"><div class="label">Mostrar no início</div></div>
+        <label class="switch"><input type="checkbox" role="switch" .checked=${!f.hidden} @change=${(e) => this._setForm({ hidden: !e.target.checked })} aria-label="Mostrar no início" /><span class="track"></span></label>
+      </div>
+      <div class="sheet-actions">
+        <button class="btn outline" @click=${() => this._setForm({ name: "", color: null, icon: null, hidden: false })}>${icon("rotate-ccw")}Padrão</button>
+        <button class="btn primary" @click=${() => this._saveCustomize()}>Salvar</button>
+      </div>
+    `;
+  }
+
+  _renderConfirm() {
+    const f = this._form;
+    return html`
+      <div class="sheet-head"><h3 class="display">${f.title}</h3></div>
+      <p class="confirm-text">${f.text}</p>
+      <div class="sheet-actions">
+        <button class="btn outline" @click=${() => this._closeSheet()}>Cancelar</button>
+        <button class="btn primary" @click=${() => f.run()}>${f.label}</button>
+      </div>
+    `;
+  }
+
+  _renderToast() {
+    if (!this._toast) return nothing;
+    const t = this._toast;
+    return html`<div class="toast ${this._sheet ? "has-sheet" : ""}" role="status">
+      <span>${t.text}</span>
+      ${t.action
+        ? html`<button @click=${() => {
+            this._toast = null;
+            t.action.run();
+          }}>${t.action.label}</button>`
+        : nothing}
+    </div>`;
+  }
+}
+
+if (!customElements.get("resolvia-panel")) customElements.define("resolvia-panel", ResolviaPanel);
+
+export { ResolviaPanel };

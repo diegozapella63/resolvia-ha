@@ -1,0 +1,15 @@
+{
+  "domain": "resolvia",
+  "name": "ResolvIA",
+  "after_dependencies": ["todo"],
+  "codeowners": ["@diegozapella63"],
+  "config_flow": true,
+  "dependencies": ["frontend", "http", "panel_custom", "websocket_api"],
+  "documentation": "https://github.com/diegozapella63/resolvia-ha",
+  "integration_type": "service",
+  "iot_class": "calculated",
+  "issue_tracker": "https://github.com/diegozapella63/resolvia-ha/issues",
+  "requirements": [],
+  "single_config_entry": true,
+  "version": "1.0.0"
+}
