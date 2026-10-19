@@ -4,6 +4,13 @@
 
 Um App do Home Assistant que mostra suas **listas de tarefas nativas** (`todo.*`) num visual bem mais caprichado, traz **tarefas que voltam sozinhas** X dias depois de concluídas e **importa itens de mensagens e fotos** com IA.
 
+<p align="center">
+  <img src="docs/inicio.png" width="24%" alt="Início com o resumo das listas">
+  <img src="docs/lista.png" width="24%" alt="Lista aberta com prazos e repetição">
+  <img src="docs/repetir.png" width="24%" alt="Repetir depois de concluir">
+  <img src="docs/importar.png" width="24%" alt="Itens lidos de uma foto pela IA">
+</p>
+
 [![Adicionar o repositório ao Home Assistant](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fdiegozapella63%2Fresolvia-ha)
 
 ## Instalação
@@ -40,6 +47,7 @@ repository.yaml          repositório de apps
 resolvia/                o app (config, Dockerfile, servidor Node.js)
 frontend/                código-fonte da interface (Lit)
 preview/                 prévia da interface com dados de exemplo
+docs/                    telas de exemplo do README
 dev/fake-ha.mjs          Home Assistant falso para desenvolver sem o HA
 ```
 
