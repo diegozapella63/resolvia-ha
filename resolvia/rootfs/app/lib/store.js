@@ -8,6 +8,8 @@ const APP_FIELDS = {
   group_by_device: ["boolean"],
   show_done: ["boolean"],
   list_order: ["list", 200],
+  // "" / null = the AI Home Assistant prefers (Mais > Leitura por IA).
+  ai_entity: ["string", 80],
 };
 
 export class Store {
@@ -105,7 +107,9 @@ export class Store {
   }
 
   setAppPrefs(changes) {
-    this.data.prefs.app = Store.merge(this.data.prefs.app, Store.clean(changes, APP_FIELDS));
+    const clean = Store.clean(changes, APP_FIELDS);
+    if ("ai_entity" in clean && clean.ai_entity !== null && !/^ai_task\.[a-z0-9_]+$/.test(clean.ai_entity)) clean.ai_entity = null;
+    this.data.prefs.app = Store.merge(this.data.prefs.app, clean);
     this.save();
     return this.data.prefs;
   }

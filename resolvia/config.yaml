@@ -1,6 +1,6 @@
 # https://developers.home-assistant.io/docs/apps/configuration
 name: ResolvIA
-version: "2.3.0"
+version: "2.4.0"
 slug: resolvia
 description: Suas listas de tarefas do Home Assistant num visual caprichado, com tarefas que voltam sozinhas e leitura de listas por foto.
 url: "https://github.com/diegozapella63/resolvia-ha/tree/main/resolvia"
@@ -17,12 +17,6 @@ panel_title: ResolvIA
 panel_admin: false
 homeassistant_api: true
 # Photos are handed to Home Assistant's AI Task through the media folder
-# for a few seconds, then deleted.
+# (media/resolvia/ia-temp) while the AI reads them, then deleted.
 map:
   - media:rw
-options:
-  gemini_api_key: ""
-  gemini_model: "gemini-flash-latest"
-schema:
-  gemini_api_key: password?
-  gemini_model: str?

@@ -13,7 +13,7 @@ import { Store } from "./lib/store.js";
 import { Recurring } from "./lib/recurring.js";
 import { AI } from "./lib/ai.js";
 
-const VERSION = "2.3.0";
+const VERSION = "2.4.0";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const WWW = path.join(HERE, "www");
 const DEV = process.env.RESOLVIA_DEV === "1";
@@ -24,7 +24,6 @@ const DATA_DIR = process.env.DATA_DIR || "/data";
 const DAY_MS = DEV ? Number(process.env.RESOLVIA_DAY_MS || 0) : 0;
 const INGRESS_IPS = new Set(["172.30.32.2"]);
 const MEDIA_DIR = process.env.MEDIA_DIR || "/media";
-const OPTIONS_FILE = process.env.OPTIONS_FILE || path.join(DATA_DIR, "options.json");
 const MAX_UPLOAD = 30 * 1024 * 1024;
 const SERVICES = new Set(["add_item", "update_item", "remove_item", "remove_completed_items"]);
 
@@ -43,7 +42,7 @@ const store = new Store(DATA_DIR, log);
 const ha = new HAClient(HA_URL, TOKEN, log);
 const todoStates = new Map();
 const recurring = new Recurring({ ha, store, log, states: todoStates, dayMs: DAY_MS });
-const ai = new AI({ ha, log, mediaDir: MEDIA_DIR, optionsFile: OPTIONS_FILE, geminiUrl: DEV ? process.env.GEMINI_URL : undefined });
+const ai = new AI({ ha, log, mediaDir: MEDIA_DIR, selected: () => store.prefs.app.ai_entity || "" });
 const itemSubs = new Map(); // entity_id -> subscription (for the recurring engine)
 const listWatchers = new Set(); // {session, id}
 const ruleWatchers = new Set(); // {session, id}
@@ -212,7 +211,7 @@ class Session {
       case "resolvia/bootstrap": {
         await ha.whenReady();
         if (!todoStates.size) await loadStates().catch(() => {});
-        const [reg, aiStatus] = await Promise.all([registry(), ai.status().catch(() => ({ available: false }))]);
+        const [reg, aiStatus] = await Promise.all([registry(), ai.status().catch((err) => ({ ready: false, images: false, entities: [], reason: err.message }))]);
         return this.result(id, {
           version: VERSION,
           ai: aiStatus,
@@ -223,6 +222,9 @@ class Session {
           devices: reg.devices,
         });
       }
+
+      case "resolvia/ai/status":
+        return this.result(id, await ai.status());
 
       case "resolvia/subscribe_lists":
         this.watch(listWatchers, id);
@@ -348,7 +350,8 @@ function handleExtract(req, res) {
       sendJson(res, 200, out);
     } catch (err) {
       log.warn(`Importação falhou: ${err.message}`);
-      sendJson(res, err.code === "no_ai" ? 409 : 502, { error: err.message, code: err.code || "failed" });
+      const setup = ["no_ai", "no_vision", "gone", "unavailable", "no_media"].includes(err.code);
+      sendJson(res, setup ? 409 : 502, { error: err.message, code: err.code || "failed" });
     }
   });
 }

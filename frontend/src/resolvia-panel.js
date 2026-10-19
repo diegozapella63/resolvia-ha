@@ -90,6 +90,7 @@ class ResolviaPanel extends LitElement {
     _rules: { state: true },
     _cam: { state: true },
     _rulesOk: { state: true },
+    _aiState: { state: true },
     env: { attribute: false },
   };
 
@@ -118,6 +119,8 @@ class ResolviaPanel extends LitElement {
     this._cam = null;
     this._rulesOk = false;
     this._rulesUnsub = null;
+    this._aiState = null;
+    this._aiAt = 0;
     this.env = null;
     this._onPopState = this._onPopState.bind(this);
     this._onResize = this._checkHeight.bind(this);
@@ -182,6 +185,7 @@ class ResolviaPanel extends LitElement {
 
   updated(changed) {
     this.toggleAttribute("dark", this._dark);
+    if (changed.has("_path") && this._view().name === "more") this._refreshAi(false);
     if (changed.has("_path") && this._view().name === "search") {
       const input = this.renderRoot.querySelector(".search-box input");
       if (input) input.focus({ preventScroll: true });
@@ -482,6 +486,15 @@ class ResolviaPanel extends LitElement {
     }
   }
 
+  _goAiSettings() {
+    this._closeSheet(true);
+    this._go("/mais");
+    this.updateComplete.then(() => {
+      const el = this.renderRoot.querySelector("#leitura-ia");
+      if (el) el.scrollIntoView({ block: "start", behavior: "smooth" });
+    });
+  }
+
   _toggleMenu() {
     this.dispatchEvent(new CustomEvent("hass-toggle-menu", { bubbles: true, composed: true }));
   }
@@ -698,7 +711,30 @@ class ResolviaPanel extends LitElement {
   // ------------------------------------------------------------ import (message / photos / scan)
 
   _aiInfo() {
-    return (this.hass && this.hass.resolvia && this.hass.resolvia.ai) || { available: false };
+    return this._aiState || (this.hass && this.hass.resolvia && this.hass.resolvia.ai) || { ready: false, images: false, entities: [] };
+  }
+
+  /** Mais › Leitura por IA: which AI Home Assistant gives the app, and if it is ready. */
+  async _refreshAi(force = true) {
+    const r = this.hass && this.hass.resolvia;
+    if (!r || !r.aiStatus) return;
+    if (!force && Date.now() - this._aiAt < 60000) return;
+    this._aiChecking = true;
+    this.requestUpdate();
+    try {
+      this._aiState = await r.aiStatus();
+    } catch (err) {
+      this._aiState = { ...this._aiInfo(), ready: false, images: false, reason: err.message };
+    }
+    this._aiAt = Date.now();
+    this._aiChecking = false;
+    this.requestUpdate();
+  }
+
+  async _chooseAi(id) {
+    await this._saveAppPrefs({ ai_entity: id || null });
+    await this._refreshAi();
+    this._showToast("IA do app atualizada");
   }
 
   _canImport() {
@@ -979,7 +1015,7 @@ class ResolviaPanel extends LitElement {
       this._focusImportText();
       return;
     }
-    if (this._aiInfo().available) {
+    if (this._aiInfo().ready) {
       this._setForm({ step: "loading", error: null, note: null, loadingText: "Separando os itens com IA…" });
       this._runExtract({ text });
       return;
@@ -1821,6 +1857,8 @@ class ResolviaPanel extends LitElement {
           </div>
         </div>
 
+        ${this._renderAiPanel()}
+
         ${this.hass.user && this.hass.user.is_admin
           ? html`<div class="panel">
               <button class="row" @click=${() => this._openInHA("/config/integrations/dashboard/add?domain=local_todo")}>
@@ -1839,6 +1877,49 @@ class ResolviaPanel extends LitElement {
         <p class="foot"><b>ResolvIA</b><br />v${VERSION} · usa as listas nativas do Home Assistant.<br />${this._prefsRemote ? "Personalizações sincronizadas entre aparelhos." : "Personalizações salvas neste aparelho."}</p>
       </section>
     `;
+  }
+
+  _renderAiPanel() {
+    if (!this.hass.resolvia) return nothing;
+    const ai = this._aiInfo();
+    const ents = ai.entities || [];
+    const sel = this._app("ai_entity", "");
+    const tone = this._aiChecking ? "off" : ai.ready && ai.images ? "ok" : ai.ready ? "warn" : "bad";
+    const title = this._aiChecking ? "Verificando…" : ai.ready && ai.images ? "Pronta para ler fotos" : ai.ready ? "Só lê mensagens" : "Não configurada";
+    let detail = "";
+    if (ai.ready && ai.using) {
+      detail = `Usando ${ai.using.name}${sel ? "" : " (a IA padrão do Home Assistant)"}.`;
+      if (ai.photos) detail += ` Para fotos, ${ai.photos.name}.`;
+    }
+    if (ai.reason) detail = `${detail} ${ai.reason}`.trim();
+    return html`<div class="panel" id="leitura-ia">
+      <div class="overline">Leitura por IA</div>
+      <p class="panel-lead">Separa os itens de mensagens coladas, prints e fotos de listas em papel. Usa a integração de IA configurada no Home Assistant (Anthropic Claude, OpenAI, Google Gemini ou um modelo local pelo Ollama); o app não guarda nenhuma chave.</p>
+      <div class="ai-state ${tone}"><span class="dot"></span><div><b>${title}</b>${detail ? html`<span>${detail}</span>` : nothing}</div></div>
+      ${ents.length || sel
+        ? html`<label class="field" style="margin:14px 0 0">
+            <span class="flabel">IA usada pelo app</span>
+            <select class="select" aria-label="IA usada pelo app" @change=${(e) => this._chooseAi(e.target.value)}>
+              <option value="" ?selected=${!sel}>Padrão do Home Assistant</option>
+              ${ents.map((e) => html`<option value=${e.id} ?selected=${e.id === sel}>${e.name}${e.images ? "" : " (só texto)"}${e.available ? "" : " (indisponível)"}</option>`)}
+              ${sel && !ents.some((e) => e.id === sel) ? html`<option value=${sel} selected>${sel} (não encontrada)</option>` : nothing}
+            </select>
+            <span class="field-hint">${icon("sparkles")}<span>“Padrão do Home Assistant” usa a IA preferida definida em Configurações › Sistema › Geral.</span></span>
+          </label>`
+        : nothing}
+      <div class="ai-actions"><button class="btn outline" ?disabled=${this._aiChecking} @click=${() => this._refreshAi()}>${icon("rotate-ccw")}Verificar de novo</button></div>
+      ${ai.ready && ai.images
+        ? nothing
+        : html`<div class="steps-box">
+            <b>Como configurar</b>
+            <ol class="steps">
+              <li>No Home Assistant, abra Configurações › Dispositivos e serviços › Adicionar integração.</li>
+              <li>Escolha a IA: Anthropic (Claude), OpenAI, Google Gemini ou Ollama (modelo local, de graça). Cole a chave de API quando pedir.</li>
+              <li>Na integração, adicione uma tarefa de IA (AI Task). Para ler fotos, use um modelo que entenda imagens.</li>
+              <li>Volte aqui e escolha essa IA na lista.</li>
+            </ol>
+          </div>`}
+    </div>`;
   }
 
   // ---------- sheets
@@ -2000,9 +2081,9 @@ class ResolviaPanel extends LitElement {
         ${error}
         <div class="sheet-actions">
           <button class="btn outline" @click=${() => this._pasteClipboard()}>${icon("clipboard-paste")}Colar</button>
-          <button class="btn primary" ?disabled=${!(f.text || "").trim()} @click=${() => this._readText()}>${ai.available ? icon("sparkles") : nothing}Separar itens</button>
+          <button class="btn primary" ?disabled=${!(f.text || "").trim()} @click=${() => this._readText()}>${ai.ready ? icon("sparkles") : nothing}Separar itens</button>
         </div>
-        <p class="sheet-note">${ai.available ? "A IA do seu Home Assistant separa os itens, mesmo de mensagens corridas." : "Sem IA configurada: separo por linhas, vírgulas e “e”."}</p>
+        <p class="sheet-note">${ai.ready ? `${ai.using.name} separa os itens, mesmo de mensagens corridas.` : "Sem IA configurada: separo por linhas, vírgulas e “e”."}</p>
       `;
     }
 
@@ -2023,7 +2104,7 @@ class ResolviaPanel extends LitElement {
       const chosen = f.items.filter((i) => i.on && i.text.trim()).length;
       const targets = this._L.filter((l) => has(l.features, F.CREATE) && !l.unavailable && (!l.hidden || l.id === f.target));
       const from =
-        f.provider === "local" ? "separados por linha" : f.provider === "gemini" ? "lidos pelo Gemini" : f.provider ? "lidos pela IA do Home Assistant" : "";
+        f.provider === "local" ? "separados por linha" : f.provider ? `lidos por ${f.provider}` : "";
       return html`
         ${head("Revisar itens", toPick)}
         ${thumbs}
@@ -2070,7 +2151,7 @@ class ResolviaPanel extends LitElement {
     // pick
     return html`
       ${head("Importar itens")}
-      <p class="sheet-note top">Traga uma lista pronta de uma mensagem ou de uma foto. ${ai.available ? "A IA separa os itens e você revisa antes de adicionar." : ""}</p>
+      <p class="sheet-note top">Traga uma lista pronta de uma mensagem ou de uma foto. ${ai.ready ? "A IA separa os itens e você revisa antes de adicionar." : ""}</p>
       <div class="imp-options">
         <button class="imp-opt" @click=${() => (this._setForm({ step: "text", error: null }), this._focusImportText())}>
           <span class="imp-ic">${icon("message-square-text")}</span>
@@ -2089,7 +2170,8 @@ class ResolviaPanel extends LitElement {
         </button>
       </div>
       ${!ai.images
-        ? html`<div class="imp-error soft">${icon("sparkles")}<span>Para ler fotos, configure uma IA no Home Assistant com <b>tarefa de IA</b> (por exemplo a integração Google Gemini) ou coloque uma chave do Gemini nas opções do app ResolvIA.</span></div>`
+        ? html`<div class="imp-error soft">${icon("sparkles")}<span>${ai.reason || "Para ler fotos, o Home Assistant precisa de uma integração de IA com tarefa de IA que entenda imagens."}
+            <button class="text-btn inline" @click=${() => this._goAiSettings()}>Ver Leitura por IA</button></span></div>`
         : nothing}
       ${error}
     `;

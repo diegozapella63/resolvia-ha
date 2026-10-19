@@ -6,6 +6,22 @@ let uidSeq = 1000;
 const uid = () => `u${uidSeq++}`;
 
 export function createMockHass(onChange) {
+  const aiEntities = [
+    { id: "ai_task.google_ai_task", name: "Google AI Task", images: true, available: true },
+    { id: "ai_task.ollama_ai_task", name: "Ollama AI Task", images: false, available: true },
+  ];
+  const aiStatus = () => {
+    const sel = (prefs && prefs.app && prefs.app.ai_entity) || "";
+    const using = aiEntities.find((e) => e.id === sel) || aiEntities[0];
+    return {
+      ready: true,
+      images: using.images,
+      selected: sel,
+      using: { id: using.id, name: using.name },
+      entities: aiEntities,
+      reason: using.images ? null : `${using.name} não lê fotos. Escolha outra IA em Mais › Leitura por IA.`,
+    };
+  };
   const now = new Date();
   const d = (n) => ymd(addDays(now, n));
   const dt = (n, h, m = 0) => {
@@ -189,16 +205,20 @@ export function createMockHass(onChange) {
     language: "pt-BR",
     // Simulated photo/message reading (the real app uses Home Assistant's AI).
     resolvia: {
-      ai: { available: true, provider: "ha", text: true, images: true },
+      ai: aiStatus(),
+      async aiStatus() {
+        await new Promise((r) => setTimeout(r, 300));
+        return aiStatus();
+      },
       async extract({ text, images }) {
         await new Promise((r) => setTimeout(r, images ? 1800 : 900));
         if (images && images.length) {
           return {
-            provider: "ha:ai_task.google_ai_task",
+            provider: "Google AI Task",
             items: ["Leite integral (2 caixas)", "Ovos (1 dúzia)", "Pão francês", "Café 500 g", "Detergente", "Papel toalha"],
           };
         }
-        return { provider: "ha:ai_task.google_ai_task", items: parseListText(text) };
+        return { provider: "Google AI Task", items: parseListText(text) };
       },
     },
     async callService(domain, service, data, target) {

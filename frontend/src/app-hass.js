@@ -194,7 +194,8 @@ export async function createAppHass(onChange) {
     connected: true,
     version: boot.version,
     resolvia: {
-      ai: boot.ai || { available: false },
+      ai: boot.ai || { ready: false, images: false, entities: [] },
+      aiStatus: () => conn.sendMessagePromise({ type: "resolvia/ai/status" }),
       async extract(payload) {
         const res = await fetch(new URL("api/extract", location.href), {
           method: "POST",
