@@ -4,15 +4,16 @@
 
 Um App do Home Assistant que mostra suas **listas de tarefas nativas** (`todo.*`) num visual bem mais caprichado, traz **tarefas que voltam sozinhas** X dias depois de concluídas e **importa itens de mensagens e fotos** com IA.
 
+[![Adicionar o repositório ao Home Assistant](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fdiegozapella63%2Fresolvia-ha)
+
 ## Instalação
 
-1. No Home Assistant: **Configurações → Aplicativos → Loja de aplicativos**.
-2. No menu **⋮ → Repositórios**, adicione:
+1. Toque no botão acima. Se preferir, no Home Assistant abra **Configurações → Aplicativos → Loja de aplicativos**, toque no menu **⋮ → Repositórios** e cole:
    ```
    https://github.com/diegozapella63/resolvia-ha
    ```
-3. Procure **ResolvIA** na loja, toque em **Instalar** e depois em **Iniciar**.
-4. Ative **Mostrar na barra lateral**.
+2. Procure **ResolvIA** na loja, toque em **Instalar** e depois em **Iniciar**.
+3. Ative **Mostrar na barra lateral**.
 
 A primeira instalação leva alguns minutos, porque o app é montado no próprio Home Assistant.
 
