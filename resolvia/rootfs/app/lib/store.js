@@ -13,7 +13,18 @@ const isObj = (v) => v && typeof v === "object" && !Array.isArray(v);
 const str = (v, max) => (typeof v === "string" && v.trim() ? v.slice(0, max) : null);
 const num = (v) => (Number.isFinite(v) ? v : null);
 
-const LIST_FIELDS = { name: ["string", 80], color: ["string", 24], icon: ["string", 40], hidden: ["boolean"] };
+// A deadline is only what the user sets. A list that doesn't let you set a due
+// date gets its dates from the integration (e.g. "unavailable since"): they are
+// always information, never deadlines. dates_info: true also turns off the
+// deadlines of a list that does accept them.
+const LIST_FIELDS = { name: ["string", 80], color: ["string", 24], icon: ["string", 40], hidden: ["boolean"], dates_info: ["boolean"] };
+
+const F_DUE = 16 | 32; // TodoListEntityFeature.SET_DUE_DATE | SET_DUE_DATETIME
+
+/** Whether the dates of a list are only information (see dates_info). */
+export function datesInfo(prefs, features) {
+  return ((features || 0) & F_DUE) === 0 || !!(prefs && prefs.dates_info === true);
+}
 const APP_FIELDS = {
   accent: ["string", 24],
   group_by_device: ["boolean"],

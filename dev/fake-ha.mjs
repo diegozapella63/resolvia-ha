@@ -24,6 +24,13 @@ const day = (n) => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 };
 
+const since = (daysAgo, h, m) => {
+  const d = new Date();
+  d.setDate(d.getDate() - daysAgo);
+  d.setHours(h, m, 0, 0);
+  return d.toISOString();
+};
+
 const lists = {
   "todo.notas_e_rotinas_do_alexa_shopping_list": {
     name: "Notas e Rotinas do Alexa Shopping list",
@@ -39,6 +46,18 @@ const lists = {
     features: F.CREATE | F.DELETE | F.UPDATE,
     items: [it("Configurar modo claro e escuro em tudo"), it("Ver sobre: https://www.home-assistant.io/integrations/todo/")],
   },
+  // Like the "Análise dos Dispositivos" integration: it fills the due field
+  // with the time the problem started and doesn't let you set a due date.
+  "todo.analise_dos_dispositivos_problem_list": {
+    name: "Análise dos Dispositivos Problem List",
+    device: "dev_analise",
+    en: "Problem List",
+    features: F.CREATE | F.DELETE | F.UPDATE,
+    items: [
+      it("Luz do Banheiro: unavailable", { due: since(1, 19, 59), description: "Unavailable since yesterday at 7:59 PM." }),
+      it("TV da Sala: never reported", { due: since(60, 21, 48) }),
+    ],
+  },
   "todo.casa": {
     name: "Casa",
     device: null,
@@ -50,6 +69,7 @@ const lists = {
 const devices = [
   { id: "dev_alexa", name: "Notas e Rotinas do Alexa", name_by_user: null },
   { id: "dev_other", name: "Lâmpada da sala", name_by_user: null },
+  { id: "dev_analise", name: "Análise dos Dispositivos", name_by_user: null },
 ];
 
 const conns = new Set();

@@ -35,7 +35,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.5.1";
+const VERSION = "2.6.0";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -310,7 +310,13 @@ class ResolviaPanel extends DataMixin(LitElement) {
       const pending = pendingItems ? pendingItems.length : Number(st.state) || 0;
       const done = items ? items.length - pendingItems.length : 0;
       const color = colorById(p.color) || autoColor(index);
-      const dues = pendingItems ? pendingItems.map((i) => dueInfo(i.due)).filter(Boolean) : [];
+      const features = st.attributes.supported_features || 0;
+      const canDue = has(features, F.DUE_DATE) || has(features, F.DUE_DATETIME);
+      // A deadline is only what you set: a list that doesn't let you set one gets
+      // its dates from the integration ("unavailable since…"), shown as information.
+      // Lists that do accept deadlines can turn them off (Personalizar).
+      const datesInfo = !canDue || p.dates_info === true;
+      const dues = pendingItems && !datesInfo ? pendingItems.map((i) => dueInfo(i.due)).filter(Boolean) : [];
       return {
         id,
         name: p.name || meta.name,
@@ -321,7 +327,10 @@ class ResolviaPanel extends DataMixin(LitElement) {
         icon: p.icon || guessIcon(`${meta.name} ${meta.group || ""} ${id}`),
         iconPref: p.icon || null,
         hidden: !!p.hidden,
-        features: st.attributes.supported_features || 0,
+        features,
+        canDue,
+        datesInfo,
+        hasDates: !!(items && items.some((i) => i.due)),
         unavailable: st.state === "unavailable" || st.state === "unknown",
         items,
         pending,
@@ -1195,17 +1204,20 @@ class ResolviaPanel extends DataMixin(LitElement) {
       color: list.colorId,
       icon: list.iconPref,
       hidden: list.hidden,
+      deadlines: !list.datesInfo,
     });
   }
 
   async _saveCustomize() {
     const f = this._form;
+    const l = this._list(f.listId);
     this._closeSheet();
     await this._saveListPrefs(f.listId, {
       name: (f.name || "").trim() || null,
       color: f.color || null,
       icon: f.icon || null,
       hidden: f.hidden ? true : null,
+      dates_info: l && l.canDue && !f.deadlines ? true : null,
     });
   }
 
@@ -1623,7 +1635,11 @@ class ResolviaPanel extends DataMixin(LitElement) {
           ${due || opts.showList || rule
             ? html`<div class="chips">
                 ${opts.showList ? html`<span class="tag list">${icon(l.icon)}${clip(l.name, 24)}</span>` : nothing}
-                ${due ? html`<span class="tag ${due.tone === "late" ? "late" : due.tone === "today" ? "today" : ""}">${icon(due.time ? "clock" : "calendar")}${due.text}</span>` : nothing}
+                ${due
+                  ? l.datesInfo
+                    ? html`<span class="tag info" title="Data da integração, não é prazo">${icon("clock-fading")}${due.text}</span>`
+                    : html`<span class="tag ${due.tone === "late" ? "late" : due.tone === "today" ? "today" : ""}">${icon(due.time ? "clock" : "calendar")}${due.text}</span>`
+                  : nothing}
                 ${rep}
               </div>`
             : nothing}
@@ -1642,6 +1658,7 @@ class ResolviaPanel extends DataMixin(LitElement) {
     const supportsDue = lists.some((l) => has(l.features, F.DUE_DATE) || has(l.features, F.DUE_DATETIME));
     const rows = [];
     for (const l of lists) {
+      if (l.datesInfo) continue; // dates from the integration, not deadlines
       for (const i of l.items || []) {
         if (isDone(i) && !this._recent.has(keyOf(i))) continue;
         const d = dueInfo(i.due);
@@ -2192,7 +2209,7 @@ class ResolviaPanel extends DataMixin(LitElement) {
         <h3 class="display">${l.name}</h3>
         <button class="icon-btn" @click=${() => this._closeSheet()} aria-label="Fechar">${icon("x")}</button>
       </div>
-      <button class="menu-row" @click=${() => this._openCustomize(l)}>${icon("palette")}Personalizar<span class="sub">nome, cor, ícone</span></button>
+      <button class="menu-row" @click=${() => this._openCustomize(l)}>${icon("palette")}Personalizar<span class="sub">${l.canDue ? "nome, cor, ícone, prazos" : "nome, cor, ícone"}</span></button>
       <button class="menu-row" @click=${() => (this._closeSheet(), this._saveListPrefs(l.id, { hidden: l.hidden ? null : true }))}>${icon(l.hidden ? "eye" : "eye-off")}${l.hidden ? "Mostrar no início" : "Ocultar do início"}</button>
       ${this.hass.user && this.hass.user.is_admin
         ? html`<button class="menu-row" @click=${() => this._openInHA(`/todo?entity_id=${l.id}`)}>${icon("external-link")}Abrir na tela padrão do HA</button>`
@@ -2240,8 +2257,19 @@ class ResolviaPanel extends DataMixin(LitElement) {
         <div class="grow"><div class="label">Mostrar no início</div></div>
         <label class="switch"><input type="checkbox" role="switch" .checked=${!f.hidden} @change=${(e) => this._setForm({ hidden: !e.target.checked })} aria-label="Mostrar no início" /><span class="track"></span></label>
       </div>
+      ${l.canDue
+        ? html`<div class="row" style="border:0;padding-top:0">
+            <div class="grow">
+              <div class="label">Prazos</div>
+              <div class="hint" style="white-space:normal">${f.deadlines ? "O prazo que você define fica vermelho quando vence e entra em Prazos." : "As datas aparecem só como informação: não ficam vermelhas nem entram em Prazos."}</div>
+            </div>
+            <label class="switch"><input type="checkbox" role="switch" .checked=${f.deadlines} @change=${(e) => this._setForm({ deadlines: e.target.checked })} aria-label="Prazos" /><span class="track"></span></label>
+          </div>`
+        : l.hasDates
+          ? html`<p class="sheet-note with-icon">${icon("info")}<span>Esta lista não deixa definir prazo. As datas dos itens vêm da integração (ex.: desde quando um aparelho está fora do ar) e aparecem só como informação, sem ficar vermelhas nem entrar em Prazos.</span></p>`
+          : nothing}
       <div class="sheet-actions">
-        <button class="btn outline" @click=${() => this._setForm({ name: "", color: null, icon: null, hidden: false })}>${icon("rotate-ccw")}Padrão</button>
+        <button class="btn outline" @click=${() => this._setForm({ name: "", color: null, icon: null, hidden: false, deadlines: l.canDue })}>${icon("rotate-ccw")}Padrão</button>
         <button class="btn primary" @click=${() => this._saveCustomize()}>Salvar</button>
       </div>
     `;

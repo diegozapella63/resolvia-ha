@@ -57,6 +57,12 @@ Exemplo: "Passar pano" com **3 dias**. Você marca como feito no domingo e ele v
 
 Depende da integração da lista. A Lista de tarefas local aceita tudo (prazo, horário, notas, reordenar). A Shopping list aceita reordenar mas não prazos. As listas da Alexa aceitam adicionar, editar e excluir. O ResolvIA mostra só o que cada lista suporta.
 
+## Prazos
+
+Prazo é só o que você define. Algumas integrações preenchem sozinhas a data dos itens: a Problem List da Análise dos Dispositivos, por exemplo, põe ali desde quando o aparelho está fora do ar. Como essas listas não deixam você definir prazo, a data delas aparece só como informação (em cinza, com um relógio apagado): não fica vermelha, não entra em **Prazos** nem no número da aba, e o CronologIA também não a trata como tarefa com prazo.
+
+Nas listas em que você define prazo, dá para desligar os prazos em **⋯ › Personalizar › Prazos**.
+
 ## Onde ficam os dados
 
 - As tarefas continuam nas próprias listas do Home Assistant.

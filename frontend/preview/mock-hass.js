@@ -43,8 +43,10 @@ export function createMockHass(onChange) {
       name: "Análise dos Dispositivos Problem List",
       device: "dev_analise",
       features: F.CREATE | F.DELETE | F.UPDATE,
+      // The integration fills the due field with the time the problem started.
       items: [
-        it("Sensor da porta da garagem indisponível"),
+        it("Luz do Banheiro: unavailable", { due: dt(-1, 19, 59), description: "Unavailable since yesterday at 7:59 PM. Its TP-Link Smart Home connection is down." }),
+        it("Luz do Quarto: unavailable", { due: dt(0, 7, 54) }),
         it("Bateria baixa: sensor do quarto (8%)"),
       ],
     },

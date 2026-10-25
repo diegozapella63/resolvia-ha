@@ -10,13 +10,13 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { acceptUpgrade } from "./lib/ws.js";
 import { HAClient } from "./lib/ha.js";
-import { Store } from "./lib/store.js";
+import { Store, datesInfo } from "./lib/store.js";
 import { Recurring } from "./lib/recurring.js";
 import { AI } from "./lib/ai.js";
 import { Restore } from "./lib/restore.js";
 import { snapshot, toCSV, backupZip, parseImport, Backups, listVersions, readVersion, fileStamp } from "./lib/data.js";
 
-const VERSION = "2.5.1";
+const VERSION = "2.6.0";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const WWW = path.join(HERE, "www");
 const DEV = process.env.RESOLVIA_DEV === "1";
@@ -48,6 +48,12 @@ const todoStates = new Map();
 const recurring = new Recurring({ ha, store, log, states: todoStates, dayMs: DAY_MS });
 const restore = new Restore({ ha, store, recurring, states: todoStates, log });
 const backups = new Backups({ dir: path.join(SHARE_DIR, "resolvia") });
+/** Import or restore, then tell the other apps about the lists again. */
+async function restoreAll(raw, reason, opts) {
+  const out = await restore.run(raw, reason, opts);
+  publishPresence();
+  return out;
+}
 const ai = new AI({ ha, log, mediaDir: MEDIA_DIR, selected: () => store.prefs.app.ai_entity || "" });
 const itemSubs = new Map(); // entity_id -> subscription (for the recurring engine)
 const listWatchers = new Set(); // {session, id}
@@ -119,6 +125,7 @@ ha.on("ready", async () => {
   try {
     await loadStates();
     log.info(`${todoStates.size} listas de tarefas encontradas`);
+    publishPresence();
   } catch (err) {
     log.error(`Não consegui ler as listas: ${err.message}`);
   }
@@ -248,8 +255,11 @@ class Session {
 
       case "resolvia/prefs/get":
         return this.result(id, store.prefs);
-      case "resolvia/prefs/set_list":
-        return this.result(id, store.setListPrefs(msg.entity_id, msg.prefs));
+      case "resolvia/prefs/set_list": {
+        const prefs = store.setListPrefs(msg.entity_id, msg.prefs);
+        if ("dates_info" in (msg.prefs || {})) publishPresence();
+        return this.result(id, prefs);
+      }
       case "resolvia/prefs/set_app":
         return this.result(id, store.setAppPrefs(msg.prefs));
 
@@ -259,7 +269,7 @@ class Session {
 
       case "resolvia/versions/restore": {
         const raw = readVersion(store.versionsDir, String(msg.name || ""));
-        return this.result(id, await restore.run(raw, "antes-de-restaurar", { items: false }));
+        return this.result(id, await restoreAll(raw, "antes-de-restaurar", { items: false }));
       }
 
       case "resolvia/backups/list":
@@ -276,7 +286,7 @@ class Session {
       case "resolvia/backups/restore": {
         await ha.whenReady();
         const raw = backups.read(String(msg.name || ""));
-        return this.result(id, await restore.run(raw, "antes-de-restaurar"));
+        return this.result(id, await restoreAll(raw, "antes-de-restaurar"));
       }
 
       case "todo/item/subscribe": {
@@ -397,7 +407,7 @@ function handleImport(req, res) {
     try {
       const raw = parseImport(Buffer.concat(chunks), name);
       await ha.whenReady();
-      sendJson(res, 200, await restore.run(raw, "antes-de-importar"));
+      sendJson(res, 200, await restoreAll(raw, "antes-de-importar"));
     } catch (err) {
       log.warn(`Importação falhou: ${err.message}`);
       sendJson(res, 400, { error: err.message, code: err.code || "failed" });
@@ -492,8 +502,10 @@ server.on("upgrade", (req, socket, head) => {
 
 /**
  * Lets the other apps of the family (CronologIA) know the ResolvIA runs here:
- * share/resolvia/integracao.json, rewritten every 15 minutes. No key: they
- * read the lists from Home Assistant itself.
+ * share/resolvia/integracao.json, rewritten every 15 minutes and when a list
+ * changes. No key: they read the lists from Home Assistant itself.
+ * sem_prazo: lists whose dates are information, not deadlines (so the
+ * CronologIA doesn't show them as overdue tasks either).
  */
 let publishWarned = false;
 function publishPresence() {
@@ -501,7 +513,8 @@ function publishPresence() {
     const dir = path.join(SHARE_DIR, "resolvia");
     fs.mkdirSync(dir, { recursive: true });
     const tmp = path.join(dir, ".integracao.json.tmp");
-    fs.writeFileSync(tmp, JSON.stringify({ app: "ResolvIA", versao: VERSION, gravado_em: new Date().toISOString() }, null, 1));
+    const semPrazo = [...todoStates].filter(([id, st]) => datesInfo(store.prefs.lists[id], st && st.attributes && st.attributes.supported_features)).map(([id]) => id);
+    fs.writeFileSync(tmp, JSON.stringify({ app: "ResolvIA", versao: VERSION, gravado_em: new Date().toISOString(), sem_prazo: semPrazo }, null, 1));
     fs.renameSync(tmp, path.join(dir, "integracao.json"));
     publishWarned = false;
   } catch (err) {

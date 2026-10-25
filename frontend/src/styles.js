@@ -475,6 +475,11 @@ export const styles = css`
     background: var(--rv-today-soft);
     color: var(--rv-today);
   }
+  .tag.info {
+    border-color: transparent;
+    background: var(--rv-surface-2);
+    color: var(--rv-muted);
+  }
   .tag.rep {
     border-color: transparent;
     background: var(--rv-surface-2);
@@ -1606,6 +1611,17 @@ export const styles = css`
     font-size: 13px;
     line-height: 1.5;
     margin: 12px 2px 0;
+  }
+  .sheet-note.with-icon {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  .sheet-note.with-icon .i {
+    flex: none;
+    width: 16px;
+    height: 16px;
+    margin-top: 2px;
   }
   .sheet-note.top {
     margin: -6px 2px 14px;
