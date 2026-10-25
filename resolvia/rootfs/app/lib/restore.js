@@ -113,7 +113,12 @@ export class Restore {
     if (Array.isArray(app.list_order)) app.list_order = [...new Set(app.list_order.map((id) => (typeof id === "string" ? to(id) : id)))];
     const rulesIn = Array.isArray(raw.rules) ? raw.rules : isObj(raw.rules) ? Object.values(raw.rules) : [];
     const rules = rulesIn.filter(isObj).map((r) => ({ ...r, entity_id: to(r.entity_id) }));
-    this.store.replaceAll({ prefs: { lists, app }, rules }, reason);
+    const points = {};
+    for (const [id, map] of Object.entries(isObj(raw.points) ? raw.points : {})) {
+      const t = to(id);
+      if (!points[t] || id === t) points[t] = map;
+    }
+    this.store.replaceAll({ prefs: { lists, app }, rules, points }, reason);
 
     // Repeating tasks whose item isn't here (yet) bind again by name.
     for (const r of Object.values(this.store.rules)) {

@@ -32,6 +32,8 @@ const APP_FIELDS = {
   list_order: ["list", 200],
   // "" / null = the AI Home Assistant prefers (Mais > Leitura por IA).
   ai_entity: ["string", 80],
+  // Mais > Integrações > Recompensas: tasks can be worth points in the CronologIA scoreboard.
+  points_on: ["boolean"],
 };
 
 /** A repeating task from a file (import, restore): only the known fields, sane values. */
@@ -56,9 +58,35 @@ function cleanRule(r, id) {
   };
 }
 
+/** How a task is known for its points: the name, folded (same as the CronologIA). */
+export const taskKey = (s) =>
+  String(s || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 255);
+
+/** {todo.x: {task key: points}}, checked. */
+function cleanPoints(raw) {
+  const out = {};
+  if (!isObj(raw)) return out;
+  for (const [id, map] of Object.entries(raw)) {
+    if (!/^todo\.[a-z0-9_]+$/.test(id) || !isObj(map)) continue;
+    for (const [k, v] of Object.entries(map)) {
+      const n = Math.round(Number(v));
+      const key = taskKey(k);
+      if (!key || !(n >= 1 && n <= 1000)) continue;
+      (out[id] || (out[id] = {}))[key] = n;
+    }
+  }
+  return out;
+}
+
 /** The file contents, checked. Strict (imports) also validates every preference. */
 export function normalize(raw, strict = false) {
-  const data = { version: 1, prefs: { lists: {}, app: {} }, rules: {} };
+  const data = { version: 1, prefs: { lists: {}, app: {} }, rules: {}, points: {} };
   if (!isObj(raw)) return data;
   if (isObj(raw.prefs)) {
     if (isObj(raw.prefs.lists)) {
@@ -100,6 +128,7 @@ export function normalize(raw, strict = false) {
     const clean = cleanRule(r, id);
     if (clean && !data.rules[clean.id]) data.rules[clean.id] = clean;
   }
+  data.points = cleanPoints(raw.points);
   return data;
 }
 
@@ -153,6 +182,35 @@ export class Store {
 
   get rules() {
     return this.data.rules;
+  }
+
+  get points() {
+    return this.data.points;
+  }
+
+  /** Points a task is worth (0: none). */
+  pointsFor(entityId, summary) {
+    const map = this.data.points[entityId];
+    return (map && map[taskKey(summary)]) || 0;
+  }
+
+  /** Sets the points of a task (0 removes); `previous` is the old name after a rename. */
+  setPoints(entityId, summary, points, previous = null) {
+    if (typeof entityId !== "string" || !/^todo\.[a-z0-9_]+$/.test(entityId)) throw new Error("Not a to-do entity");
+    const key = taskKey(summary);
+    if (!key) throw new Error("Task name required");
+    const n = Math.round(Number(points) || 0);
+    if (n < 0 || n > 1000) throw new Error("Pontos entre 0 e 1000");
+    const map = { ...(this.data.points[entityId] || {}) };
+    if (previous != null && taskKey(previous) !== key) delete map[taskKey(previous)];
+    if (n) map[key] = n;
+    else delete map[key];
+    const all = { ...this.data.points };
+    if (Object.keys(map).length) all[entityId] = map;
+    else delete all[entityId];
+    this.data.points = all;
+    this.save();
+    return all;
   }
 
   save() {

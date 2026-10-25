@@ -59,6 +59,16 @@ export const foldKeepLength = (s) =>
 
 export const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 
+/** How a task is known for its points (same as the server and the CronologIA). */
+export const taskKey = (s) =>
+  String(s || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 255);
+
 export const clip = (s, n = 38) => (s.length > n ? s.slice(0, n - 1).trimEnd() + "…" : s);
 
 // ---------- lists ----------

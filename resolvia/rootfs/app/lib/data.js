@@ -5,6 +5,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { makeZip, readZip } from "./zip.js";
+import { taskKey as taskKeyOf } from "./store.js";
 
 const pad = (n) => String(n).padStart(2, "0");
 const BACKUP_RE = /^resolvia-[\w-]+\.zip$/;
@@ -34,6 +35,7 @@ export function snapshot(store, lists, version) {
     exported_at: new Date().toISOString(),
     prefs: store.data.prefs,
     rules: store.data.rules,
+    points: store.data.points,
     lists: lists.map((l) => ({
       entity_id: l.entity_id,
       name: l.name,
@@ -52,11 +54,15 @@ const ruleOf = (snap, entityId, item) => Object.values(snap.rules || {}).find((r
 
 /** For Excel: ";" separated, with BOM, one row per item. */
 export function toCSV(snap) {
-  const rows = [["Lista", "Item", "Situação", "Prazo", "Notas", "Repete"]];
+  const rows = [["Lista", "Item", "Situação", "Prazo", "Notas", "Repete", "Pontos"]];
+  const pts = (id, summary) => {
+    const map = (snap.points || {})[id] || {};
+    return map[taskKeyOf(summary)] || "";
+  };
   for (const l of snap.lists) {
     for (const i of l.items) {
       const r = ruleOf(snap, l.entity_id, i);
-      rows.push([l.name, i.summary, i.status === "completed" ? "concluído" : "pendente", dueText(i.due), i.description || "", r ? `${r.days} ${r.days === 1 ? "dia" : "dias"} depois de concluir` : ""]);
+      rows.push([l.name, i.summary, i.status === "completed" ? "concluído" : "pendente", dueText(i.due), i.description || "", r ? `${r.days} ${r.days === 1 ? "dia" : "dias"} depois de concluir` : "", pts(l.entity_id, i.summary)]);
     }
   }
   return Buffer.from("﻿" + rows.map((r) => r.map(csvCell).join(";")).join("\r\n") + "\r\n", "utf8");

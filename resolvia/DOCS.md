@@ -10,7 +10,7 @@ Nada é copiado: o ResolvIA mostra e edita as mesmas listas que o HA já tem.
 2. Ative **Mostrar na barra lateral** (e, se quiser, **Watchdog**).
 3. Abra o **ResolvIA** pela barra lateral.
 
-O **Mais** fica em abas no alto: **Listas** (nome, cor, ícone, mostrar/ocultar e criar lista), **Repetições** (as tarefas que voltam sozinhas), **IA** (leitura por IA), **Dados** (exportar, backup, importar, versões) e **Aparência** (tema, cor e como as listas aparecem).
+O **Mais** fica em abas no alto: **Listas** (nome, cor, ícone, mostrar/ocultar e criar lista), **Repetições** (as tarefas que voltam sozinhas), **Integrações** (recompensas do CronologIA e leitura por IA), **Dados** (exportar, backup, importar, versões) e **Aparência** (tema, cor e como as listas aparecem).
 
 ## Importar de mensagem ou foto
 
@@ -37,7 +37,7 @@ Para configurar:
 
 1. Em **Configurações > Dispositivos e serviços > Adicionar integração**, escolha a integração e siga os passos.
 2. Na página da integração, adicione uma **tarefa de IA** (AI Task). Para ler fotos, escolha um modelo que entenda imagens.
-3. No ResolvIA, abra **Mais > IA** e escolha essa IA. "Padrão do Home Assistant" usa a IA preferida definida em **Configurações > Sistema > Geral**. Toque em **Verificar de novo** para conferir se ela está pronta.
+3. No ResolvIA, abra **Mais > Integrações > Leitura por IA** e escolha essa IA. "Padrão do Home Assistant" usa a IA preferida definida em **Configurações > Sistema > Geral**. Toque em **Verificar de novo** para conferir se ela está pronta.
 
 Na hora da leitura, o app copia a foto por alguns segundos para `media/resolvia/ia-temp`, chama a IA pelo Home Assistant e apaga a cópia em seguida.
 
@@ -58,6 +58,16 @@ Exemplo: "Passar pano" com **3 dias**. Você marca como feito no domingo e ele v
 ## O que dá para fazer em cada lista
 
 Depende da integração da lista. A Lista de tarefas local aceita tudo (prazo, horário, notas, reordenar). A Shopping list aceita reordenar mas não prazos. As listas da Alexa aceitam adicionar, editar e excluir. O ResolvIA mostra só o que cada lista suporta.
+
+## Recompensas (pontos)
+
+Com o **CronologIA** no mesmo Home Assistant e o placar dele ligado (CronologIA › Recompensas), as tarefas daqui podem valer pontos:
+
+1. Em **Mais › Integrações › Recompensas**, ligue **Pontos nas tarefas**. Ali aparece se o placar do CronologIA foi encontrado, quem participa e para quem vão os pontos neste usuário.
+2. Abra uma tarefa e escolha **Pontos para quem concluir** (+5, +10, +20, +30, +50 ou outro valor). A tarefa passa a mostrar o troféu com os pontos.
+3. Ao concluir, os pontos vão para o placar: para a pessoa ligada ao seu usuário do Home Assistant, ou para quem você escolher em **Quem fez?**. O aviso de baixo tem **Foi Andressa** para trocar; desmarcar a tarefa tira os pontos do dia.
+
+Os pontos ficam pelo nome da tarefa em cada lista, então valem também quando uma tarefa que se repete volta. A mesma tarefa no mesmo dia conta uma vez só, mesmo concluída no CronologIA. Concluir pela Alexa ou pela tela padrão do Home Assistant não dá pontos (o app não sabe quem foi).
 
 ## Prazos
 
@@ -89,4 +99,4 @@ Em **Mais > Dados**:
 
 ## Segurança
 
-O app só aceita comandos de listas de tarefas (`todo.*`). Ele não lê nem controla nenhuma outra entidade da casa. Na pasta `share` ele só grava e lê os próprios backups, em `share/resolvia`, e o arquivo `share/resolvia/integracao.json` (nome e versão do app, sem chave), que o CronologIA usa para mostrar "Conectado ao ResolvIA".
+O app só aceita comandos de listas de tarefas (`todo.*`). Ele não lê nem controla nenhuma outra entidade da casa. Na pasta `share` ele só grava e lê os próprios backups, em `share/resolvia`, e o arquivo `share/resolvia/integracao.json` (nome e versão do app, as listas sem prazo e os pontos das tarefas, sem chave), que o CronologIA usa. Do CronologIA ele só lê `share/cronologia/integracao.json` (o placar). Os pontos vão para o CronologIA pelo evento `cronologia_pontos` do Home Assistant.

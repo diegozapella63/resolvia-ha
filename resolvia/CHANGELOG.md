@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.8.0
+
+- **Recompensas**: as tarefas podem valer pontos no placar do CronologIA. Ligue em **Mais › Integrações › Recompensas** (começa desligado), e em cada tarefa escolha **Pontos para quem concluir** (+5, +10, +20, +30, +50 ou outro valor).
+  - A tarefa mostra o troféu com os pontos. Ao concluir, os pontos vão para quem está usando o app (o usuário do Home Assistant de cada um vira a pessoa do placar); se o app não souber, pergunta **Quem fez?**. O aviso de baixo tem **Foi Andressa** para trocar; desmarcar tira os pontos.
+  - A mesma tarefa no mesmo dia conta uma vez só, também se for concluída no CronologIA.
+  - Os pontos de cada tarefa entram no backup (Dados) e na planilha.
+- A aba **IA** do Mais virou **Integrações**: Recompensas e Leitura por IA.
+
 ## 2.7.0
 
 - **Mais em abas** no alto da tela, como no CronologIA: **Listas** (personalizar, mostrar/ocultar, criar lista), **Repetições**, **IA**, **Dados** e **Aparência** (tema, cor e exibição). As abas ficam presas no topo ao rolar, e Voltar sai do Mais (não passa de aba em aba).

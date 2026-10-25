@@ -475,6 +475,45 @@ export const styles = css`
     background: var(--rv-today-soft);
     color: var(--rv-today);
   }
+  .tag.pts {
+    border-color: transparent;
+    background: color-mix(in srgb, #e0a100 18%, transparent);
+    color: #b07d00;
+    font-variant-numeric: tabular-nums;
+  }
+  :host([dark]) .tag.pts {
+    color: #f2c14e;
+  }
+  .who-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 10px;
+  }
+  .who-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 10px;
+    border-radius: 16px;
+    background: var(--rv-surface-2);
+    font-size: 16px;
+  }
+  .who-btn:active {
+    transform: scale(0.97);
+  }
+  .who-av {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: var(--rv-accent-soft);
+    color: var(--rv-accent-ink);
+    font-family: var(--rv-display, inherit);
+    font-weight: 700;
+    font-size: 22px;
+  }
   .tag.info {
     border-color: transparent;
     background: var(--rv-surface-2);

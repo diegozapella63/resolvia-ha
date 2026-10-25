@@ -1,6 +1,6 @@
 // A small fake of the parts of `hass` the panel uses, for the preview page.
 // Mirrors Home Assistant's validation so feature checks behave the same.
-import { F, has, ymd, addDays, parseListText } from "../src/util.js";
+import { F, has, ymd, addDays, parseListText, taskKey } from "../src/util.js";
 
 let uidSeq = 1000;
 const uid = () => `u${uidSeq++}`;
@@ -103,7 +103,8 @@ export function createMockHass(onChange) {
   };
 
   const subs = new Map(); // entity_id -> Set(callback)
-  const prefs = { lists: {}, app: {} };
+  const prefs = { lists: {}, app: { points_on: true } };
+  const points = { "todo.casa": { "passar pano na casa": 10, "trocar roupa de cama": 20, "regar as plantas da varanda": 5 } };
   const backups = [{ name: "resolvia-2026-10-12-2105.zip", size: 5800, date: Date.now() - 12 * 86400000 }];
 
   // Recurring rules, like the app backend keeps them.
@@ -321,6 +322,24 @@ export function createMockHass(onChange) {
         for (const [k, v] of Object.entries(msg.prefs)) v == null || v === "" ? delete prefs.app[k] : (prefs.app[k] = v);
         return JSON.parse(JSON.stringify(prefs));
       }
+      // Recompensas (the CronologIA scoreboard), simulated
+      const ptsState = () => ({ on: !!prefs.app.points_on, points: JSON.parse(JSON.stringify(points)), placar: { versao: "1.6.0", ativo: true, periodo: "semana", participantes: ["Diego", "Andressa"], eu: "Diego" } });
+      if (msg.type === "resolvia/points/get") return ptsState();
+      if (msg.type === "resolvia/points/set") {
+        const map = { ...(points[msg.entity_id] || {}) };
+        if (msg.previous_summary != null) delete map[taskKey(msg.previous_summary)];
+        if (msg.points) map[taskKey(msg.summary)] = msg.points;
+        else delete map[taskKey(msg.summary)];
+        if (Object.keys(map).length) points[msg.entity_id] = map;
+        else delete points[msg.entity_id];
+        return ptsState();
+      }
+      if (msg.type === "resolvia/points/done") {
+        const n = prefs.app.points_on ? ((points[msg.entity_id] || {})[taskKey(msg.summary)] || 0) : 0;
+        if (!n || !msg.done) return { points: 0 };
+        return { key: `resolvia|${msg.entity_id}|${msg.uid}|hoje`, who: msg.quem || "Diego", points: n, participantes: ["Diego", "Andressa"] };
+      }
+      if (msg.type === "resolvia/points/reassign") return { who: msg.quem };
       throw new Error(`unknown command ${msg.type}`);
     },
     connection: {

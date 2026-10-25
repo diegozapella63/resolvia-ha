@@ -9,6 +9,7 @@ import { ICONS } from "./icons.js";
 import { ensureFonts } from "./fonts.js";
 import { styles } from "./styles.js";
 import { DataMixin } from "./datapanel.js";
+import { PointsMixin } from "./points.js";
 import {
   F,
   has,
@@ -35,7 +36,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.7.0";
+const VERSION = "2.8.0";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -72,7 +73,7 @@ const REPEAT_PICKS = [
 ];
 const keyOf = (item) => item.uid || item.summary;
 
-class ResolviaPanel extends DataMixin(LitElement) {
+class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
   static properties = {
     hass: { attribute: false },
     narrow: { type: Boolean },
@@ -91,6 +92,7 @@ class ResolviaPanel extends DataMixin(LitElement) {
     _rules: { state: true },
     _cam: { state: true },
     _rulesOk: { state: true },
+    _pts: { state: true },
     _aiState: { state: true },
     env: { attribute: false },
   };
@@ -175,6 +177,7 @@ class ResolviaPanel extends DataMixin(LitElement) {
       if (!this._prefsLoaded) {
         this._prefsLoaded = true;
         this._loadPrefs();
+        this._loadPoints();
       }
       if (!this._rulesUnsub && this.isConnected) this._subscribeRules();
       this._syncSubscriptions();
@@ -188,7 +191,10 @@ class ResolviaPanel extends DataMixin(LitElement) {
     this.toggleAttribute("dark", this._dark);
     if (changed.has("_path") && this._view().name === "more") {
       const tab = this._view().tab;
-      if (tab === "ia") this._refreshAi(false);
+      if (tab === "integracoes") {
+        this._refreshAi(false);
+        this._loadPoints();
+      }
       if (tab === "dados") this._loadBackups();
     }
     if (changed.has("_path") && this._view().name === "search") {
@@ -427,7 +433,7 @@ class ResolviaPanel extends DataMixin(LitElement) {
     if ((m = p.match(/^\/lista\/(todo\.[^/]+)$/))) return { name: "list", id: decodeURIComponent(m[1]) };
     if (p === "/prazos") return { name: "due" };
     if (p === "/buscar") return { name: "search" };
-    if ((m = p.match(/^\/mais(?:\/(repeticoes|ia|dados|aparencia))?$/))) return { name: "more", tab: m[1] || "listas" };
+    if ((m = p.match(/^\/mais(?:\/(repeticoes|integracoes|ia|dados|aparencia))?$/))) return { name: "more", tab: m[1] === "ia" ? "integracoes" : m[1] || "listas" };
     return { name: "home" };
   }
 
@@ -502,7 +508,7 @@ class ResolviaPanel extends DataMixin(LitElement) {
 
   _goAiSettings() {
     this._closeSheet(true);
-    this._go("/mais/ia");
+    this._go("/mais/integracoes");
     this.updateComplete.then(() => {
       const el = this.renderRoot.querySelector("#leitura-ia");
       if (el) el.scrollIntoView({ block: "start", behavior: "smooth" });
@@ -628,17 +634,21 @@ class ResolviaPanel extends DataMixin(LitElement) {
       this._patchItem(list.id, key, { status: item.status });
       return;
     }
+    const points = this._pointsOf(list.id, item.summary);
     if (completing) {
       const rule = this._ruleFor(list.id, item);
       const back = rule ? ` · volta ${this._returnLabel(this._reopenAt(rule.days))}` : "";
-      this._showToast(`Resolvido: ${clip(item.summary, rule ? 22 : 30)}${back}`, {
+      const undo = {
         label: "Desfazer",
         run: () => {
           this._patchItem(list.id, key, { status: "needs_action" });
           this._call("update_item", { item: key, status: "needs_action" }, list.id);
+          if (points) this._takePoints(list, item);
         },
-      });
-    }
+      };
+      if (points) this._givePoints(list, item, `Resolvido: ${clip(item.summary, 18)}`, undo);
+      else this._showToast(`Resolvido: ${clip(item.summary, rule ? 22 : 30)}${back}`, undo);
+    } else if (points) this._takePoints(list, item);
   }
 
   _quickAdd(ev, list) {
@@ -1089,7 +1099,10 @@ class ResolviaPanel extends DataMixin(LitElement) {
       repeat: days,
       repeatOrig: days,
       repeatCustom: !!days && !REPEAT_PICKS.some((p) => p.days === days),
+      points: this._rawPoints(list.id, item.summary),
+      pointsOrig: this._rawPoints(list.id, item.summary),
     });
+    this._loadPoints();
   }
 
   _setForm(changes) {
@@ -1114,6 +1127,7 @@ class ResolviaPanel extends DataMixin(LitElement) {
       this._haptic("light");
       const ok = await this._addFull(target, { summary, description, date: f.date, time: f.time });
       if (ok && f.repeat) await this._setRule(target.id, { summary, days: f.repeat });
+      if (ok && f.points) await this._setTaskPoints(target.id, summary, f.points);
       if (ok && this._view().id !== target.id) this._showToast(`Adicionado em ${clip(target.name, 28)}`);
       return;
     }
@@ -1131,6 +1145,8 @@ class ResolviaPanel extends DataMixin(LitElement) {
       if (ok) {
         if (f.repeat) await this._setRule(target.id, { summary, days: f.repeat });
         if (f.repeatOrig) await this._setRule(list.id, { uid: item.uid, summary: item.summary, days: null });
+        if (f.points) await this._setTaskPoints(target.id, summary, f.points);
+        if (f.pointsOrig) await this._setTaskPoints(list.id, item.summary, 0);
         await this._call("remove_item", { item: [f.key] }, list.id);
         this._showToast(`Movido para ${clip(target.name, 28)}`);
       }
@@ -1146,6 +1162,9 @@ class ResolviaPanel extends DataMixin(LitElement) {
     const changedDue = (before ? before.date : null) !== (f.date || null) || (before ? before.time : null) !== (f.time || null);
     if (changedDue) Object.assign(data, this._dueFields(list, f.date, f.time, true));
     this._closeSheet();
+    if ((f.points || 0) !== (f.pointsOrig || 0) || (f.pointsOrig && summary !== item.summary)) {
+      await this._setTaskPoints(list.id, summary, f.points || 0, summary !== item.summary ? item.summary : null);
+    }
     if ((f.repeat || 0) !== (f.repeatOrig || 0)) {
       await this._setRule(list.id, { uid: item.uid, summary, days: f.repeat });
       if (f.repeat) this._showToast(`Repete ${this._everyLabel(f.repeat)} depois de concluir`);
@@ -1633,7 +1652,7 @@ class ResolviaPanel extends DataMixin(LitElement) {
         <div class="it-body" @click=${() => canUpdate && this._openEdit(l, item)}>
           <div class="it-text">${this._renderText(item.summary || "", opts.query)}</div>
           ${item.description ? html`<div class="it-desc">${this._renderText(item.description, opts.query)}</div>` : nothing}
-          ${due || opts.showList || rule
+          ${due || opts.showList || rule || this._pointsOf(l.id, item.summary)
             ? html`<div class="chips">
                 ${opts.showList ? html`<span class="tag list">${icon(l.icon)}${clip(l.name, 24)}</span>` : nothing}
                 ${due
@@ -1641,7 +1660,7 @@ class ResolviaPanel extends DataMixin(LitElement) {
                     ? html`<span class="tag info" title="Data da integração, não é prazo">${icon("clock-fading")}${due.text}</span>`
                     : html`<span class="tag ${due.tone === "late" ? "late" : due.tone === "today" ? "today" : ""}">${icon(due.time ? "clock" : "calendar")}${due.text}</span>`
                   : nothing}
-                ${rep}
+                ${rep} ${this._renderPointsTag(l.id, item)}
               </div>`
             : nothing}
         </div>
@@ -1801,14 +1820,14 @@ class ResolviaPanel extends DataMixin(LitElement) {
 
   /**
    * Mais is split in tabs at the top, like the CronologIA: /mais (Listas),
-   * /mais/repeticoes, /mais/ia, /mais/dados, /mais/aparencia. Switching tabs
+   * /mais/repeticoes, /mais/integracoes (Recompensas, IA), /mais/dados, /mais/aparencia. Switching tabs
    * replaces the history entry, so Back leaves Mais.
    */
   _moreTabs() {
     return [
       ["listas", "Listas", "list-checks"],
       ...(this._rulesOk ? [["repeticoes", "Repetições", "repeat"]] : []),
-      ...(this.hass.resolvia ? [["ia", "IA", "sparkles"]] : []),
+      ...(this.hass.resolvia ? [["integracoes", "Integrações", "blocks"]] : []),
       ...(this._data() ? [["dados", "Dados", "archive"]] : []),
       ["aparencia", "Aparência", "palette"],
     ];
@@ -1826,7 +1845,7 @@ class ResolviaPanel extends DataMixin(LitElement) {
     let body;
     let status = { text: `ResolvIA ${VERSION}${this._prefsRemote ? " · personalizações sincronizadas" : ""}` };
     if (tab === "repeticoes") body = this._renderRulesTab();
-    else if (tab === "ia") body = this._renderAiPanel();
+    else if (tab === "integracoes") body = html`${this._renderRewardsPanel()} ${this._renderAiPanel()}`;
     else if (tab === "dados") body = this._renderDataPanel();
     else if (tab === "aparencia") body = this._renderAppearanceTab();
     else {
@@ -2004,6 +2023,7 @@ class ResolviaPanel extends DataMixin(LitElement) {
     else if (this._sheet === "confirm") body = this._renderConfirm();
     else if (this._sheet === "import") body = this._renderImportSheet();
     else if (this._sheet === "versions") body = this._renderVersions();
+    else if (this._sheet === "who") body = this._renderWhoSheet();
     return html`
       <div class="scrim" @click=${() => this._closeSheet()}></div>
       <div class="sheet" role="dialog" aria-modal="true" style=${this._sheetStyle()} @keydown=${(e) => e.key === "Escape" && this._closeSheet()}>
@@ -2113,6 +2133,7 @@ class ResolviaPanel extends DataMixin(LitElement) {
               : nothing}
           </div>`
         : nothing}
+      ${this._renderPointsField(f)}
       ${targets.length > 1
         ? html`<div class="field">
             <span class="flabel">${f.mode === "add" ? "Lista" : "Lista (mover)"}</span>

@@ -12,6 +12,7 @@ const TOKEN = process.env.FAKE_HA_TOKEN || "dev";
 const MEDIA_DIR = process.env.FAKE_MEDIA_DIR || process.env.MEDIA_DIR || "./.data/media";
 const WITH_AI = process.env.FAKE_HA_NO_AI !== "1";
 const aiCalls = [];
+const firedEvents = [];
 const F = { CREATE: 1, DELETE: 2, UPDATE: 4, MOVE: 8, DUE_DATE: 16, DUE_DATETIME: 32, DESCRIPTION: 64 };
 
 let seq = 1;
@@ -246,6 +247,11 @@ class Conn {
         case "call_service":
           if (msg.domain === "ai_task") return ok(fakeAI(msg));
           return ok(callService(msg));
+        case "fire_event":
+          if (typeof msg.event_type !== "string" || !msg.event_type) fail("invalid_format", "event_type required");
+          firedEvents.push({ event_type: msg.event_type, data: msg.event_data || {}, at: new Date().toISOString() });
+          console.log("fired", msg.event_type, JSON.stringify(msg.event_data || {}));
+          return ok({ context: { id: "ctx" } });
         default:
           fail("unknown_command", `Unknown command ${msg.type}`);
       }
@@ -255,7 +261,14 @@ class Conn {
   }
 }
 
-const server = http.createServer((req, res) => res.writeHead(404).end());
+// Test helper: GET /dev/events lists the events the app fired (fire_event).
+const server = http.createServer((req, res) => {
+  if (req.url === "/dev/events") {
+    res.writeHead(200, { "content-type": "application/json" });
+    return res.end(JSON.stringify(firedEvents));
+  }
+  res.writeHead(404).end();
+});
 server.on("upgrade", (req, socket, head) => {
   const ws = acceptUpgrade(req, socket, head);
   if (ws) new Conn(ws);

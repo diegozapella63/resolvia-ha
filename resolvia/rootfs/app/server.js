@@ -14,9 +14,10 @@ import { Store, datesInfo } from "./lib/store.js";
 import { Recurring } from "./lib/recurring.js";
 import { AI } from "./lib/ai.js";
 import { Restore } from "./lib/restore.js";
+import { Placar } from "./lib/placar.js";
 import { snapshot, toCSV, backupZip, parseImport, Backups, listVersions, readVersion, fileStamp } from "./lib/data.js";
 
-const VERSION = "2.7.0";
+const VERSION = "2.8.0";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const WWW = path.join(HERE, "www");
 const DEV = process.env.RESOLVIA_DEV === "1";
@@ -48,6 +49,22 @@ const todoStates = new Map();
 const recurring = new Recurring({ ha, store, log, states: todoStates, dayMs: DAY_MS });
 const restore = new Restore({ ha, store, recurring, states: todoStates, log });
 const backups = new Backups({ dir: path.join(SHARE_DIR, "resolvia") });
+const placar = new Placar({ shareDir: SHARE_DIR });
+const pad2 = (n) => String(n).padStart(2, "0");
+const today = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+};
+
+/** Points to the CronologIA scoreboard (it listens to this event). */
+async function sendPoints(data) {
+  await ha.send({ type: "fire_event", event_type: "cronologia_pontos", event_data: { ...data, origem: "ResolvIA" } });
+}
+
+/** Mais > Integrações > Recompensas, and the points of each task. */
+function pointsState(userId) {
+  return { on: !!store.prefs.app.points_on, points: store.points, placar: placar.view(userId) };
+}
 /** Import or restore, then tell the other apps about the lists again. */
 async function restoreAll(raw, reason, opts) {
   const out = await restore.run(raw, reason, opts);
@@ -168,7 +185,8 @@ class Session {
     this.ws = ws;
     this.subs = new Map(); // client subscription id -> {unsubscribe}
     this.user = {
-      id: headers["x-remote-user-id"] || null,
+      // RESOLVIA_DEV_USER_ID: test hook (dev mode only) for the Home Assistant user behind ingress
+      id: headers["x-remote-user-id"] || (DEV && process.env.RESOLVIA_DEV_USER_ID) || null,
       name: headers["x-remote-user-display-name"] || headers["x-remote-user-name"] || "",
     };
     ws.on("message", (text) => this.onMessage(text));
@@ -260,8 +278,51 @@ class Session {
         if ("dates_info" in (msg.prefs || {})) publishPresence();
         return this.result(id, prefs);
       }
-      case "resolvia/prefs/set_app":
-        return this.result(id, store.setAppPrefs(msg.prefs));
+      case "resolvia/prefs/set_app": {
+        const prefs = store.setAppPrefs(msg.prefs);
+        if ("points_on" in (msg.prefs || {})) publishPresence();
+        return this.result(id, prefs);
+      }
+
+      // ---- Recompensas: points per task, given to the CronologIA scoreboard
+      case "resolvia/points/get":
+        return this.result(id, pointsState(this.user.id));
+
+      case "resolvia/points/set": {
+        store.setPoints(msg.entity_id, String(msg.summary || ""), msg.points, msg.previous_summary == null ? null : String(msg.previous_summary));
+        publishPresence();
+        return this.result(id, pointsState(this.user.id));
+      }
+
+      /**
+       * A task was completed (or reopened) here. {entity_id, uid, summary, done, quem?}
+       * -> {points: 0} | {ask: true, points, participantes} | {key, who, points, participantes}
+       */
+      case "resolvia/points/done": {
+        if (!isTodo(msg.entity_id) || typeof msg.uid !== "string" || !msg.uid) return this.error(id, "invalid_format", "Tarefa inválida");
+        const n = store.prefs.app.points_on ? store.pointsFor(msg.entity_id, String(msg.summary || "")) : 0;
+        if (!n) return this.result(id, { points: 0 });
+        const key = `resolvia|${msg.entity_id}|${msg.uid.slice(0, 300).replace(/\|/g, "")}|${today()}`;
+        if (!msg.done) {
+          await sendPoints({ acao: "desfazer", chave: key });
+          return this.result(id, { points: 0, key });
+        }
+        const p = placar.read();
+        if (!p || !p.ativo) return this.result(id, { points: 0, reason: "placar" });
+        const who = msg.quem ? placar.participant(String(msg.quem)) : p.usuarios[this.user.id] || null;
+        if (msg.quem && !who) return this.error(id, "invalid_format", "Essa pessoa não está no placar");
+        if (!who) return this.result(id, { ask: true, points: n, participantes: p.participantes });
+        await sendPoints({ acao: "somar", chave: key, quem: who, pontos: n, titulo: String(msg.summary || "Tarefa").slice(0, 120) });
+        log.info(`+${n} para ${who}: ${msg.summary}`);
+        return this.result(id, { key, who, points: n, participantes: p.participantes });
+      }
+
+      case "resolvia/points/reassign": {
+        const who = placar.participant(String(msg.quem || ""));
+        if (!who || !/^resolvia\|todo\.[a-z0-9_]+\|/.test(String(msg.key || ""))) return this.error(id, "invalid_format", "Essa pessoa não está no placar");
+        await sendPoints({ acao: "trocar", chave: String(msg.key), quem: who });
+        return this.result(id, { who });
+      }
 
       // ---- Dados: versions, backups in share/resolvia
       case "resolvia/versions/list":
@@ -514,7 +575,9 @@ function publishPresence() {
     fs.mkdirSync(dir, { recursive: true });
     const tmp = path.join(dir, ".integracao.json.tmp");
     const semPrazo = [...todoStates].filter(([id, st]) => datesInfo(store.prefs.lists[id], st && st.attributes && st.attributes.supported_features)).map(([id]) => id);
-    fs.writeFileSync(tmp, JSON.stringify({ app: "ResolvIA", versao: VERSION, gravado_em: new Date().toISOString(), sem_prazo: semPrazo }, null, 1));
+    // pontos: what each task is worth, so the CronologIA gives the same points when a task is concluded there
+    const pontos = store.prefs.app.points_on ? store.points : {};
+    fs.writeFileSync(tmp, JSON.stringify({ app: "ResolvIA", versao: VERSION, gravado_em: new Date().toISOString(), sem_prazo: semPrazo, pontos }, null, 1));
     fs.renameSync(tmp, path.join(dir, "integracao.json"));
     publishWarned = false;
   } catch (err) {
