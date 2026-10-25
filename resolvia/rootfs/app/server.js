@@ -17,7 +17,7 @@ import { Restore } from "./lib/restore.js";
 import { Placar } from "./lib/placar.js";
 import { snapshot, toCSV, backupZip, parseImport, Backups, listVersions, readVersion, fileStamp } from "./lib/data.js";
 
-const VERSION = "2.9.1";
+const VERSION = "2.9.2";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const WWW = path.join(HERE, "www");
 const DEV = process.env.RESOLVIA_DEV === "1";
@@ -46,7 +46,12 @@ if (!TOKEN) {
 const store = new Store(DATA_DIR, log);
 const ha = new HAClient(HA_URL, TOKEN, log);
 const todoStates = new Map();
-const recurring = new Recurring({ ha, store, log, states: todoStates, dayMs: DAY_MS });
+/** Mais > Repetições: the automatic repetition is on (unset: on when there are rules, so nothing stops after an update). */
+const repeatOn = () => {
+  const v = store.prefs.app.repeat_on;
+  return v === undefined ? Object.keys(store.rules || {}).length > 0 : v === true;
+};
+const recurring = new Recurring({ ha, store, log, states: todoStates, dayMs: DAY_MS, enabled: repeatOn });
 const restore = new Restore({ ha, store, recurring, states: todoStates, log });
 const backups = new Backups({ dir: path.join(SHARE_DIR, "resolvia") });
 const placar = new Placar({ shareDir: SHARE_DIR });
@@ -183,6 +188,7 @@ recurring.on("change", () => {
 /** repete: how often each task comes back ({list: {uid: days}}), so the CronologIA can put the daily ones first. */
 function repeatMap() {
   const out = {};
+  if (!repeatOn()) return out; // paused: nothing repeats
   for (const r of Object.values(store.rules || {})) {
     if (!r || !r.uid || !(r.days > 0) || !isTodo(r.entity_id)) continue;
     (out[r.entity_id] ||= {})[r.uid] = r.days;
@@ -294,6 +300,11 @@ class Session {
       case "resolvia/prefs/set_app": {
         const prefs = store.setAppPrefs(msg.prefs);
         if ("points_on" in (msg.prefs || {})) publishPresence();
+        if ("repeat_on" in (msg.prefs || {})) {
+          // back on: completed items with a rule start counting now; off: nothing comes back
+          for (const [eid, items] of recurring.items) recurring.process(eid, items);
+          publishPresence();
+        }
         return this.result(id, prefs);
       }
 

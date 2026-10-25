@@ -12,8 +12,9 @@ const ymd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate(
 const RETRY_MS = 5 * 60 * 1000;
 
 export class Recurring extends EventEmitter {
-  constructor({ ha, store, log, states, dayMs = 0, now = () => Date.now() }) {
+  constructor({ ha, store, log, states, dayMs = 0, now = () => Date.now(), enabled = () => true }) {
     super();
+    this.enabled = enabled; // Mais > Repetições: off = rules kept but paused (nothing comes back)
     this.ha = ha;
     this.store = store;
     this.log = log;
@@ -82,7 +83,7 @@ export class Recurring extends EventEmitter {
         rule.description = item.description || null;
         changed = true;
       }
-      if (item.status === "completed" && !rule.completed_at) {
+      if (item.status === "completed" && !rule.completed_at && this.enabled()) {
         const now = this.now();
         rule.completed_at = now;
         rule.reopen_at = this.reopenTime(now, rule.days);
@@ -152,6 +153,7 @@ export class Recurring extends EventEmitter {
   }
 
   tick() {
+    if (!this.enabled()) return;
     const now = this.now();
     for (const rule of Object.values(this.rules)) {
       if (!rule.reopen_at || rule.reopen_at > now) continue;

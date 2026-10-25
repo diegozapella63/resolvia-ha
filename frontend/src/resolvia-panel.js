@@ -36,7 +36,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.9.1";
+const VERSION = "2.9.2";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -197,10 +197,7 @@ class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
       }
       if (tab === "dados") this._loadBackups();
     }
-    if (changed.has("_path") && this._view().name === "search") {
-      const input = this.renderRoot.querySelector(".search-box input");
-      if (input) input.focus({ preventScroll: true });
-    }
+    // Buscar doesn't focus the box by itself: on the phone that pops the keyboard over the screen
   }
 
   firstUpdated() {
@@ -549,8 +546,14 @@ class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
       });
   }
 
+  /** Mais › Repetições: automatic repetition on (unset: on when there are rules, like the server). */
+  _repeatOn() {
+    const v = this._app("repeat_on", undefined);
+    return v === undefined ? this._rules.length > 0 : v === true;
+  }
+
   _ruleFor(listId, item) {
-    if (!item) return null;
+    if (!item || !this._repeatOn()) return null;
     return (
       this._rules.find((r) => r.entity_id === listId && r.uid && r.uid === item.uid) ||
       (item.status !== "completed" && this._rules.find((r) => r.entity_id === listId && !r.uid && r.match === item.summary)) ||
@@ -1708,7 +1711,7 @@ class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
       .filter((g) => g.rows.length);
 
     // Recurring tasks waiting to come back.
-    const coming = this._rules
+    const coming = (this._repeatOn() ? this._rules : [])
       .filter((r) => r.reopen_at)
       .map((r) => {
         const l = this._list(r.entity_id);
@@ -1798,7 +1801,7 @@ class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
         ${this._renderPageHead("Buscar", { text: `Em ${plural(this._L.length, "lista", "listas")} · acentos não importam` })}
         <label class="search-box">
           ${icon("search")}
-          <input type="search" placeholder="Buscar em todas as listas" .value=${this._query} @input=${(e) => (this._query = e.target.value)} autofocus enterkeyhint="search" aria-label="Buscar" />
+          <input type="search" placeholder="Buscar em todas as listas" .value=${this._query} @input=${(e) => (this._query = e.target.value)} enterkeyhint="search" aria-label="Buscar" />
           ${this._query ? html`<button class="icon-btn" style="width:40px;height:40px" @click=${() => (this._query = "")} aria-label="Limpar">${icon("x")}</button>` : nothing}
         </label>
         <div class="filters">
@@ -1912,8 +1915,23 @@ class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
 
   /** Mais › Repetições: the tasks that come back by themselves. */
   _renderRulesTab() {
+    const on = this._repeatOn();
     return html`<div class="panel">
-              <div class="overline">Tarefas que se repetem</div>
+              <div class="overline">Repetição automática</div>
+              <div class="row switch-row">
+                <div class="grow">
+                  <div class="label">Repetir depois de concluir</div>
+                  <div class="hint" style="white-space:normal">${on
+                    ? "Ligado: nos itens aparece “Repetir depois de concluir”, e o item volta sozinho N dias depois de feito."
+                    : this._rules.length
+                      ? "Desligado: as repetições abaixo ficam pausadas (nada volta sozinho) e o campo some dos itens. Ligue de novo para continuar."
+                      : "Desligado: os itens não têm o campo de repetição. Para o que se repete com dia certo ou depois de feito, use a Rotina da casa do CronologIA."}</div>
+                </div>
+                <label class="switch"><input type="checkbox" role="switch" .checked=${on} @change=${(e) => this._saveAppPrefs({ repeat_on: e.target.checked })} aria-label="Repetir depois de concluir" /><span class="track"></span></label>
+              </div>
+            </div>
+            <div class="panel ${on ? "" : "paused"}">
+              <div class="overline">Tarefas que se repetem${!on && this._rules.length ? " · pausadas" : ""}</div>
               ${this._rules.length
                 ? this._rules.map((r) => {
                     const l = this._list(r.entity_id);
@@ -1922,12 +1940,12 @@ class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
                       <span class="tile">${icon("repeat")}</span>
                       <button class="grow" style="text-align:left" @click=${() => this._go(`/lista/${l.id}`)}>
                         <div class="label">${r.summary || r.match}</div>
-                        <div class="hint">${l.name} · ${this._everyLabel(r.days)}${r.reopen_at ? ` · volta ${this._returnLabel(r.reopen_at)}` : ""}</div>
+                        <div class="hint">${l.name} · ${this._everyLabel(r.days)}${!on ? " · pausada" : r.reopen_at ? ` · volta ${this._returnLabel(r.reopen_at)}` : ""}</div>
                       </button>
                       <button class="icon-btn" style="color:var(--rv-muted)" aria-label="Parar de repetir" @click=${() => this._setRule(r.entity_id, { uid: r.uid, summary: r.match || r.summary, days: null })}>${icon("x")}</button>
                     </div>`;
                   })
-                : html`<div class="row"><div class="hint" style="white-space:normal">Nenhuma ainda. Abra um item e escolha “Repetir depois de concluir” — ex.: passar pano 3 dias depois de feito.</div></div>`}
+                : html`<div class="row"><div class="hint" style="white-space:normal">${on ? "Nenhuma ainda. Abra um item e escolha “Repetir depois de concluir” — ex.: passar pano 3 dias depois de feito." : "Nenhuma."}</div></div>`}
             </div>`;
   }
 
@@ -2109,11 +2127,11 @@ class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
         <button class="icon-btn" @click=${() => this._closeSheet()} aria-label="Fechar">${icon("x")}</button>
       </div>
       ${f.mode === "add" && this._canImport()
-        ? html`<div class="imp-strip">
-            <button @click=${() => this._openImport(f.target, "text")}>${icon("clipboard-paste")}<span>Colar mensagem</span></button>
-            <button @click=${() => this._openImport(f.target, "photos")}>${icon("images")}<span>Escolher fotos</span></button>
-            <button @click=${() => this._openImport(f.target, "scan")}>${icon("scan-text")}<span>Digitalizar com IA</span></button>
-          </div>`
+        ? this._renderImportTiles({
+            text: () => this._openImport(f.target, "text"),
+            photos: () => this._openImport(f.target, "photos"),
+            scan: () => this._openImport(f.target, "scan"),
+          })
         : nothing}
       <label class="field">
         <span class="flabel">Item</span>
@@ -2145,7 +2163,7 @@ class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
               : nothing}
           </div>`
         : nothing}
-      ${this._rulesOk && !f.mirrored && (has(feat, F.UPDATE) || has(feat, F.CREATE))
+      ${this._rulesOk && this._repeatOn() && !f.mirrored && (has(feat, F.UPDATE) || has(feat, F.CREATE))
         ? html`<div class="field">
             <span class="flabel">Repetir depois de concluir</span>
             <div class="chip-row">
@@ -2181,6 +2199,28 @@ class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
         <button class="btn primary" @click=${() => this._saveItem()}>${f.mode === "add" ? "Adicionar" : f.target !== f.listId ? "Mover" : "Salvar"}</button>
       </div>
     `;
+  }
+
+  /**
+   * Colar mensagem / Escolher fotos / Digitalizar com IA as dashed tiles (like the InventarIA),
+   * with the gallery note of the Home Assistant app and what the AI does.
+   */
+  _renderImportTiles(run, { label = true } = {}) {
+    const ai = this._aiInfo();
+    const android = this._isHaAndroid();
+    const tile = (key, ic, text, off = false) => html`<button type="button" class="imp-tile" ?disabled=${off} @click=${run[key]}>${icon(ic)}<span>${text}</span></button>`;
+    return html`<div class="field imp-field">
+        ${label ? html`<span class="flabel">Trazer de mensagem ou foto</span>` : nothing}
+        <div class="imp-tiles">
+          ${tile("text", "clipboard-paste", "Colar mensagem")}
+          ${tile("photos", "images", "Escolher fotos", !ai.images)}
+          ${tile("scan", "scan-text", "Digitalizar com\u00a0IA", !ai.images)}
+        </div>
+        ${android && ai.images ? html`<p class="imp-help">No app do Home Assistant, Escolher fotos abre a galeria (uma foto por vez). Para fotografar uma lista na hora, use Digitalizar com IA, que abre a câmera aqui dentro.</p>` : nothing}
+      </div>
+      <div class="ai-box">${icon("scan-text")}<span>${ai.ready
+        ? "Com uma mensagem ou foto, a IA separa os itens da lista. Você confere antes de adicionar."
+        : "Sem IA configurada, a mensagem é separada por linhas e vírgulas. Para ler fotos, configure a Leitura por IA em Mais."}</span></div>`;
   }
 
   _renderImportSheet() {
@@ -2278,24 +2318,15 @@ class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
     // pick
     return html`
       ${head("Importar itens")}
-      <p class="sheet-note top">Traga uma lista pronta de uma mensagem ou de uma foto. ${ai.ready ? "A IA separa os itens e você revisa antes de adicionar." : ""}</p>
-      <div class="imp-options">
-        <button class="imp-opt" @click=${() => (this._setForm({ step: "text", error: null }), this._focusImportText())}>
-          <span class="imp-ic">${icon("message-square-text")}</span>
-          <span class="imp-tx"><b>Colar mensagem</b><small>WhatsApp, e-mail, anotação</small></span>
-          ${icon("chevron-right")}
-        </button>
-        <button class="imp-opt" ?disabled=${!ai.images} @click=${() => this._pickFiles("photos")}>
-          <span class="imp-ic">${icon("images")}</span>
-          <span class="imp-tx"><b>Escolher fotos</b><small>${this._isHaAndroid() ? "Prints e fotos da galeria, uma por vez" : "Prints e fotos da galeria (até 6)"}</small></span>
-          ${icon("chevron-right")}
-        </button>
-        <button class="imp-opt" ?disabled=${!ai.images} @click=${() => this._openCamera()}>
-          <span class="imp-ic">${icon("scan-text")}</span>
-          <span class="imp-tx"><b>Digitalizar com IA</b><small>Tire uma foto de uma lista em papel</small></span>
-          ${icon("chevron-right")}
-        </button>
-      </div>
+      <p class="sheet-lead">Traga uma lista pronta de uma mensagem do WhatsApp, de um print ou de uma lista em papel.</p>
+      ${this._renderImportTiles(
+        {
+          text: () => (this._setForm({ step: "text", error: null }), this._focusImportText()),
+          photos: () => this._pickFiles("photos"),
+          scan: () => this._openCamera(),
+        },
+        { label: false },
+      )}
       ${!ai.images
         ? html`<div class="imp-error soft">${icon("sparkles")}<span>${ai.reason || "Para ler fotos, o Home Assistant precisa de uma integração de IA com tarefa de IA que entenda imagens."}
             <button class="text-btn inline" @click=${() => this._goAiSettings()}>Ver Leitura por IA</button></span></div>`

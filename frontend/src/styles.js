@@ -1454,6 +1454,80 @@ export const styles = css`
     width: 20px;
     height: 20px;
   }
+  /* Colar mensagem / Escolher fotos / Digitalizar com IA: dashed tiles like the InventarIA */
+  .imp-field {
+    margin-bottom: 12px;
+  }
+  .imp-tiles {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  .imp-tile {
+    aspect-ratio: 1;
+    border-radius: 12px;
+    border: 1.5px dashed var(--rv-line-strong);
+    background: transparent;
+    color: var(--rv-text);
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 8px;
+    padding: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.3;
+    text-align: center;
+    text-wrap: balance;
+  }
+  .imp-tile .i {
+    width: 22px;
+    height: 22px;
+    color: var(--rv-text-2);
+  }
+  .imp-tile:hover:not([disabled]),
+  .imp-tile:focus-visible {
+    border-color: var(--rv-text-2);
+    background: var(--rv-surface-2);
+  }
+  .imp-tile[disabled] {
+    opacity: 0.45;
+  }
+  .imp-help {
+    margin: 10px 0 0;
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: var(--rv-muted);
+  }
+  .ai-box {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 14px;
+    border-radius: 12px;
+    background: var(--rv-surface-2);
+    border: 1px solid var(--rv-line);
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--rv-muted);
+    margin-bottom: 18px;
+  }
+  .ai-box .i {
+    flex: none;
+    width: 17px;
+    height: 17px;
+    margin-top: 2px;
+    color: var(--rv-text-2);
+  }
+  .sheet-lead {
+    margin: -4px 2px 16px;
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--rv-muted);
+  }
+  .panel.paused .row:not(.switch-row) {
+    opacity: 0.55;
+  }
   .imp-strip {
     display: grid;
     grid-template-columns: repeat(3, 1fr);

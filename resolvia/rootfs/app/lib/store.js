@@ -34,6 +34,8 @@ const APP_FIELDS = {
   ai_entity: ["string", 80],
   // Mais > Integrações > Recompensas: tasks can be worth points in the CronologIA scoreboard.
   points_on: ["boolean"],
+  // Mais > Repetições: "Repetir depois de concluir" on (true) or off (false); unset = on when there are rules
+  repeat_on: ["boolean"],
 };
 
 /** A repeating task from a file (import, restore): only the known fields, sane values. */

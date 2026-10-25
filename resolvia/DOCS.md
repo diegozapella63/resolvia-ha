@@ -10,11 +10,11 @@ Nada é copiado: o ResolvIA mostra e edita as mesmas listas que o HA já tem.
 2. Ative **Mostrar na barra lateral** (e, se quiser, **Watchdog**).
 3. Abra o **ResolvIA** pela barra lateral.
 
-O **Mais** fica em abas no alto: **Listas** (nome, cor, ícone, mostrar/ocultar e criar lista), **Repetições** (as tarefas que voltam sozinhas), **Integrações** (recompensas do CronologIA e leitura por IA), **Dados** (exportar, backup, importar, versões) e **Aparência** (tema, cor e como as listas aparecem).
+O **Mais** fica em abas no alto: **Listas** (nome, cor, ícone, mostrar/ocultar e criar lista), **Repetições** (ligar ou desligar a repetição e as tarefas que voltam sozinhas), **Integrações** (recompensas do CronologIA e leitura por IA), **Dados** (exportar, backup, importar, versões) e **Aparência** (tema, cor e como as listas aparecem).
 
 ## Importar de mensagem ou foto
 
-No botão **Adicionar** (ou no ícone ao lado do campo de adicionar de uma lista) há três caminhos:
+No botão **Adicionar** (ou no ícone ao lado do campo de adicionar de uma lista) há três quadros, no alto do formulário:
 
 - **Colar mensagem**: cole uma mensagem do WhatsApp, e-mail ou anotação ("amor compra leite, ovos e café"). A IA separa os itens.
 - **Escolher fotos**: prints ou fotos de listas da galeria. No app Android do Home Assistant é uma foto por vez (limitação da versão atual do app); use **Mais fotos** na revisão para juntar outras.
@@ -45,7 +45,9 @@ Sem IA configurada, a mensagem colada é separada por linhas, vírgulas e "e"; s
 
 ## Tarefas que voltam sozinhas
 
-Abra um item e escolha **Repetir depois de concluir** (todo dia, 2 ou 3 dias, 1 ou 2 semanas, 1 mês ou outro número de dias).
+Ligue em **Mais → Repetições → Repetir depois de concluir** (numa instalação nova começa desligado; quem já tinha repetições continua com ela ligada). Depois, abra um item e escolha **Repetir depois de concluir** (todo dia, 2 ou 3 dias, 1 ou 2 semanas, 1 mês ou outro número de dias).
+
+Desligada, o campo some dos itens e as repetições que existem ficam **pausadas**: nada volta sozinho, e elas aparecem como "pausada" em Mais → Repetições. Ligue de novo e os itens concluídos começam a contar a partir dali. Para o que se repete com dia certo, ou N dias depois de feito com pontos, dá para usar a **Rotina da casa** do CronologIA (1.11.0 ou mais novo, frequência **Depois de feita**).
 
 Exemplo: "Passar pano" com **3 dias**. Você marca como feito no domingo e ele volta como pendente na quarta, logo no começo do dia. Se a lista aceita datas, ele volta com prazo **Hoje**.
 
