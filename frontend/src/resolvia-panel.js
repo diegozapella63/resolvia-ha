@@ -36,7 +36,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.8.0";
+const VERSION = "2.8.1";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -1395,11 +1395,11 @@ class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
     return html`
       <nav>
         <div class="tabs">
-          ${tab("home", "", "Listas", "list-checks")} ${tab("due", "/prazos", "Prazos", "calendar-clock", lateCount)}
+          ${tab("home", "", "Listas", "list-checks")} ${tab("search", "/buscar", "Buscar", "search")}
           <button class="tab fab" @click=${() => this._openAdd(view.name === "list" ? view.id : null)} aria-label="Adicionar item">
             <span class="pill">${icon("plus")}</span><span>Adicionar</span>
           </button>
-          ${tab("search", "/buscar", "Buscar", "search")} ${tab("more", "/mais", "Mais", "sliders-horizontal")}
+          ${tab("due", "/prazos", "Prazos", "calendar-clock", lateCount)} ${tab("more", "/mais", "Mais", "sliders-horizontal")}
         </div>
       </nav>
     `;

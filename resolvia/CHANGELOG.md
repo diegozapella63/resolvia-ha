@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.8.1
+
+- Abas de baixo na nova ordem: **Listas · Buscar · Adicionar · Prazos · Mais**.
+
 ## 2.8.0
 
 - **Recompensas**: as tarefas podem valer pontos no placar do CronologIA. Ligue em **Mais › Integrações › Recompensas** (começa desligado), e em cada tarefa escolha **Pontos para quem concluir** (+5, +10, +20, +30, +50 ou outro valor).
