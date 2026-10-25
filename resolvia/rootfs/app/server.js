@@ -16,7 +16,7 @@ import { AI } from "./lib/ai.js";
 import { Restore } from "./lib/restore.js";
 import { snapshot, toCSV, backupZip, parseImport, Backups, listVersions, readVersion, fileStamp } from "./lib/data.js";
 
-const VERSION = "2.6.0";
+const VERSION = "2.7.0";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const WWW = path.join(HERE, "www");
 const DEV = process.env.RESOLVIA_DEV === "1";

@@ -10,6 +10,8 @@ Nada é copiado: o ResolvIA mostra e edita as mesmas listas que o HA já tem.
 2. Ative **Mostrar na barra lateral** (e, se quiser, **Watchdog**).
 3. Abra o **ResolvIA** pela barra lateral.
 
+O **Mais** fica em abas no alto: **Listas** (nome, cor, ícone, mostrar/ocultar e criar lista), **Repetições** (as tarefas que voltam sozinhas), **IA** (leitura por IA), **Dados** (exportar, backup, importar, versões) e **Aparência** (tema, cor e como as listas aparecem).
+
 ## Importar de mensagem ou foto
 
 No botão **Adicionar** (ou no ícone ao lado do campo de adicionar de uma lista) há três caminhos:
@@ -35,7 +37,7 @@ Para configurar:
 
 1. Em **Configurações > Dispositivos e serviços > Adicionar integração**, escolha a integração e siga os passos.
 2. Na página da integração, adicione uma **tarefa de IA** (AI Task). Para ler fotos, escolha um modelo que entenda imagens.
-3. No ResolvIA, abra **Mais > Leitura por IA** e escolha essa IA. "Padrão do Home Assistant" usa a IA preferida definida em **Configurações > Sistema > Geral**. Toque em **Verificar de novo** para conferir se ela está pronta.
+3. No ResolvIA, abra **Mais > IA** e escolha essa IA. "Padrão do Home Assistant" usa a IA preferida definida em **Configurações > Sistema > Geral**. Toque em **Verificar de novo** para conferir se ela está pronta.
 
 Na hora da leitura, o app copia a foto por alguns segundos para `media/resolvia/ia-temp`, chama a IA pelo Home Assistant e apaga a cópia em seguida.
 
@@ -51,7 +53,7 @@ Exemplo: "Passar pano" com **3 dias**. Você marca como feito no domingo e ele v
 - Se os concluídos forem apagados antes da hora, o item é criado de novo.
 - Desmarcar o item antes da hora cancela a volta daquela vez.
 - Apagar um item pendente remove a repetição dele.
-- Todas as repetições aparecem em **Mais → Tarefas que se repetem**, e as próximas voltas em **Prazos → Voltam sozinhas**.
+- Todas as repetições aparecem em **Mais → Repetições**, e as próximas voltas em **Prazos → Voltam sozinhas**.
 
 ## O que dá para fazer em cada lista
 

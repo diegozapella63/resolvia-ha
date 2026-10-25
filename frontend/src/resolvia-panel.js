@@ -35,7 +35,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.6.0";
+const VERSION = "2.7.0";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -187,8 +187,9 @@ class ResolviaPanel extends DataMixin(LitElement) {
   updated(changed) {
     this.toggleAttribute("dark", this._dark);
     if (changed.has("_path") && this._view().name === "more") {
-      this._refreshAi(false);
-      this._loadBackups();
+      const tab = this._view().tab;
+      if (tab === "ia") this._refreshAi(false);
+      if (tab === "dados") this._loadBackups();
     }
     if (changed.has("_path") && this._view().name === "search") {
       const input = this.renderRoot.querySelector(".search-box input");
@@ -426,7 +427,7 @@ class ResolviaPanel extends DataMixin(LitElement) {
     if ((m = p.match(/^\/lista\/(todo\.[^/]+)$/))) return { name: "list", id: decodeURIComponent(m[1]) };
     if (p === "/prazos") return { name: "due" };
     if (p === "/buscar") return { name: "search" };
-    if (p === "/mais") return { name: "more" };
+    if ((m = p.match(/^\/mais(?:\/(repeticoes|ia|dados|aparencia))?$/))) return { name: "more", tab: m[1] || "listas" };
     return { name: "home" };
   }
 
@@ -501,7 +502,7 @@ class ResolviaPanel extends DataMixin(LitElement) {
 
   _goAiSettings() {
     this._closeSheet(true);
-    this._go("/mais");
+    this._go("/mais/ia");
     this.updateComplete.then(() => {
       const el = this.renderRoot.querySelector("#leitura-ia");
       if (el) el.scrollIntoView({ block: "start", behavior: "smooth" });
@@ -1798,13 +1799,119 @@ class ResolviaPanel extends DataMixin(LitElement) {
 
   // ---------- more / settings
 
+  /**
+   * Mais is split in tabs at the top, like the CronologIA: /mais (Listas),
+   * /mais/repeticoes, /mais/ia, /mais/dados, /mais/aparencia. Switching tabs
+   * replaces the history entry, so Back leaves Mais.
+   */
+  _moreTabs() {
+    return [
+      ["listas", "Listas", "list-checks"],
+      ...(this._rulesOk ? [["repeticoes", "Repetições", "repeat"]] : []),
+      ...(this.hass.resolvia ? [["ia", "IA", "sparkles"]] : []),
+      ...(this._data() ? [["dados", "Dados", "archive"]] : []),
+      ["aparencia", "Aparência", "palette"],
+    ];
+  }
+
   _renderMore() {
+    const tabs = this._moreTabs();
+    const want = this._view().tab;
+    const tab = tabs.some((t) => t[0] === want) ? want : "listas";
+    const go = (k) => {
+      if (k === tab) return;
+      this._haptic("light");
+      this._go(k === "listas" ? "/mais" : `/mais/${k}`, true);
+    };
+    let body;
+    let status = { text: `ResolvIA ${VERSION}${this._prefsRemote ? " · personalizações sincronizadas" : ""}` };
+    if (tab === "repeticoes") body = this._renderRulesTab();
+    else if (tab === "ia") body = this._renderAiPanel();
+    else if (tab === "dados") body = this._renderDataPanel();
+    else if (tab === "aparencia") body = this._renderAppearanceTab();
+    else {
+      body = this._renderListsTab();
+      const hidden = this._L.filter((l) => l.hidden).length;
+      status = { text: this._L.length ? `${plural(this._L.length, "lista", "listas")}${hidden ? ` · ${plural(hidden, "oculta", "ocultas")}` : ""}` : "Nenhuma lista ainda" };
+    }
+    return html`
+      <section class="page">
+        ${this._renderPageHead("Mais", status)}
+        <div class="seg compact more-tabs" role="tablist" aria-label="Seções">
+          ${tabs.map(([k, label, ic]) => html`<button class=${tab === k ? "on" : ""} role="tab" aria-selected=${tab === k ? "true" : "false"} @click=${() => go(k)}>${icon(ic)}<span>${label}</span></button>`)}
+        </div>
+        <div role="tabpanel" aria-label=${tabs.find((t) => t[0] === tab)[1]}>${body}</div>
+        <p class="foot"><b>ResolvIA</b><br />v${VERSION} · usa as listas nativas do Home Assistant.<br />${this._prefsRemote ? "Personalizações sincronizadas entre aparelhos." : "Personalizações salvas neste aparelho."}</p>
+      </section>
+    `;
+  }
+
+  /** Mais › Listas: name, color, icon and show/hide of each list; new lists. */
+  _renderListsTab() {
+    const sw = (on, label, ev) => html`<label class="switch"><input type="checkbox" role="switch" .checked=${on} @change=${ev} aria-label=${label} /><span class="track"></span></label>`;
+    return html`
+        <div class="panel">
+          <div class="overline">Listas</div>
+          ${this._L.length
+            ? this._L.map(
+                (l) => html`
+                  <div class="row" style=${colorVars(l.color, this._dark)}>
+                    <button class="tile" @click=${() => this._openCustomize(l)} aria-label="Personalizar ${l.name}">${icon(l.icon)}</button>
+                    <button class="grow" style="text-align:left" @click=${() => this._openCustomize(l)}>
+                      <div class="label">${l.name}</div>
+                      <div class="hint">${l.group || l.id}</div>
+                    </button>
+                    ${sw(!l.hidden, `Mostrar ${l.name}`, (e) => this._saveListPrefs(l.id, { hidden: e.target.checked ? null : true }))}
+                  </div>
+                `,
+              )
+            : html`<div class="row"><div class="hint">Nenhuma lista encontrada.</div></div>`}
+        </div>
+
+        ${this.hass.user && this.hass.user.is_admin
+          ? html`<div class="panel">
+              <button class="row" @click=${() => this._openInHA("/config/integrations/dashboard/add?domain=local_todo")}>
+                <span class="tile" style=${colorVars(this._accent(), this._dark)}>${icon("list-plus")}</span>
+                <span class="grow"><div class="label">Criar nova lista</div><div class="hint">Lista de tarefas local do Home Assistant</div></span>
+                ${icon("chevron-right")}
+              </button>
+              <button class="row" @click=${() => this._openInHA("/todo")}>
+                <span class="tile" style=${colorVars(PALETTE[9], this._dark)}>${icon("external-link")}</span>
+                <span class="grow"><div class="label">Abrir listas padrão do HA</div><div class="hint">A tela original de tarefas</div></span>
+                ${icon("chevron-right")}
+              </button>
+            </div>`
+          : nothing}
+
+    `;
+  }
+
+  /** Mais › Repetições: the tasks that come back by themselves. */
+  _renderRulesTab() {
+    return html`<div class="panel">
+              <div class="overline">Tarefas que se repetem</div>
+              ${this._rules.length
+                ? this._rules.map((r) => {
+                    const l = this._list(r.entity_id);
+                    if (!l) return nothing;
+                    return html`<div class="row" style=${colorVars(l.color, this._dark)}>
+                      <span class="tile">${icon("repeat")}</span>
+                      <button class="grow" style="text-align:left" @click=${() => this._go(`/lista/${l.id}`)}>
+                        <div class="label">${r.summary || r.match}</div>
+                        <div class="hint">${l.name} · ${this._everyLabel(r.days)}${r.reopen_at ? ` · volta ${this._returnLabel(r.reopen_at)}` : ""}</div>
+                      </button>
+                      <button class="icon-btn" style="color:var(--rv-muted)" aria-label="Parar de repetir" @click=${() => this._setRule(r.entity_id, { uid: r.uid, summary: r.match || r.summary, days: null })}>${icon("x")}</button>
+                    </div>`;
+                  })
+                : html`<div class="row"><div class="hint" style="white-space:normal">Nenhuma ainda. Abra um item e escolha “Repetir depois de concluir” — ex.: passar pano 3 dias depois de feito.</div></div>`}
+            </div>`;
+  }
+
+  /** Mais › Aparência: theme, color and how the lists show. */
+  _renderAppearanceTab() {
     const accent = this._app("accent", "vermelho");
     const sw = (on, label, ev) => html`<label class="switch"><input type="checkbox" role="switch" .checked=${on} @change=${ev} aria-label=${label} /><span class="track"></span></label>`;
     return html`
-      <section class="page">
-        ${this._renderPageHead("Mais", { text: `ResolvIA ${VERSION}${this._prefsRemote ? " · personalizações sincronizadas" : ""}` })}
-
         <div class="panel">
           <div class="overline">Aparência</div>
           <div class="row col">
@@ -1829,44 +1936,6 @@ class ResolviaPanel extends DataMixin(LitElement) {
         </div>
 
         <div class="panel">
-          <div class="overline">Listas</div>
-          ${this._L.length
-            ? this._L.map(
-                (l) => html`
-                  <div class="row" style=${colorVars(l.color, this._dark)}>
-                    <button class="tile" @click=${() => this._openCustomize(l)} aria-label="Personalizar ${l.name}">${icon(l.icon)}</button>
-                    <button class="grow" style="text-align:left" @click=${() => this._openCustomize(l)}>
-                      <div class="label">${l.name}</div>
-                      <div class="hint">${l.group || l.id}</div>
-                    </button>
-                    ${sw(!l.hidden, `Mostrar ${l.name}`, (e) => this._saveListPrefs(l.id, { hidden: e.target.checked ? null : true }))}
-                  </div>
-                `,
-              )
-            : html`<div class="row"><div class="hint">Nenhuma lista encontrada.</div></div>`}
-        </div>
-
-        ${this._rulesOk
-          ? html`<div class="panel">
-              <div class="overline">Tarefas que se repetem</div>
-              ${this._rules.length
-                ? this._rules.map((r) => {
-                    const l = this._list(r.entity_id);
-                    if (!l) return nothing;
-                    return html`<div class="row" style=${colorVars(l.color, this._dark)}>
-                      <span class="tile">${icon("repeat")}</span>
-                      <button class="grow" style="text-align:left" @click=${() => this._go(`/lista/${l.id}`)}>
-                        <div class="label">${r.summary || r.match}</div>
-                        <div class="hint">${l.name} · ${this._everyLabel(r.days)}${r.reopen_at ? ` · volta ${this._returnLabel(r.reopen_at)}` : ""}</div>
-                      </button>
-                      <button class="icon-btn" style="color:var(--rv-muted)" aria-label="Parar de repetir" @click=${() => this._setRule(r.entity_id, { uid: r.uid, summary: r.match || r.summary, days: null })}>${icon("x")}</button>
-                    </div>`;
-                  })
-                : html`<div class="row"><div class="hint" style="white-space:normal">Nenhuma ainda. Abra um item e escolha “Repetir depois de concluir” — ex.: passar pano 3 dias depois de feito.</div></div>`}
-            </div>`
-          : nothing}
-
-        <div class="panel">
           <div class="overline">Exibição</div>
           <div class="row">
             <div class="grow"><div class="label">Agrupar por dispositivo</div><div class="hint">Ex.: as listas da Alexa juntas</div></div>
@@ -1878,27 +1947,6 @@ class ResolviaPanel extends DataMixin(LitElement) {
           </div>
         </div>
 
-        ${this._renderAiPanel()}
-
-        ${this._renderDataPanel()}
-
-        ${this.hass.user && this.hass.user.is_admin
-          ? html`<div class="panel">
-              <button class="row" @click=${() => this._openInHA("/config/integrations/dashboard/add?domain=local_todo")}>
-                <span class="tile" style=${colorVars(this._accent(), this._dark)}>${icon("list-plus")}</span>
-                <span class="grow"><div class="label">Criar nova lista</div><div class="hint">Lista de tarefas local do Home Assistant</div></span>
-                ${icon("chevron-right")}
-              </button>
-              <button class="row" @click=${() => this._openInHA("/todo")}>
-                <span class="tile" style=${colorVars(PALETTE[9], this._dark)}>${icon("external-link")}</span>
-                <span class="grow"><div class="label">Abrir listas padrão do HA</div><div class="hint">A tela original de tarefas</div></span>
-                ${icon("chevron-right")}
-              </button>
-            </div>`
-          : nothing}
-
-        <p class="foot"><b>ResolvIA</b><br />v${VERSION} · usa as listas nativas do Home Assistant.<br />${this._prefsRemote ? "Personalizações sincronizadas entre aparelhos." : "Personalizações salvas neste aparelho."}</p>
-      </section>
     `;
   }
 

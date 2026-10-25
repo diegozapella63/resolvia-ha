@@ -2135,4 +2135,41 @@ export const styles = css`
     border-radius: 6px;
     background: var(--rv-line);
   }
+
+  /* ---------- Mais: tabs at the top (same as the CronologIA) ---------- */
+  .seg.compact button {
+    font-size: 14px;
+    gap: 5px;
+  }
+  .seg.compact .i {
+    width: 16px;
+    height: 16px;
+  }
+  .more-tabs {
+    position: sticky;
+    top: 0;
+    z-index: 4;
+    margin: 0 0 14px;
+    box-shadow: 0 0 0 6px var(--rv-bg);
+  }
+  .more-tabs button {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding-left: 6px;
+    padding-right: 6px;
+    white-space: nowrap;
+  }
+  /* Five tabs: the icons only where there is room for them. */
+  @media (max-width: 600px) {
+    .more-tabs .i {
+      display: none;
+    }
+  }
+  @media (max-width: 370px) {
+    .more-tabs button {
+      font-size: 13px;
+      padding-left: 3px;
+      padding-right: 3px;
+    }
+  }
 `;
