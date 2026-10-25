@@ -17,7 +17,7 @@ import { Restore } from "./lib/restore.js";
 import { Placar } from "./lib/placar.js";
 import { snapshot, toCSV, backupZip, parseImport, Backups, listVersions, readVersion, fileStamp } from "./lib/data.js";
 
-const VERSION = "2.9.0";
+const VERSION = "2.9.1";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const WWW = path.join(HERE, "www");
 const DEV = process.env.RESOLVIA_DEV === "1";
@@ -177,7 +177,19 @@ async function registry() {
 recurring.on("change", () => {
   const rules = recurring.publicRules();
   for (const w of ruleWatchers) w.session.event(w.id, { rules });
+  if (JSON.stringify(repeatMap()) !== lastRepeat) publishPresence();
 });
+
+/** repete: how often each task comes back ({list: {uid: days}}), so the CronologIA can put the daily ones first. */
+function repeatMap() {
+  const out = {};
+  for (const r of Object.values(store.rules || {})) {
+    if (!r || !r.uid || !(r.days > 0) || !isTodo(r.entity_id)) continue;
+    (out[r.entity_id] ||= {})[r.uid] = r.days;
+  }
+  return out;
+}
+let lastRepeat = "";
 
 // ------------------------------------------------------------------ browser side
 
@@ -595,7 +607,9 @@ function publishPresence() {
     const semPrazo = [...todoStates].filter(([id, st]) => datesInfo(store.prefs.lists[id], st && st.attributes && st.attributes.supported_features)).map(([id]) => id);
     // pontos: what each task is worth, so the CronologIA gives the same points when a task is concluded there
     const pontos = store.prefs.app.points_on ? store.points : {};
-    fs.writeFileSync(tmp, JSON.stringify({ app: "ResolvIA", versao: VERSION, gravado_em: new Date().toISOString(), sem_prazo: semPrazo, pontos }, null, 1));
+    const repete = repeatMap();
+    lastRepeat = JSON.stringify(repete);
+    fs.writeFileSync(tmp, JSON.stringify({ app: "ResolvIA", versao: VERSION, gravado_em: new Date().toISOString(), sem_prazo: semPrazo, pontos, repete }, null, 1));
     fs.renameSync(tmp, path.join(dir, "integracao.json"));
     publishWarned = false;
   } catch (err) {

@@ -54,6 +54,7 @@ Exemplo: "Passar pano" com **3 dias**. Você marca como feito no domingo e ele v
 - Desmarcar o item antes da hora cancela a volta daquela vez.
 - Apagar um item pendente remove a repetição dele.
 - Todas as repetições aparecem em **Mais → Repetições**, e as próximas voltas em **Prazos → Voltam sozinhas**.
+- No card **Tarefas** do CronologIA (1.10.1 ou mais novo), as tarefas aparecem nessa ordem de frequência: primeiro as de todo dia, depois as de 2 dias, e assim por diante; as que não se repetem ficam por último.
 
 ## O que dá para fazer em cada lista
 
@@ -108,4 +109,4 @@ Em **Mais > Dados**:
 
 ## Segurança
 
-O app só aceita comandos de listas de tarefas (`todo.*`). Ele não lê nem controla nenhuma outra entidade da casa. Na pasta `share` ele só grava e lê os próprios backups, em `share/resolvia`, e o arquivo `share/resolvia/integracao.json` (nome e versão do app, as listas sem prazo e os pontos das tarefas, sem chave), que o CronologIA usa. Do CronologIA ele só lê `share/cronologia/integracao.json` (o placar e quais tarefas vêm das manutenções e rotinas). Os pontos vão para o CronologIA pelo evento `cronologia_pontos` do Home Assistant.
+O app só aceita comandos de listas de tarefas (`todo.*`). Ele não lê nem controla nenhuma outra entidade da casa. Na pasta `share` ele só grava e lê os próprios backups, em `share/resolvia`, e o arquivo `share/resolvia/integracao.json` (nome e versão do app, as listas sem prazo, os pontos das tarefas e de quanto em quanto tempo cada uma volta, sem chave), que o CronologIA usa. Do CronologIA ele só lê `share/cronologia/integracao.json` (o placar e quais tarefas vêm das manutenções e rotinas). Os pontos vão para o CronologIA pelo evento `cronologia_pontos` do Home Assistant.
