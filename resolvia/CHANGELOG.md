@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.5.0
+
+- Novo em **Mais > Dados**, igual ao do InventarIA, do MemorIA e do CronologIA:
+  - **Exportar** tudo em ZIP (todas as listas com os itens, prazos, notas e concluídos, uma planilha, um arquivo de texto por lista e os ajustes do app), a planilha em CSV ou os dados em JSON.
+  - **Backup na pasta share** (`share/resolvia`), com a lista dos backups e **Restaurar**.
+  - **Importar** um .zip ou .json: os ajustes (nomes, cores, ícones e as tarefas que se repetem) passam a ser os do arquivo e os itens pendentes que faltarem voltam para as listas, sem duplicar. Um backup de outro Home Assistant encontra as listas pelo nome.
+  - **Versões anteriores**: o app guarda sozinho uma cópia dos ajustes a cada 10 minutos de uso, e antes de cada importação ou restauração.
+- O app passa a usar a pasta `share` (para os backups).
+
 ## 2.4.0
 
 - Leitura por IA igual à do InventarIA, do GerencIA e do EconomIA: usa só a IA configurada no Home Assistant (tarefa de IA) e não guarda chave de API. Saiu a opção da chave do Gemini.

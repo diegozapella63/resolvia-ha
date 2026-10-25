@@ -102,6 +102,7 @@ export function createMockHass(onChange) {
 
   const subs = new Map(); // entity_id -> Set(callback)
   const prefs = { lists: {}, app: {} };
+  const backups = [{ name: "resolvia-2026-10-12-2105.zip", size: 5800, date: Date.now() - 12 * 86400000 }];
 
   // Recurring rules, like the app backend keeps them.
   const startOfDayPlus = (ms, days) => {
@@ -219,6 +220,42 @@ export function createMockHass(onChange) {
           };
         }
         return { provider: "Google AI Task", items: parseListText(text) };
+      },
+      // Mais › Dados (files aren't downloaded in the preview).
+      data: {
+        url: () => null,
+        async import() {
+          await new Promise((r) => setTimeout(r, 700));
+          return { lists: Object.keys(prefs.lists).length, rules: rules.length, added: 3, unsupported: 0, failed: 0, missing: [], moved: 0 };
+        },
+        async versions() {
+          await new Promise((r) => setTimeout(r, 300));
+          const at = (min) => Date.now() - min * 60000;
+          return [
+            { name: "resolvia-a.json", when: at(12), reason: "auto", lists: 3, rules: rules.length },
+            { name: "resolvia-b.json", when: at(95), reason: "antes-de-importar", lists: 2, rules: 1 },
+            { name: "resolvia-c.json", when: at(60 * 26), reason: "auto", lists: 2, rules: 1 },
+          ];
+        },
+        async restoreVersion() {
+          await new Promise((r) => setTimeout(r, 300));
+          return { lists: Object.keys(prefs.lists).length, rules: rules.length };
+        },
+        async backups() {
+          return { available: true, folder: "share/resolvia", backups: backups.map((b) => ({ ...b })) };
+        },
+        async createBackup() {
+          await new Promise((r) => setTimeout(r, 500));
+          const p = (n) => String(n).padStart(2, "0");
+          const t = new Date();
+          const name = `resolvia-${t.getFullYear()}-${p(t.getMonth() + 1)}-${p(t.getDate())}-${p(t.getHours())}${p(t.getMinutes())}.zip`;
+          backups.unshift({ name, size: 6200, date: Date.now() });
+          return { name, folder: "share/resolvia" };
+        },
+        async restoreBackup() {
+          await new Promise((r) => setTimeout(r, 600));
+          return { lists: Object.keys(prefs.lists).length, rules: rules.length, added: 0, unsupported: 0, failed: 0, missing: [], moved: 0 };
+        },
       },
     },
     async callService(domain, service, data, target) {

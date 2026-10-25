@@ -8,6 +8,7 @@ import {
 import { ICONS } from "./icons.js";
 import { ensureFonts } from "./fonts.js";
 import { styles } from "./styles.js";
+import { DataMixin } from "./datapanel.js";
 import {
   F,
   has,
@@ -34,7 +35,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.3.0";
+const VERSION = "2.5.0";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -71,7 +72,7 @@ const REPEAT_PICKS = [
 ];
 const keyOf = (item) => item.uid || item.summary;
 
-class ResolviaPanel extends LitElement {
+class ResolviaPanel extends DataMixin(LitElement) {
   static properties = {
     hass: { attribute: false },
     narrow: { type: Boolean },
@@ -185,7 +186,10 @@ class ResolviaPanel extends LitElement {
 
   updated(changed) {
     this.toggleAttribute("dark", this._dark);
-    if (changed.has("_path") && this._view().name === "more") this._refreshAi(false);
+    if (changed.has("_path") && this._view().name === "more") {
+      this._refreshAi(false);
+      this._loadBackups();
+    }
     if (changed.has("_path") && this._view().name === "search") {
       const input = this.renderRoot.querySelector(".search-box input");
       if (input) input.focus({ preventScroll: true });
@@ -571,7 +575,7 @@ class ResolviaPanel extends LitElement {
   _showToast(text, action = null) {
     clearTimeout(this._toastTimer);
     this._toast = { text, action, id: Date.now() };
-    this._toastTimer = setTimeout(() => (this._toast = null), action ? 4500 : 2600);
+    this._toastTimer = setTimeout(() => (this._toast = null), action ? 4500 : Math.min(8000, Math.max(2600, text.length * 55)));
   }
 
   async _call(service, data, entityId) {
@@ -1859,6 +1863,8 @@ class ResolviaPanel extends LitElement {
 
         ${this._renderAiPanel()}
 
+        ${this._renderDataPanel()}
+
         ${this.hass.user && this.hass.user.is_admin
           ? html`<div class="panel">
               <button class="row" @click=${() => this._openInHA("/config/integrations/dashboard/add?domain=local_todo")}>
@@ -1932,6 +1938,7 @@ class ResolviaPanel extends LitElement {
     else if (this._sheet === "customize") body = this._renderCustomize();
     else if (this._sheet === "confirm") body = this._renderConfirm();
     else if (this._sheet === "import") body = this._renderImportSheet();
+    else if (this._sheet === "versions") body = this._renderVersions();
     return html`
       <div class="scrim" @click=${() => this._closeSheet()}></div>
       <div class="sheet" role="dialog" aria-modal="true" style=${this._sheetStyle()} @keydown=${(e) => e.key === "Escape" && this._closeSheet()}>

@@ -63,6 +63,22 @@ Depende da integração da lista. A Lista de tarefas local aceita tudo (prazo, h
 - Nome, cor e ícone de cada lista, listas ocultas e as regras de repetição ficam em `/data/resolvia.json` dentro do app (entram no backup do Home Assistant).
 - O tema (automático, claro ou escuro) é escolhido por aparelho.
 
+## Dados: exportar, backup e importar
+
+Em **Mais > Dados**:
+
+- **Exportar**
+  - **Tudo (ZIP)**: `resolvia.json` com todas as listas e itens (prazo, notas, concluídos) e os ajustes do app, `resolvia.csv` para o Excel, uma pasta `listas` com um arquivo de texto por lista (marcado `[x]` quando concluído) e um `LEIA-ME.txt`.
+  - **Planilha (CSV)**: uma linha por item, com lista, situação, prazo, notas e repetição. Separada por ponto e vírgula, abre direto no Excel.
+  - **Dados (JSON)**: o mesmo conteúdo do `resolvia.json`.
+- **Backup na pasta share**: grava o ZIP em `share/resolvia`, que você acessa pela rede (Samba) ou pelo File editor. Os últimos backups aparecem logo abaixo, com **Restaurar**.
+- **Importar backup ou JSON**: escolha um .zip ou .json exportado pelo ResolvIA.
+  - Os ajustes do app (nomes, cores, ícones, listas ocultas e tarefas que se repetem) passam a ser os do arquivo.
+  - Os itens **pendentes** que não estiverem nas listas voltam, com prazo e notas, sem duplicar o que já existe (compara pelo nome). Os concluídos ficam só no arquivo.
+  - Num Home Assistant novo, as listas são encontradas pelo nome. Lista que não existir aparece no aviso ("Lista não encontrada"); crie a lista e importe de novo.
+  - Lista que não aceita itens novos (ou só aceita prazo sem horário) recebe o que for possível.
+- **Versões anteriores**: o app guarda sozinho uma cópia dos ajustes a cada 10 minutos de uso (até 60 cópias) e sempre antes de importar ou restaurar. **Restaurar** volta os ajustes e as repetições; os itens das listas não mudam.
+
 ## Segurança
 
-O app só aceita comandos de listas de tarefas (`todo.*`). Ele não lê nem controla nenhuma outra entidade da casa.
+O app só aceita comandos de listas de tarefas (`todo.*`). Ele não lê nem controla nenhuma outra entidade da casa. Na pasta `share` ele só grava e lê os próprios backups, em `share/resolvia`.

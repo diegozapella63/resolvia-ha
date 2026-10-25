@@ -3,6 +3,7 @@
 // - Relays ONLY to-do commands from the UI to Home Assistant (Supervisor token).
 // - Keeps list customization and recurring rules in /data.
 // - Reopens recurring tasks N days after they are completed.
+// - Dados: exports (JSON, CSV, ZIP), backups in share/resolvia, imports, versions.
 import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
@@ -12,8 +13,10 @@ import { HAClient } from "./lib/ha.js";
 import { Store } from "./lib/store.js";
 import { Recurring } from "./lib/recurring.js";
 import { AI } from "./lib/ai.js";
+import { Restore } from "./lib/restore.js";
+import { snapshot, toCSV, backupZip, parseImport, Backups, listVersions, readVersion, fileStamp } from "./lib/data.js";
 
-const VERSION = "2.4.0";
+const VERSION = "2.5.0";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const WWW = path.join(HERE, "www");
 const DEV = process.env.RESOLVIA_DEV === "1";
@@ -24,6 +27,7 @@ const DATA_DIR = process.env.DATA_DIR || "/data";
 const DAY_MS = DEV ? Number(process.env.RESOLVIA_DAY_MS || 0) : 0;
 const INGRESS_IPS = new Set(["172.30.32.2"]);
 const MEDIA_DIR = process.env.MEDIA_DIR || "/media";
+const SHARE_DIR = process.env.SHARE_DIR || "/share";
 const MAX_UPLOAD = 30 * 1024 * 1024;
 const SERVICES = new Set(["add_item", "update_item", "remove_item", "remove_completed_items"]);
 
@@ -42,6 +46,8 @@ const store = new Store(DATA_DIR, log);
 const ha = new HAClient(HA_URL, TOKEN, log);
 const todoStates = new Map();
 const recurring = new Recurring({ ha, store, log, states: todoStates, dayMs: DAY_MS });
+const restore = new Restore({ ha, store, recurring, states: todoStates, log });
+const backups = new Backups({ dir: path.join(SHARE_DIR, "resolvia") });
 const ai = new AI({ ha, log, mediaDir: MEDIA_DIR, selected: () => store.prefs.app.ai_entity || "" });
 const itemSubs = new Map(); // entity_id -> subscription (for the recurring engine)
 const listWatchers = new Set(); // {session, id}
@@ -247,6 +253,32 @@ class Session {
       case "resolvia/prefs/set_app":
         return this.result(id, store.setAppPrefs(msg.prefs));
 
+      // ---- Dados: versions, backups in share/resolvia
+      case "resolvia/versions/list":
+        return this.result(id, listVersions(store.versionsDir));
+
+      case "resolvia/versions/restore": {
+        const raw = readVersion(store.versionsDir, String(msg.name || ""));
+        return this.result(id, await restore.run(raw, "antes-de-restaurar", { items: false }));
+      }
+
+      case "resolvia/backups/list":
+        return this.result(id, backups.list());
+
+      case "resolvia/backups/create": {
+        await ha.whenReady();
+        const snap = snapshot(store, await restore.lists(), VERSION);
+        const out = backups.save(backupZip(snap, VERSION));
+        log.info(`Backup criado em ${out.folder}/${out.name} (${snap.lists.length} listas)`);
+        return this.result(id, out);
+      }
+
+      case "resolvia/backups/restore": {
+        await ha.whenReady();
+        const raw = backups.read(String(msg.name || ""));
+        return this.result(id, await restore.run(raw, "antes-de-restaurar"));
+      }
+
       case "todo/item/subscribe": {
         if (!isTodo(msg.entity_id)) return this.error(id, "invalid_format", "Not a to-do entity");
         const sub = ha.subscribe(
@@ -320,6 +352,59 @@ function sendJson(res, status, obj) {
   res.end(body);
 }
 
+function download(res, body, type, name) {
+  res.writeHead(200, { "Content-Type": type, "Content-Length": body.length, "Content-Disposition": `attachment; filename="${name}"`, "Cache-Control": "no-store" });
+  res.end(body);
+}
+
+/** GET /api/export/json | csv | zip */
+async function handleData(fmt, res) {
+  const name = `resolvia-${fileStamp()}`;
+  try {
+    await ha.whenReady();
+    const snap = snapshot(store, await restore.lists(), VERSION);
+    if (fmt === "json") return download(res, Buffer.from(JSON.stringify(snap, null, 1)), "application/json; charset=utf-8", `${name}.json`);
+    if (fmt === "csv") return download(res, toCSV(snap), "text/csv; charset=utf-8", `${name}.csv`);
+    return download(res, backupZip(snap, VERSION), "application/zip", `${name}.zip`);
+  } catch (err) {
+    sendJson(res, 502, { error: err.message });
+  }
+}
+
+/** POST /api/import (body = the .zip or .json file, header x-file-name). */
+function handleImport(req, res) {
+  const chunks = [];
+  let size = 0;
+  let aborted = false;
+  req.on("data", (c) => {
+    size += c.length;
+    if (size > MAX_UPLOAD) {
+      aborted = true;
+      sendJson(res, 413, { error: "Arquivo grande demais" });
+      req.destroy();
+      return;
+    }
+    chunks.push(c);
+  });
+  req.on("end", async () => {
+    if (aborted) return;
+    let name = "";
+    try {
+      name = decodeURIComponent(req.headers["x-file-name"] || "");
+    } catch (e) {
+      /* keep empty */
+    }
+    try {
+      const raw = parseImport(Buffer.concat(chunks), name);
+      await ha.whenReady();
+      sendJson(res, 200, await restore.run(raw, "antes-de-importar"));
+    } catch (err) {
+      log.warn(`Importação falhou: ${err.message}`);
+      sendJson(res, 400, { error: err.message, code: err.code || "failed" });
+    }
+  });
+}
+
 /** POST /api/extract {text?, images?: [{data(base64), mime}], list_name?} -> {items, provider} */
 function handleExtract(req, res) {
   const chunks = [];
@@ -363,6 +448,9 @@ const server = http.createServer((req, res) => {
   }
   const url = new URL(req.url, "http://x");
   if (url.pathname === "/api/extract" && req.method === "POST") return handleExtract(req, res);
+  const exp = url.pathname.match(/^\/api\/export\/(json|csv|zip)$/);
+  if (exp && req.method === "GET") return handleData(exp[1], res);
+  if (url.pathname === "/api/import" && req.method === "POST") return handleImport(req, res);
   const font = url.pathname.match(/^\/fonts\/([a-z0-9-]+\.woff2)$/);
   const file = font ? [`fonts/${font[1]}`, "font/woff2", true] : FILES[url.pathname];
   if (!file || (req.method !== "GET" && req.method !== "HEAD")) {

@@ -210,6 +210,25 @@ export async function createAppHass(onChange) {
         }
         return body;
       },
+      // Mais › Dados
+      data: {
+        url: (fmt) => new URL(`api/export/${fmt}`, location.href).href,
+        async import(file) {
+          const res = await fetch(new URL("api/import", location.href), {
+            method: "POST",
+            headers: { "content-type": "application/octet-stream", "x-file-name": encodeURIComponent(file.name || "") },
+            body: file,
+          });
+          const body = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(body.error || `Erro ${res.status}`);
+          return body;
+        },
+        versions: () => conn.sendMessagePromise({ type: "resolvia/versions/list" }),
+        restoreVersion: (name) => conn.sendMessagePromise({ type: "resolvia/versions/restore", name }),
+        backups: () => conn.sendMessagePromise({ type: "resolvia/backups/list" }),
+        createBackup: () => conn.sendMessagePromise({ type: "resolvia/backups/create" }),
+        restoreBackup: (name) => conn.sendMessagePromise({ type: "resolvia/backups/restore", name }),
+      },
     },
     connection: conn,
     callWS: (msg) => conn.sendMessagePromise(msg),

@@ -36,6 +36,7 @@ A primeira instalação leva alguns minutos, porque o app é montado no próprio
 - **Prazos** de todas as listas, incluindo o que vai voltar sozinho.
 - **Buscar** em todas as listas, sem se importar com acentos.
 - **Personalizar cada lista** (nome, cor, ícone, ocultar), sincronizado entre aparelhos.
+- **Dados**: exportar em ZIP, CSV ou JSON, backup em `share/resolvia`, importar (repõe os itens que faltarem, sem duplicar) e versões anteriores automáticas.
 - **Tema claro e escuro** seguindo o Home Assistant.
 
 Mais detalhes em [resolvia/DOCS.md](resolvia/DOCS.md).

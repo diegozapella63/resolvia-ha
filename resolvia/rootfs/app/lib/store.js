@@ -1,6 +1,17 @@
 // Persistent state in /data/resolvia.json: list customization + recurring rules.
+// A copy of the file goes to /data/versoes at most every 10 minutes of use
+// (Mais > Dados > Versões anteriores), and before every import or restore.
 import fs from "node:fs";
 import path from "node:path";
+import crypto from "node:crypto";
+
+const VERSION_EVERY = 10 * 60 * 1000;
+const MAX_VERSIONS = 60;
+const pad = (n) => String(n).padStart(2, "0");
+const stamp = (d = new Date()) => `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+const isObj = (v) => v && typeof v === "object" && !Array.isArray(v);
+const str = (v, max) => (typeof v === "string" && v.trim() ? v.slice(0, max) : null);
+const num = (v) => (Number.isFinite(v) ? v : null);
 
 const LIST_FIELDS = { name: ["string", 80], color: ["string", 24], icon: ["string", 40], hidden: ["boolean"] };
 const APP_FIELDS = {
@@ -12,24 +23,116 @@ const APP_FIELDS = {
   ai_entity: ["string", 80],
 };
 
+/** A repeating task from a file (import, restore): only the known fields, sane values. */
+function cleanRule(r, id) {
+  if (!isObj(r) || typeof r.entity_id !== "string" || !/^todo\.[a-z0-9_]+$/.test(r.entity_id)) return null;
+  const days = Number(r.days);
+  if (!Number.isInteger(days) || days < 1 || days > 365) return null;
+  const summary = str(r.summary, 255) || str(r.match, 255);
+  if (!summary) return null;
+  return {
+    id: typeof id === "string" && /^[\w-]{1,40}$/.test(id) ? id : crypto.randomBytes(6).toString("hex"),
+    entity_id: r.entity_id,
+    uid: str(r.uid, 255),
+    match: str(r.uid, 255) ? null : str(r.match, 255) || summary,
+    summary,
+    description: str(r.description, 4000),
+    days,
+    completed_at: num(r.completed_at),
+    reopen_at: num(r.completed_at) ? num(r.reopen_at) : null,
+    due_time: str(r.due_time, 40),
+    created_at: num(r.created_at) || Date.now(),
+  };
+}
+
+/** The file contents, checked. Strict (imports) also validates every preference. */
+export function normalize(raw, strict = false) {
+  const data = { version: 1, prefs: { lists: {}, app: {} }, rules: {} };
+  if (!isObj(raw)) return data;
+  if (isObj(raw.prefs)) {
+    if (isObj(raw.prefs.lists)) {
+      for (const [id, p] of Object.entries(raw.prefs.lists)) {
+        if (!/^todo\.[a-z0-9_]+$/.test(id) || !isObj(p)) continue;
+        if (!strict) data.prefs.lists[id] = p;
+        else {
+          try {
+            const clean = Store.merge({}, Store.clean(p, LIST_FIELDS));
+            if (Object.keys(clean).length) data.prefs.lists[id] = clean;
+          } catch (e) {
+            /* skip a broken list */
+          }
+        }
+      }
+    }
+    if (isObj(raw.prefs.app)) {
+      if (!strict) data.prefs.app = raw.prefs.app;
+      else {
+        const app = {};
+        for (const [k, v] of Object.entries(raw.prefs.app)) {
+          try {
+            Object.assign(app, Store.clean({ [k]: v }, APP_FIELDS));
+          } catch (e) {
+            /* skip a broken field */
+          }
+        }
+        if (app.ai_entity && !/^ai_task\.[a-z0-9_]+$/.test(app.ai_entity)) delete app.ai_entity;
+        data.prefs.app = Store.merge({}, app);
+      }
+    }
+  }
+  const rules = Array.isArray(raw.rules) ? raw.rules.map((r) => [r && r.id, r]) : isObj(raw.rules) ? Object.entries(raw.rules) : [];
+  for (const [id, r] of rules) {
+    if (!strict) {
+      if (isObj(r)) data.rules[id] = r;
+      continue;
+    }
+    const clean = cleanRule(r, id);
+    if (clean && !data.rules[clean.id]) data.rules[clean.id] = clean;
+  }
+  return data;
+}
+
 export class Store {
   constructor(dir, log) {
     this.file = path.join(dir, "resolvia.json");
+    this.versionsDir = path.join(dir, "versoes");
     this.log = log;
-    this.data = { version: 1, prefs: { lists: {}, app: {} }, rules: {} };
+    this.data = normalize(null);
     this.timer = null;
+    this.lastVersion = 0;
     fs.mkdirSync(dir, { recursive: true });
     try {
-      const raw = JSON.parse(fs.readFileSync(this.file, "utf8"));
-      if (raw && typeof raw === "object") {
-        if (raw.prefs && typeof raw.prefs === "object") {
-          this.data.prefs.lists = raw.prefs.lists && typeof raw.prefs.lists === "object" ? raw.prefs.lists : {};
-          this.data.prefs.app = raw.prefs.app && typeof raw.prefs.app === "object" ? raw.prefs.app : {};
-        }
-        if (raw.rules && typeof raw.rules === "object") this.data.rules = raw.rules;
-      }
+      this.data = normalize(JSON.parse(fs.readFileSync(this.file, "utf8")));
     } catch (err) {
       if (err.code !== "ENOENT") this.log.warn(`Could not read ${this.file}: ${err.message}`);
+    }
+  }
+
+  /** Swaps everything for `raw` (import, restore), keeping a copy of what was there. */
+  replaceAll(raw, reason) {
+    const next = normalize(raw, true);
+    if (this.timer) this.flush({ version: false });
+    this.version(reason, true);
+    this.data = next;
+    this.flush({ version: false });
+    return this.data;
+  }
+
+  /** Copies the file as it is now to /data/versoes (at most every 10 min unless forced). */
+  version(reason = "auto", force = false) {
+    if (!force && Date.now() - this.lastVersion < VERSION_EVERY) return null;
+    if (!fs.existsSync(this.file)) return null;
+    try {
+      fs.mkdirSync(this.versionsDir, { recursive: true });
+      const name = `resolvia-${stamp()}-${reason}.json`;
+      fs.copyFileSync(this.file, path.join(this.versionsDir, name));
+      this.lastVersion = Date.now();
+      const all = fs.readdirSync(this.versionsDir).filter((f) => /^resolvia-.*\.json$/.test(f)).sort();
+      for (const old of all.slice(0, Math.max(0, all.length - MAX_VERSIONS))) fs.rmSync(path.join(this.versionsDir, old), { force: true });
+      return name;
+    } catch (err) {
+      this.log.warn(`Não consegui guardar uma versão: ${err.message}`);
+      return null;
     }
   }
 
@@ -46,9 +149,10 @@ export class Store {
     this.timer = setTimeout(() => this.flush(), 400);
   }
 
-  flush() {
+  flush({ version = true } = {}) {
     clearTimeout(this.timer);
     this.timer = null;
+    if (version) this.version("auto");
     const tmp = `${this.file}.tmp`;
     try {
       fs.writeFileSync(tmp, JSON.stringify(this.data, null, 1));
