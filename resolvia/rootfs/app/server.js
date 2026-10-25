@@ -16,7 +16,7 @@ import { AI } from "./lib/ai.js";
 import { Restore } from "./lib/restore.js";
 import { snapshot, toCSV, backupZip, parseImport, Backups, listVersions, readVersion, fileStamp } from "./lib/data.js";
 
-const VERSION = "2.5.0";
+const VERSION = "2.5.1";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const WWW = path.join(HERE, "www");
 const DEV = process.env.RESOLVIA_DEV === "1";
@@ -489,6 +489,28 @@ server.on("upgrade", (req, socket, head) => {
   const ws = acceptUpgrade(req, socket, head);
   if (ws) new Session(ws, req.headers);
 });
+
+/**
+ * Lets the other apps of the family (CronologIA) know the ResolvIA runs here:
+ * share/resolvia/integracao.json, rewritten every 15 minutes. No key: they
+ * read the lists from Home Assistant itself.
+ */
+let publishWarned = false;
+function publishPresence() {
+  try {
+    const dir = path.join(SHARE_DIR, "resolvia");
+    fs.mkdirSync(dir, { recursive: true });
+    const tmp = path.join(dir, ".integracao.json.tmp");
+    fs.writeFileSync(tmp, JSON.stringify({ app: "ResolvIA", versao: VERSION, gravado_em: new Date().toISOString() }, null, 1));
+    fs.renameSync(tmp, path.join(dir, "integracao.json"));
+    publishWarned = false;
+  } catch (err) {
+    if (!publishWarned) log.warn(`Não consegui gravar share/resolvia/integracao.json: ${err.message}`);
+    publishWarned = true;
+  }
+}
+publishPresence();
+setInterval(publishPresence, 15 * 60 * 1000);
 
 server.listen(PORT, () => log.info(`ResolvIA ${VERSION} ouvindo na porta ${PORT}${DEV ? " (modo dev)" : ""}`));
 ha.start();

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.5.1
+
+- O CronologIA passa a mostrar "Conectado ao ResolvIA" com a versão (o app grava `share/resolvia/integracao.json` a cada 15 minutos).
+
 ## 2.5.0
 
 - Novo em **Mais > Dados**, igual ao do InventarIA, do MemorIA e do CronologIA:

@@ -81,4 +81,4 @@ Em **Mais > Dados**:
 
 ## Segurança
 
-O app só aceita comandos de listas de tarefas (`todo.*`). Ele não lê nem controla nenhuma outra entidade da casa. Na pasta `share` ele só grava e lê os próprios backups, em `share/resolvia`.
+O app só aceita comandos de listas de tarefas (`todo.*`). Ele não lê nem controla nenhuma outra entidade da casa. Na pasta `share` ele só grava e lê os próprios backups, em `share/resolvia`, e o arquivo `share/resolvia/integracao.json` (nome e versão do app, sem chave), que o CronologIA usa para mostrar "Conectado ao ResolvIA".
