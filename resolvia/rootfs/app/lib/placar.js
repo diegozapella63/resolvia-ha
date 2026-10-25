@@ -31,7 +31,16 @@ export class Placar {
         const participantes = Array.isArray(p.participantes) ? p.participantes.filter((x) => typeof x === "string" && x.trim()).map((x) => x.slice(0, 40)) : [];
         const usuarios = {};
         for (const [u, who] of Object.entries(p.usuarios && typeof p.usuarios === "object" ? p.usuarios : {})) if (typeof who === "string" && participantes.includes(who)) usuarios[u] = who;
-        value = { versao: String(j.versao || "").slice(0, 20), ativo: !!p.ativo && participantes.length > 0, periodo: String(p.periodo || "semana"), participantes, usuarios };
+        // espelho: the maintenance and routines the CronologIA keeps as tasks here ({list: {uid: {pontos, tipo}}})
+        const espelho = {};
+        for (const [list, map] of Object.entries(j.espelho && typeof j.espelho === "object" ? j.espelho : {})) {
+          if (!/^todo\.[a-z0-9_]+$/.test(list) || !map || typeof map !== "object") continue;
+          for (const [uid, v] of Object.entries(map)) {
+            if (!v || typeof v !== "object") continue;
+            (espelho[list] || (espelho[list] = {}))[String(uid).slice(0, 300)] = { pontos: Math.max(0, Math.min(1000, Math.round(Number(v.pontos) || 0))), tipo: v.tipo === "rotina" ? "rotina" : "manutencao" };
+          }
+        }
+        value = { versao: String(j.versao || "").slice(0, 20), ativo: !!p.ativo && participantes.length > 0, periodo: String(p.periodo || "semana"), participantes, usuarios, espelho };
       }
     } catch (e) {
       /* no CronologIA here */
@@ -40,11 +49,17 @@ export class Placar {
     return value;
   }
 
+  /** A task the CronologIA keeps here (a maintenance or a routine), or null. */
+  mirrored(list, uid) {
+    const p = this.read();
+    return (p && p.espelho[list] && p.espelho[list][uid]) || null;
+  }
+
   /** What the screen needs: the scoreboard and who this user is in it. */
   view(userId) {
     const p = this.read();
     if (!p) return null;
-    const { usuarios, ...rest } = p;
+    const { usuarios, espelho, ...rest } = p;
     return { ...rest, eu: (userId && usuarios[userId]) || null };
   }
 

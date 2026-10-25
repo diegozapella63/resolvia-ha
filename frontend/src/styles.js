@@ -1665,6 +1665,33 @@ export const styles = css`
   .sheet-note.top {
     margin: -6px 2px 14px;
   }
+  .ro-item {
+    border: 1px solid var(--rv-line);
+    background: var(--rv-surface-2);
+    border-radius: 14px;
+    padding: 14px;
+    display: grid;
+    gap: 8px;
+  }
+  .ro-item b {
+    font-size: 17px;
+    line-height: 1.35;
+    color: var(--rv-text);
+    overflow-wrap: anywhere;
+  }
+  .ro-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .ro-item p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.45;
+    color: var(--rv-muted);
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+  }
   .sheet-head .back {
     width: 40px;
     height: 40px;

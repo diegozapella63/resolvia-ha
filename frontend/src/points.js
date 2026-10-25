@@ -10,6 +10,12 @@ const icon = (name, cls = "") =>
   html`<svg class="i ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${unsafeSVG(ICONS[name] || ICONS["list-checks"])}</svg>`;
 
 export const POINT_PICKS = [5, 10, 20, 30, 50];
+// the CronologIA marks the tasks it keeps here with "[cr:<tag>]" in the notes
+export const stripMark = (s) => String(s || "").replace(/\s*\[cr:[0-9a-f]{8}\]\s*$/, "").replace(/\s*\[cr:[0-9a-f]{8}\]/g, "");
+export const markOf = (s) => {
+  const m = /\[cr:[0-9a-f]{8}\]/.exec(String(s || ""));
+  return m ? m[0] : "";
+};
 const PERIOD = { semana: "toda semana", quinzena: "a cada 15 dias", mes: "todo mês" };
 
 export const PointsMixin = (Base) =>
@@ -36,8 +42,16 @@ export const PointsMixin = (Base) =>
       return (map && map[taskKey(summary)]) || 0;
     }
 
-    /** What a task gives right now (0 when points are off). */
-    _pointsOf(listId, summary) {
+    /** A maintenance or routine the CronologIA keeps in this list ({pontos, tipo}), or null. */
+    _mirrored(listId, uid) {
+      const e = this._pts && this._pts.espelho && this._pts.espelho[listId];
+      return (uid && e && e[uid]) || null;
+    }
+
+    /** What a task gives right now (0 when points are off). Tasks of the CronologIA bring their own points. */
+    _pointsOf(listId, summary, uid = null) {
+      const m = this._mirrored(listId, uid);
+      if (m) return this._pts.placar && this._pts.placar.ativo ? m.pontos || 0 : 0;
       return this._ptsActive() ? this._rawPoints(listId, summary) : 0;
     }
 
@@ -100,21 +114,23 @@ export const PointsMixin = (Base) =>
       } else this._showToast(msg, undo);
     }
 
-    /** A task reopened (or the completion undone): the points of today come off. */
+    /** A task reopened (or the completion undone): the points of today come off (and the CronologIA undoes its task). */
     _takePoints(list, item) {
-      if (!this._rawPoints(list.id, item.summary) || !(this._pts && this._pts.on)) return;
+      const mirrored = this._mirrored(list.id, item.uid);
+      if (!mirrored && (!this._rawPoints(list.id, item.summary) || !(this._pts && this._pts.on))) return;
       this.hass.callWS({ type: "resolvia/points/done", entity_id: list.id, uid: item.uid, summary: item.summary, done: false }).catch(() => {});
     }
 
     // ---------------------------------------------------------------- render
 
     _renderPointsTag(listId, item) {
-      const n = this._pointsOf(listId, item.summary);
+      const n = this._pointsOf(listId, item.summary, item.uid);
       return n ? html`<span class="tag pts" title="${n} pontos para quem concluir">${icon("trophy")}+${n}</span>` : nothing;
     }
 
     /** Item sheet: Pontos para quem concluir (when the points are on). */
     _renderPointsField(f) {
+      if (f.mirrored) return nothing;
       if (!(this._pts && this._pts.on)) return nothing;
       const pl = this._pts.placar;
       const n = f.points || 0;

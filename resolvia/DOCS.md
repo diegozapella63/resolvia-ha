@@ -69,6 +69,15 @@ Com o **CronologIA** no mesmo Home Assistant e o placar dele ligado (CronologIA 
 
 Os pontos ficam pelo nome da tarefa em cada lista, então valem também quando uma tarefa que se repete volta. A mesma tarefa no mesmo dia conta uma vez só, mesmo concluída no CronologIA. Concluir pela Alexa ou pela tela padrão do Home Assistant não dá pontos (o app não sabe quem foi).
 
+## Manutenções e rotinas do CronologIA
+
+No CronologIA 1.10.0 ou mais novo, **Mais › Integrações › Tarefas do ResolvIA › Levar para o ResolvIA** coloca as manutenções e as rotinas da casa como tarefas numa lista daqui (a que você escolher lá). Cada uma aparece uma vez, com a próxima data e o troféu com os pontos dela (mesmo com **Pontos nas tarefas** desligado, porque os pontos vêm do CronologIA).
+
+- **Concluir** aqui vale como Feito no CronologIA: os pontos vão para quem concluiu (ou para quem você escolher em **Quem fez?**), com **Foi Andressa** para trocar. Logo depois a tarefa volta pendente com a data seguinte.
+- **Desmarcar** (ou **Desfazer**) desfaz no CronologIA também.
+- Tocar na tarefa mostra o nome, a data, os pontos e as notas, só para ver: o nome, a data, as notas e os pontos se mudam no CronologIA, que reescreve a tarefa. **Excluir** tira da lista até a próxima data.
+- Nas notas vai uma marcação técnica, `[cr:…]`, que liga a tarefa à do CronologIA. O app a esconde.
+
 ## Prazos
 
 Prazo é só o que você define. Algumas integrações preenchem sozinhas a data dos itens: a Problem List da Análise dos Dispositivos, por exemplo, põe ali desde quando o aparelho está fora do ar. Como essas listas não deixam você definir prazo, a data delas aparece só como informação (em cinza, com um relógio apagado): não fica vermelha, não entra em **Prazos** nem no número da aba, e o CronologIA também não a trata como tarefa com prazo.
@@ -99,4 +108,4 @@ Em **Mais > Dados**:
 
 ## Segurança
 
-O app só aceita comandos de listas de tarefas (`todo.*`). Ele não lê nem controla nenhuma outra entidade da casa. Na pasta `share` ele só grava e lê os próprios backups, em `share/resolvia`, e o arquivo `share/resolvia/integracao.json` (nome e versão do app, as listas sem prazo e os pontos das tarefas, sem chave), que o CronologIA usa. Do CronologIA ele só lê `share/cronologia/integracao.json` (o placar). Os pontos vão para o CronologIA pelo evento `cronologia_pontos` do Home Assistant.
+O app só aceita comandos de listas de tarefas (`todo.*`). Ele não lê nem controla nenhuma outra entidade da casa. Na pasta `share` ele só grava e lê os próprios backups, em `share/resolvia`, e o arquivo `share/resolvia/integracao.json` (nome e versão do app, as listas sem prazo e os pontos das tarefas, sem chave), que o CronologIA usa. Do CronologIA ele só lê `share/cronologia/integracao.json` (o placar e quais tarefas vêm das manutenções e rotinas). Os pontos vão para o CronologIA pelo evento `cronologia_pontos` do Home Assistant.

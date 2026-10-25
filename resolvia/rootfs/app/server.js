@@ -17,7 +17,7 @@ import { Restore } from "./lib/restore.js";
 import { Placar } from "./lib/placar.js";
 import { snapshot, toCSV, backupZip, parseImport, Backups, listVersions, readVersion, fileStamp } from "./lib/data.js";
 
-const VERSION = "2.8.1";
+const VERSION = "2.9.0";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const WWW = path.join(HERE, "www");
 const DEV = process.env.RESOLVIA_DEV === "1";
@@ -63,7 +63,8 @@ async function sendPoints(data) {
 
 /** Mais > Integrações > Recompensas, and the points of each task. */
 function pointsState(userId) {
-  return { on: !!store.prefs.app.points_on, points: store.points, placar: placar.view(userId) };
+  const p = placar.read();
+  return { on: !!store.prefs.app.points_on, points: store.points, placar: placar.view(userId), espelho: (p && p.espelho) || {} };
 }
 /** Import or restore, then tell the other apps about the lists again. */
 async function restoreAll(raw, reason, opts) {
@@ -300,6 +301,23 @@ class Session {
        */
       case "resolvia/points/done": {
         if (!isTodo(msg.entity_id) || typeof msg.uid !== "string" || !msg.uid) return this.error(id, "invalid_format", "Tarefa inválida");
+        // a maintenance or routine of the CronologIA: it marks it done itself; we only say who (or undo)
+        const esp = placar.mirrored(msg.entity_id, msg.uid);
+        if (esp) {
+          const ekey = `espelho|${msg.entity_id}|${msg.uid.slice(0, 300).replace(/\|/g, "")}`;
+          if (!msg.done) {
+            await sendPoints({ acao: "desfazer", chave: ekey });
+            return this.result(id, { points: 0, key: ekey });
+          }
+          const pe = placar.read();
+          if (!esp.pontos || !pe || !pe.ativo) return this.result(id, { points: 0 });
+          const whoE = msg.quem ? placar.participant(String(msg.quem)) : pe.usuarios[this.user.id] || null;
+          if (msg.quem && !whoE) return this.error(id, "invalid_format", "Essa pessoa não está no placar");
+          if (!whoE) return this.result(id, { ask: true, points: esp.pontos, participantes: pe.participantes });
+          await sendPoints({ acao: "somar", chave: ekey, quem: whoE, pontos: esp.pontos, titulo: String(msg.summary || "Tarefa").slice(0, 120) });
+          log.info(`+${esp.pontos} para ${whoE}: ${msg.summary} (CronologIA)`);
+          return this.result(id, { key: ekey, who: whoE, points: esp.pontos, participantes: pe.participantes });
+        }
         const n = store.prefs.app.points_on ? store.pointsFor(msg.entity_id, String(msg.summary || "")) : 0;
         if (!n) return this.result(id, { points: 0 });
         const key = `resolvia|${msg.entity_id}|${msg.uid.slice(0, 300).replace(/\|/g, "")}|${today()}`;
@@ -319,7 +337,7 @@ class Session {
 
       case "resolvia/points/reassign": {
         const who = placar.participant(String(msg.quem || ""));
-        if (!who || !/^resolvia\|todo\.[a-z0-9_]+\|/.test(String(msg.key || ""))) return this.error(id, "invalid_format", "Essa pessoa não está no placar");
+        if (!who || !/^(resolvia|espelho)\|todo\.[a-z0-9_]+\|/.test(String(msg.key || ""))) return this.error(id, "invalid_format", "Essa pessoa não está no placar");
         await sendPoints({ acao: "trocar", chave: String(msg.key), quem: who });
         return this.result(id, { who });
       }

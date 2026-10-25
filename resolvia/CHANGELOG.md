@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.9.0
+
+- **Manutenções e rotinas do CronologIA**: com o CronologIA 1.10.0 levando as manutenções e rotinas para uma lista daqui, elas aparecem com a próxima data e o troféu com os pontos.
+  - Concluir aqui vale como **Feito** no CronologIA e dá os pontos para quem concluiu (com **Quem fez?** e **Foi Andressa**); desmarcar desfaz lá também. A tarefa volta sozinha com a data seguinte.
+  - Tocar numa delas abre um resumo só para ver (nome, data, pontos e notas), porque quem manda nelas é o CronologIA. Excluir tira da lista até a próxima data.
+  - A marcação técnica `[cr:…]` que vai nas notas fica escondida.
+
 ## 2.8.1
 
 - Abas de baixo na nova ordem: **Listas · Buscar · Adicionar · Prazos · Mais**.

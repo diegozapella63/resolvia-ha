@@ -37,6 +37,7 @@ A primeira instalação leva alguns minutos, porque o app é montado no próprio
 - **Buscar** em todas as listas, sem se importar com acentos.
 - **Personalizar cada lista** (nome, cor, ícone, ocultar, prazos), sincronizado entre aparelhos.
 - **Recompensas**: cada tarefa pode valer pontos no placar do CronologIA para quem concluir (ligue em **Mais → Integrações**).
+- **Manutenções e rotinas do CronologIA** como tarefas: concluir aqui vale como feito lá, com os pontos, e a tarefa volta com a próxima data.
 - **Mais em abas**, como no CronologIA: Listas, Repetições, Integrações, Dados e Aparência.
 - **Dados**: exportar em ZIP, CSV ou JSON, backup em `share/resolvia`, importar (repõe os itens que faltarem, sem duplicar) e versões anteriores automáticas.
 - **Tema claro e escuro** seguindo o Home Assistant.

@@ -92,6 +92,9 @@ export function createMockHass(onChange) {
         it("Passar pano na casa"),
         it("Trocar roupa de cama"),
         done("Regar as plantas da varanda"),
+        // kept here by the CronologIA (Levar para o ResolvIA)
+        it("Trocar o filtro de água", { uid: "cr-filtro", due: d(5), description: "Manutenção do CronologIA · +30 pontos [cr:5a1f0c2e]" }),
+        it("Tirar o lixo", { uid: "cr-lixo", due: dt(0, 19), description: "O caminhão passa às 20h\n\nRotina da casa do CronologIA · +10 pontos [cr:9b3d77a1]" }),
         done("Limpar calhas"),
       ],
     },
@@ -323,7 +326,7 @@ export function createMockHass(onChange) {
         return JSON.parse(JSON.stringify(prefs));
       }
       // Recompensas (the CronologIA scoreboard), simulated
-      const ptsState = () => ({ on: !!prefs.app.points_on, points: JSON.parse(JSON.stringify(points)), placar: { versao: "1.6.0", ativo: true, periodo: "semana", participantes: ["Diego", "Andressa"], eu: "Diego" } });
+      const ptsState = () => ({ on: !!prefs.app.points_on, points: JSON.parse(JSON.stringify(points)), placar: { versao: "1.10.0", ativo: true, periodo: "semana", participantes: ["Diego", "Andressa"], eu: "Diego" }, espelho: { "todo.casa": { "cr-filtro": { pontos: 30, tipo: "manutencao" }, "cr-lixo": { pontos: 10, tipo: "rotina" } } } });
       if (msg.type === "resolvia/points/get") return ptsState();
       if (msg.type === "resolvia/points/set") {
         const map = { ...(points[msg.entity_id] || {}) };
@@ -335,7 +338,8 @@ export function createMockHass(onChange) {
         return ptsState();
       }
       if (msg.type === "resolvia/points/done") {
-        const n = prefs.app.points_on ? ((points[msg.entity_id] || {})[taskKey(msg.summary)] || 0) : 0;
+        const esp = (ptsState().espelho[msg.entity_id] || {})[msg.uid];
+        const n = esp ? esp.pontos : prefs.app.points_on ? ((points[msg.entity_id] || {})[taskKey(msg.summary)] || 0) : 0;
         if (!n || !msg.done) return { points: 0 };
         return { key: `resolvia|${msg.entity_id}|${msg.uid}|hoje`, who: msg.quem || "Diego", points: n, participantes: ["Diego", "Andressa"] };
       }

@@ -9,7 +9,7 @@ import { ICONS } from "./icons.js";
 import { ensureFonts } from "./fonts.js";
 import { styles } from "./styles.js";
 import { DataMixin } from "./datapanel.js";
-import { PointsMixin } from "./points.js";
+import { PointsMixin, stripMark, markOf } from "./points.js";
 import {
   F,
   has,
@@ -36,7 +36,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.8.1";
+const VERSION = "2.9.0";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -634,7 +634,8 @@ class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
       this._patchItem(list.id, key, { status: item.status });
       return;
     }
-    const points = this._pointsOf(list.id, item.summary);
+    const points = this._pointsOf(list.id, item.summary, item.uid);
+    const mirrored = this._mirrored(list.id, item.uid);
     if (completing) {
       const rule = this._ruleFor(list.id, item);
       const back = rule ? ` · volta ${this._returnLabel(this._reopenAt(rule.days))}` : "";
@@ -643,12 +644,12 @@ class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
         run: () => {
           this._patchItem(list.id, key, { status: "needs_action" });
           this._call("update_item", { item: key, status: "needs_action" }, list.id);
-          if (points) this._takePoints(list, item);
+          if (points || mirrored) this._takePoints(list, item);
         },
       };
       if (points) this._givePoints(list, item, `Resolvido: ${clip(item.summary, 18)}`, undo);
-      else this._showToast(`Resolvido: ${clip(item.summary, rule ? 22 : 30)}${back}`, undo);
-    } else if (points) this._takePoints(list, item);
+      else this._showToast(`Resolvido: ${clip(item.summary, rule ? 22 : 30)}${back}${mirrored ? " · volta com a próxima data" : ""}`, undo);
+    } else if (points || mirrored) this._takePoints(list, item);
   }
 
   _quickAdd(ev, list) {
@@ -1093,7 +1094,9 @@ class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
       key: keyOf(item),
       target: list.id,
       summary: item.summary || "",
-      description: item.description || "",
+      description: stripMark(item.description),
+      mirrored: this._mirrored(list.id, item.uid),
+      due: item.due || null,
       date: due ? due.date : null,
       time: due ? due.time : null,
       repeat: days,
@@ -1155,8 +1158,10 @@ class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
 
     const data = { item: f.key };
     if (summary !== item.summary) data.rename = summary;
-    if (has(list.features, F.DESCRIPTION) && description !== (item.description || "")) {
-      data.description = description || null;
+    if (has(list.features, F.DESCRIPTION) && description !== stripMark(item.description)) {
+      // keep the CronologIA marker on its tasks
+      const mark = markOf(item.description);
+      data.description = mark ? `${description}${description ? " " : ""}${mark}` : description || null;
     }
     const before = parseDue(item.due);
     const changedDue = (before ? before.date : null) !== (f.date || null) || (before ? before.time : null) !== (f.time || null);
@@ -1651,8 +1656,8 @@ class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
         </button>
         <div class="it-body" @click=${() => canUpdate && this._openEdit(l, item)}>
           <div class="it-text">${this._renderText(item.summary || "", opts.query)}</div>
-          ${item.description ? html`<div class="it-desc">${this._renderText(item.description, opts.query)}</div>` : nothing}
-          ${due || opts.showList || rule || this._pointsOf(l.id, item.summary)
+          ${stripMark(item.description) ? html`<div class="it-desc">${this._renderText(stripMark(item.description), opts.query)}</div>` : nothing}
+          ${due || opts.showList || rule || this._pointsOf(l.id, item.summary, item.uid)
             ? html`<div class="chips">
                 ${opts.showList ? html`<span class="tag list">${icon(l.icon)}${clip(l.name, 24)}</span>` : nothing}
                 ${due
@@ -2041,11 +2046,40 @@ class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
     return `--rv-accent:${c.fill};--rv-accent-ink:${this._dark ? c.fill : c.ink};--rv-accent-soft:${hexToRgba(c.fill, this._dark ? 0.18 : 0.14)};${colorVars(c, this._dark)}`;
   }
 
+  /** A maintenance or routine kept by the CronologIA: read only (the CronologIA writes the name, date and notes back). */
+  _renderMirroredSheet(src) {
+    const f = this._form;
+    const m = f.mirrored;
+    const due = dueInfo(f.due);
+    const canDelete = has(src.features, F.DELETE);
+    return html`
+      <div class="sheet-head">
+        <h3 class="display">${m.tipo === "rotina" ? "Rotina da casa" : "Manutenção"}</h3>
+        <button class="icon-btn" @click=${() => this._closeSheet()} aria-label="Fechar">${icon("x")}</button>
+      </div>
+      <div class="ro-item">
+        <b>${f.summary}</b>
+        <div class="ro-tags">
+          ${due ? html`<span class="tag ${due.tone}">${icon("calendar")}${due.text}</span>` : nothing}
+          ${m.pontos ? html`<span class="tag pts">${icon("trophy")}+${m.pontos}</span>` : nothing}
+          <span class="tag">${clip(src.name, 24)}</span>
+        </div>
+        ${f.description ? html`<p>${f.description}</p>` : nothing}
+      </div>
+      <p class="sheet-note with-icon">${icon("calendar-clock")}<span>Vem do CronologIA. Concluir aqui marca como feito lá${m.pontos ? ` e dá ${m.pontos} pontos para quem fez` : ""}, e a tarefa volta com a próxima data. O nome, a data, as notas e os pontos se mudam no CronologIA.${canDelete ? " Excluir tira da lista só até a próxima data." : ""}</span></p>
+      <div class="sheet-actions">
+        ${canDelete ? html`<button class="btn danger" @click=${() => this._deleteItem()} aria-label="Excluir">${icon("trash")}</button>` : nothing}
+        <button class="btn primary" @click=${() => this._closeSheet()}>Fechar</button>
+      </div>
+    `;
+  }
+
   _renderItemSheet() {
     const f = this._form;
     const src = this._list(f.listId);
     const target = this._list(f.target) || src;
     if (!src || !target) return nothing;
+    if (f.mirrored && f.mode === "edit") return this._renderMirroredSheet(src);
     const feat = target.features;
     const canDesc = has(feat, F.DESCRIPTION);
     const canDate = has(feat, F.DUE_DATE) || has(feat, F.DUE_DATETIME);
@@ -2111,7 +2145,7 @@ class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
               : nothing}
           </div>`
         : nothing}
-      ${this._rulesOk && (has(feat, F.UPDATE) || has(feat, F.CREATE))
+      ${this._rulesOk && !f.mirrored && (has(feat, F.UPDATE) || has(feat, F.CREATE))
         ? html`<div class="field">
             <span class="flabel">Repetir depois de concluir</span>
             <div class="chip-row">
