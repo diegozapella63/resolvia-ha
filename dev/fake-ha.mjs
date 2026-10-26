@@ -161,7 +161,12 @@ function fakeAI(msg) {
   aiCalls.push({ entity_id: d.entity_id, files });
   console.log("fake AI call", JSON.stringify({ entity_id: d.entity_id, files }));
   let items;
-  if (files.length) {
+  if (d.task_name === "ResolvIA: sugerir") {
+    // Sugestões › Pedir à IA: the first 3 items that aren't shopping, with a reason
+    const rows = ((d.instructions || "").split('"""')[1] || "").split("\n").filter((r) => /^\d+ \|/.test(r) && !r.includes("(compras)"));
+    items = rows.slice(0, 3).map((r, k) => `${r.split(" | ")[0]} | Motivo de teste ${k + 1}`);
+    if (process.env.FAKE_AI_SUGGEST_BAD) items = ["não sei"];
+  } else if (files.length) {
     // Alternate answers so "add more photos" can be tested.
     const photoCalls = aiCalls.filter((c) => c.files.length).length;
     items = photoCalls % 2 ? ["Leite integral (2 caixas)", "Ovos (1 dúzia)", "Pão francês"] : ["Café 500 g", "Ovos (1 dúzia)", "Detergente"];

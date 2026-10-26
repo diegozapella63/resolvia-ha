@@ -4,7 +4,7 @@
 import { html, nothing } from "../vendor/lit-all.min.js";
 
 const WD = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
-const KIND = { mensagem: "Mensagens", fotos: "Fotos" };
+const KIND = { mensagem: "Mensagens", fotos: "Fotos", sugestao: "Sugestões" };
 const RESULT = { erro: "erro", cota: "sem cota", formato: "resposta fora do formato" };
 const pad = (n) => String(n).padStart(2, "0");
 const ymdOf = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;

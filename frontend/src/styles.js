@@ -707,6 +707,59 @@ export const styles = css`
     padding-top: 2px;
     padding-bottom: 2px;
   }
+  /* ---------- Sugestões ---------- */
+  .it-why {
+    display: flex;
+    gap: 6px;
+    align-items: flex-start;
+    margin-top: 4px;
+    font-size: 13.5px;
+    line-height: 1.35;
+    color: var(--rv-text);
+  }
+  .it-why .i {
+    width: 15px;
+    height: 15px;
+    flex: none;
+    margin-top: 1px;
+    color: var(--rv-accent-ink);
+  }
+  .suggest-ai {
+    padding-bottom: 14px;
+  }
+  .ai-note {
+    font-size: 13px;
+    color: var(--rv-muted);
+    margin: 10px 0 0;
+    line-height: 1.4;
+  }
+  .ai-note.err {
+    color: var(--rv-late);
+  }
+  .ai-actions {
+    display: flex;
+    padding-top: 12px;
+  }
+  .ai-actions .btn {
+    flex: 1;
+  }
+  .ai-spin {
+    animation: rv-spin 0.9s linear infinite;
+  }
+  .suggest-foot {
+    display: flex;
+    gap: 8px;
+    margin: -4px 6px 16px;
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: var(--rv-muted);
+  }
+  .suggest-foot .i {
+    width: 15px;
+    height: 15px;
+    flex: none;
+    margin-top: 1px;
+  }
   .item {
     position: relative;
     display: flex;

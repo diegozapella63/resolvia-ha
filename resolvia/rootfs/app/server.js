@@ -14,11 +14,12 @@ import { Store, datesInfo } from "./lib/store.js";
 import { Recurring } from "./lib/recurring.js";
 import { AI } from "./lib/ai.js";
 import { AiUsage } from "./lib/usage.js";
+import { Ages } from "./lib/ages.js";
 import { Restore } from "./lib/restore.js";
 import { Placar } from "./lib/placar.js";
 import { snapshot, toCSV, backupZip, parseImport, Backups, listVersions, readVersion, fileStamp } from "./lib/data.js";
 
-const VERSION = "2.13.0";
+const VERSION = "2.14.0";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const WWW = path.join(HERE, "www");
 const DEV = process.env.RESOLVIA_DEV === "1";
@@ -82,7 +83,10 @@ async function restoreAll(raw, reason, opts) {
 const HA_REST = process.env.HA_REST_URL || "http://supervisor/core/api";
 const usage = new AiUsage({ dir: DATA_DIR, sensor: "sensor.resolvia_ia_hoje", label: "ResolvIA", rest: HA_REST, token: TOKEN, log });
 const ai = new AI({ ha, log, mediaDir: MEDIA_DIR, selected: () => store.prefs.app.ai_entity || "", usage });
-const itemSubs = new Map(); // entity_id -> subscription (for the recurring engine)
+const itemSubs = new Map(); // entity_id -> subscription (for the recurring engine and the ages)
+// Sugestões: since when each pending item is on its list, and the last suggestion of the AI
+const ages = new Ages({ dir: DATA_DIR, log });
+let lastSuggest = null;
 const listWatchers = new Set(); // {session, id}
 const ruleWatchers = new Set(); // {session, id}
 let registryCache = null;
@@ -102,7 +106,12 @@ function syncItemSubs() {
     if (itemSubs.has(id)) continue;
     const sub = ha.subscribe(
       { type: "todo/item/subscribe", entity_id: id },
-      (ev) => recurring.process(id, (ev && ev.items) || []),
+      (ev) => {
+        const items = (ev && ev.items) || [];
+        const st = todoStates.get(id);
+        if (st && st.state !== "unavailable" && st.state !== "unknown") ages.track(id, items);
+        recurring.process(id, items);
+      },
       (err) => {
         log.warn(`Não consegui acompanhar ${id}: ${err.message}`);
         itemSubs.delete(id);
@@ -312,6 +321,17 @@ class Session {
       // Mais › Integrações › Uso da IA
       case "resolvia/ai/usage":
         return this.result(id, usage.summary());
+
+      // Sugestões (when Mais › Opções › Controlar prazos is off)
+      case "resolvia/suggest/get":
+        return this.result(id, { ages: ages.all(), ai: lastSuggest });
+
+      case "resolvia/ai/suggest": {
+        if (store.prefs.app.ai_off) return this.error(id, "ai_off", "A IA está desligada em Mais › Integrações");
+        const out = await ai.suggest(msg.items);
+        lastSuggest = { at: Date.now(), picks: out.picks, provider: out.provider };
+        return this.result(id, lastSuggest);
+      }
 
       case "resolvia/subscribe_lists":
         this.watch(listWatchers, id);
@@ -684,6 +704,7 @@ recurring.start();
 const shutdown = () => {
   log.info("Encerrando…");
   store.flush();
+  ages.flush();
   recurring.stop();
   ha.stop();
   server.close();

@@ -13,6 +13,7 @@ import { themePicker, colorPicker, lookStyles } from "./look.js";
 import { unsafeCSS } from "../vendor/lit-all.min.js";
 import { DataMixin } from "./datapanel.js";
 import { PointsMixin, stripMark, markOf } from "./points.js";
+import { SuggestMixin } from "./suggest.js";
 import {
   F,
   has,
@@ -39,7 +40,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.13.0";
+const VERSION = "2.14.0";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -76,7 +77,7 @@ const REPEAT_PICKS = [
 ];
 const keyOf = (item) => item.uid || item.summary;
 
-class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
+class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
   static properties = {
     hass: { attribute: false },
     narrow: { type: Boolean },
@@ -211,6 +212,8 @@ class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
       if (tab === "dados") this._loadBackups();
     }
     // Buscar doesn't focus the box by itself: on the phone that pops the keyboard over the screen
+    // Sugestões: the ages of the items, again after a minute
+    if (this._view().name === "suggest" && Date.now() - (this._suggestAt || 0) > 60000) this._loadSuggest();
   }
 
   firstUpdated() {
@@ -309,6 +312,7 @@ class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
 
   _computeLists() {
     const prefs = (this._prefs && this._prefs.lists) || {};
+    const dueOff = !this._dueOn();
     const ids = this._todoIds();
     const rows = ids.map((id) => {
       const st = this.hass.states[id];
@@ -333,7 +337,9 @@ class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
       // its dates from the integration ("unavailable since…"), shown as information.
       // Lists that do accept deadlines can turn them off (Personalizar).
       const datesInfo = !canDue || p.dates_info === true;
-      const dues = pendingItems && !datesInfo ? pendingItems.map((i) => dueInfo(i.due)).filter(Boolean) : [];
+      // Mais › Opções › Controlar prazos off: every date is only information
+      const noDue = datesInfo || dueOff;
+      const dues = pendingItems && !noDue ? pendingItems.map((i) => dueInfo(i.due)).filter(Boolean) : [];
       return {
         id,
         name: p.name || meta.name,
@@ -347,6 +353,7 @@ class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
         features,
         canDue,
         datesInfo,
+        noDue,
         hasDates: !!(items && items.some((i) => i.due)),
         unavailable: st.state === "unavailable" || st.state === "unknown",
         items,
@@ -441,7 +448,8 @@ class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
     const p = (this._path || "").replace(/\/+$/, "");
     let m;
     if ((m = p.match(/^\/lista\/(todo\.[^/]+)$/))) return { name: "list", id: decodeURIComponent(m[1]) };
-    if (p === "/prazos") return { name: "due" };
+    if (p === "/prazos" && this._dueOn()) return { name: "due" };
+    if (p === "/sugestoes" && !this._dueOn()) return { name: "suggest" };
     if (p === "/buscar") return { name: "search" };
     if ((m = p.match(/^\/mais(?:\/(repeticoes|integracoes|ia|dados|aparencia|opcoes))?$/))) return { name: "more", tab: m[1] === "ia" ? "integracoes" : m[1] || "listas" };
     return { name: "home" };
@@ -800,6 +808,11 @@ class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
       using: (ai.using && ai.using.id) || "",
       names: Object.fromEntries((ai.entities || []).map((e) => [e.id, e.name])),
     });
+  }
+
+  /** Mais › Opções › Controlar prazos: off hides the Prazos tab and the deadline field (Sugestões instead). */
+  _dueOn() {
+    return !this._app("due_off", false);
   }
 
   /** Mais › Integrações › Usar IA: off hides the import from messages and photos. */
@@ -1406,6 +1419,7 @@ class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
     let page;
     if (view.name === "list") page = this._renderList(view.id);
     else if (view.name === "due") page = this._renderDue();
+    else if (view.name === "suggest") page = this._renderSuggest();
     else if (view.name === "search") page = this._renderSearch();
     else if (view.name === "more") page = this._renderMore();
     else page = this._renderHome();
@@ -1449,7 +1463,8 @@ class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
           <button class="tab fab" @click=${() => this._openAdd(view.name === "list" ? view.id : null)} aria-label="Adicionar item">
             <span class="pill">${icon("plus")}</span><span>Adicionar</span>
           </button>
-          ${tab("due", "/prazos", "Prazos", "calendar-clock", lateCount)} ${tab("more", "/mais", "Mais", "sliders-horizontal")}
+          ${this._dueOn() ? tab("due", "/prazos", "Prazos", "calendar-clock", lateCount) : tab("suggest", "/sugestoes", "Sugestões", "lightbulb")}
+          ${tab("more", "/mais", "Mais", "sliders-horizontal")}
         </div>
       </nav>
     `;
@@ -1702,12 +1717,13 @@ class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
         <div class="it-body" @click=${() => canUpdate && this._openEdit(l, item)}>
           <div class="it-text">${this._renderText(item.summary || "", opts.query)}</div>
           ${stripMark(item.description) ? html`<div class="it-desc">${this._renderText(stripMark(item.description), opts.query)}</div>` : nothing}
+          ${opts.why ? html`<div class="it-why">${icon(opts.whyIcon || "lightbulb")}<span>${opts.why}</span></div>` : nothing}
           ${due || opts.showList || rule || this._pointsOf(l.id, item.summary, item.uid)
             ? html`<div class="chips">
                 ${opts.showList ? html`<span class="tag list">${icon(l.icon)}${clip(l.name, 24)}</span>` : nothing}
                 ${due
-                  ? l.datesInfo
-                    ? html`<span class="tag info" title="Data da integração, não é prazo">${icon("clock-fading")}${due.text}</span>`
+                  ? l.noDue
+                    ? html`<span class="tag info" title=${l.canDue ? "Prazos desligados: a data é só informação" : "Data da integração, não é prazo"}>${icon("clock-fading")}${due.text}</span>`
                     : html`<span class="tag ${due.tone === "late" ? "late" : due.tone === "today" ? "today" : ""}">${icon(due.time ? "clock" : "calendar")}${due.text}</span>`
                   : nothing}
                 ${rep} ${this._renderPointsTag(l.id, item)}
@@ -1728,7 +1744,7 @@ class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
     const supportsDue = lists.some((l) => has(l.features, F.DUE_DATE) || has(l.features, F.DUE_DATETIME));
     const rows = [];
     for (const l of lists) {
-      if (l.datesInfo) continue; // dates from the integration, not deadlines
+      if (l.noDue) continue; // dates from the integration, or deadlines turned off
       for (const i of l.items || []) {
         if (isDone(i) && !this._recent.has(keyOf(i))) continue;
         const d = dueInfo(i.due);
@@ -2030,10 +2046,20 @@ class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
     });
   }
 
-  /** Mais › Opções: how the lists show. */
+  /** Mais › Opções: how the lists show, and the deadlines. */
   _renderOptionsTab() {
     const sw = (on, label, ev) => html`<label class="switch"><input type="checkbox" role="switch" .checked=${on} @change=${ev} aria-label=${label} /><span class="track"></span></label>`;
+    const dueOn = this._dueOn();
     return html`
+        <div class="panel">
+          ${this._secHead("calendar-clock", "Prazos")}
+          <div class="row">
+            <div class="grow"><div class="label">Controlar prazos</div><div class="hint" style="white-space:normal">${dueOn
+              ? "Ligado: o item tem campo de prazo, o que vence fica vermelho e entra na aba Prazos."
+              : "Desligado: a aba Prazos vira Sugestões e o item não tem mais campo de prazo. As datas que já existem aparecem só como informação."}</div></div>
+            ${sw(dueOn, "Controlar prazos", (e) => this._saveAppPrefs({ due_off: e.target.checked ? null : true }))}
+          </div>
+        </div>
         <div class="panel">
           ${this._secHead("layout-list", "Exibição")}
           <div class="row">
@@ -2162,7 +2188,7 @@ class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
       <div class="ro-item">
         <b>${f.summary}</b>
         <div class="ro-tags">
-          ${due ? html`<span class="tag ${due.tone}">${icon("calendar")}${due.text}</span>` : nothing}
+          ${due ? html`<span class="tag ${src.noDue ? "info" : due.tone}">${icon("calendar")}${due.text}</span>` : nothing}
           ${m.pontos ? html`<span class="tag pts">${icon("trophy")}+${m.pontos}</span>` : nothing}
           <span class="tag">${clip(src.name, 24)}</span>
         </div>
@@ -2184,7 +2210,8 @@ class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
     if (f.mirrored && f.mode === "edit") return this._renderMirroredSheet(src);
     const feat = target.features;
     const canDesc = has(feat, F.DESCRIPTION);
-    const canDate = has(feat, F.DUE_DATE) || has(feat, F.DUE_DATETIME);
+    // Mais › Opções › Controlar prazos off: no deadline field (an item keeps the date it has)
+    const canDate = this._dueOn() && (has(feat, F.DUE_DATE) || has(feat, F.DUE_DATETIME));
     const canTime = has(feat, F.DUE_DATETIME);
     const canDelete = f.mode === "edit" && has(src.features, F.DELETE);
     const quick = quickDates();
@@ -2427,7 +2454,7 @@ class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
         <h3 class="display">${l.name}</h3>
         <button class="icon-btn" @click=${() => this._closeSheet()} aria-label="Fechar">${icon("x")}</button>
       </div>
-      <button class="menu-row" @click=${() => this._openCustomize(l)}>${icon("palette")}Personalizar<span class="sub">${l.canDue ? "nome, cor, ícone, prazos" : "nome, cor, ícone"}</span></button>
+      <button class="menu-row" @click=${() => this._openCustomize(l)}>${icon("palette")}Personalizar<span class="sub">${l.canDue && this._dueOn() ? "nome, cor, ícone, prazos" : "nome, cor, ícone"}</span></button>
       <button class="menu-row" @click=${() => (this._closeSheet(), this._saveListPrefs(l.id, { hidden: l.hidden ? null : true }))}>${icon(l.hidden ? "eye" : "eye-off")}${l.hidden ? "Mostrar no início" : "Ocultar do início"}</button>
       ${this.hass.user && this.hass.user.is_admin
         ? html`<button class="menu-row" @click=${() => this._openInHA(`/todo?entity_id=${l.id}`)}>${icon("external-link")}Abrir na tela padrão do HA</button>`
@@ -2475,7 +2502,9 @@ class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
         <div class="grow"><div class="label">Mostrar no início</div></div>
         <label class="switch"><input type="checkbox" role="switch" .checked=${!f.hidden} @change=${(e) => this._setForm({ hidden: !e.target.checked })} aria-label="Mostrar no início" /><span class="track"></span></label>
       </div>
-      ${l.canDue
+      ${!this._dueOn()
+        ? nothing
+        : l.canDue
         ? html`<div class="row" style="border:0;padding-top:0">
             <div class="grow">
               <div class="label">Prazos</div>

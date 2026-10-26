@@ -38,6 +38,8 @@ const APP_FIELDS = {
   repeat_on: ["boolean"],
   // Mais > Integrações > Usar IA: true = off (no import from messages and photos)
   ai_off: ["boolean"],
+  // Mais > Opções > Controlar prazos: true = off (no Prazos tab, no deadline field; Sugestões instead)
+  due_off: ["boolean"],
 };
 
 /** A repeating task from a file (import, restore): only the known fields, sane values. */

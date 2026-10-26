@@ -10,7 +10,7 @@ Nada é copiado: o ResolvIA mostra e edita as mesmas listas que o HA já tem.
 2. Ative **Mostrar na barra lateral** (e, se quiser, **Watchdog**).
 3. Abra o **ResolvIA** pela barra lateral.
 
-O **Mais** fica em abas no alto: **Listas** (nome, cor, ícone, mostrar/ocultar e criar lista), **Repetições** (ligar ou desligar a repetição e as tarefas que voltam sozinhas), **Integrações** (recompensas do CronologIA e leitura por IA), **Dados** (exportar, backup, importar, versões), **Aparência** (tema e cor) e **Opções** (como as listas aparecem: agrupar por dispositivo, concluídos abertos).
+O **Mais** fica em abas no alto: **Listas** (nome, cor, ícone, mostrar/ocultar e criar lista), **Repetições** (ligar ou desligar a repetição e as tarefas que voltam sozinhas), **Integrações** (recompensas do CronologIA e leitura por IA), **Dados** (exportar, backup, importar, versões), **Aparência** (tema e cor) e **Opções** (controlar prazos e como as listas aparecem: agrupar por dispositivo, concluídos abertos).
 
 ## Importar de mensagem ou foto
 
@@ -59,7 +59,7 @@ Exemplo: "Passar pano" com **3 dias**. Você marca como feito no domingo e ele v
 - Se os concluídos forem apagados antes da hora, o item é criado de novo.
 - Desmarcar o item antes da hora cancela a volta daquela vez.
 - Apagar um item pendente remove a repetição dele.
-- Todas as repetições aparecem em **Mais → Repetições**, e as próximas voltas em **Prazos → Voltam sozinhas**.
+- Todas as repetições aparecem em **Mais → Repetições**, e as próximas voltas em **Prazos → Voltam sozinhas** (com Controlar prazos ligado).
 - No card **Tarefas** do CronologIA (1.10.1 ou mais novo), as tarefas aparecem nessa ordem de frequência: primeiro as de todo dia, depois as de 2 dias, e assim por diante; as que não se repetem ficam por último.
 
 ## O que dá para fazer em cada lista
@@ -95,10 +95,23 @@ Prazo é só o que você define. Algumas integrações preenchem sozinhas a data
 
 Nas listas em que você define prazo, dá para desligar os prazos em **⋯ › Personalizar › Prazos**.
 
+Para não usar prazo em nada (deixando as datas para o CronologIA), desligue **Mais › Opções › Prazos › Controlar prazos**. Somem a aba Prazos, o campo Prazo do item e a opção de prazos em Personalizar. As datas que os itens já têm (inclusive as que o CronologIA põe) continuam guardadas e aparecem só como informação, em cinza. No CronologIA nada muda.
+
+## Sugestões
+
+Com **Controlar prazos** desligado, a aba Prazos dá lugar a **Sugestões**: o que vale resolver agora, olhando as listas que aparecem no início.
+
+- **Comece por aqui**: até 5 itens, no máximo 2 da mesma lista, cada um com o motivo. Os motivos são: há quanto tempo está na lista, se é o último (ou faltam 2) para zerar a lista, se vale pontos, se é uma repetição que voltou, se o CronologIA pôs data para hoje ou a data já passou. Itens de integrações que guardam "desde quando" (como a Problem List) usam essa data.
+- **Compras**: as listas de compras ficam à parte, com quantos itens têm e há quanto tempo o mais antigo espera.
+- **Pedir à IA** (só com **Usar IA** ligado): a IA do Home Assistant olha os itens pendentes e escolhe até 5 para resolver agora, com o porquê. Só roda quando você toca, entra no **Uso da IA** e a última sugestão fica guardada até o app reiniciar.
+
+O Home Assistant não guarda quando um item foi criado, então o ResolvIA anota a primeira vez que vê cada item pendente (`/data/idades.json`). Os itens que já estavam nas listas contam a partir do dia em que você atualizou para a versão 2.14.0.
+
 ## Onde ficam os dados
 
 - As tarefas continuam nas próprias listas do Home Assistant.
 - Nome, cor e ícone de cada lista, listas ocultas e as regras de repetição ficam em `/data/resolvia.json` dentro do app (entram no backup do Home Assistant).
+- Desde quando cada item pendente está na lista (para as Sugestões) fica em `/data/idades.json`.
 - O tema (automático, claro ou escuro) é escolhido por aparelho.
 
 ## Dados: exportar, backup e importar

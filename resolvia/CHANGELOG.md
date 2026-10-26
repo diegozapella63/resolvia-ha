@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.14.0
+
+- **Mais › Opções › Prazos › Controlar prazos** (ligado por padrão). Desligado, somem a aba Prazos, o campo Prazo do item e a opção de prazos em Personalizar; as datas que já existem aparecem só como informação.
+- **Sugestões** no lugar da aba Prazos quando ela está desligada: **Comece por aqui** (até 5 itens com o motivo: há quanto tempo está na lista, fecha a lista, vale pontos, voltou, data do CronologIA), **Compras** à parte e **Pedir à IA** (com Usar IA ligado, só quando você toca; entra no Uso da IA).
+- O app passa a anotar desde quando cada item pendente está na lista (`/data/idades.json`).
+
 ## 2.13.0
 
 - **Recompensas** com a chave **Usar recompensas**, desligada por padrão. Desligada, o card mostra só a chave e nada vai para o placar do CronologIA, nem os pontos das tarefas que vêm de lá: concluir conta como feito, sem pontos.
