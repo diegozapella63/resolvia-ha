@@ -18,7 +18,7 @@ import { Restore } from "./lib/restore.js";
 import { Placar } from "./lib/placar.js";
 import { snapshot, toCSV, backupZip, parseImport, Backups, listVersions, readVersion, fileStamp } from "./lib/data.js";
 
-const VERSION = "2.12.0";
+const VERSION = "2.13.0";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const WWW = path.join(HERE, "www");
 const DEV = process.env.RESOLVIA_DEV === "1";
@@ -322,6 +322,13 @@ class Session {
         this.result(id);
         return this.event(id, { rules: recurring.publicRules() });
 
+      case "resolvia/recurring/clear": {
+        const n = recurring.clearAll();
+        log.info(`Repetições excluídas: ${n}`);
+        publishPresence();
+        return this.result(id, { removed: n });
+      }
+
       case "resolvia/recurring/set": {
         const rule = recurring.setRule({ entity_id: msg.entity_id, uid: msg.uid, summary: msg.summary, days: msg.days });
         return this.result(id, rule);
@@ -370,7 +377,8 @@ class Session {
             return this.result(id, { points: 0, key: ekey });
           }
           const pe = placar.read();
-          if (!esp.pontos || !pe || !pe.ativo) return this.result(id, { points: 0 });
+          // Recompensas off here: the CronologIA still marks it done, with no one's points
+          if (!store.prefs.app.points_on || !esp.pontos || !pe || !pe.ativo) return this.result(id, { points: 0 });
           const whoE = msg.quem ? placar.participant(String(msg.quem)) : pe.usuarios[this.user.id] || null;
           if (msg.quem && !whoE) return this.error(id, "invalid_format", "Essa pessoa não está no placar");
           if (!whoE) return this.result(id, { ask: true, points: esp.pontos, participantes: pe.participantes });

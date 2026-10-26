@@ -1,6 +1,6 @@
 # https://developers.home-assistant.io/docs/apps/configuration
 name: ResolvIA
-version: "2.12.0"
+version: "2.13.0"
 slug: resolvia
 description: Suas listas de tarefas do Home Assistant num visual caprichado, com tarefas que voltam sozinhas e leitura de listas por foto.
 url: "https://github.com/diegozapella63/resolvia-ha/tree/main/resolvia"

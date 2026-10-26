@@ -10,7 +10,7 @@ Nada é copiado: o ResolvIA mostra e edita as mesmas listas que o HA já tem.
 2. Ative **Mostrar na barra lateral** (e, se quiser, **Watchdog**).
 3. Abra o **ResolvIA** pela barra lateral.
 
-O **Mais** fica em abas no alto: **Listas** (nome, cor, ícone, mostrar/ocultar e criar lista), **Repetições** (ligar ou desligar a repetição e as tarefas que voltam sozinhas), **Integrações** (recompensas do CronologIA e leitura por IA), **Dados** (exportar, backup, importar, versões) e **Aparência** (tema, cor e como as listas aparecem).
+O **Mais** fica em abas no alto: **Listas** (nome, cor, ícone, mostrar/ocultar e criar lista), **Repetições** (ligar ou desligar a repetição e as tarefas que voltam sozinhas), **Integrações** (recompensas do CronologIA e leitura por IA), **Dados** (exportar, backup, importar, versões), **Aparência** (tema e cor) e **Opções** (como as listas aparecem: agrupar por dispositivo, concluídos abertos).
 
 ## Importar de mensagem ou foto
 
@@ -51,7 +51,7 @@ Sem IA configurada, a mensagem colada é separada por linhas, vírgulas e "e"; s
 
 Ligue em **Mais → Repetições → Repetir depois de concluir** (numa instalação nova começa desligado; quem já tinha repetições continua com ela ligada). Depois, abra um item e escolha **Repetir depois de concluir** (todo dia, 2 ou 3 dias, 1 ou 2 semanas, 1 mês ou outro número de dias).
 
-Desligada, o campo some dos itens e as repetições que existem ficam **pausadas**: nada volta sozinho, e elas aparecem como "pausada" em Mais → Repetições. Ligue de novo e os itens concluídos começam a contar a partir dali. Para o que se repete com dia certo, ou N dias depois de feito com pontos, dá para usar a **Rotina da casa** do CronologIA (1.11.0 ou mais novo, frequência **Depois de feita**).
+Para desligar com repetições já criadas, o app avisa quantas são e que **serão excluídas**; confirmando, ele apaga todas e desliga (os itens continuam nas listas, só não voltam mais sozinhos). Repetições que ficaram "pausadas" de versões anteriores aparecem em Mais → Repetições com o botão **Excluir**. Para o que se repete com dia certo, ou N dias depois de feito com pontos, dá para usar a **Rotina da casa** do CronologIA (1.11.0 ou mais novo, frequência **Depois de feita**).
 
 Exemplo: "Passar pano" com **3 dias**. Você marca como feito no domingo e ele volta como pendente na quarta, logo no começo do dia. Se a lista aceita datas, ele volta com prazo **Hoje**.
 
@@ -70,7 +70,7 @@ Depende da integração da lista. A Lista de tarefas local aceita tudo (prazo, h
 
 Com o **CronologIA** no mesmo Home Assistant e o placar dele ligado (CronologIA › Recompensas), as tarefas daqui podem valer pontos:
 
-1. Em **Mais › Integrações › Recompensas**, ligue **Pontos nas tarefas**. Ali aparece se o placar do CronologIA foi encontrado, quem participa e para quem vão os pontos neste usuário.
+1. Em **Mais › Integrações › Recompensas**, ligue **Usar recompensas** (começa desligado; desligado, o card mostra só a chave e nada vai para o placar). Ligado, aparece se o placar do CronologIA foi encontrado, quem participa e para quem vão os pontos neste usuário.
 2. Abra uma tarefa e escolha **Pontos para quem concluir** (+5, +10, +20, +30, +50 ou outro valor). A tarefa passa a mostrar o troféu com os pontos.
 3. Ao concluir, os pontos vão para o placar: para a pessoa ligada ao seu usuário do Home Assistant, ou para quem você escolher em **Quem fez?**. O aviso de baixo tem **Foi Andressa** para trocar; desmarcar a tarefa tira os pontos do dia.
 
@@ -82,7 +82,7 @@ No CronologIA 1.13.0 ou mais novo, **Mais › Integrações › Tarefas do Resol
 
 ## Manutenções e rotinas do CronologIA
 
-No CronologIA 1.10.0 ou mais novo, **Mais › Integrações › Tarefas do ResolvIA › Levar para o ResolvIA** coloca as manutenções e as rotinas da casa como tarefas numa lista daqui (a que você escolher lá). Cada uma aparece uma vez, com a próxima data e o troféu com os pontos dela (mesmo com **Pontos nas tarefas** desligado, porque os pontos vêm do CronologIA).
+No CronologIA 1.10.0 ou mais novo, **Mais › Integrações › Tarefas do ResolvIA › Levar para o ResolvIA** coloca as manutenções e as rotinas da casa como tarefas numa lista daqui (a que você escolher lá). Cada uma aparece uma vez, com a próxima data e o troféu com os pontos dela (com **Usar recompensas** ligado; desligado, concluir aqui conta como feito lá, sem pontos).
 
 - **Concluir** aqui vale como Feito no CronologIA: os pontos vão para quem concluiu (ou para quem você escolher em **Quem fez?**), com **Foi Andressa** para trocar. Logo depois a tarefa volta pendente com a data seguinte.
 - **Desmarcar** (ou **Desfazer**) desfaz no CronologIA também.

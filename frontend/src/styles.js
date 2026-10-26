@@ -2332,24 +2332,36 @@ export const styles = css`
     margin: 0 0 14px;
     box-shadow: 0 0 0 6px var(--rv-bg);
   }
+  /* six tabs: they keep their width and the bar scrolls sideways when the screen is narrow */
+  .more-tabs {
+    overflow-x: auto;
+    scrollbar-width: none;
+    overscroll-behavior-x: contain;
+  }
+  .more-tabs::-webkit-scrollbar {
+    display: none;
+  }
   .more-tabs button {
-    flex: 1 1 auto;
-    min-width: 0;
+    flex: 1 0 auto;
     padding-left: 6px;
     padding-right: 6px;
     white-space: nowrap;
   }
-  /* Five tabs: the icons only where there is room for them. */
+  /* the icons only where there is room for them */
   @media (max-width: 600px) {
     .more-tabs .i {
       display: none;
     }
   }
-  @media (max-width: 370px) {
+  /* phones: smaller so the six fit (below ~400 px the bar scrolls sideways) */
+  @media (max-width: 440px) {
+    .more-tabs {
+      gap: 1px;
+    }
     .more-tabs button {
       font-size: 13px;
-      padding-left: 3px;
-      padding-right: 3px;
+      padding-left: 4px;
+      padding-right: 4px;
     }
   }
 `;

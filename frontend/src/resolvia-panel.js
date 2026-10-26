@@ -39,7 +39,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.12.0";
+const VERSION = "2.13.0";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -193,6 +193,15 @@ class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
   updated(changed) {
     this.toggleAttribute("dark", this._dark);
     if (changed.has("_path") && this._view().name === "more") {
+      // the tab bar scrolls sideways on narrow screens: keep the chosen tab in sight
+      const bar = this.renderRoot.querySelector(".more-tabs");
+      const on = bar && bar.querySelector("button.on");
+      if (on) {
+        const l = on.offsetLeft;
+        const r = l + on.offsetWidth;
+        if (l < bar.scrollLeft) bar.scrollLeft = l - 8;
+        else if (r > bar.scrollLeft + bar.clientWidth) bar.scrollLeft = r - bar.clientWidth + 8;
+      }
       const tab = this._view().tab;
       if (tab === "integracoes") {
         this._refreshAi(false);
@@ -434,7 +443,7 @@ class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
     if ((m = p.match(/^\/lista\/(todo\.[^/]+)$/))) return { name: "list", id: decodeURIComponent(m[1]) };
     if (p === "/prazos") return { name: "due" };
     if (p === "/buscar") return { name: "search" };
-    if ((m = p.match(/^\/mais(?:\/(repeticoes|integracoes|ia|dados|aparencia))?$/))) return { name: "more", tab: m[1] === "ia" ? "integracoes" : m[1] || "listas" };
+    if ((m = p.match(/^\/mais(?:\/(repeticoes|integracoes|ia|dados|aparencia|opcoes))?$/))) return { name: "more", tab: m[1] === "ia" ? "integracoes" : m[1] || "listas" };
     return { name: "home" };
   }
 
@@ -1871,6 +1880,7 @@ class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
       ...(this.hass.resolvia ? [["integracoes", "Integrações", "blocks"]] : []),
       ...(this._data() ? [["dados", "Dados", "archive"]] : []),
       ["aparencia", "Aparência", "palette"],
+      ["opcoes", "Opções", "toggle-right"],
     ];
   }
 
@@ -1894,6 +1904,7 @@ class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
     else if (tab === "integracoes") body = html`${this._renderRewardsPanel()} ${this._renderAiPanel()} ${this.hass.resolvia && this._aiOn() ? this._renderUsage() : nothing}`;
     else if (tab === "dados") body = this._renderDataPanel();
     else if (tab === "aparencia") body = this._renderAppearanceTab();
+    else if (tab === "opcoes") body = this._renderOptionsTab();
     else {
       body = this._renderListsTab();
       const hidden = this._L.filter((l) => l.hidden).length;
@@ -1961,15 +1972,19 @@ class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
                   <div class="label">Repetir depois de concluir</div>
                   <div class="hint" style="white-space:normal">${on
                     ? "Ligado: nos itens aparece “Repetir depois de concluir”, e o item volta sozinho N dias depois de feito."
-                    : this._rules.length
-                      ? "Desligado: as repetições abaixo ficam pausadas (nada volta sozinho) e o campo some dos itens. Ligue de novo para continuar."
-                      : "Desligado: os itens não têm o campo de repetição. Para o que se repete com dia certo ou depois de feito, use a Rotina da casa do CronologIA."}</div>
+                    : "Desligado: os itens não têm o campo de repetição. Para o que se repete com dia certo ou depois de feito, use a Rotina da casa do CronologIA."}</div>
                 </div>
-                <label class="switch"><input type="checkbox" role="switch" .checked=${on} @change=${(e) => this._saveAppPrefs({ repeat_on: e.target.checked })} aria-label="Repetir depois de concluir" /><span class="track"></span></label>
+                <label class="switch"><input type="checkbox" role="switch" .checked=${on} @change=${(e) => this._toggleRepeat(e)} aria-label="Repetir depois de concluir" /><span class="track"></span></label>
               </div>
             </div>
-            <div class="panel ${on ? "" : "paused"}">
-              ${this._secHead("rotate-ccw", `Tarefas que se repetem${!on && this._rules.length ? " · pausadas" : ""}`)}
+            ${!on && !this._rules.length
+              ? nothing
+              : html`<div class="panel ${on ? "" : "paused"}">
+              ${this._secHead("rotate-ccw", "Tarefas que se repetem")}
+              ${!on && this._rules.length
+                ? html`<p class="panel-lead">Ficaram de quando a repetição estava ligada e não voltam mais sozinhas. Exclua para limpar.</p>
+                    <div class="btn-row sec-actions"><button class="btn danger sm" @click=${() => this._confirmClearRules(false)}>${icon("trash")}Excluir ${plural(this._rules.length, "repetição", "repetições")}</button></div>`
+                : nothing}
               ${this._rules.length
                 ? this._rules.map((r) => {
                     const l = this._list(r.entity_id);
@@ -1978,29 +1993,47 @@ class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
                       <span class="tile">${icon("repeat")}</span>
                       <button class="grow" style="text-align:left" @click=${() => this._go(`/lista/${l.id}`)}>
                         <div class="label">${r.summary || r.match}</div>
-                        <div class="hint">${l.name} · ${this._everyLabel(r.days)}${!on ? " · pausada" : r.reopen_at ? ` · volta ${this._returnLabel(r.reopen_at)}` : ""}</div>
+                        <div class="hint">${l.name} · ${this._everyLabel(r.days)}${!on ? " · desligada" : r.reopen_at ? ` · volta ${this._returnLabel(r.reopen_at)}` : ""}</div>
                       </button>
                       <button class="icon-btn" style="color:var(--rv-muted)" aria-label="Parar de repetir" @click=${() => this._setRule(r.entity_id, { uid: r.uid, summary: r.match || r.summary, days: null })}>${icon("x")}</button>
                     </div>`;
                   })
-                : html`<div class="row"><div class="hint" style="white-space:normal">${on ? "Nenhuma ainda. Abra um item e escolha “Repetir depois de concluir” — ex.: passar pano 3 dias depois de feito." : "Nenhuma."}</div></div>`}
-            </div>`;
+                : html`<div class="row"><div class="hint" style="white-space:normal">Nenhuma ainda. Abra um item e escolha “Repetir depois de concluir” — ex.: passar pano 3 dias depois de feito.</div></div>`}
+            </div>`}`;
   }
 
-  /** Mais › Aparência: theme, color and how the lists show. */
-  _renderAppearanceTab() {
-    const accent = this._app("accent", "vermelho");
+  /** Repetir depois de concluir: turning it off with repetitions asks first, and deletes them. */
+  _toggleRepeat(e) {
+    const on = e.target.checked;
+    if (on || !this._rules.length) return this._saveAppPrefs({ repeat_on: on });
+    e.target.checked = true; // until confirmed
+    this._confirmClearRules(true);
+  }
+
+  _confirmClearRules(turnOff) {
+    const n = this._rules.length;
+    this._openSheet("confirm", {
+      title: turnOff ? "Desligar a repetição?" : "Excluir as repetições?",
+      text: `${plural(n, "tarefa se repete", "tarefas se repetem")}. ${turnOff ? "Ao desligar, essas repetições são excluídas" : "Elas serão excluídas"}: os itens continuam nas listas, mas não voltam mais sozinhos depois de concluídos.`,
+      label: turnOff ? `Excluir e desligar` : `Excluir ${plural(n, "repetição", "repetições")}`,
+      run: async () => {
+        this._closeSheet();
+        try {
+          await this.hass.callWS({ type: "resolvia/recurring/clear" });
+          if (turnOff) await this._saveAppPrefs({ repeat_on: false });
+          this._haptic("warning");
+          this._showToast(`${plural(n, "repetição excluída", "repetições excluídas")}${turnOff ? " · repetição desligada" : ""}`);
+        } catch (err) {
+          this._showToast(`Não consegui: ${err.message}`);
+        }
+      },
+    });
+  }
+
+  /** Mais › Opções: how the lists show. */
+  _renderOptionsTab() {
     const sw = (on, label, ev) => html`<label class="switch"><input type="checkbox" role="switch" .checked=${on} @change=${ev} aria-label=${label} /><span class="track"></span></label>`;
     return html`
-        <div class="panel">
-          ${this._secHead("contrast", "Tema", "Automático segue o modo claro ou escuro do Home Assistant. Cada aparelho guarda a sua escolha.")}
-          ${themePicker({ theme: this._theme, onTheme: (k) => this._setTheme(k), icon })}
-        </div>
-        <div class="panel">
-          ${this._secHead("palette", "Cor do app", "Muda os botões principais, a aba escolhida e os destaques. Vale para todos os aparelhos.")}
-          ${colorPicker({ palette: PALETTE, value: accent, onPick: (id) => this._saveAppPrefs({ accent: id === "vermelho" ? null : id }) })}
-        </div>
-
         <div class="panel">
           ${this._secHead("layout-list", "Exibição")}
           <div class="row">
@@ -2012,7 +2045,21 @@ class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
             ${sw(this._app("show_done", false), "Concluídos abertos", (e) => this._saveAppPrefs({ show_done: e.target.checked }))}
           </div>
         </div>
+    `;
+  }
 
+  /** Mais › Aparência: theme and color. */
+  _renderAppearanceTab() {
+    const accent = this._app("accent", "vermelho");
+    return html`
+        <div class="panel">
+          ${this._secHead("contrast", "Tema", "Automático segue o modo claro ou escuro do Home Assistant. Cada aparelho guarda a sua escolha.")}
+          ${themePicker({ theme: this._theme, onTheme: (k) => this._setTheme(k), icon })}
+        </div>
+        <div class="panel">
+          ${this._secHead("palette", "Cor do app", "Muda os botões principais, a aba escolhida e os destaques. Vale para todos os aparelhos.")}
+          ${colorPicker({ palette: PALETTE, value: accent, onPick: (id) => this._saveAppPrefs({ accent: id === "vermelho" ? null : id }) })}
+        </div>
     `;
   }
 

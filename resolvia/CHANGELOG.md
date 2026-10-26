@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.13.0
+
+- **Recompensas** com a chave **Usar recompensas**, desligada por padrão. Desligada, o card mostra só a chave e nada vai para o placar do CronologIA, nem os pontos das tarefas que vêm de lá: concluir conta como feito, sem pontos.
+- **Desligar a repetição** com repetições criadas avisa quantas são e que serão excluídas. Confirmando, o app apaga todas e desliga. As que ficaram "pausadas" das versões anteriores ganham o botão **Excluir**.
+- Nova aba **Mais › Opções**, com a **Exibição** (agrupar por dispositivo, concluídos abertos), que saiu da Aparência.
+- A barra de abas do Mais rola para o lado em telas estreitas e mostra a aba escolhida.
+
 ## 2.12.0
 
 - **Mais › Integrações › Uso da IA**, como no EconomIA: o app conta cada leitura por IA (mensagem ou foto) e estima os tokens pelo tamanho do texto.

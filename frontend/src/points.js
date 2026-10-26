@@ -51,7 +51,7 @@ export const PointsMixin = (Base) =>
     /** What a task gives right now (0 when points are off). Tasks of the CronologIA bring their own points. */
     _pointsOf(listId, summary, uid = null) {
       const m = this._mirrored(listId, uid);
-      if (m) return this._pts.placar && this._pts.placar.ativo ? m.pontos || 0 : 0;
+      if (m) return this._pts.on && this._pts.placar && this._pts.placar.ativo ? m.pontos || 0 : 0;
       return this._ptsActive() ? this._rawPoints(listId, summary) : 0;
     }
 
@@ -177,7 +177,25 @@ export const PointsMixin = (Base) =>
       const p = this._pts;
       if (!p) return nothing;
       const pl = p.placar;
+      const on = !!p.on;
       const n = Object.values(p.points || {}).reduce((a, m) => a + Object.keys(m).length, 0);
+      const sw = html`<div class="row switch-row">
+          <div class="grow">
+            <div class="label">Usar recompensas</div>
+            <div class="hint" style="white-space:normal">${on
+              ? n
+                ? `${plural(n, "tarefa vale", "tarefas valem")} pontos. Para mudar, abra o item e escolha “Pontos para quem concluir”.`
+                : "Abra um item e escolha “Pontos para quem concluir”. Quem concluir ganha os pontos no placar."
+              : "Desligado: as tarefas não valem pontos e nada vai para o placar do CronologIA."}</div>
+          </div>
+          <label class="switch"><input type="checkbox" role="switch" .checked=${on} @change=${(e) => this._setPointsOn(e.target.checked)} aria-label="Usar recompensas" /><span class="track"></span></label>
+        </div>`;
+      if (!on) {
+        return html`<div class="panel" id="recompensas">
+          ${this._secHead("trophy", "Recompensas", "As tarefas daqui podem valer pontos no placar da casa do CronologIA, para quem concluir.")}
+          ${sw}
+        </div>`;
+      }
       const state = !pl
         ? { tone: "off", title: "CronologIA não encontrado", text: "Com o CronologIA no mesmo Home Assistant, as tarefas daqui podem valer pontos no placar das Recompensas." }
         : !pl.ativo
@@ -187,21 +205,10 @@ export const PointsMixin = (Base) =>
               title: `Conectado ao placar do CronologIA ${pl.versao}`.trim(),
               text: `${pl.participantes.join(" × ")} · fecha ${PERIOD[pl.periodo] || "toda semana"}. ${pl.eu ? `Neste usuário, os pontos vão para ${pl.eu}.` : "Este usuário do Home Assistant não está no placar: ao concluir, o app pergunta quem fez."}`,
             };
-      const on = !!p.on;
       return html`<div class="panel" id="recompensas">
         ${this._secHead("trophy", "Recompensas", "As tarefas daqui podem valer pontos no placar da casa do CronologIA, para quem concluir.")}
-        <div class="ai-state ${state.tone}"><span class="dot"></span><div><b>${state.title}</b><span>${state.text}</span></div></div>
-        <div class="row switch-row">
-          <div class="grow">
-            <div class="label">Pontos nas tarefas</div>
-            <div class="hint" style="white-space:normal">${on
-              ? n
-                ? `${plural(n, "tarefa vale", "tarefas valem")} pontos. Para mudar, abra o item e escolha “Pontos para quem concluir”.`
-                : "Abra um item e escolha “Pontos para quem concluir”. Quem concluir ganha os pontos no placar."
-              : "Desligado: as tarefas não valem pontos."}</div>
-          </div>
-          <label class="switch"><input type="checkbox" role="switch" .checked=${on} ?disabled=${!pl && !on} @change=${(e) => this._setPointsOn(e.target.checked)} aria-label="Pontos nas tarefas" /><span class="track"></span></label>
-        </div>
+        ${sw}
+        <div class="ai-state ${state.tone}" style="margin-bottom:16px"><span class="dot"></span><div><b>${state.title}</b><span>${state.text}</span></div></div>
       </div>`;
     }
   };

@@ -101,6 +101,14 @@ export class Recurring extends EventEmitter {
     this.tick();
   }
 
+  /** Mais › Repetições: turning the repetition off deletes every rule (the items stay in their lists). */
+  clearAll() {
+    const n = Object.keys(this.rules).length;
+    for (const id of Object.keys(this.rules)) delete this.rules[id];
+    if (n) this._changed();
+    return n;
+  }
+
   /** Create, change or remove a rule. Without uid the rule binds to the next pending item with that summary. */
   setRule({ entity_id, uid, summary, days }) {
     if (typeof entity_id !== "string" || !entity_id.startsWith("todo.")) throw new Error("Not a to-do entity");
