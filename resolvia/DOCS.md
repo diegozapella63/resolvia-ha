@@ -74,6 +74,10 @@ Com o **CronologIA** no mesmo Home Assistant e o placar dele ligado (CronologIA 
 
 Os pontos ficam pelo nome da tarefa em cada lista, então valem também quando uma tarefa que se repete volta. A mesma tarefa no mesmo dia conta uma vez só, mesmo concluída no CronologIA. Concluir pela Alexa ou pela tela padrão do Home Assistant não dá pontos (o app não sabe quem foi).
 
+## Levar uma lista para o CronologIA
+
+No CronologIA 1.13.0 ou mais novo, **Mais › Integrações › Tarefas do ResolvIA › Trazer uma lista para o CronologIA** transforma as tarefas de uma lista daqui em **Rotinas da casa** de lá. As que se repetem viram "Depois de feita" com os mesmos dias, e os pontos vão junto. As tarefas levadas saem da lista daqui, e o ResolvIA tira a repetição e os pontos delas, para não voltarem sozinhas.
+
 ## Manutenções e rotinas do CronologIA
 
 No CronologIA 1.10.0 ou mais novo, **Mais › Integrações › Tarefas do ResolvIA › Levar para o ResolvIA** coloca as manutenções e as rotinas da casa como tarefas numa lista daqui (a que você escolher lá). Cada uma aparece uma vez, com a próxima data e o troféu com os pontos dela (mesmo com **Pontos nas tarefas** desligado, porque os pontos vêm do CronologIA).
@@ -113,4 +117,4 @@ Em **Mais > Dados**:
 
 ## Segurança
 
-O app só aceita comandos de listas de tarefas (`todo.*`). Ele não lê nem controla nenhuma outra entidade da casa. Na pasta `share` ele só grava e lê os próprios backups, em `share/resolvia`, e o arquivo `share/resolvia/integracao.json` (nome e versão do app, as listas sem prazo, os pontos das tarefas e de quanto em quanto tempo cada uma volta, sem chave), que o CronologIA usa. Do CronologIA ele só lê `share/cronologia/integracao.json` (o placar e quais tarefas vêm das manutenções e rotinas). Os pontos vão para o CronologIA pelo evento `cronologia_pontos` do Home Assistant.
+O app só aceita comandos de listas de tarefas (`todo.*`). Ele não lê nem controla nenhuma outra entidade da casa. Na pasta `share` ele só grava e lê os próprios backups, em `share/resolvia`, e o arquivo `share/resolvia/integracao.json` (nome e versão do app, as listas sem prazo, os pontos das tarefas e de quanto em quanto tempo cada uma volta, sem chave), que o CronologIA usa. Ele escuta o evento `resolvia_esquecer` do CronologIA, que avisa quais tarefas foram levadas para lá (Trazer uma lista para o CronologIA), para tirar a repetição e os pontos delas. Do CronologIA ele só lê `share/cronologia/integracao.json` (o placar e quais tarefas vêm das manutenções e rotinas). Os pontos vão para o CronologIA pelo evento `cronologia_pontos` do Home Assistant.

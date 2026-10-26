@@ -17,7 +17,7 @@ import { Restore } from "./lib/restore.js";
 import { Placar } from "./lib/placar.js";
 import { snapshot, toCSV, backupZip, parseImport, Backups, listVersions, readVersion, fileStamp } from "./lib/data.js";
 
-const VERSION = "2.10.1";
+const VERSION = "2.11.0";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const WWW = path.join(HERE, "www");
 const DEV = process.env.RESOLVIA_DEV === "1";
@@ -133,6 +133,35 @@ ha.subscribe({ type: "subscribe_events", event_type: "state_changed" }, (ev) => 
   if (!isTodo(id)) return;
   setTodoState(id, ev.data.new_state);
   syncItemSubs();
+});
+
+// The CronologIA brought these tasks over as routines (Trazer do ResolvIA) and deleted them from
+// the list: forget their repetition (or a done one would be created again) and their points.
+ha.subscribe({ type: "subscribe_events", event_type: "resolvia_esquecer" }, (ev) => {
+  const d = (ev && ev.data) || {};
+  if (!isTodo(d.entity_id)) return;
+  const uids = new Set((Array.isArray(d.uids) ? d.uids : []).map(String));
+  const names = (Array.isArray(d.tarefas) ? d.tarefas : []).map((x) => String(x || "")).filter(Boolean).slice(0, 500);
+  let rules = 0;
+  for (const r of Object.values(store.rules || {})) {
+    if (r.entity_id !== d.entity_id) continue;
+    if (!((r.uid && uids.has(r.uid)) || (!r.uid && names.includes(r.match || r.summary)))) continue;
+    try {
+      recurring.setRule({ entity_id: r.entity_id, uid: r.uid || undefined, summary: r.match || r.summary, days: 0 });
+      rules++;
+    } catch (err) {
+      log.warn(`Não consegui tirar a repetição de "${r.summary}": ${err.message}`);
+    }
+  }
+  for (const name of names) {
+    try {
+      store.setPoints(d.entity_id, name, 0);
+    } catch (e) {
+      /* no points for it */
+    }
+  }
+  publishPresence();
+  log.info(`Levadas para o ${d.origem || "CronologIA"}: ${names.length} tarefas de ${d.entity_id}${rules ? ` (${rules} repetições tiradas)` : ""}`);
 });
 
 ha.on("ready", async () => {

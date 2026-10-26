@@ -84,6 +84,11 @@ const stateOf = (id) => {
   };
 };
 
+/** Delivers an event to the apps subscribed to it (subscribe_events with event_type). */
+function fireBus(eventType, data) {
+  for (const c of conns) for (const [sid, sub] of c.subs) if (sub.type === "bus" && sub.event_type === eventType) c.event(sid, { event_type: eventType, data, origin: "LOCAL", time_fired: new Date().toISOString() });
+}
+
 function changed(id) {
   for (const c of conns) {
     for (const [sid, sub] of c.subs) {
@@ -223,7 +228,7 @@ class Conn {
         case "config/device_registry/list":
           return ok(devices);
         case "subscribe_events":
-          this.subs.set(msg.id, { type: "state" });
+          this.subs.set(msg.id, !msg.event_type || msg.event_type === "state_changed" ? { type: "state" } : { type: "bus", event_type: msg.event_type });
           return ok();
         case "todo/item/subscribe":
           if (!lists[msg.entity_id]) fail("invalid_entity_id", "not found");
@@ -251,6 +256,7 @@ class Conn {
           if (typeof msg.event_type !== "string" || !msg.event_type) fail("invalid_format", "event_type required");
           firedEvents.push({ event_type: msg.event_type, data: msg.event_data || {}, at: new Date().toISOString() });
           console.log("fired", msg.event_type, JSON.stringify(msg.event_data || {}));
+          fireBus(msg.event_type, msg.event_data || {});
           return ok({ context: { id: "ctx" } });
         default:
           fail("unknown_command", `Unknown command ${msg.type}`);
@@ -266,6 +272,18 @@ const server = http.createServer((req, res) => {
   if (req.url === "/dev/events") {
     res.writeHead(200, { "content-type": "application/json" });
     return res.end(JSON.stringify(firedEvents));
+  }
+  // POST /dev/fire {event_type, data}: an event from another app (the CronologIA, an automation)
+  if (req.url === "/dev/fire" && req.method === "POST") {
+    let body = "";
+    req.on("data", (c) => (body += c));
+    req.on("end", () => {
+      const b = JSON.parse(body || "{}");
+      fireBus(b.event_type, b.data || {});
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end("{}");
+    });
+    return;
   }
   res.writeHead(404).end();
 });
