@@ -68,7 +68,7 @@ Depende da integração da lista. A Lista de tarefas local aceita tudo (prazo, h
 
 ## Recompensas (pontos)
 
-Com o **CronologIA** no mesmo Home Assistant e o placar dele ligado (CronologIA › Recompensas), as tarefas daqui podem valer pontos:
+Com o **CronologIA** no mesmo Home Assistant, a integração com o ResolvIA ligada lá (CronologIA › Mais › Integrações › Tarefas do ResolvIA › Usar a integração, desligada por padrão desde a 1.16.0) e o placar ligado (CronologIA › Recompensas), as tarefas daqui podem valer pontos:
 
 1. Em **Mais › Integrações › Recompensas**, ligue **Usar recompensas** (começa desligado; desligado, o card mostra só a chave e nada vai para o placar). Ligado, aparece se o placar do CronologIA foi encontrado, quem participa e para quem vão os pontos neste usuário.
 2. Abra uma tarefa e escolha **Pontos para quem concluir** (+5, +10, +20, +30, +50 ou outro valor). A tarefa passa a mostrar o troféu com os pontos.
@@ -95,7 +95,7 @@ Prazo é só o que você define. Algumas integrações preenchem sozinhas a data
 
 Nas listas em que você define prazo, dá para desligar os prazos em **⋯ › Personalizar › Prazos**.
 
-Para não usar prazo em nada (deixando as datas para o CronologIA), desligue **Mais › Opções › Prazos › Controlar prazos**. Somem a aba Prazos, o campo Prazo do item e a opção de prazos em Personalizar. As datas que os itens já têm (inclusive as que o CronologIA põe) continuam guardadas e aparecem só como informação, em cinza. No CronologIA nada muda.
+Para não usar prazo em nada (deixando as datas para o CronologIA), desligue **Mais › Opções › Prazos › Controlar prazos**. Somem a aba Prazos, o campo Prazo do item e a opção de prazos em Personalizar. As datas que os itens já têm (inclusive as que o CronologIA põe) continuam guardadas e aparecem só como informação, em cinza. No CronologIA (1.16.0 ou mais novo), o **Novo › Tarefa** também deixa de oferecer prazo; o resto continua igual por lá.
 
 ## Sugestões
 

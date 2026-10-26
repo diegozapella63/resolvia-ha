@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.15.0
+
+- **Recompensas** mostra quando a integração com o ResolvIA está desligada no CronologIA (1.16.0 ou mais novo): nesse caso as tarefas não dão pontos e nada do CronologIA fica marcado aqui.
+- **Controlar prazos** desligado também tira o prazo do **Novo › Tarefa** do CronologIA.
+
 ## 2.14.0
 
 - **Mais › Opções › Prazos › Controlar prazos** (ligado por padrão). Desligado, somem a aba Prazos, o campo Prazo do item e a opção de prazos em Personalizar; as datas que já existem aparecem só como informação.

@@ -19,7 +19,10 @@ export class Placar {
     this.cache = null;
   }
 
-  /** {versao, ativo, periodo, participantes, usuarios} or null (no CronologIA). */
+  /**
+   * {versao, ativo, desligado, periodo, participantes, usuarios, espelho} or null (no CronologIA).
+   * desligado: the CronologIA turned its ResolvIA integration off (1.16.0+), so no points and nothing kept here.
+   */
   read(now = Date.now()) {
     if (this.cache && now - this.cache.at < 15000) return this.cache.value;
     let value = null;
@@ -40,7 +43,8 @@ export class Placar {
             (espelho[list] || (espelho[list] = {}))[String(uid).slice(0, 300)] = { pontos: Math.max(0, Math.min(1000, Math.round(Number(v.pontos) || 0))), tipo: v.tipo === "rotina" ? "rotina" : "manutencao" };
           }
         }
-        value = { versao: String(j.versao || "").slice(0, 20), ativo: !!p.ativo && participantes.length > 0, periodo: String(p.periodo || "semana"), participantes, usuarios, espelho };
+        const desligado = j.resolvia === false;
+        value = { versao: String(j.versao || "").slice(0, 20), ativo: !desligado && !!p.ativo && participantes.length > 0, desligado, periodo: String(p.periodo || "semana"), participantes, usuarios, espelho: desligado ? {} : espelho };
       }
     } catch (e) {
       /* no CronologIA here */

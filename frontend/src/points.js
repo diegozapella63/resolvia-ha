@@ -151,7 +151,9 @@ export const PointsMixin = (Base) =>
         ${n
           ? html`<div class="field-hint">${icon("trophy")}<span>${pl && pl.ativo
               ? `Quem concluir ganha ${n} pontos no placar do CronologIA (${pl.participantes.join(" × ")}).`
-              : "O placar do CronologIA está desligado: os pontos valem quando ele for ligado."}</span></div>`
+              : pl && pl.desligado
+                ? "A integração com o ResolvIA está desligada no CronologIA: os pontos valem quando ela for ligada."
+                : "O placar do CronologIA está desligado: os pontos valem quando ele for ligado."}</span></div>`
           : nothing}
       </div>`;
     }
@@ -198,7 +200,9 @@ export const PointsMixin = (Base) =>
       }
       const state = !pl
         ? { tone: "off", title: "CronologIA não encontrado", text: "Com o CronologIA no mesmo Home Assistant, as tarefas daqui podem valer pontos no placar das Recompensas." }
-        : !pl.ativo
+        : pl.desligado
+          ? { tone: "warn", title: `Integração desligada no CronologIA ${pl.versao}`.trim(), text: "Ligue em CronologIA › Mais › Integrações › Tarefas do ResolvIA › Usar a integração para as tarefas daqui valerem pontos." }
+          : !pl.ativo
           ? { tone: "warn", title: `Placar desligado no CronologIA ${pl.versao}`.trim(), text: "Ligue o placar em CronologIA › Recompensas para as tarefas daqui valerem pontos." }
           : {
               tone: "ok",

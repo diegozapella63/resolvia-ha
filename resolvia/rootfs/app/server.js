@@ -19,7 +19,7 @@ import { Restore } from "./lib/restore.js";
 import { Placar } from "./lib/placar.js";
 import { snapshot, toCSV, backupZip, parseImport, Backups, listVersions, readVersion, fileStamp } from "./lib/data.js";
 
-const VERSION = "2.14.0";
+const VERSION = "2.15.0";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const WWW = path.join(HERE, "www");
 const DEV = process.env.RESOLVIA_DEV === "1";
@@ -363,7 +363,7 @@ class Session {
       }
       case "resolvia/prefs/set_app": {
         const prefs = store.setAppPrefs(msg.prefs);
-        if ("points_on" in (msg.prefs || {})) publishPresence();
+        if ("points_on" in (msg.prefs || {}) || "due_off" in (msg.prefs || {})) publishPresence();
         if ("repeat_on" in (msg.prefs || {})) {
           // back on: completed items with a rule start counting now; off: nothing comes back
           for (const [eid, items] of recurring.items) recurring.process(eid, items);
@@ -686,7 +686,9 @@ function publishPresence() {
     const pontos = store.prefs.app.points_on ? store.points : {};
     const repete = repeatMap();
     lastRepeat = JSON.stringify(repete);
-    fs.writeFileSync(tmp, JSON.stringify({ app: "ResolvIA", versao: VERSION, gravado_em: new Date().toISOString(), sem_prazo: semPrazo, pontos, repete }, null, 1));
+    // prazos: Mais › Opções › Controlar prazos (false: the CronologIA doesn't offer a deadline for new tasks either)
+    const prazos = !store.prefs.app.due_off;
+    fs.writeFileSync(tmp, JSON.stringify({ app: "ResolvIA", versao: VERSION, gravado_em: new Date().toISOString(), prazos, sem_prazo: semPrazo, pontos, repete }, null, 1));
     fs.renameSync(tmp, path.join(dir, "integracao.json"));
     publishWarned = false;
   } catch (err) {
