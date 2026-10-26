@@ -1,5 +1,7 @@
 // Icons from Lucide (ISC License, https://lucide.dev). Generated at build time.
 export const ICONS = {
+"database": "<ellipse cx=\"12\" cy=\"5\" rx=\"9\" ry=\"3\"/><path d=\"M3 5V19A9 3 0 0 0 21 19V5\"/><path d=\"M3 12A9 3 0 0 0 21 12\"/>",
+"layout-list": "<rect width=\"7\" height=\"7\" x=\"3\" y=\"3\" rx=\"1\"/><rect width=\"7\" height=\"7\" x=\"3\" y=\"14\" rx=\"1\"/><path d=\"M14 4h7\"/><path d=\"M14 9h7\"/><path d=\"M14 15h7\"/><path d=\"M14 20h7\"/>",
 "menu": "<path d=\"M4 5h16\"/><path d=\"M4 12h16\"/><path d=\"M4 19h16\"/>",
 "chevron-left": "<path d=\"m15 18-6-6 6-6\"/>",
 "chevron-right": "<path d=\"m9 18 6-6-6-6\"/>",

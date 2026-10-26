@@ -189,7 +189,7 @@ export const PointsMixin = (Base) =>
             };
       const on = !!p.on;
       return html`<div class="panel" id="recompensas">
-        <div class="overline">Recompensas</div>
+        ${this._secHead("trophy", "Recompensas", "As tarefas daqui podem valer pontos no placar da casa do CronologIA, para quem concluir.")}
         <div class="ai-state ${state.tone}"><span class="dot"></span><div><b>${state.title}</b><span>${state.text}</span></div></div>
         <div class="row switch-row">
           <div class="grow">

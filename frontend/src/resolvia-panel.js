@@ -36,7 +36,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.9.2";
+const VERSION = "2.9.3";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -1841,6 +1841,11 @@ class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
     ];
   }
 
+  /** Section heading of Mais, like the InventarIA: the icon in a soft square, a big title and, optionally, a line about it. */
+  _secHead(ic, title, lead = null) {
+    return html`<div class="mais-head"><span class="mais-ic" aria-hidden="true">${icon(ic)}</span><h2>${title}</h2></div>${lead ? html`<p class="panel-lead">${lead}</p>` : nothing}`;
+  }
+
   _renderMore() {
     const tabs = this._moreTabs();
     const want = this._view().tab;
@@ -1878,7 +1883,7 @@ class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
     const sw = (on, label, ev) => html`<label class="switch"><input type="checkbox" role="switch" .checked=${on} @change=${ev} aria-label=${label} /><span class="track"></span></label>`;
     return html`
         <div class="panel">
-          <div class="overline">Listas</div>
+          ${this._secHead("list-checks", "Listas", "Nome, cor, ícone e quais aparecem na tela inicial. Toque numa lista para personalizar.")}
           ${this._L.length
             ? this._L.map(
                 (l) => html`
@@ -1917,7 +1922,7 @@ class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
   _renderRulesTab() {
     const on = this._repeatOn();
     return html`<div class="panel">
-              <div class="overline">Repetição automática</div>
+              ${this._secHead("repeat", "Repetição automática")}
               <div class="row switch-row">
                 <div class="grow">
                   <div class="label">Repetir depois de concluir</div>
@@ -1931,7 +1936,7 @@ class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
               </div>
             </div>
             <div class="panel ${on ? "" : "paused"}">
-              <div class="overline">Tarefas que se repetem${!on && this._rules.length ? " · pausadas" : ""}</div>
+              ${this._secHead("rotate-ccw", `Tarefas que se repetem${!on && this._rules.length ? " · pausadas" : ""}`)}
               ${this._rules.length
                 ? this._rules.map((r) => {
                     const l = this._list(r.entity_id);
@@ -1955,7 +1960,7 @@ class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
     const sw = (on, label, ev) => html`<label class="switch"><input type="checkbox" role="switch" .checked=${on} @change=${ev} aria-label=${label} /><span class="track"></span></label>`;
     return html`
         <div class="panel">
-          <div class="overline">Aparência</div>
+          ${this._secHead("palette", "Aparência")}
           <div class="row col">
             <div class="label">Tema</div>
             <div class="seg" role="radiogroup" aria-label="Tema">
@@ -1978,7 +1983,7 @@ class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
         </div>
 
         <div class="panel">
-          <div class="overline">Exibição</div>
+          ${this._secHead("layout-list", "Exibição")}
           <div class="row">
             <div class="grow"><div class="label">Agrupar por dispositivo</div><div class="hint">Ex.: as listas da Alexa juntas</div></div>
             ${sw(this._app("group_by_device", true), "Agrupar por dispositivo", (e) => this._saveAppPrefs({ group_by_device: e.target.checked }))}
@@ -2006,8 +2011,7 @@ class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
     }
     if (ai.reason) detail = `${detail} ${ai.reason}`.trim();
     return html`<div class="panel" id="leitura-ia">
-      <div class="overline">Leitura por IA</div>
-      <p class="panel-lead">Separa os itens de mensagens coladas, prints e fotos de listas em papel. Usa a integração de IA configurada no Home Assistant (Anthropic Claude, OpenAI, Google Gemini ou um modelo local pelo Ollama); o app não guarda nenhuma chave.</p>
+      ${this._secHead("sparkles", "Leitura por IA", "Separa os itens de mensagens coladas, prints e fotos de listas em papel. Usa a integração de IA configurada no Home Assistant (Anthropic Claude, OpenAI, Google Gemini ou um modelo local pelo Ollama); o app não guarda nenhuma chave.")}
       <div class="ai-state ${tone}"><span class="dot"></span><div><b>${title}</b>${detail ? html`<span>${detail}</span>` : nothing}</div></div>
       ${ents.length || sel
         ? html`<label class="field" style="margin:14px 0 0">

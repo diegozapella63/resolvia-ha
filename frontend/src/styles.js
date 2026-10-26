@@ -358,6 +358,46 @@ export const styles = css`
   .panel > .overline {
     padding: 16px 0 6px;
   }
+  /* Mais: section headings like the InventarIA (icon in a soft square + big title) */
+  .mais-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 0 10px;
+  }
+  .mais-head h2 {
+    margin: 0;
+    font-family: var(--rv-display);
+    font-size: 23px;
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: 0.005em;
+    color: var(--rv-text);
+  }
+  .mais-ic {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+    background: var(--rv-accent-soft);
+    color: var(--rv-accent-ink);
+  }
+  .mais-ic .i {
+    width: 21px;
+    height: 21px;
+    stroke-width: 1.9;
+  }
+  .mais-head + .panel-lead {
+    margin-top: 0;
+  }
+  .sec-actions {
+    padding-bottom: 16px;
+  }
+  .panel > .panel-lead:last-child {
+    margin-bottom: 18px;
+  }
   .panel-title {
     font-size: 25px;
     padding: 18px 0 2px;
