@@ -24,6 +24,8 @@ Você revisa os itens (dá para corrigir, desmarcar ou incluir linhas) e escolhe
 
 ### Leitura por IA
 
+**Usar IA** (em **Mais › Integrações › Leitura por IA**) liga ou desliga tudo o que usa IA. Desligada, somem o **Colar mensagem**, o **Escolher fotos** e o **Digitalizar com IA** (no Adicionar e no botão ao lado do campo de cada lista), e o app não chama a IA. Colar várias linhas no campo de adicionar continua criando um item por linha. Começa ligada.
+
 O ResolvIA não tem IA própria e não guarda chave de API. Ele usa a ação `ai_task.generate_data` do Home Assistant, então funciona com a integração de IA que você configurar lá, e dá para trocar quando quiser:
 
 | Integração | Observação |

@@ -17,7 +17,7 @@ import { Restore } from "./lib/restore.js";
 import { Placar } from "./lib/placar.js";
 import { snapshot, toCSV, backupZip, parseImport, Backups, listVersions, readVersion, fileStamp } from "./lib/data.js";
 
-const VERSION = "2.9.3";
+const VERSION = "2.10.0";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const WWW = path.join(HERE, "www");
 const DEV = process.env.RESOLVIA_DEV === "1";
@@ -540,6 +540,7 @@ function handleExtract(req, res) {
     } catch (e) {
       return sendJson(res, 400, { error: "JSON inválido" });
     }
+    if (store.prefs.app.ai_off) return sendJson(res, 409, { error: "A IA está desligada em Mais › Integrações", code: "ai_off" });
     const started = Date.now();
     try {
       const out = await ai.extract({ text: body.text, images: body.images, listName: body.list_name });

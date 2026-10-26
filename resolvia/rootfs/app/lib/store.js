@@ -36,6 +36,8 @@ const APP_FIELDS = {
   points_on: ["boolean"],
   // Mais > Repetições: "Repetir depois de concluir" on (true) or off (false); unset = on when there are rules
   repeat_on: ["boolean"],
+  // Mais > Integrações > Usar IA: true = off (no import from messages and photos)
+  ai_off: ["boolean"],
 };
 
 /** A repeating task from a file (import, restore): only the known fields, sane values. */

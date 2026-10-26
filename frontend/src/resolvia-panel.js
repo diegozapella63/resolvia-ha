@@ -36,7 +36,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.9.3";
+const VERSION = "2.10.0";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -765,8 +765,13 @@ class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
     this._showToast("IA do app atualizada");
   }
 
+  /** Mais › Integrações › Usar IA: off hides the import from messages and photos. */
+  _aiOn() {
+    return !this._app("ai_off", false);
+  }
+
   _canImport() {
-    return !!(this.hass && this.hass.resolvia && this.hass.resolvia.extract);
+    return this._aiOn() && !!(this.hass && this.hass.resolvia && this.hass.resolvia.extract);
   }
 
   _importTarget(listId) {
@@ -1999,6 +2004,19 @@ class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
 
   _renderAiPanel() {
     if (!this.hass.resolvia) return nothing;
+    const on = this._aiOn();
+    const sw = html`<div class="row switch-row">
+        <div class="grow"><div class="label">Usar IA</div><div class="hint" style="white-space:normal">${on
+          ? "Ligado: em Adicionar aparecem Colar mensagem, Escolher fotos e Digitalizar com IA."
+          : "Desligado: Colar mensagem, Escolher fotos e Digitalizar com IA somem. Colar várias linhas no campo de adicionar continua criando um item por linha."}</div></div>
+        <label class="switch"><input type="checkbox" role="switch" .checked=${on} @change=${(e) => this._saveAppPrefs({ ai_off: e.target.checked ? null : true })} aria-label="Usar IA" /><span class="track"></span></label>
+      </div>`;
+    if (!on) {
+      return html`<div class="panel" id="leitura-ia">
+        ${this._secHead("sparkles", "Leitura por IA", "Separa os itens de mensagens coladas, prints e fotos de listas em papel, com a IA configurada no Home Assistant.")}
+        ${sw}
+      </div>`;
+    }
     const ai = this._aiInfo();
     const ents = ai.entities || [];
     const sel = this._app("ai_entity", "");
@@ -2012,6 +2030,7 @@ class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
     if (ai.reason) detail = `${detail} ${ai.reason}`.trim();
     return html`<div class="panel" id="leitura-ia">
       ${this._secHead("sparkles", "Leitura por IA", "Separa os itens de mensagens coladas, prints e fotos de listas em papel. Usa a integração de IA configurada no Home Assistant (Anthropic Claude, OpenAI, Google Gemini ou um modelo local pelo Ollama); o app não guarda nenhuma chave.")}
+      ${sw}
       <div class="ai-state ${tone}"><span class="dot"></span><div><b>${title}</b>${detail ? html`<span>${detail}</span>` : nothing}</div></div>
       ${ents.length || sel
         ? html`<label class="field" style="margin:14px 0 0">
