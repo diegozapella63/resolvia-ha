@@ -6,7 +6,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 
 const VERSION_EVERY = 10 * 60 * 1000;
-const MAX_VERSIONS = 60;
+const MAX_VERSIONS = 3; // Versões anteriores: only the 3 newest copies are kept
 const pad = (n) => String(n).padStart(2, "0");
 const stamp = (d = new Date()) => `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
 const isObj = (v) => v && typeof v === "object" && !Array.isArray(v);
@@ -162,6 +162,16 @@ export class Store {
     return this.data;
   }
 
+  /** Keeps only the newest MAX_VERSIONS copies in /data/versoes. */
+  trimVersions() {
+    try {
+      const all = fs.readdirSync(this.versionsDir).filter((f) => /^resolvia-.*\.json$/.test(f)).sort();
+      for (const old of all.slice(0, Math.max(0, all.length - MAX_VERSIONS))) fs.rmSync(path.join(this.versionsDir, old), { force: true });
+    } catch (e) {
+      /* no versions yet */
+    }
+  }
+
   /** Copies the file as it is now to /data/versoes (at most every 10 min unless forced). */
   version(reason = "auto", force = false) {
     if (!force && Date.now() - this.lastVersion < VERSION_EVERY) return null;
@@ -171,8 +181,7 @@ export class Store {
       const name = `resolvia-${stamp()}-${reason}.json`;
       fs.copyFileSync(this.file, path.join(this.versionsDir, name));
       this.lastVersion = Date.now();
-      const all = fs.readdirSync(this.versionsDir).filter((f) => /^resolvia-.*\.json$/.test(f)).sort();
-      for (const old of all.slice(0, Math.max(0, all.length - MAX_VERSIONS))) fs.rmSync(path.join(this.versionsDir, old), { force: true });
+      this.trimVersions();
       return name;
     } catch (err) {
       this.log.warn(`Não consegui guardar uma versão: ${err.message}`);

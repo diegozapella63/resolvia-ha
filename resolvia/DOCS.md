@@ -109,7 +109,7 @@ Em **Mais > Dados**:
   - Os itens **pendentes** que não estiverem nas listas voltam, com prazo e notas, sem duplicar o que já existe (compara pelo nome). Os concluídos ficam só no arquivo.
   - Num Home Assistant novo, as listas são encontradas pelo nome. Lista que não existir aparece no aviso ("Lista não encontrada"); crie a lista e importe de novo.
   - Lista que não aceita itens novos (ou só aceita prazo sem horário) recebe o que for possível.
-- **Versões anteriores**: o app guarda sozinho uma cópia dos ajustes a cada 10 minutos de uso (até 60 cópias) e sempre antes de importar ou restaurar. **Restaurar** volta os ajustes e as repetições; os itens das listas não mudam.
+- **Versões anteriores**: o app guarda sozinho uma cópia dos ajustes a cada 10 minutos de uso e sempre antes de importar ou restaurar, e mantém só as 3 mais recentes. **Restaurar** volta os ajustes e as repetições; os itens das listas não mudam.
 
 ## Segurança
 

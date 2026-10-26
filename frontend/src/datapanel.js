@@ -204,7 +204,7 @@ export const DataMixin = (Base) =>
           <div class="btn-row sec-actions"><button class="btn outline sm" @click=${() => this._pickDataImport()}>${icon("upload")}Escolher arquivo</button></div>
         </div>
         <div class="panel">
-          ${this._secHead("archive-restore", "Versões anteriores", "O app guarda sozinho uma cópia dos ajustes e das repetições a cada 10 minutos de uso. Se algo sair errado, volte para uma versão anterior.")}
+          ${this._secHead("archive-restore", "Versões anteriores", "O app guarda sozinho uma cópia dos ajustes e das repetições a cada 10 minutos de uso e antes de importar ou restaurar, e mantém as 3 mais recentes. Se algo sair errado, volte para uma delas.")}
           <div class="btn-row sec-actions"><button class="btn outline sm" @click=${() => this._openVersions()}>${icon("archive-restore")}Ver versões</button></div>
         </div>
         <div class="panel">
