@@ -13,11 +13,12 @@ import { HAClient } from "./lib/ha.js";
 import { Store, datesInfo } from "./lib/store.js";
 import { Recurring } from "./lib/recurring.js";
 import { AI } from "./lib/ai.js";
+import { AiUsage } from "./lib/usage.js";
 import { Restore } from "./lib/restore.js";
 import { Placar } from "./lib/placar.js";
 import { snapshot, toCSV, backupZip, parseImport, Backups, listVersions, readVersion, fileStamp } from "./lib/data.js";
 
-const VERSION = "2.11.0";
+const VERSION = "2.12.0";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const WWW = path.join(HERE, "www");
 const DEV = process.env.RESOLVIA_DEV === "1";
@@ -78,7 +79,9 @@ async function restoreAll(raw, reason, opts) {
   publishPresence();
   return out;
 }
-const ai = new AI({ ha, log, mediaDir: MEDIA_DIR, selected: () => store.prefs.app.ai_entity || "" });
+const HA_REST = process.env.HA_REST_URL || "http://supervisor/core/api";
+const usage = new AiUsage({ dir: DATA_DIR, sensor: "sensor.resolvia_ia_hoje", label: "ResolvIA", rest: HA_REST, token: TOKEN, log });
+const ai = new AI({ ha, log, mediaDir: MEDIA_DIR, selected: () => store.prefs.app.ai_entity || "", usage });
 const itemSubs = new Map(); // entity_id -> subscription (for the recurring engine)
 const listWatchers = new Set(); // {session, id}
 const ruleWatchers = new Set(); // {session, id}
@@ -305,6 +308,10 @@ class Session {
 
       case "resolvia/ai/status":
         return this.result(id, await ai.status());
+
+      // Mais › Integrações › Uso da IA
+      case "resolvia/ai/usage":
+        return this.result(id, usage.summary());
 
       case "resolvia/subscribe_lists":
         this.watch(listWatchers, id);

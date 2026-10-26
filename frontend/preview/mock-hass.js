@@ -327,6 +327,17 @@ export function createMockHass(onChange) {
       }
       // Recompensas (the CronologIA scoreboard), simulated
       const ptsState = () => ({ on: !!prefs.app.points_on, points: JSON.parse(JSON.stringify(points)), placar: { versao: "1.10.0", ativo: true, periodo: "semana", participantes: ["Diego", "Andressa"], eu: "Diego" }, espelho: { "todo.casa": { "cr-filtro": { pontos: 30, tipo: "manutencao" }, "cr-lixo": { pontos: 10, tipo: "rotina" } } } });
+      if (msg.type === "resolvia/ai/usage") {
+        const d = new Date();
+        const pad = (n) => String(n).padStart(2, "0");
+        const day = (i) => {
+          const x = new Date(d.getFullYear(), d.getMonth(), d.getDate() - i);
+          return `${x.getFullYear()}-${pad(x.getMonth() + 1)}-${pad(x.getDate())}`;
+        };
+        const per = [1, 0, 2, 0, 3, 1, 2];
+        const t = (n) => ({ chamadas: n, erros: 0, cota: 0, tokens: n * 300, imagens: Math.floor(n / 2), segundos: n * 5, tipos: { mensagem: Math.ceil(n / 2), fotos: Math.floor(n / 2) }, ias: { "ai_task.google_ai_task": n } });
+        return { hoje: t(2), semana: t(9), mes: t(24), dias: per.map((n, k) => ({ dia: day(6 - k), chamadas: n, erros: 0, cota: 0 })), ultimas: [{ quando: new Date(Date.now() - 1800000).toISOString(), tipo: "mensagem", ia: "ai_task.google_ai_task", resultado: "ok", segundos: 2.6, tokens: 290, imagens: 0 }], desde: day(20), sensor: "sensor.resolvia_ia_hoje" };
+      }
       if (msg.type === "resolvia/points/get") return ptsState();
       if (msg.type === "resolvia/points/set") {
         const map = { ...(points[msg.entity_id] || {}) };

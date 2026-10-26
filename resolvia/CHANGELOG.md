@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.12.0
+
+- **Mais › Integrações › Uso da IA**, como no EconomIA: o app conta cada leitura por IA (mensagem ou foto) e estima os tokens pelo tamanho do texto.
+  - Mostra hoje, 7 dias e o mês, um gráfico por dia (toque numa barra), os tipos de chamada e as últimas chamadas, com o link para o consumo exato no provedor.
+  - Novo sensor `sensor.resolvia_ia_hoje`.
+  - Some junto com a chave **Usar IA**.
+- **Buscar**: saiu a nota "acentos não importam" (a busca continua ignorando acentos).
+- **Mais › Aparência** como no InventarIA: **Tema** em três botões grandes (Automático, Claro, Escuro) e **Cor do app** em etiquetas com o nome de cada cor.
+
 ## 2.11.0
 
 - Quando o CronologIA 1.13.0 traz tarefas de uma lista daqui para virarem Rotinas da casa (Trazer uma lista para o CronologIA), o ResolvIA esquece a repetição e os pontos delas (evento `resolvia_esquecer`). Assim, uma tarefa repetida que já estava concluída não é recriada no dia de voltar.

@@ -8,6 +8,9 @@ import {
 import { ICONS } from "./icons.js";
 import { ensureFonts } from "./fonts.js";
 import { styles } from "./styles.js";
+import { usagePanel, usageStyles } from "./usage-panel.js";
+import { themePicker, colorPicker, lookStyles } from "./look.js";
+import { unsafeCSS } from "../vendor/lit-all.min.js";
 import { DataMixin } from "./datapanel.js";
 import { PointsMixin, stripMark, markOf } from "./points.js";
 import {
@@ -36,7 +39,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.11.0";
+const VERSION = "2.12.0";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -97,7 +100,7 @@ class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
     env: { attribute: false },
   };
 
-  static styles = styles;
+  static styles = [styles, unsafeCSS(usageStyles), unsafeCSS(lookStyles)];
 
   constructor() {
     super();
@@ -194,6 +197,7 @@ class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
       if (tab === "integracoes") {
         this._refreshAi(false);
         this._loadPoints();
+        this._loadUsage();
       }
       if (tab === "dados") this._loadBackups();
     }
@@ -763,6 +767,30 @@ class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
     await this._saveAppPrefs({ ai_entity: id || null });
     await this._refreshAi();
     this._showToast("IA do app atualizada");
+  }
+
+  /** Mais › Integrações › Uso da IA: the calls counted by the server (uso_ia.json). */
+  async _loadUsage() {
+    if (!this.hass || !this.hass.resolvia) return;
+    try {
+      this._usage = await this.hass.callWS({ type: "resolvia/ai/usage" });
+    } catch (err) {
+      this._usage = null;
+    }
+    this.requestUpdate();
+  }
+
+  _renderUsage() {
+    const ai = this._aiInfo();
+    return usagePanel({
+      u: this._usage,
+      day: this._usageDay,
+      onDay: (d) => ((this._usageDay = d), this.requestUpdate()),
+      head: this._secHead("chart-column", "Uso da IA", "Cada mensagem ou foto lida é uma chamada para a IA do Home Assistant. O Home Assistant não informa tokens nem custo, então o ResolvIA conta as chamadas e estima os tokens pelo tamanho do texto."),
+      app: "ResolvIA",
+      using: (ai.using && ai.using.id) || "",
+      names: Object.fromEntries((ai.entities || []).map((e) => [e.id, e.name])),
+    });
   }
 
   /** Mais › Integrações › Usar IA: off hides the import from messages and photos. */
@@ -1803,7 +1831,7 @@ class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
     }
     return html`
       <section class="page">
-        ${this._renderPageHead("Buscar", { text: `Em ${plural(this._L.length, "lista", "listas")} · acentos não importam` })}
+        ${this._renderPageHead("Buscar", { text: `Em ${plural(this._L.length, "lista", "listas")}` })}
         <label class="search-box">
           ${icon("search")}
           <input type="search" placeholder="Buscar em todas as listas" .value=${this._query} @input=${(e) => (this._query = e.target.value)} enterkeyhint="search" aria-label="Buscar" />
@@ -1863,7 +1891,7 @@ class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
     let body;
     let status = { text: `ResolvIA ${VERSION}${this._prefsRemote ? " · personalizações sincronizadas" : ""}` };
     if (tab === "repeticoes") body = this._renderRulesTab();
-    else if (tab === "integracoes") body = html`${this._renderRewardsPanel()} ${this._renderAiPanel()}`;
+    else if (tab === "integracoes") body = html`${this._renderRewardsPanel()} ${this._renderAiPanel()} ${this.hass.resolvia && this._aiOn() ? this._renderUsage() : nothing}`;
     else if (tab === "dados") body = this._renderDataPanel();
     else if (tab === "aparencia") body = this._renderAppearanceTab();
     else {
@@ -1965,26 +1993,12 @@ class ResolviaPanel extends PointsMixin(DataMixin(LitElement)) {
     const sw = (on, label, ev) => html`<label class="switch"><input type="checkbox" role="switch" .checked=${on} @change=${ev} aria-label=${label} /><span class="track"></span></label>`;
     return html`
         <div class="panel">
-          ${this._secHead("palette", "Aparência")}
-          <div class="row col">
-            <div class="label">Tema</div>
-            <div class="seg" role="radiogroup" aria-label="Tema">
-              ${[
-                ["auto", "Automático", "sun-moon"],
-                ["light", "Claro", "sun"],
-                ["dark", "Escuro", "moon"],
-              ].map(([k, label, ic]) => html`<button class=${this._theme === k ? "on" : ""} role="radio" aria-checked=${this._theme === k ? "true" : "false"} @click=${() => this._setTheme(k)}>${icon(ic)}${label}</button>`)}
-            </div>
-            <div class="hint" style="white-space:normal">${this._theme === "auto" ? "Segue o modo claro/escuro do Home Assistant." : "Vale só para este aparelho."}</div>
-          </div>
-          <div class="row col">
-            <div class="label">Cor do app</div>
-            <div class="swatches">
-              ${PALETTE.map(
-                (c) => html`<button class="sw ${accent === c.id ? "on" : ""}" style="--c:${c.fill}" aria-label=${c.label} @click=${() => this._saveAppPrefs({ accent: c.id === "vermelho" ? null : c.id })}>${accent === c.id ? icon("check") : nothing}</button>`,
-              )}
-            </div>
-          </div>
+          ${this._secHead("contrast", "Tema", "Automático segue o modo claro ou escuro do Home Assistant. Cada aparelho guarda a sua escolha.")}
+          ${themePicker({ theme: this._theme, onTheme: (k) => this._setTheme(k), icon })}
+        </div>
+        <div class="panel">
+          ${this._secHead("palette", "Cor do app", "Muda os botões principais, a aba escolhida e os destaques. Vale para todos os aparelhos.")}
+          ${colorPicker({ palette: PALETTE, value: accent, onPick: (id) => this._saveAppPrefs({ accent: id === "vermelho" ? null : id }) })}
         </div>
 
         <div class="panel">

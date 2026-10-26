@@ -268,10 +268,29 @@ class Conn {
 }
 
 // Test helper: GET /dev/events lists the events the app fired (fire_event).
+const restStates = new Map();
 const server = http.createServer((req, res) => {
   if (req.url === "/dev/events") {
     res.writeHead(200, { "content-type": "application/json" });
     return res.end(JSON.stringify(firedEvents));
+  }
+  // REST: POST/GET /api/states/<entity> (the sensors the app publishes)
+  const st = req.url.match(/^\/api\/states\/([a-z_]+\.[a-z0-9_]+)$/);
+  if (st) {
+    if (req.method === "POST") {
+      let body = "";
+      req.on("data", (c) => (body += c));
+      req.on("end", () => {
+        const b = JSON.parse(body || "{}");
+        restStates.set(st[1], { entity_id: st[1], state: String(b.state), attributes: b.attributes || {}, last_changed: new Date().toISOString() });
+        res.writeHead(200, { "content-type": "application/json" });
+        res.end(JSON.stringify(restStates.get(st[1])));
+      });
+      return;
+    }
+    const v = restStates.get(st[1]);
+    res.writeHead(v ? 200 : 404, { "content-type": "application/json" });
+    return res.end(JSON.stringify(v || { message: "Entity not found." }));
   }
   // POST /dev/fire {event_type, data}: an event from another app (the CronologIA, an automation)
   if (req.url === "/dev/fire" && req.method === "POST") {
