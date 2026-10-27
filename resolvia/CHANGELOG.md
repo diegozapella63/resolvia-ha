@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.17.0
+
+- **Buscar no início**, como no InventarIA: o campo **Buscar entre N itens** logo abaixo do resumo. A primeira letra já abre o Buscar com o que foi digitado.
+- **No computador**, o Buscar já abre com o cursor no campo, e a tecla **/** abre o Buscar de qualquer tela. No celular o teclado não abre sozinho.
+- **Sugestões** sempre traz 5 (ou todos, se houver menos). Antes, com itens novos ou uma lista só, podia trazer só 1: o resto agora vem na ordem da lista.
+
 ## 2.16.0
 
 - **No computador** (tela de 1000 pixels ou mais), como no InventarIA: uma **barra lateral** no lugar das abas de baixo, com o **Adicionar item**, as seções e as listas com o que falta em cada uma. As janelas abrem no meio da tela. No celular nada muda.

@@ -13,7 +13,7 @@ const icon = (name, cls = "") =>
 
 const DAY = 86400000;
 const TOP = 5;
-const PER_LIST = 2; // a long list doesn't take the whole top
+const PER_LIST = 2; // a long list doesn't take the whole top (while other lists have something to show)
 
 /** 4 dias · 2 semanas · 3 meses */
 export function ageText(days) {
@@ -112,20 +112,26 @@ export const SuggestMixin = (Base) =>
             why.push(m ? `${m.tipo === "rotina" ? "Rotina" : "Manutenção"} do CronologIA ${d.diff < 0 ? "atrasada" : "para hoje"}` : d.diff < 0 ? "A data já passou" : "Tem data para hoje");
           }
           if (idx === 0) score += 1.5; // the top of a list is what the family put first
-          if (score <= 0) return;
-          if (!why.length) why.push(pts ? "Vale pontos" : "Primeiro da lista");
-          rows.push({ l, i, score, why: why.join(" · ") });
+          if (!why.length) why.push(pts ? "Vale pontos" : idx === 0 ? "Primeiro da lista" : `${idx + 1}º da lista`);
+          rows.push({ l, i, idx, score, why: why.join(" · ") });
         });
       }
-      rows.sort((a, b) => b.score - a.score);
+      // the strongest reasons first; without one, the order of the list (what was put first)
+      rows.sort((a, b) => b.score - a.score || a.idx - b.idx);
       const top = [];
       const per = new Map();
       for (const r of rows) {
+        if (r.score <= 0) continue;
         const n = per.get(r.l.id) || 0;
         if (n >= PER_LIST) continue;
         per.set(r.l.id, n + 1);
         top.push(r);
         if (top.length >= TOP) break;
+      }
+      // new items (no age yet) or a single long list: complete the top in the order of the lists
+      for (const r of rows) {
+        if (top.length >= TOP) break;
+        if (!top.includes(r)) top.push(r);
       }
       shopping.sort((a, b) => b.n - a.n);
       return { top, shopping, pending, lists };

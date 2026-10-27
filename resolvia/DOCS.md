@@ -14,7 +14,11 @@ O **Mais** fica em abas no alto: **Listas** (nome, cor, ícone, mostrar/ocultar 
 
 ### No computador
 
-Com a tela larga (1000 pixels ou mais, como no InventarIA), as abas de baixo viram uma **barra lateral**: o botão **Adicionar item**, as seções (Listas, Buscar, Prazos ou Sugestões, Mais) e as **listas**, cada uma com o que falta. As janelas (Novo item, editar) abrem no meio da tela. No celular e no tablet nada muda.
+Com a tela larga (1000 pixels ou mais, como no InventarIA), as abas de baixo viram uma **barra lateral**: o botão **Adicionar item**, as seções (Listas, Buscar, Prazos ou Sugestões, Mais) e as **listas**, cada uma com o que falta. As janelas (Novo item, editar) abrem no meio da tela. O **Buscar** já abre com o cursor no campo, e a tecla **/** abre o Buscar de qualquer tela (como no InventarIA). No celular e no tablet nada muda; lá o Buscar não abre o teclado sozinho.
+
+### Buscar no início
+
+No início, logo abaixo do resumo, fica o campo **Buscar entre N itens**, como no InventarIA: a primeira letra já abre o **Buscar** com o que você digitou, e dá para continuar digitando lá.
 
 ## Importar de mensagem ou foto
 
@@ -105,7 +109,7 @@ Para não usar prazo em nada (deixando as datas para o CronologIA), desligue **M
 
 Com **Controlar prazos** desligado, a aba Prazos dá lugar a **Sugestões**: o que vale resolver agora, olhando as listas que aparecem no início.
 
-- **Comece por aqui**: até 5 itens, no máximo 2 da mesma lista, cada um com o motivo. Os motivos são: há quanto tempo está na lista, se é o último (ou faltam 2) para zerar a lista, se vale pontos, se é uma repetição que voltou, se o CronologIA pôs data para hoje ou a data já passou. Itens de integrações que guardam "desde quando" (como a Problem List) usam essa data.
+- **Comece por aqui**: 5 itens (ou todos, se houver menos), cada um com o motivo; os com motivo mais forte vêm primeiro, no máximo 2 da mesma lista enquanto outras listas têm o que sugerir. Quando falta motivo (itens novos, ou uma lista só), o resto vem na ordem da lista: "Primeiro da lista", "2º da lista"… Os motivos são: há quanto tempo está na lista, se é o último (ou faltam 2) para zerar a lista, se vale pontos, se é uma repetição que voltou, se o CronologIA pôs data para hoje ou a data já passou. Itens de integrações que guardam "desde quando" (como a Problem List) usam essa data.
 - **Compras**: as listas de compras ficam à parte, com quantos itens têm e há quanto tempo o mais antigo espera.
 - **Pedir à IA** (só com **Usar IA** ligado): a IA do Home Assistant olha os itens pendentes e escolhe até 5 para resolver agora, com o porquê. Só roda quando você toca, entra no **Uso da IA** e a última sugestão fica guardada até o app reiniciar.
 

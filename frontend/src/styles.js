@@ -1022,6 +1022,33 @@ export const styles = css`
   .search-box input::-webkit-search-cancel-button {
     display: none;
   }
+  /* the box of the home (like the InventarIA): typing opens Buscar */
+  .home-search {
+    margin: 0 0 16px;
+  }
+  kbd {
+    flex: none;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1;
+    color: var(--rv-muted);
+    border: 1px solid var(--rv-line-strong);
+    border-bottom-width: 2px;
+    border-radius: 5px;
+    padding: 3px 6px;
+    background: var(--rv-surface);
+  }
+  .home-search kbd {
+    margin-right: 10px;
+  }
+  .side-link kbd {
+    margin-left: auto;
+  }
+  @media (pointer: coarse) {
+    kbd {
+      display: none;
+    }
+  }
   .filters {
     display: flex;
     gap: 8px;

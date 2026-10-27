@@ -40,7 +40,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.16.0";
+const VERSION = "2.17.0";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -142,14 +142,44 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
     ensureFonts();
     window.addEventListener("popstate", this._onPopState);
     window.addEventListener("resize", this._onResize);
+    window.addEventListener("keydown", this._onKey);
     if (this._mql && this._mql.addEventListener) this._mql.addEventListener("change", this._onScheme);
     if (this.hass) this._syncSubscriptions();
+  }
+
+  /** "/" opens Buscar with the cursor in the box (like the InventarIA), unless something is being typed. */
+  _onKey = (e) => {
+    if (e.key !== "/" || e.ctrlKey || e.metaKey || e.altKey || this._sheet) return;
+    const t = (e.composedPath && e.composedPath()[0]) || e.target;
+    if (t && t.closest && t.closest("input, textarea, select, [contenteditable]")) return;
+    e.preventDefault();
+    this._toSearch();
+  };
+
+  /** Buscar with the cursor in the box: from the "/" key and from the box of the home. */
+  _toSearch() {
+    this._focusSearch = true;
+    if (this._view().name === "search") this._focusSearchBox();
+    else this._go("/buscar");
+  }
+
+  _focusSearchBox() {
+    const inp = this.renderRoot && this.renderRoot.querySelector("input[data-q='buscar']");
+    if (!inp) return;
+    this._focusSearch = false;
+    inp.focus({ preventScroll: true });
+    try {
+      inp.setSelectionRange(inp.value.length, inp.value.length);
+    } catch (err) {
+      /* type=search may refuse */
+    }
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
     window.removeEventListener("popstate", this._onPopState);
     window.removeEventListener("resize", this._onResize);
+    window.removeEventListener("keydown", this._onKey);
     if (this._mql && this._mql.removeEventListener) this._mql.removeEventListener("change", this._onScheme);
     for (const [, unsub] of this._subs) this._unsub(unsub);
     this._subs.clear();
@@ -211,7 +241,11 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
       }
       if (tab === "dados") this._loadBackups();
     }
-    // Buscar doesn't focus the box by itself: on the phone that pops the keyboard over the screen
+    // Buscar: the cursor goes to the box on the computer (mouse), and when coming from the box
+    // of the home or the "/" key. Not on the phone by itself: that would pop the keyboard over the screen.
+    if (this._view().name === "search" && (this._focusSearch || (changed.has("_path") && window.matchMedia && window.matchMedia("(hover: hover) and (pointer: fine)").matches))) {
+      this._focusSearchBox();
+    }
     // Sugestões: the ages of the items, again after a minute
     if (this._view().name === "suggest" && Date.now() - (this._suggestAt || 0) > 60000) this._loadSuggest();
   }
@@ -1478,14 +1512,14 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
   _renderSide(view) {
     const lists = this._visible();
     const lateCount = lists.reduce((n, l) => n + l.late + l.today, 0);
-    const item = (name, path, label, ic, badge = 0) => html`<button class="side-link" aria-current=${view.name === name ? "page" : "false"} @click=${() => this._goTab(path)}>
-      ${icon(ic)}<span>${label}</span>${badge ? html`<span class="side-badge">${badge > 99 ? "99+" : badge}</span>` : nothing}
+    const item = (name, path, label, ic, badge = 0, key = "") => html`<button class="side-link" aria-current=${view.name === name ? "page" : "false"} @click=${() => this._goTab(path)}>
+      ${icon(ic)}<span>${label}</span>${badge ? html`<span class="side-badge">${badge > 99 ? "99+" : badge}</span>` : nothing}${key ? html`<kbd>${key}</kbd>` : nothing}
     </button>`;
     return html`<aside class="side" aria-label="Navegação">
       <div class="side-brand">Resolv<span>IA</span></div>
       <button class="btn primary side-add" @click=${() => this._openAdd(view.name === "list" ? view.id : null)}>${icon("plus")}Adicionar item</button>
       <div class="side-nav">
-        ${item("home", "", "Listas", "list-checks")} ${item("search", "/buscar", "Buscar", "search")}
+        ${item("home", "", "Listas", "list-checks")} ${item("search", "/buscar", "Buscar", "search", 0, "/")}
         ${this._dueOn() ? item("due", "/prazos", "Prazos", "calendar-clock", lateCount) : item("suggest", "/sugestoes", "Sugestões", "lightbulb")}
         ${item("more", "/mais", "Mais", "sliders-horizontal")}
       </div>
@@ -1562,6 +1596,8 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
           </div>
         </div>
 
+        ${this._L.length ? this._renderHomeSearch() : nothing}
+
         ${this._L.length === 0
           ? html`<div class="panel">
               <div class="empty">
@@ -1590,6 +1626,25 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
           : nothing}
       </section>
     `;
+  }
+
+  /** The box of the home, like the InventarIA: the first letter already opens Buscar with it. */
+  _renderHomeSearch() {
+    const n = this._L.reduce((sum, l) => sum + ((l.items && l.items.length) || 0), 0);
+    return html`<form class="search-box home-search" role="search" @submit=${(e) => {
+      e.preventDefault();
+      this._query = e.target.q.value.trim();
+      this._toSearch();
+    }}>
+      ${icon("search")}
+      <input type="search" name="q" placeholder=${n ? `Buscar entre ${plural(n, "item", "itens")}` : "Buscar nas listas"} aria-label="Buscar nas listas" autocomplete="off" enterkeyhint="search" @input=${(e) => {
+        if (!e.target.value.trim()) return;
+        this._query = e.target.value;
+        e.target.value = "";
+        this._toSearch();
+      }} />
+      <kbd>/</kbd>
+    </form>`;
   }
 
   _renderListCard(l, showGroup) {
@@ -1892,7 +1947,7 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
         ${this._renderPageHead("Buscar", { text: `Em ${plural(this._L.length, "lista", "listas")}` })}
         <label class="search-box">
           ${icon("search")}
-          <input type="search" placeholder="Buscar em todas as listas" .value=${this._query} @input=${(e) => (this._query = e.target.value)} enterkeyhint="search" aria-label="Buscar" />
+          <input type="search" data-q="buscar" placeholder="Buscar em todas as listas" .value=${this._query} @input=${(e) => (this._query = e.target.value)} enterkeyhint="search" aria-label="Buscar" />
           ${this._query ? html`<button class="icon-btn" style="width:40px;height:40px" @click=${() => (this._query = "")} aria-label="Limpar">${icon("x")}</button>` : nothing}
         </label>
         <div class="filters">
