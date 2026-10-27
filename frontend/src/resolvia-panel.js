@@ -40,7 +40,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.15.0";
+const VERSION = "2.16.0";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -1436,6 +1436,7 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
           ${this.hass.connected === false
             ? html`<div class="offline">${icon("wifi-off")}<span>Sem conexão com o Home Assistant. Reconectando…</span></div>`
             : nothing}
+          ${this._renderSide(view)}
           <main>${page}</main>
           ${this._renderNav(view)}
         </div>
@@ -1470,6 +1471,38 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
     `;
   }
 
+  /**
+   * Computador (1000 px ou mais): a barra lateral no lugar das abas de baixo, como no
+   * InventarIA. Adicionar, as seções e as listas com o que falta em cada uma.
+   */
+  _renderSide(view) {
+    const lists = this._visible();
+    const lateCount = lists.reduce((n, l) => n + l.late + l.today, 0);
+    const item = (name, path, label, ic, badge = 0) => html`<button class="side-link" aria-current=${view.name === name ? "page" : "false"} @click=${() => this._goTab(path)}>
+      ${icon(ic)}<span>${label}</span>${badge ? html`<span class="side-badge">${badge > 99 ? "99+" : badge}</span>` : nothing}
+    </button>`;
+    return html`<aside class="side" aria-label="Navegação">
+      <div class="side-brand">Resolv<span>IA</span></div>
+      <button class="btn primary side-add" @click=${() => this._openAdd(view.name === "list" ? view.id : null)}>${icon("plus")}Adicionar item</button>
+      <div class="side-nav">
+        ${item("home", "", "Listas", "list-checks")} ${item("search", "/buscar", "Buscar", "search")}
+        ${this._dueOn() ? item("due", "/prazos", "Prazos", "calendar-clock", lateCount) : item("suggest", "/sugestoes", "Sugestões", "lightbulb")}
+        ${item("more", "/mais", "Mais", "sliders-horizontal")}
+      </div>
+      ${lists.length
+        ? html`<div class="side-h"><span>Listas</span><small>${lists.length}</small></div>
+            <div class="side-lists">
+              ${lists.map(
+                (l) => html`<button class="side-list" aria-current=${view.name === "list" && view.id === l.id ? "page" : "false"} style=${colorVars(l.color, this._dark)} @click=${() => this._go(`/lista/${l.id}`)}>
+                  <span class="side-tile">${icon(l.icon)}</span><span class="sl-name">${l.name}</span><span class="sl-num">${l.pending || ""}</span>
+                </button>`,
+              )}
+            </div>`
+        : nothing}
+      <div class="side-foot">ResolvIA ${VERSION}</div>
+    </aside>`;
+  }
+
   // ---------- page header (same pattern as EconomIA / InventarIA)
 
   _renderPageHead(title, status) {
@@ -1477,7 +1510,7 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
     const offline = this.hass.connected === false;
     const st = offline ? { text: "Reconectando ao Home Assistant…", tone: "off" } : status;
     return html`<header class="brand-head">
-      <p class="eyebrow"><span class="brand">Resolv<span>IA</span></span>${name ? ` · Olá, ${name}` : ""}</p>
+      <p class="eyebrow"><span class="brand">Resolv<span>IA</span></span>${name ? html`<span class="sep"> · </span>Olá, ${name}` : ""}</p>
       <h1 class="page-title">${title}</h1>
       ${st ? html`<p class="status"><span class="dot ${st.tone || ""}" aria-hidden="true"></span><span>${st.text}</span></p>` : nothing}
     </header>`;

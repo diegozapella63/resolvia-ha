@@ -26,6 +26,7 @@ export const styles = css`
     --rv-header-bg: var(--app-header-background-color, #fbf6f4);
     --rv-header-fg: var(--app-header-text-color, #231a1b);
     --rv-nav-h: 68px;
+    --rv-side-w: 272px;
     color-scheme: light;
     display: block;
     height: 100%;
@@ -2415,6 +2416,204 @@ export const styles = css`
       font-size: 13px;
       padding-left: 4px;
       padding-right: 4px;
+    }
+  }
+
+  /* ---------- computador (1000 px ou mais): barra lateral no lugar das abas, como no InventarIA ---------- */
+  .side {
+    display: none;
+  }
+  .side-brand {
+    font-family: var(--rv-display);
+    font-size: 25px;
+    font-weight: 700;
+    line-height: 1;
+    padding: 4px 10px 18px;
+    color: var(--rv-text);
+  }
+  .side-brand span {
+    color: var(--rv-accent-ink);
+  }
+  .side-add {
+    flex: none;
+    width: 100%;
+    height: 46px;
+    margin: 0 0 14px;
+  }
+  .side-nav,
+  .side-lists {
+    display: grid;
+    gap: 2px;
+  }
+  .side-link,
+  .side-list,
+  .side-cal {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 40px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    text-align: left;
+    color: var(--rv-text);
+    font-weight: 500;
+  }
+  .side-link .i {
+    width: 20px;
+    height: 20px;
+    flex: none;
+    color: var(--rv-muted);
+  }
+  .side-link:hover,
+  .side-list:hover,
+  .side-cal:hover {
+    background: var(--rv-surface-2);
+  }
+  .side-link[aria-current="page"],
+  .side-list[aria-current="page"] {
+    background: var(--rv-surface);
+    box-shadow: inset 3px 0 0 var(--rv-accent);
+    font-weight: 600;
+  }
+  .side-link[aria-current="page"] .i {
+    color: var(--rv-accent-ink);
+  }
+  .side-badge {
+    margin-left: auto;
+    min-width: 22px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 11px;
+    background: var(--rv-late);
+    color: #fff;
+    font-family: var(--rv-display);
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 20px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .side-h {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 22px 10px 8px;
+  }
+  .side-h span {
+    font-family: var(--rv-display);
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--rv-text);
+  }
+  .side-h small {
+    font-size: 13px;
+    color: var(--rv-muted);
+  }
+  .side-list,
+  .side-cal {
+    min-height: 38px;
+    padding: 5px 10px;
+    font-weight: 400;
+  }
+  .side-tile {
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    display: grid;
+    place-items: center;
+    flex: none;
+    background: var(--cs);
+    color: var(--ci);
+  }
+  .side-tile .i {
+    width: 15px;
+    height: 15px;
+  }
+  .sl-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .sl-num {
+    font-family: var(--rv-display);
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--rv-muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .side-foot {
+    margin-top: auto;
+    padding: 18px 10px 0;
+    font-size: 13px;
+    color: var(--rv-faint);
+  }
+  @media (min-width: 1000px) {
+    .app {
+      position: relative;
+      padding-left: var(--rv-side-w);
+    }
+    .side {
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: var(--rv-side-w);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: 22px 14px 18px;
+      overflow-y: auto;
+      border-right: 1px solid var(--rv-line);
+      background: var(--rv-bg);
+      scrollbar-width: thin;
+    }
+    nav {
+      display: none;
+    }
+    .page {
+      max-width: 880px;
+      padding: 30px 40px 56px;
+    }
+    /* the app name is on the sidebar: the header keeps "Olá, Diego" */
+    .eyebrow .brand,
+    .eyebrow .sep {
+      display: none;
+    }
+    /* outside Home Assistant: the name is already on the sidebar */
+    .topbar {
+      display: none;
+    }
+    /* the sheets become a window in the middle of the screen */
+    .sheet {
+      left: var(--rv-side-w);
+      top: 0;
+      bottom: 0;
+      height: fit-content;
+      max-height: 86%;
+      margin: auto;
+      border-radius: 24px;
+      padding-bottom: 22px;
+      animation-name: rv-pop;
+    }
+    .sheet .grab {
+      display: none;
+    }
+    /* a wide sheet: the import tiles stop being squares */
+    .imp-tile {
+      aspect-ratio: auto;
+      min-height: 96px;
+    }
+    .toast,
+    .toast.has-sheet {
+      left: calc(50% + var(--rv-side-w) / 2);
+      bottom: 24px;
+    }
+  }
+  @keyframes rv-pop {
+    from {
+      opacity: 0;
+      transform: translateY(14px) scale(0.98);
     }
   }
 `;

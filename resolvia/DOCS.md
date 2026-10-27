@@ -12,6 +12,10 @@ Nada é copiado: o ResolvIA mostra e edita as mesmas listas que o HA já tem.
 
 O **Mais** fica em abas no alto: **Listas** (nome, cor, ícone, mostrar/ocultar e criar lista), **Repetições** (ligar ou desligar a repetição e as tarefas que voltam sozinhas), **Integrações** (recompensas do CronologIA e leitura por IA), **Dados** (exportar, backup, importar, versões), **Aparência** (tema e cor) e **Opções** (controlar prazos e como as listas aparecem: agrupar por dispositivo, concluídos abertos).
 
+### No computador
+
+Com a tela larga (1000 pixels ou mais, como no InventarIA), as abas de baixo viram uma **barra lateral**: o botão **Adicionar item**, as seções (Listas, Buscar, Prazos ou Sugestões, Mais) e as **listas**, cada uma com o que falta. As janelas (Novo item, editar) abrem no meio da tela. No celular e no tablet nada muda.
+
 ## Importar de mensagem ou foto
 
 No botão **Adicionar** (ou no ícone ao lado do campo de adicionar de uma lista) há três quadros, no alto do formulário:
