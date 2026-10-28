@@ -359,6 +359,28 @@ export const styles = css`
   .panel > .overline {
     padding: 16px 0 6px;
   }
+  /* the heading of a group of lists: on the phone, the small overline; the icon and count are for the computer */
+  .grp-head {
+    display: flex;
+    align-items: center;
+    padding: 16px 0 6px;
+  }
+  .grp-head.desk-only,
+  .grp-head .sec-ic,
+  .grp-head small {
+    display: none;
+  }
+  .grp-head h2 {
+    margin: 0;
+  }
+  .grp-head + .list-card {
+    border-top: 0;
+  }
+  /* computer only: the actions at the top right and the numbers beside the notebook */
+  .top-acts,
+  .facts {
+    display: none;
+  }
   /* Mais: section headings like the InventarIA (icon in a soft square + big title) */
   .mais-head {
     display: flex;
@@ -2674,6 +2696,199 @@ export const styles = css`
     from {
       opacity: 0;
       transform: translateY(14px) scale(0.98);
+    }
+  }
+  /*
+   * Computador, like the InventarIA: wider, sections on the page instead of cards (a big title with
+   * its icon and lines between the rows), the notebook with the numbers beside it, two groups side by side
+   * and the actions at the top right.
+   */
+  @media (min-width: 1000px) {
+    .page {
+      max-width: 1040px;
+      padding: 28px 40px 72px;
+    }
+    .head-row {
+      min-height: 44px;
+    }
+    .page > .brand-head {
+      margin-bottom: 26px;
+    }
+    .top-acts {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: none;
+    }
+    .top-acts .btn {
+      min-height: 40px;
+      border-radius: 10px;
+      padding: 0 16px;
+    }
+    .mic-top {
+      margin: 0;
+      width: 40px;
+      height: 40px;
+    }
+    /* the microphone goes with the actions (the one by the title is for the phone) */
+    .head-row > .mic-top {
+      display: none;
+    }
+    .page .panel {
+      background: none;
+      border: 0;
+      border-radius: 0;
+      padding: 0;
+      margin: 0 0 36px;
+    }
+    /* the small headings of the sections become titles, like the InventarIA */
+    .page .panel > .overline {
+      padding: 0 0 10px;
+      border-bottom: 1px solid var(--rv-line);
+      font-family: var(--rv-display);
+      font-size: 22px;
+      font-weight: 600;
+      line-height: 1.15;
+      letter-spacing: 0.005em;
+      text-transform: none;
+      color: var(--rv-text);
+    }
+    .grp-head,
+    .grp-head.desk-only {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 0 12px;
+      border-bottom: 1px solid var(--rv-line);
+    }
+    .grp-head .sec-ic {
+      display: grid;
+    }
+    .grp-head h2 {
+      flex: 1;
+      min-width: 0;
+      font-family: var(--rv-display);
+      font-size: 25px;
+      font-weight: 600;
+      line-height: 1.1;
+      letter-spacing: 0.005em;
+      text-transform: none;
+      color: var(--rv-text);
+    }
+    .grp-head small {
+      display: block;
+      color: var(--rv-muted);
+      font-size: 14px;
+    }
+    .sec-ic {
+      place-items: center;
+      flex: none;
+      width: 38px;
+      height: 38px;
+      border-radius: 11px;
+      background: var(--rv-accent-soft);
+      color: var(--rv-accent-ink);
+    }
+    .sec-ic .i {
+      width: 21px;
+      height: 21px;
+    }
+    .list-card {
+      padding: 13px 8px 14px;
+      border-top: 0;
+      border-bottom: 1px solid var(--rv-line);
+      border-radius: 0;
+      transition: background 0.15s;
+    }
+    .list-card:hover {
+      background: var(--rv-surface-2);
+    }
+    .lc-title {
+      font-size: 17px;
+      font-weight: 500;
+    }
+    .groups.two {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0 40px;
+      align-items: start;
+    }
+    /* the notebook and, beside it, the numbers */
+    .home-top {
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+      gap: 40px;
+      align-items: center;
+      margin: 6px 0 4px;
+    }
+    .home-top .hero {
+      margin: 30px 4px 18px;
+      max-width: 540px;
+    }
+    .facts {
+      display: grid;
+      margin: 0;
+      border-top: 1px solid var(--rv-line);
+    }
+    .fact-row {
+      display: grid;
+      grid-template-columns: 150px minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      padding: 9px 4px;
+      border-bottom: 1px solid var(--rv-line);
+    }
+    .fact-row.go {
+      cursor: pointer;
+    }
+    .fact-row.go:hover {
+      background: var(--rv-surface-2);
+    }
+    .fact-row dt {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--rv-muted);
+      font-size: 14px;
+    }
+    .fact-row .sec-ic {
+      display: grid;
+      width: 32px;
+      height: 32px;
+      border-radius: 9px;
+    }
+    .fact-row .sec-ic .i {
+      width: 18px;
+      height: 18px;
+    }
+    .fact-row .sec-ic.late {
+      background: var(--rv-late-soft);
+      color: var(--rv-late);
+    }
+    .fact-row .sec-ic.today {
+      background: var(--rv-today-soft);
+      color: var(--rv-today);
+    }
+    .fact-row dd {
+      margin: 0;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-weight: 500;
+    }
+    .fact-row .fv {
+      font-family: var(--rv-display);
+      font-size: 18px;
+      font-weight: 600;
+      text-align: right;
+    }
+    .fact-row .fv.late {
+      color: var(--rv-late);
+    }
+    .page .home-search {
+      margin-top: 22px;
+      margin-bottom: 40px;
     }
   }
   /* Falar: the microphone, with a ring that follows the voice */

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.19.0
+
+- **No computador, com cara de InventarIA**: tela mais larga; seções direto na página em vez de cartões, com título grande, ícone e linhas entre as listas; dois grupos de listas lado a lado; ao lado do caderno, os números do dia (**Atrasados**, **Para hoje**, **Próximo prazo**, **Mais cheia**, cada um abre o que mostra); no alto à direita, **Falar**, **Ler com IA** e **Adicionar item** (saiu o botão da barra lateral). No celular nada muda.
+
 ## 2.18.3
 
 - **Mais › Dados › Exportar** como no InventarIA: uma linha por arquivo (Planilha CSV, Dados completos JSON, Tudo ZIP), cada uma com a explicação do que tem e o botão **Baixar**, com uma linha separando.

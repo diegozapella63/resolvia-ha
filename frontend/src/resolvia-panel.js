@@ -41,7 +41,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.18.3";
+const VERSION = "2.19.0";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -1624,7 +1624,6 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
     </button>`;
     return html`<aside class="side" aria-label="Navegação">
       <div class="side-brand">Resolv<span>IA</span></div>
-      <button class="btn primary side-add" @click=${() => this._openAdd(view.name === "list" ? view.id : null)}>${icon("plus")}Adicionar item</button>
       <div class="side-nav">
         ${item("home", "", "Listas", "list-checks")} ${item("search", "/buscar", "Buscar", "search", 0, "/")}
         ${this._dueOn() ? item("due", "/prazos", "Prazos", "calendar-clock", lateCount) : item("suggest", "/sugestoes", "Sugestões", "lightbulb")}
@@ -1646,12 +1645,21 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
 
   // ---------- page header (same pattern as EconomIA / InventarIA)
 
+  /** Computador: the actions at the top right, like the InventarIA (Ler com IA, Adicionar item). */
+  _renderTopActs() {
+    return html`<div class="top-acts">
+      ${this._renderMicBtn()}
+      ${this._canImport() ? html`<button class="btn outline sm" @click=${() => this._openImport(null)}>${icon("scan-text")}Ler com IA</button>` : nothing}
+      <button class="btn primary sm" @click=${() => this._openAdd(null)}>${icon("plus")}Adicionar item</button>
+    </div>`;
+  }
+
   _renderPageHead(title, status) {
     const name = ((this.hass.user && this.hass.user.name) || "").trim().split(/\s+/)[0];
     const offline = this.hass.connected === false;
     const st = offline ? { text: "Reconectando ao Home Assistant…", tone: "off" } : status;
     return html`<header class="brand-head">
-      <div class="head-row"><p class="eyebrow"><span class="brand">Resolv<span>IA</span></span>${name ? html`<span class="sep"> · </span>Olá, ${name}` : ""}</p>${this._renderMicBtn()}</div>
+      <div class="head-row"><p class="eyebrow"><span class="brand">Resolv<span>IA</span></span>${name ? html`<span class="sep"> · </span>Olá, ${name}` : ""}</p>${this._renderMicBtn()}${this._renderTopActs()}</div>
       <h1 class="page-title">${title}</h1>
       ${st ? html`<p class="status"><span class="dot ${st.tone || ""}" aria-hidden="true"></span><span>${st.text}</span></p>` : nothing}
     </header>`;
@@ -1688,6 +1696,7 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
           text: `${plural(lists.length, "lista", "listas")} · ao vivo com o Home Assistant`,
         })}
 
+        <div class="home-top">
         <div class="hero">
           <div class="rings">${Array.from({ length: 9 }, () => html`<span class="ring"></span>`)}</div>
           <div class="hero-card">
@@ -1701,6 +1710,8 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
             <div class="hero-fold"></div>
           </div>
         </div>
+        ${this._L.length ? this._renderHomeFacts(lists) : nothing}
+        </div>
 
         ${this._L.length ? this._renderHomeSearch() : nothing}
 
@@ -1713,14 +1724,19 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
               </div>
             </div>`
           : html`
-              ${groups.map(
-                (g) => html`
-                  <div class="panel">
-                    ${groupBy && (g.name || groups.length > 1) ? html`<div class="overline">${g.name || "Listas locais"}</div>` : nothing}
+              <div class="groups ${groups.length > 1 ? "two" : ""}">
+              ${groups.map((g) => {
+                const title = groupBy ? g.name || (groups.length > 1 ? "Listas locais" : "Listas") : "Listas";
+                // the heading: on the phone only when there are groups; on the computer always, with its icon
+                const shown = groupBy && (g.name || groups.length > 1);
+                return html`
+                  <div class="panel grp">
+                    <div class="grp-head ${shown ? "" : "desk-only"}"><span class="sec-ic" aria-hidden="true">${icon(g.name ? "layout-list" : "list-checks")}</span><h2 class="overline">${title}</h2><small>${g.lists.length}</small></div>
                     ${g.lists.map((l) => this._renderListCard(l, !groupBy))}
                   </div>
-                `,
-              )}
+                `;
+              })}
+              </div>
             `}
         ${this.hass.user && this.hass.user.is_admin
           ? html`<button class="pick ghost" style="margin:4px auto 0;display:flex" @click=${() => this._openInHA("/config/integrations/dashboard/add?domain=local_todo")}>
@@ -1931,9 +1947,8 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
 
   // ---------- due
 
-  _renderDue() {
-    const lists = this._visible();
-    const supportsDue = lists.some((l) => has(l.features, F.DUE_DATE) || has(l.features, F.DUE_DATETIME));
+  /** Open items with a date, soonest first: [{l, i, d}]. */
+  _dueRows(lists = this._visible()) {
     const rows = [];
     for (const l of lists) {
       if (l.noDue) continue; // dates from the integration, or deadlines turned off
@@ -1943,7 +1958,44 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
         if (d) rows.push({ l, i, d });
       }
     }
-    rows.sort((a, b) => a.d.at - b.d.at);
+    return rows.sort((a, b) => a.d.at - b.d.at);
+  }
+
+  /**
+   * Computador: beside the notebook, like the facts of the InventarIA: what is late, for today,
+   * the next deadline and the fullest list. A tap opens it.
+   */
+  _renderHomeFacts(lists) {
+    const rows = this._dueOn() ? this._dueRows(lists) : [];
+    const late = rows.filter((r) => r.d.overdue);
+    const today = rows.filter((r) => !r.d.overdue && r.d.diff === 0);
+    const next = rows.find((r) => !r.d.overdue && r.d.diff > 0);
+    const full = [...lists].filter((l) => l.pending > 0).sort((a, b) => b.pending - a.pending)[0];
+    const done = lists.reduce((n, l) => n + l.done, 0);
+    const facts = [];
+    const fact = (ic, tone, label, value, right, go) => facts.push({ ic, tone, label, value, right, go });
+    if (this._dueOn()) {
+      fact("circle-alert", late.length ? "late" : "", "Atrasados", late.length ? late[0].i.summary : "Nada atrasado", late.length ? String(late.length) : "", late.length ? () => this._go("/prazos") : null);
+      fact("clock", today.length ? "today" : "", "Para hoje", today.length ? today[0].i.summary : "Nada para hoje", today.length ? String(today.length) : "", today.length ? () => this._go("/prazos") : null);
+      fact("calendar-clock", "", "Próximo prazo", next ? next.i.summary : "Sem prazos marcados", next ? next.d.text : "", next ? () => this._go(`/lista/${next.l.id}`) : null);
+    }
+    fact("list-checks", "", "Mais cheia", full ? full.name : "Tudo resolvido", full ? plural(full.pending, "pendente", "pendentes") : "", full ? () => this._go(`/lista/${full.id}`) : null);
+    if (!this._dueOn()) fact("circle-check", "", "Resolvidos", plural(done, "item feito", "itens feitos"), "", null);
+    return html`<dl class="facts">
+      ${facts.map(
+        (f) => html`<div class="fact-row ${f.go ? "go" : ""}" role=${f.go ? "link" : "group"} tabindex=${f.go ? "0" : "-1"} @click=${f.go || (() => {})} @keydown=${(e) => f.go && e.key === "Enter" && f.go()}>
+          <dt><span class="sec-ic ${f.tone}" aria-hidden="true">${icon(f.ic)}</span>${f.label}</dt>
+          <dd>${f.value}</dd>
+          <dd class="fv ${f.tone}">${f.right}</dd>
+        </div>`,
+      )}
+    </dl>`;
+  }
+
+  _renderDue() {
+    const lists = this._visible();
+    const supportsDue = lists.some((l) => has(l.features, F.DUE_DATE) || has(l.features, F.DUE_DATETIME));
+    const rows = this._dueRows(lists);
     const buckets = [
       { title: "Atrasados", test: (d) => d.overdue },
       { title: "Hoje", test: (d) => d.diff === 0 },
