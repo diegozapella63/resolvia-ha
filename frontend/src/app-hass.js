@@ -196,6 +196,22 @@ export async function createAppHass(onChange) {
     resolvia: {
       ai: boot.ai || { ready: false, images: false, entities: [] },
       aiStatus: () => conn.sendMessagePromise({ type: "resolvia/ai/status" }),
+      // Falar: the speech-to-text of Home Assistant
+      voiceStatus: () => conn.sendMessagePromise({ type: "resolvia/voice/status" }),
+      async voiceText(pcm) {
+        const res = await fetch(new URL("api/voice", location.href), {
+          method: "POST",
+          headers: { "content-type": "application/octet-stream" },
+          body: pcm.buffer.slice(pcm.byteOffset, pcm.byteOffset + pcm.byteLength),
+        });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const err = new Error(body.error || `Erro ${res.status}`);
+          err.code = body.code;
+          throw err;
+        }
+        return body;
+      },
       async extract(payload) {
         const res = await fetch(new URL("api/extract", location.href), {
           method: "POST",

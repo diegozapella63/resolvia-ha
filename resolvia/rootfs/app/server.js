@@ -17,9 +17,10 @@ import { AiUsage } from "./lib/usage.js";
 import { Ages } from "./lib/ages.js";
 import { Restore } from "./lib/restore.js";
 import { Placar } from "./lib/placar.js";
+import { Voice, readRaw, MAX_VOICE_BYTES } from "./lib/voice.js";
 import { snapshot, toCSV, backupZip, parseImport, Backups, listVersions, readVersion, fileStamp } from "./lib/data.js";
 
-const VERSION = "2.17.0";
+const VERSION = "2.18.0";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const WWW = path.join(HERE, "www");
 const DEV = process.env.RESOLVIA_DEV === "1";
@@ -81,6 +82,8 @@ async function restoreAll(raw, reason, opts) {
   return out;
 }
 const HA_REST = process.env.HA_REST_URL || "http://supervisor/core/api";
+// Falar: the speech-to-text of Home Assistant (Assist)
+const voice = new Voice({ ha, rest: HA_REST, token: TOKEN, log });
 const usage = new AiUsage({ dir: DATA_DIR, sensor: "sensor.resolvia_ia_hoje", label: "ResolvIA", rest: HA_REST, token: TOKEN, log });
 const ai = new AI({ ha, log, mediaDir: MEDIA_DIR, selected: () => store.prefs.app.ai_entity || "", usage });
 const itemSubs = new Map(); // entity_id -> subscription (for the recurring engine and the ages)
@@ -314,6 +317,9 @@ class Session {
           devices: reg.devices,
         });
       }
+
+      case "resolvia/voice/status":
+        return this.result(id, await voice.status());
 
       case "resolvia/ai/status":
         return this.result(id, await ai.status());
@@ -619,6 +625,20 @@ function handleExtract(req, res) {
   });
 }
 
+/** POST /api/voice (raw PCM, 16 kHz, 16-bit, mono) -> {text, engine}: Falar, through the speech-to-text of Home Assistant */
+async function handleVoice(req, res) {
+  const started = Date.now();
+  try {
+    const pcm = await readRaw(req, MAX_VOICE_BYTES + 1024);
+    const out = await voice.text(pcm);
+    log.info(`Falar: ${(pcm.length / 32000).toFixed(1)}s de áudio, texto em ${((Date.now() - started) / 1000).toFixed(1)}s (${out.engine})`);
+    sendJson(res, 200, out);
+  } catch (err) {
+    log.warn(`Falar: ${err.message}`);
+    sendJson(res, err.code === "too_big" ? 413 : err.code === "no_stt" ? 409 : err.code === "invalid_format" || err.code === "not_understood" ? 422 : 502, { error: err.message, code: err.code || "failed" });
+  }
+}
+
 const server = http.createServer((req, res) => {
   if (!allowed(req)) {
     res.writeHead(403).end("Forbidden");
@@ -626,6 +646,7 @@ const server = http.createServer((req, res) => {
   }
   const url = new URL(req.url, "http://x");
   if (url.pathname === "/api/extract" && req.method === "POST") return handleExtract(req, res);
+  if (url.pathname === "/api/voice" && req.method === "POST") return handleVoice(req, res);
   const exp = url.pathname.match(/^\/api\/export\/(json|csv|zip)$/);
   if (exp && req.method === "GET") return handleData(exp[1], res);
   if (url.pathname === "/api/import" && req.method === "POST") return handleImport(req, res);

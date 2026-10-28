@@ -218,6 +218,9 @@ class Conn {
                 ]
               : []),
           ]);
+        // Falar: the Assist pipelines (FAKE_NO_STT=1: none, like a Home Assistant without voice)
+        case "assist_pipeline/pipeline/list":
+          return ok(process.env.FAKE_NO_STT ? { pipelines: [], preferred_pipeline: null } : { pipelines: [{ id: "p1", name: "Home Assistant", language: "pt", stt_engine: "stt.home_assistant_cloud", stt_language: "pt-BR" }], preferred_pipeline: "p1" });
         case "ai_task/preferences/get":
           return ok({ gen_data_entity_id: WITH_AI ? "ai_task.google_ai_task" : null });
         case "get_config":
@@ -278,6 +281,20 @@ const server = http.createServer((req, res) => {
   if (req.url === "/dev/events") {
     res.writeHead(200, { "content-type": "application/json" });
     return res.end(JSON.stringify(firedEvents));
+  }
+  // Falar: speech-to-text like Home Assistant's REST API (the transcript is FAKE_STT_TEXT)
+  const stt = req.url.match(/^\/api\/stt\/(stt\.[a-z0-9_]+)$/);
+  if (stt && req.method === "POST") {
+    let bytes = 0;
+    req.on("data", (c) => (bytes += c.length));
+    req.on("end", () => {
+      const head = String(req.headers["x-speech-content"] || "");
+      console.log("stt", stt[1], bytes, head);
+      if (!/format=wav/.test(head) || !/sample_rate=16000/.test(head) || !/language=pt-BR/.test(head)) return res.writeHead(415).end("Unsupported");
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ text: process.env.FAKE_STT_TEXT || "Comprar pilhas, trocar a lâmpada da sala e ligar para o encanador", result: "success" }));
+    });
+    return;
   }
   // REST: POST/GET /api/states/<entity> (the sensors the app publishes)
   const st = req.url.match(/^\/api\/states\/([a-z_]+\.[a-z0-9_]+)$/);

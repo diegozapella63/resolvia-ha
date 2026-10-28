@@ -14,6 +14,7 @@ import { unsafeCSS } from "../vendor/lit-all.min.js";
 import { DataMixin } from "./datapanel.js";
 import { PointsMixin, stripMark, markOf } from "./points.js";
 import { SuggestMixin } from "./suggest.js";
+import { Recorder, micError, VOICE_RATE, VOICE_MAX_S } from "./voice.js";
 import {
   F,
   has,
@@ -40,7 +41,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.17.0";
+const VERSION = "2.18.0";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -214,6 +215,10 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
         this._loadPoints();
       }
       if (!this._rulesUnsub && this.isConnected) this._subscribeRules();
+      if (!this._voiceAsked && this.hass.resolvia && this.hass.resolvia.voiceStatus) {
+        this._voiceAsked = true;
+        this._loadVoice();
+      }
       this._syncSubscriptions();
       this._refreshPolled(changed.get("hass"));
     }
@@ -550,6 +555,7 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
 
   _closeSheet(silent = false) {
     if (!this._sheet) return;
+    this._stopVoice();
     this._sheet = null;
     this._form = null;
     if (history.state && history.state.rvSheet) {
@@ -878,7 +884,8 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
     this._importToken = 0;
     this._openSheet("import", {
       target,
-      step: start === "text" ? "text" : "pick",
+      step: start === "text" ? "text" : start === "voice" ? "voice" : "pick",
+      rec: start === "voice" ? "starting" : "off",
       text: "",
       images: [],
       items: [],
@@ -889,6 +896,105 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
     if (start === "photos") this._pickFiles("photos");
     if (start === "scan") this._openCamera();
     if (start === "text") this._focusImportText();
+    if (start === "voice") this.updateComplete.then(() => this._startVoice());
+  }
+
+  // ------------------------------------------------------------ Falar
+
+  /** Whether Falar works here (the speech-to-text of Home Assistant). */
+  async _loadVoice() {
+    try {
+      this._voice = await this.hass.resolvia.voiceStatus();
+    } catch (err) {
+      this._voice = { ready: false, reason: err.message };
+    }
+    this.requestUpdate();
+  }
+
+  /** Falar, at the top right of the screens: speak the items, they are separated, you check and add. */
+  _renderMicBtn(listId = null) {
+    if (!this._voice || !this._voice.ready) return nothing;
+    return html`<button class="mic-top" aria-label="Falar: adicionar itens falando" title="Falar" @click=${() => this._openImport(listId, "voice")}>${icon("mic")}</button>`;
+  }
+
+  async _startVoice() {
+    if (this._rec || !this._form) return;
+    this._setForm({ step: "voice", rec: "starting", secs: 0, level: 0, error: null, heard: "" });
+    const rec = new Recorder((lvl) => (this._voiceLevel = lvl));
+    this._rec = rec;
+    try {
+      await rec.start();
+    } catch (err) {
+      rec.cancel();
+      if (this._rec === rec) this._rec = null;
+      if (this._form && this._form.step === "voice") this._setForm({ rec: "off", error: micError(err) });
+      return;
+    }
+    if (this._rec !== rec || !this._form || this._form.step !== "voice") return rec.cancel();
+    this._setForm({ rec: "on" });
+    clearInterval(this._recTimer);
+    this._recTimer = setInterval(() => {
+      if (this._rec !== rec) return clearInterval(this._recTimer);
+      const secs = rec.seconds();
+      this._setForm({ secs, level: this._voiceLevel || 0 });
+      if (secs >= VOICE_MAX_S) this._finishVoice();
+    }, 120);
+  }
+
+  _stopVoice() {
+    clearInterval(this._recTimer);
+    if (this._rec) this._rec.cancel();
+    this._rec = null;
+  }
+
+  async _finishVoice() {
+    const rec = this._rec;
+    if (!rec) return;
+    clearInterval(this._recTimer);
+    this._rec = null;
+    const pcm = rec.stop();
+    if (pcm.length < VOICE_RATE * 0.4) {
+      this._setForm({ rec: "off", error: "Não ouvi nada. Toque no microfone e fale." });
+      return;
+    }
+    const token = (this._importToken = (this._importToken || 0) + 1);
+    this._setForm({ step: "loading", error: null, prevStep: "voice", loadingText: "Transcrevendo o que você disse…" });
+    try {
+      const r = await this.hass.resolvia.voiceText(pcm);
+      if (this._importToken !== token || !this._form) return;
+      this._setForm({ text: r.text, heard: r.text });
+      this._readText();
+    } catch (err) {
+      if (this._importToken !== token || !this._form) return;
+      this._setForm({ step: "voice", rec: "off", error: err.message || "Não consegui transcrever." });
+    }
+  }
+
+  _renderVoiceStep(head) {
+    const f = this._form;
+    const ai = this._aiInfo();
+    const v = this._voice || {};
+    const on = f.rec === "on";
+    const mm = Math.floor((f.secs || 0) / 60);
+    const ss = String(Math.floor((f.secs || 0) % 60)).padStart(2, "0");
+    const target = this._list(f.target);
+    return html`
+      ${head("Falar")}
+      <div class="voice ${on ? "on" : ""}">
+        <button class="voice-mic" style="--lvl:${on ? (f.level || 0).toFixed(2) : 0}" aria-label=${on ? "Pronto: enviar o que falei" : "Começar a falar"} @click=${() => (on ? this._finishVoice() : this._startVoice())}>
+          <span class="voice-ring"></span>${icon(on ? "check" : "mic")}
+        </button>
+        <div class="voice-state">${on ? html`<b>Ouvindo…</b> <span class="voice-time">${mm}:${ss}</span>` : f.rec === "starting" ? "Abrindo o microfone…" : "Toque no microfone e fale"}</div>
+        <p class="voice-hint">${on ? "Toque de novo quando terminar." : html`Por exemplo: <i>“Comprar pilhas, trocar a lâmpada da sala e ligar para o encanador”</i>.`}</p>
+        ${target ? html`<p class="voice-hint">Vai para <b>${target.name}</b> (dá para trocar na revisão).</p>` : nothing}
+      </div>
+      ${f.error ? html`<div class="imp-error">${icon("circle-alert")}<span>${f.error}</span></div>` : nothing}
+      <div class="sheet-actions">
+        <button class="btn outline" @click=${() => this._closeSheet()}>Cancelar</button>
+        <button class="btn primary" ?disabled=${!on} @click=${() => this._finishVoice()}>${icon("sparkles")}Pronto</button>
+      </div>
+      <p class="sheet-note">${v.ready ? `O Home Assistant transcreve${v.name ? ` (${v.name})` : ""} e ${ai.ready ? `${ai.using.name} separa os itens` : "eu separo os itens por vírgulas e “e”"}. Você revisa antes de adicionar.` : v.reason || ""}</p>
+    `;
   }
 
   _focusImportText() {
@@ -1544,7 +1650,7 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
     const offline = this.hass.connected === false;
     const st = offline ? { text: "Reconectando ao Home Assistant…", tone: "off" } : status;
     return html`<header class="brand-head">
-      <p class="eyebrow"><span class="brand">Resolv<span>IA</span></span>${name ? html`<span class="sep"> · </span>Olá, ${name}` : ""}</p>
+      <div class="head-row"><p class="eyebrow"><span class="brand">Resolv<span>IA</span></span>${name ? html`<span class="sep"> · </span>Olá, ${name}` : ""}</p>${this._renderMicBtn()}</div>
       <h1 class="page-title">${title}</h1>
       ${st ? html`<p class="status"><span class="dot ${st.tone || ""}" aria-hidden="true"></span><span>${st.text}</span></p>` : nothing}
     </header>`;
@@ -1705,6 +1811,7 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
             ${l.group ? html`<div class="overline">${l.group}</div>` : nothing}
             <h1 class="display">${l.name}</h1>
           </div>
+          ${this._renderMicBtn(l.id)}
           <button class="icon-btn" @click=${() => this._openSheet("listmenu", { listId: l.id })} aria-label="Opções da lista">${icon("ellipsis")}</button>
         </div>
 
@@ -2437,9 +2544,10 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
     const error = f.error ? html`<div class="imp-error">${icon("circle-alert")}<span>${f.error}</span></div>` : nothing;
     const thumbs = f.images && f.images.length ? html`<div class="thumbs">${f.images.map((img) => html`<img src=${img.url} alt="" />`)}</div>` : nothing;
 
+    if (f.step === "voice") return this._renderVoiceStep(head);
     if (f.step === "text") {
       return html`
-        ${head("Colar mensagem", toPick)}
+        ${head(f.heard ? "O que você disse" : "Colar mensagem", toPick)}
         <label class="field">
           <span class="flabel">Mensagem</span>
           <textarea rows="7" .value=${f.text} placeholder="Cole aqui a mensagem do WhatsApp, e-mail ou anotação…" @input=${(e) => this._setForm({ text: e.target.value, error: null })}></textarea>
@@ -2474,6 +2582,7 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
       return html`
         ${head("Revisar itens", toPick)}
         ${thumbs}
+        ${f.heard ? html`<p class="heard">${icon("mic")}<span>“${f.heard}”</span></p>` : nothing}
         <p class="sheet-note top">${plural(f.items.length, "item encontrado", "itens encontrados")}${from ? ` · ${from}` : ""}. Toque no texto para corrigir.</p>
         ${f.note ? html`<div class="imp-error soft">${icon("sparkles")}<span>${f.note}</span></div>` : nothing}
         <div class="imp-list">

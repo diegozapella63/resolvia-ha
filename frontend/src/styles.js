@@ -2643,4 +2643,172 @@ export const styles = css`
       transform: translateY(14px) scale(0.98);
     }
   }
+  /* Falar: the microphone, with a ring that follows the voice */
+  .voice {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 18px 8px 8px;
+    text-align: center;
+  }
+  .voice-mic {
+    position: relative;
+    width: 96px;
+    height: 96px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: var(--rv-accent);
+    color: var(--rv-on-accent);
+    box-shadow: 0 6px 22px var(--rv-accent-soft);
+  }
+  .voice-mic .i {
+    position: relative;
+    width: 40px;
+    height: 40px;
+  }
+  .voice-ring {
+    position: absolute;
+    inset: -10px;
+    border-radius: 50%;
+    background: var(--rv-accent-soft);
+    transform: scale(calc(0.85 + var(--lvl, 0) * 0.45));
+    transition: transform 0.12s ease-out;
+  }
+  .voice.on .voice-ring {
+    animation: rv-breathe 1.6s ease-in-out infinite;
+  }
+  @keyframes rv-breathe {
+    50% {
+      opacity: 0.6;
+    }
+  }
+  .voice-state {
+    font-family: var(--rv-display);
+    font-size: 21px;
+    font-weight: 600;
+    margin-top: 6px;
+  }
+  .voice-time {
+    color: var(--rv-muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .voice-hint {
+    margin: 0;
+    max-width: 34ch;
+    color: var(--rv-muted);
+    font-size: 14px;
+    line-height: 1.45;
+  }
+  /* the review after Falar: what was heard */
+  .heard {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 4px 0 10px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: var(--rv-surface-2);
+    font-size: 14.5px;
+    line-height: 1.4;
+  }
+  .heard .i {
+    flex: none;
+    width: 17px;
+    height: 17px;
+    margin-top: 2px;
+    color: var(--rv-accent-ink);
+  }
+
+  /* Falar: the microphone at the top right of every screen */
+  .head-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 26px;
+  }
+  .head-row .eyebrow {
+    flex: 1;
+    min-width: 0;
+  }
+  .mic-top {
+    flex: none;
+    width: 44px;
+    height: 44px;
+    margin: -6px -2px -6px 0;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: var(--rv-accent-soft);
+    color: var(--rv-accent-ink);
+  }
+  .mic-top .i {
+    width: 22px;
+    height: 22px;
+  }
+  .mic-top:active {
+    transform: scale(0.94);
+  }
+
+  /* Falar: the microphone at the top right of every screen */
+  .head-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 26px;
+  }
+  .head-row .eyebrow {
+    flex: 1;
+    min-width: 0;
+  }
+  .mic-top {
+    flex: none;
+    width: 44px;
+    height: 44px;
+    margin: -6px -2px -6px 0;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: var(--rv-accent-soft);
+    color: var(--rv-accent-ink);
+  }
+  .mic-top .i {
+    width: 22px;
+    height: 22px;
+  }
+  .mic-top:active {
+    transform: scale(0.94);
+  }
+
+  /* the box of Agora: typing opens the search (Calendário › Lista) */
+  .home-search {
+    margin: 0 0 16px;
+  }
+  kbd {
+    flex: none;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1;
+    color: var(--rv-muted);
+    border: 1px solid var(--rv-line-strong);
+    border-bottom-width: 2px;
+    border-radius: 5px;
+    padding: 3px 6px;
+    background: var(--rv-surface);
+  }
+  .home-search kbd {
+    margin-right: 10px;
+  }
+  .side-link kbd {
+    margin-left: auto;
+  }
+  @media (pointer: coarse) {
+    kbd {
+      display: none;
+    }
+  }
+  .detail-head .mic-top {
+    margin: 0;
+  }
 `;
