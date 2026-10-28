@@ -6,7 +6,30 @@
  *
  * The audio comes from the app as raw PCM, 16 kHz, 16-bit, mono (what Assist sends too).
  */
+import http from "node:http";
+import https from "node:https";
+
 const coded = (code, message) => Object.assign(new Error(message), { code });
+
+/**
+ * POST with the header names exactly as written. The Supervisor's proxy (http://supervisor/core/api)
+ * only passes on "X-Speech-Content" spelled like that, and fetch() sends header names in lower case.
+ */
+function postRaw(url, headers, body, timeoutMs) {
+  return new Promise((resolve, reject) => {
+    const u = new URL(url);
+    const lib = u.protocol === "https:" ? https : http;
+    const req = lib.request(u, { method: "POST", headers: { ...headers, "Content-Length": body.length }, timeout: timeoutMs }, (res) => {
+      const chunks = [];
+      res.on("data", (c) => chunks.push(c));
+      res.on("end", () => resolve({ status: res.statusCode, text: Buffer.concat(chunks).toString("utf8") }));
+      res.on("error", reject);
+    });
+    req.on("timeout", () => req.destroy(new Error("tempo esgotado")));
+    req.on("error", reject);
+    req.end(body);
+  });
+}
 
 export const VOICE_RATE = 16000;
 const MIN_BYTES = VOICE_RATE * 2 * 0.4; // under 0.4 s: nothing was said
@@ -61,22 +84,28 @@ export class Voice {
     if (pcm.length > MAX_VOICE_BYTES) throw coded("invalid_format", "Fale até 2 minutos de cada vez.");
     const e = await this.engine();
     if (!e) throw coded("no_stt", (await this.status()).reason);
-    const res = await fetch(`${this.rest}/stt/${encodeURIComponent(e.engine)}`, {
-      method: "POST",
-      headers: {
-        authorization: `Bearer ${this.token}`,
-        "content-type": "application/octet-stream",
-        "x-speech-content": `format=wav; codec=pcm; sample_rate=${VOICE_RATE}; bit_rate=16; channel=1; language=${e.language}`,
+    const res = await postRaw(
+      `${this.rest}/stt/${encodeURIComponent(e.engine)}`,
+      {
+        Authorization: `Bearer ${this.token}`,
+        "Content-Type": "application/octet-stream",
+        "X-Speech-Content": `format=wav; codec=pcm; sample_rate=${VOICE_RATE}; bit_rate=16; channel=1; language=${e.language}`,
       },
-      body: pcm,
-      signal: AbortSignal.timeout(90000),
-    });
-    if (!res.ok) {
+      pcm,
+      90000,
+    );
+    if (res.status < 200 || res.status >= 300) {
       this.cache = null;
-      const detail = (await res.text().catch(() => "")).slice(0, 200);
-      throw coded("failed", res.status === 415 || res.status === 400 ? `A fala para texto não aceitou o áudio (${detail || res.status}).` : `A fala para texto do Home Assistant falhou (${res.status}).`);
+      const detail = res.text.slice(0, 200);
+      this.log.warn(`Fala para texto (${e.engine}): ${res.status} ${detail}`);
+      throw coded("failed", res.status === 415 || res.status === 400 ? `A fala para texto não aceitou o áudio (${detail || res.status}).` : `A fala para texto do Home Assistant falhou (${res.status}${detail ? `: ${detail}` : ""}).`);
     }
-    const j = await res.json().catch(() => ({}));
+    let j = {};
+    try {
+      j = JSON.parse(res.text);
+    } catch (err) {
+      /* not JSON */
+    }
     const text = String(j.text || "").trim();
     if (j.result !== "success" || !text) throw coded("not_understood", "Não entendi. Tente de novo, mais perto do microfone.");
     return { text, engine: e.engine, name: e.name };
