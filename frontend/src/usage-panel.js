@@ -79,7 +79,9 @@ export function usagePanel({ u, day, onDay, head, app, using = "", names = {} })
       </ul>
     </details>
     <p class="uso-note">${provider(ids)} A estimativa de tokens daqui conta só o texto; as imagens e as instruções da IA somam mais.</p>
-    <p class="uso-note">No Home Assistant, o sensor <code>${u.sensor}</code> traz as chamadas de hoje do ${app}, com erros, cota e tokens estimados, para pôr num painel ou numa automação.</p>
+    <p class="uso-note">${u.sensor_on === false
+      ? html`Para ter o sensor <code>${u.sensor}</code> no Home Assistant (as chamadas de hoje, com erros, cota e tokens estimados), ligue <b>Sensores no Home Assistant</b>, logo abaixo.`
+      : html`No Home Assistant, o sensor <code>${u.sensor}</code> traz as chamadas de hoje do ${app}, com erros, cota e tokens estimados, para pôr num painel ou numa automação.`}</p>
   </div>`;
 }
 

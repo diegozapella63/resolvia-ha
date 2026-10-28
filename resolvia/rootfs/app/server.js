@@ -20,7 +20,7 @@ import { Placar } from "./lib/placar.js";
 import { Voice, readRaw, MAX_VOICE_BYTES } from "./lib/voice.js";
 import { snapshot, toCSV, backupZip, parseImport, Backups, listVersions, readVersion, fileStamp } from "./lib/data.js";
 
-const VERSION = "2.19.0";
+const VERSION = "2.20.0";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const WWW = path.join(HERE, "www");
 const DEV = process.env.RESOLVIA_DEV === "1";
@@ -84,7 +84,7 @@ async function restoreAll(raw, reason, opts) {
 const HA_REST = process.env.HA_REST_URL || "http://supervisor/core/api";
 // Falar: the speech-to-text of Home Assistant (Assist)
 const voice = new Voice({ ha, rest: HA_REST, token: TOKEN, log });
-const usage = new AiUsage({ dir: DATA_DIR, sensor: "sensor.resolvia_ia_hoje", label: "ResolvIA", rest: HA_REST, token: TOKEN, log });
+const usage = new AiUsage({ dir: DATA_DIR, sensor: "sensor.resolvia_ia_hoje", label: "ResolvIA", rest: HA_REST, token: TOKEN, log, enabled: () => store.prefs.app.sensors_on === true });
 const ai = new AI({ ha, log, mediaDir: MEDIA_DIR, selected: () => store.prefs.app.ai_entity || "", usage });
 const itemSubs = new Map(); // entity_id -> subscription (for the recurring engine and the ages)
 // Sugestões: since when each pending item is on its list, and the last suggestion of the AI
@@ -179,8 +179,14 @@ ha.subscribe({ type: "subscribe_events", event_type: "resolvia_esquecer" }, (ev)
   log.info(`Levadas para o ${d.origem || "CronologIA"}: ${names.length} tarefas de ${d.entity_id}${rules ? ` (${rules} repetições tiradas)` : ""}`);
 });
 
+let sensorsCleaned = false;
 ha.on("ready", async () => {
   registryCache = null;
+  // Sensores no Home Assistant off (the default): the one left by an older version goes away, once
+  if (!sensorsCleaned && store.prefs.app.sensors_on !== true) {
+    sensorsCleaned = true;
+    usage.remove().catch(() => {});
+  }
   try {
     const config = await ha.send({ type: "get_config" });
     if (config && config.time_zone && process.env.TZ !== config.time_zone) {
@@ -370,6 +376,8 @@ class Session {
       case "resolvia/prefs/set_app": {
         const prefs = store.setAppPrefs(msg.prefs);
         if ("points_on" in (msg.prefs || {}) || "due_off" in (msg.prefs || {})) publishPresence();
+        // Sensores no Home Assistant: on creates the sensor now, off removes it
+        if ("sensors_on" in (msg.prefs || {})) (store.prefs.app.sensors_on === true ? usage.publish() : usage.remove()).catch(() => {});
         if ("repeat_on" in (msg.prefs || {})) {
           // back on: completed items with a rule start counting now; off: nothing comes back
           for (const [eid, items] of recurring.items) recurring.process(eid, items);

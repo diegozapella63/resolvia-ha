@@ -41,7 +41,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.19.0";
+const VERSION = "2.20.0";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -2161,7 +2161,7 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
     let body;
     let status = { text: `ResolvIA ${VERSION}${this._prefsRemote ? " · personalizações sincronizadas" : ""}` };
     if (tab === "repeticoes") body = this._renderRulesTab();
-    else if (tab === "integracoes") body = html`${this._renderRewardsPanel()} ${this._renderAiPanel()} ${this.hass.resolvia && this._aiOn() ? this._renderUsage() : nothing}`;
+    else if (tab === "integracoes") body = html`${this._renderRewardsPanel()} ${this._renderAiPanel()} ${this.hass.resolvia && this._aiOn() ? this._renderUsage() : nothing} ${this._renderSensorsPanel()}`;
     else if (tab === "dados") body = this._renderDataPanel();
     else if (tab === "aparencia") body = this._renderAppearanceTab();
     else if (tab === "opcoes") body = this._renderOptionsTab();
@@ -2331,6 +2331,20 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
           ${colorPicker({ palette: PALETTE, value: accent, onPick: (id) => this._saveAppPrefs({ accent: id === "vermelho" ? null : id }) })}
         </div>
     `;
+  }
+
+  /** Mais › Integrações › Sensores no Home Assistant: off unless turned on; off removes it. */
+  _renderSensorsPanel() {
+    if (!this.hass.resolvia) return nothing;
+    const on = this._app("sensors_on", false) === true;
+    return html`<div class="panel" id="sensores">
+      ${this._secHead("activity", "Sensores no Home Assistant", "Para usar em painéis e automações do Home Assistant.")}
+      <div class="row switch-row">
+        <div class="grow"><div class="label">Criar sensores</div><div class="hint" style="white-space:normal">${on ? "Ligado: o app mantém este sensor atualizado." : "Desligado: o app não cria sensores no Home Assistant, e apaga os que tinha criado."}</div></div>
+        <label class="switch"><input type="checkbox" role="switch" .checked=${on} @change=${(e) => this._saveAppPrefs({ sensors_on: e.target.checked ? true : null })} aria-label="Criar sensores" /><span class="track"></span></label>
+      </div>
+      ${on ? html`<div class="sensor-list"><div class="sensor-row"><code>sensor.resolvia_ia_hoje</code><span>chamadas de IA hoje</span></div></div>` : nothing}
+    </div>`;
   }
 
   _renderAiPanel() {

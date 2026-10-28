@@ -40,6 +40,8 @@ const APP_FIELDS = {
   ai_off: ["boolean"],
   // Mais > Opções > Controlar prazos: true = off (no Prazos tab, no deadline field; Sugestões instead)
   due_off: ["boolean"],
+  // Mais > Integrações > Sensores no Home Assistant: true = on (off unless turned on)
+  sensors_on: ["boolean"],
 };
 
 /** A repeating task from a file (import, restore): only the known fields, sane values. */

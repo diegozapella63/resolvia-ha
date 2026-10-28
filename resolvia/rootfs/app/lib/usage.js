@@ -22,8 +22,9 @@ export function resultOf(err) {
 }
 
 export class AiUsage {
-  /** {dir, sensor: "sensor.x_ia_hoje", label: "CronologIA", rest, token, log} */
-  constructor({ dir, sensor, label, rest, token, log }) {
+  /** {dir, sensor: "sensor.x_ia_hoje", label: "CronologIA", rest, token, log, enabled: () => bool (Sensores no Home Assistant)} */
+  constructor({ dir, sensor, label, rest, token, log, enabled = () => true }) {
+    this.enabled = enabled;
     this.file = path.join(dir, "uso_ia.json");
     this.sensor = sensor;
     this.label = label;
@@ -94,12 +95,23 @@ export class AiUsage {
       ultimas: (Array.isArray(u.ultimas) ? u.ultimas : []).slice(0, 12),
       desde: keys[0] || null,
       sensor: this.sensor,
+      sensor_on: !!this.enabled(),
     };
+  }
+
+  /** Sensores no Home Assistant turned off: the sensor goes away (the next publish brings it back). */
+  async remove() {
+    if (!this.rest || !this.token) return;
+    try {
+      await fetch(`${this.rest}/states/${this.sensor}`, { method: "DELETE", headers: { authorization: `Bearer ${this.token}` }, signal: AbortSignal.timeout(10000) });
+    } catch (err) {
+      /* offline: it goes with the next restart of Home Assistant */
+    }
   }
 
   /** sensor.<app>_ia_hoje: today's calls, for a dashboard or an automation. */
   async publish() {
-    if (!this.rest || !this.token) return;
+    if (!this.rest || !this.token || !this.enabled()) return;
     const r = this.summary();
     const h = r.hoje;
     const body = {

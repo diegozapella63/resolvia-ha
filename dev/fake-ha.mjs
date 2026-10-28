@@ -315,6 +315,12 @@ const server = http.createServer((req, res) => {
       });
       return;
     }
+    // DELETE: the app removes its sensor (Sensores no Home Assistant off)
+    if (req.method === "DELETE") {
+      const had = restStates.delete(st[1]);
+      res.writeHead(had ? 200 : 404, { "content-type": "application/json" });
+      return res.end(JSON.stringify({ message: had ? "Entity removed." : "Entity not found." }));
+    }
     const v = restStates.get(st[1]);
     res.writeHead(v ? 200 : 404, { "content-type": "application/json" });
     return res.end(JSON.stringify(v || { message: "Entity not found." }));

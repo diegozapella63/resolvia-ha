@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.20.0
+
+- **Sensores no Home Assistant desligados por padrão**: o sensor `sensor.resolvia_ia_hoje` só é criado se você ligar em **Mais › Integrações › Sensores no Home Assistant**. Desligado, o app apaga o que tinha criado.
+
 ## 2.19.0
 
 - **No computador, com cara de InventarIA**: tela mais larga; seções direto na página em vez de cartões, com título grande, ícone e linhas entre as listas; dois grupos de listas lado a lado; ao lado do caderno, os números do dia (**Atrasados**, **Para hoje**, **Próximo prazo**, **Mais cheia**, cada um abre o que mostra); no alto à direita, **Falar**, **Ler com IA** e **Adicionar item** (saiu o botão da barra lateral). No celular nada muda.
