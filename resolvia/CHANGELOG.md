@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.18.2
+
+- **Falar** some quando **Usar IA** está desligado (Mais › Integrações).
+- **Listas**: o grupo sem nome agora se chama **Listas locais**, e saiu a linha "N listas ocultas · ver em Mais" (as ocultas continuam em Mais › Listas).
+
 ## 2.18.1
 
 - **Falar**: corrigido o erro "Missing X-Speech-Content header". O Home Assistant só recebia o áudio sem a descrição do formato: o proxy do Supervisor só repassa esse cabeçalho escrito exatamente assim, e ele ia em minúsculas.

@@ -41,7 +41,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.18.1";
+const VERSION = "2.18.2";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -911,9 +911,10 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
     this.requestUpdate();
   }
 
-  /** Falar, at the top right of the screens: speak the items, they are separated, you check and add. */
+  /** Falar, at the top right of the screens: speak the items, they are separated, you check and add.
+   *  Mais › Integrações › Usar IA off: no Falar. */
   _renderMicBtn(listId = null) {
-    if (!this._voice || !this._voice.ready) return nothing;
+    if (!this._aiOn() || !this._voice || !this._voice.ready) return nothing;
     return html`<button class="mic-top" aria-label="Falar: adicionar itens falando" title="Falar" @click=${() => this._openImport(listId, "voice")}>${icon("mic")}</button>`;
   }
 
@@ -1660,7 +1661,6 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
 
   _renderHome() {
     const lists = this._visible();
-    const hiddenCount = this._L.length - lists.length;
     const pending = lists.reduce((n, l) => n + l.pending, 0);
     const late = lists.reduce((n, l) => n + l.late, 0);
     const today = lists.reduce((n, l) => n + l.today, 0);
@@ -1716,15 +1716,12 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
               ${groups.map(
                 (g) => html`
                   <div class="panel">
-                    ${groupBy && (g.name || groups.length > 1) ? html`<div class="overline">${g.name || "Listas"}</div>` : nothing}
+                    ${groupBy && (g.name || groups.length > 1) ? html`<div class="overline">${g.name || "Listas locais"}</div>` : nothing}
                     ${g.lists.map((l) => this._renderListCard(l, !groupBy))}
                   </div>
                 `,
               )}
             `}
-        ${hiddenCount
-          ? html`<button class="text-btn" style="display:block;margin:-4px auto 10px" @click=${() => this._go("/mais")}>${plural(hiddenCount, "lista oculta", "listas ocultas")} · ver em Mais</button>`
-          : nothing}
         ${this.hass.user && this.hass.user.is_admin
           ? html`<button class="pick ghost" style="margin:4px auto 0;display:flex" @click=${() => this._openInHA("/config/integrations/dashboard/add?domain=local_todo")}>
               ${icon("list-plus")}<span>Nova lista</span>
