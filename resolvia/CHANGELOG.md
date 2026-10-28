@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.18.3
+
+- **Mais › Dados › Exportar** como no InventarIA: uma linha por arquivo (Planilha CSV, Dados completos JSON, Tudo ZIP), cada uma com a explicação do que tem e o botão **Baixar**, com uma linha separando.
+
 ## 2.18.2
 
 - **Falar** some quando **Usar IA** está desligado (Mais › Integrações).

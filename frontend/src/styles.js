@@ -2354,6 +2354,39 @@ export const styles = css`
   .btn.primary.sm {
     color: var(--rv-on-accent);
   }
+  /* Exportar (like the InventarIA): one line per file, with a border between them */
+  .opts {
+    list-style: none;
+    margin: 0 0 6px;
+    padding: 0;
+    border-top: 1px solid var(--rv-line);
+  }
+  .opts > li {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 2px;
+    border-bottom: 1px solid var(--rv-line);
+  }
+  .opts .ot {
+    flex: 1;
+    min-width: 0;
+  }
+  .opts .ot b {
+    display: block;
+    font-weight: 600;
+    font-size: 15px;
+  }
+  .opts .ot span {
+    display: block;
+    margin-top: 2px;
+    font-size: 13.5px;
+    line-height: 1.4;
+    color: var(--rv-muted);
+  }
+  .opts .btn {
+    flex: none;
+  }
   .data-note {
     margin: 8px 0 0;
     font-size: 13px;

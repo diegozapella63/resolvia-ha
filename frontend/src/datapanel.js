@@ -176,11 +176,19 @@ export const DataMixin = (Base) =>
       const api = this._data();
       if (!api) return nothing;
       const b = this._backups;
-      const exp = (fmt, label, ic) => html`<a class="btn outline sm" href=${api.url(fmt) || "#"} download @click=${(e) => this._exportData(fmt, e)}>${icon(ic)}${label}</a>`;
+      // Exportar like the InventarIA: one line per file, what it is and its button, a border between them
+      const exp = (fmt, title, text, label) => html`<li>
+        <div class="ot"><b>${title}</b><span>${text}</span></div>
+        <a class="btn outline sm" href=${api.url(fmt) || "#"} download @click=${(e) => this._exportData(fmt, e)}>${icon("download")}${label}</a>
+      </li>`;
       return html`<div id="dados">
         <div class="panel">
-          ${this._secHead("download", "Exportar", "Baixe para guardar ou abrir em outro programa. O ZIP tem todas as listas com os itens (prazo, notas e concluídos), uma planilha e os ajustes do app; o CSV abre no Excel.")}
-          <div class="btn-row sec-actions">${exp("zip", "Tudo (ZIP)", "archive")} ${exp("csv", "Planilha (CSV)", "sheet")} ${exp("json", "Dados (JSON)", "braces")}</div>
+          ${this._secHead("download", "Exportar", "Baixe para guardar ou levar para outro programa. Os arquivos são abertos e legíveis.")}
+          <ul class="opts">
+            ${exp("csv", "Planilha (CSV)", "Abre no Excel e no Google Planilhas, com um item por linha.", "Baixar CSV")}
+            ${exp("json", "Dados completos (JSON)", "Todos os campos, para backup ou para outro sistema.", "Baixar JSON")}
+            ${exp("zip", "Tudo (ZIP)", "Todas as listas com os itens (prazo, notas e concluídos), a planilha e os ajustes do app num arquivo só.", "Baixar ZIP")}
+          </ul>
         </div>
         <div class="panel">
           ${this._secHead("archive", "Backup na pasta share", html`Cria uma cópia completa em <code>share/resolvia</code>, que você acessa pela rede do Home Assistant. Os backups do próprio Home Assistant também incluem o ResolvIA e as listas locais.`)}
