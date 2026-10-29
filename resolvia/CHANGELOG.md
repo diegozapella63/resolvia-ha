@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.20.1
+
+- **Adicionar e Editar item**: as escolhas de **Prazo**, **Repetir** e **Lista** viraram botões do mesmo tamanho, em colunas, como no EconomIA (também na revisão da leitura por IA).
+
 ## 2.20.0
 
 - **Sensores no Home Assistant desligados por padrão**: o sensor `sensor.resolvia_ia_hoje` só é criado se você ligar em **Mais › Integrações › Sensores no Home Assistant**. Desligado, o app apaga o que tinha criado.

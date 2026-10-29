@@ -1127,6 +1127,25 @@ export const styles = css`
     flex-wrap: wrap;
     gap: 8px;
   }
+  /* the choices of a form (Prazo, Repetir, Lista): buttons of the same width, like the EconomIA */
+  .chip-row.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 9.5em), 1fr));
+    gap: 8px;
+  }
+  .chip-row.grid .pick {
+    justify-content: center;
+    min-height: 44px;
+    padding: 8px 10px;
+    text-align: center;
+    white-space: normal;
+    line-height: 1.2;
+    min-width: 0;
+  }
+  .chip-row.grid .pick > span {
+    overflow: visible;
+    text-overflow: clip;
+  }
   .hidden-input {
     position: absolute;
     inset: 0;

@@ -41,7 +41,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.20.0";
+const VERSION = "2.20.1";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -2515,7 +2515,7 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
       ${canDate
         ? html`<div class="field">
             <span class="flabel">Prazo</span>
-            <div class="chip-row">
+            <div class="chip-row grid">
               ${quick.map((q) => html`<button class="pick ${f.date === q.date ? "on" : ""}" @click=${() => this._setForm({ date: f.date === q.date ? null : q.date })}>${q.label}</button>`)}
               <button class="pick ${f.date && !isQuick ? "on" : ""}" @click=${() => openPicker("#rv-date")}>
                 ${icon("calendar")}<span>${f.date && !isQuick ? shortDate(f.date) : "Outra data"}</span>
@@ -2535,7 +2535,7 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
       ${this._rulesOk && this._repeatOn() && !f.mirrored && (has(feat, F.UPDATE) || has(feat, F.CREATE))
         ? html`<div class="field">
             <span class="flabel">Repetir depois de concluir</span>
-            <div class="chip-row">
+            <div class="chip-row grid">
               <button class="pick ${!f.repeat ? "on" : ""}" @click=${() => this._setForm({ repeat: 0, repeatCustom: false })}>Não</button>
               ${REPEAT_PICKS.map(
                 (p) => html`<button class="pick ${f.repeat === p.days && !f.repeatCustom ? "on" : ""}" @click=${() => this._setForm({ repeat: p.days, repeatCustom: false })}>${p.label}</button>`,
@@ -2558,7 +2558,7 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
       ${targets.length > 1
         ? html`<div class="field">
             <span class="flabel">${f.mode === "add" ? "Lista" : "Lista (mover)"}</span>
-            <div class="chip-row">
+            <div class="chip-row grid">
               ${targets.map((t) => html`<button class="pick list ${f.target === t.id ? "on" : ""}" style=${colorVars(t.color, this._dark)} @click=${() => this._setForm({ target: t.id })}><span class="dot"></span><span>${clip(t.name, 26)}</span></button>`)}
             </div>
           </div>`
@@ -2673,7 +2673,7 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
         ${targets.length > 1
           ? html`<div class="field">
               <span class="flabel">Adicionar em</span>
-              <div class="chip-row">
+              <div class="chip-row grid">
                 ${targets.map((t) => html`<button class="pick list ${f.target === t.id ? "on" : ""}" style=${colorVars(t.color, this._dark)} @click=${() => this._setForm({ target: t.id })}><span class="dot"></span><span>${clip(t.name, 26)}</span></button>`)}
               </div>
             </div>`
