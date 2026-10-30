@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.21.0
+
+- **Arrastar para o lado** troca de aba no celular: Listas ⇄ Buscar ⇄ Prazos (ou Sugestões) ⇄ Mais. Dentro de uma lista, arrastar para a direita volta para as listas. Não vale começando na borda da tela (é o Voltar do celular), num campo, na alça de reordenar ou numa fileira que rola para o lado.
+- O **ícone do app** ao lado do nome, no alto e na barra lateral, na cor escolhida em Aparência.
+
 ## 2.20.1
 
 - **Adicionar e Editar item**: as escolhas de **Prazo**, **Repetir** e **Lista** viraram botões do mesmo tamanho, em colunas, como no EconomIA (também na revisão da leitura por IA).

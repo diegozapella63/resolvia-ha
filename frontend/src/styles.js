@@ -1965,6 +1965,16 @@ export const styles = css`
   .brand span {
     color: var(--rv-accent-ink);
   }
+  /* the icon of the app before its name */
+  .app-ic {
+    display: inline-block;
+    width: 1.15em;
+    height: 1.15em;
+    margin-right: 0.28em;
+    vertical-align: -0.2em;
+    color: var(--rv-text);
+    overflow: visible;
+  }
   .page-title {
     font-family: var(--rv-display);
     font-size: clamp(34px, 8vw, 46px);

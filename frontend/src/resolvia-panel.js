@@ -7,6 +7,8 @@ import {
 } from "../vendor/lit-all.min.js";
 import { ICONS } from "./icons.js";
 import { ensureFonts } from "./fonts.js";
+import { appIcon } from "./appicon.js";
+import { swipeStart, swipeEnd, slideIn } from "./swipe.js";
 import { styles } from "./styles.js";
 import { usagePanel, usageStyles } from "./usage-panel.js";
 import { themePicker, colorPicker, lookStyles } from "./look.js";
@@ -41,7 +43,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.20.1";
+const VERSION = "2.21.0";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -514,6 +516,38 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
   _back() {
     if (history.state && history.state.rvDepth > 0) history.back();
     else this._go("", true);
+  }
+
+  // Arrastar para o lado: Listas ⇄ Buscar ⇄ Prazos (ou Sugestões) ⇄ Mais; dentro de uma lista, para a direita volta
+  _onSwipeStart(e) {
+    this._sw = this._sheet || this._cam ? null : swipeStart(e);
+  }
+
+  _onSwipeEnd(e) {
+    const d = swipeEnd(e, this._sw);
+    this._sw = null;
+    if (!d || this._sheet) return;
+    const due = this._dueOn();
+    const order = [
+      ["home", ""],
+      ["search", "/buscar"],
+      [due ? "due" : "suggest", due ? "/prazos" : "/sugestoes"],
+      ["more", "/mais"],
+    ];
+    const name = this._view().name;
+    if (name === "list") {
+      if (d > 0) return;
+      this._haptic("light");
+      this._back();
+      slideIn(this, "home", d);
+      return;
+    }
+    const i = order.findIndex(([n]) => n === name);
+    const j = i + d;
+    if (i < 0 || j < 0 || j >= order.length) return;
+    this._haptic("light");
+    this._goTab(order[j][1]);
+    slideIn(this, order[j][0], d);
   }
 
   _goTab(path) {
@@ -1578,7 +1612,7 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
             ? html`<div class="offline">${icon("wifi-off")}<span>Sem conexão com o Home Assistant. Reconectando…</span></div>`
             : nothing}
           ${this._renderSide(view)}
-          <main>${page}</main>
+          <main @touchstart=${(e) => this._onSwipeStart(e)} @touchend=${(e) => this._onSwipeEnd(e)}>${page}</main>
           ${this._renderNav(view)}
         </div>
         ${this._renderSheet()} ${this._renderToast()} ${this._renderCamera()}
@@ -1623,7 +1657,7 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
       ${icon(ic)}<span>${label}</span>${badge ? html`<span class="side-badge">${badge > 99 ? "99+" : badge}</span>` : nothing}${key ? html`<kbd>${key}</kbd>` : nothing}
     </button>`;
     return html`<aside class="side" aria-label="Navegação">
-      <div class="side-brand">Resolv<span>IA</span></div>
+      <div class="side-brand">${appIcon()}Resolv<span>IA</span></div>
       <div class="side-nav">
         ${item("home", "", "Listas", "list-checks")} ${item("search", "/buscar", "Buscar", "search", 0, "/")}
         ${this._dueOn() ? item("due", "/prazos", "Prazos", "calendar-clock", lateCount) : item("suggest", "/sugestoes", "Sugestões", "lightbulb")}
@@ -1659,7 +1693,7 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
     const offline = this.hass.connected === false;
     const st = offline ? { text: "Reconectando ao Home Assistant…", tone: "off" } : status;
     return html`<header class="brand-head">
-      <div class="head-row"><p class="eyebrow"><span class="brand">Resolv<span>IA</span></span>${name ? html`<span class="sep"> · </span>Olá, ${name}` : ""}</p>${this._renderMicBtn()}${this._renderTopActs()}</div>
+      <div class="head-row"><p class="eyebrow"><span class="brand">${appIcon()}Resolv<span>IA</span></span>${name ? html`<span class="sep"> · </span>Olá, ${name}` : ""}</p>${this._renderMicBtn()}${this._renderTopActs()}</div>
       <h1 class="page-title">${title}</h1>
       ${st ? html`<p class="status"><span class="dot ${st.tone || ""}" aria-hidden="true"></span><span>${st.text}</span></p>` : nothing}
     </header>`;
