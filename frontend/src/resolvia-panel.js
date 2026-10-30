@@ -43,7 +43,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.21.0";
+const VERSION = "2.22.0";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -1651,7 +1651,7 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
    * InventarIA. Adicionar, as seções e as listas com o que falta em cada uma.
    */
   _renderSide(view) {
-    const lists = this._visible();
+    const lists = this._byPending(this._visible());
     const lateCount = lists.reduce((n, l) => n + l.late + l.today, 0);
     const item = (name, path, label, ic, badge = 0, key = "") => html`<button class="side-link" aria-current=${view.name === name ? "page" : "false"} @click=${() => this._goTab(path)}>
       ${icon(ic)}<span>${label}</span>${badge ? html`<span class="side-badge">${badge > 99 ? "99+" : badge}</span>` : nothing}${key ? html`<kbd>${key}</kbd>` : nothing}
@@ -1701,8 +1701,13 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
 
   // ---------- home
 
+  /** The lists with more pending first (ties keep the order of Mais › Listas). */
+  _byPending(lists) {
+    return [...lists].sort((a, b) => b.pending - a.pending);
+  }
+
   _renderHome() {
-    const lists = this._visible();
+    const lists = this._byPending(this._visible());
     const pending = lists.reduce((n, l) => n + l.pending, 0);
     const late = lists.reduce((n, l) => n + l.late, 0);
     const today = lists.reduce((n, l) => n + l.today, 0);
@@ -1721,7 +1726,8 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
         if (!grp) groups.push((grp = { name: g, lists: [] }));
         grp.lists.push(l);
       }
-      groups.sort((a, b) => (a.name ? 1 : 0) - (b.name ? 1 : 0));
+      const pend = (g) => g.lists.reduce((n, l) => n + l.pending, 0);
+      groups.sort((a, b) => pend(b) - pend(a) || (a.name ? 1 : 0) - (b.name ? 1 : 0));
     } else groups.push({ name: null, lists });
 
     return html`
@@ -1783,7 +1789,7 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
 
   /** The box of the home, like the InventarIA: the first letter already opens Buscar with it. */
   _renderHomeSearch() {
-    const n = this._L.reduce((sum, l) => sum + ((l.items && l.items.length) || 0), 0);
+    const n = this._visible().reduce((sum, l) => sum + ((l.items && l.items.length) || 0), 0);
     return html`<form class="search-box home-search" role="search" @submit=${(e) => {
       e.preventDefault();
       this._query = e.target.q.value.trim();
@@ -2121,7 +2127,8 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
     const results = [];
     let count = 0;
     if (needle) {
-      for (const l of this._L) {
+      // only the lists that are on (Mais › Listas): the hidden ones are not searched
+      for (const l of this._visible()) {
         const hits = (l.items || []).filter(
           (i) => (this._searchDone || !isDone(i)) && (fold(i.summary).includes(needle) || fold(i.description).includes(needle)),
         );
@@ -2134,7 +2141,7 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
     }
     return html`
       <section class="page">
-        ${this._renderPageHead("Buscar", { text: `Em ${plural(this._L.length, "lista", "listas")}` })}
+        ${this._renderPageHead("Buscar", { text: `Em ${plural(this._visible().length, "lista", "listas")}` })}
         <label class="search-box">
           ${icon("search")}
           <input type="search" data-q="buscar" placeholder="Buscar em todas as listas" .value=${this._query} @input=${(e) => (this._query = e.target.value)} enterkeyhint="search" aria-label="Buscar" />

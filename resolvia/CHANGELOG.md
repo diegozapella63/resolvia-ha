@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.22.0
+
+- **Listas com mais pendências primeiro**, na tela inicial (e o grupo com mais pendências primeiro) e na barra lateral do computador. Empates seguem a ordem de Mais › Listas.
+- **Buscar** só nas listas ligadas em Mais › Listas: o "Em N listas", o "Buscar entre N itens" e os resultados não contam mais as listas ocultas.
+
 ## 2.21.0
 
 - **Arrastar para o lado** troca de aba no celular: Listas ⇄ Buscar ⇄ Prazos (ou Sugestões) ⇄ Mais. Dentro de uma lista, arrastar para a direita volta para as listas. Não vale começando na borda da tela (é o Voltar do celular), num campo, na alça de reordenar ou numa fileira que rola para o lado.
