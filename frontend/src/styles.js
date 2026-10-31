@@ -2002,6 +2002,25 @@ export const styles = css`
     box-sizing: border-box;
     min-width: 0;
   }
+  /* the equipment of a row: the search opens under it */
+  .imp-eq {
+    order: 11;
+    flex-basis: 100%;
+    padding: 8px 0 2px 32px;
+    box-sizing: border-box;
+    display: grid;
+    gap: 6px;
+  }
+  button.imp-dest {
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    border: 0;
+  }
+  .imp-dest.open {
+    outline: 2px solid var(--c);
+    outline-offset: 1px;
+  }
   .imp-chips .imp-dest {
     margin-left: 0;
     max-width: 100%;

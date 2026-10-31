@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.29.1
+
+- **Equipamento com busca**: no lugar da lista padrão, uma busca. Com um cômodo escolhido, aparecem os equipamentos dele; ao buscar (pelo nome, pela zona ou pelo cômodo, sem ligar para acentos), o que está em outros cômodos aparece separado, com o cômodo. O trecho buscado fica destacado, e o escolhido vira um cartão com zona e cômodo (× para tirar). Escolher um equipamento de outro cômodo troca o cômodo; trocar o cômodo tira um equipamento que não é dele.
+- Na revisão da leitura por IA, tocar no equipamento de um item abre a mesma busca embaixo dele.
+
 ## 2.29.0
 
 - **Equipamentos do InventarIA**: o painel de Mais › Integrações virou **InventarIA**, com **Usar cômodos** e **Usar equipamentos** (os dois desligados por padrão). Com os equipamentos ligados, cada tarefa pode apontar para um item do InventarIA (1.15.0 ou mais novo), escolhido no item numa lista separada por cômodo; escolher o equipamento já preenche o cômodo dele. A tarefa mostra o equipamento como etiqueta.

@@ -11,6 +11,7 @@ import { appIcon } from "./appicon.js";
 import { swipeStart, swipeEnd, slideIn } from "./swipe.js";
 import { styles } from "./styles.js";
 import { usagePanel, usageStyles } from "./usage-panel.js";
+import { renderEquipPicker, equipPickerStyles } from "./equip-picker.js";
 import { themePicker, colorPicker, lookStyles } from "./look.js";
 import { unsafeCSS } from "../vendor/lit-all.min.js";
 import { DataMixin } from "./datapanel.js";
@@ -44,7 +45,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.29.0";
+const VERSION = "2.29.1";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -106,7 +107,7 @@ class ResolviaPanel extends RoomsMixin(SuggestMixin(PointsMixin(DataMixin(LitEle
     env: { attribute: false },
   };
 
-  static styles = [styles, unsafeCSS(usageStyles), unsafeCSS(lookStyles)];
+  static styles = [styles, unsafeCSS(usageStyles), unsafeCSS(lookStyles), unsafeCSS(equipPickerStyles)];
 
   constructor() {
     super();
@@ -2865,19 +2866,34 @@ class ResolviaPanel extends RoomsMixin(SuggestMixin(PointsMixin(DataMixin(LitEle
                   </label>`
                 : nothing}
               ${this._equipsOn()
-                ? html`<label class="imp-dest imp-room imp-equip ${it.equip ? "" : "none"}">
+                ? html`<button type="button" class="imp-dest imp-room imp-equip ${it.equip ? "" : "none"} ${f.eqFor === i ? "open" : ""}" aria-expanded=${f.eqFor === i ? "true" : "false"} aria-label="Equipamento de ${it.text}" @click=${() => this._setForm({ eqFor: f.eqFor === i ? null : i, eqQ: "", eqMore: false })}>
                     ${icon("package")}<span class="dname">${it.equip ? clip((this._equipOf(it.equip) || {}).nome || "", 30) : "Equipamento"}</span>${icon("chevron-down")}
-                    <select aria-label="Equipamento de ${it.text}" @change=${(e) => {
-                      const eq = e.target.value || null;
-                      const room = !it.room && eq && this._roomsOn() ? (this._equipOf(eq) || {}).comodo || null : it.room;
-                      this._setImportItem(i, { equip: eq, room });
-                    }}>
-                      <option value="" ?selected=${!it.equip}>Nenhum</option>
-                      ${this._equipOptions(it.equip)}
-                    </select>
-                  </label>`
+                  </button>`
                 : nothing}
                   </div>`
+                : nothing}
+              ${f.eqFor === i && this._equipsOn()
+                ? html`<div class="imp-eq">${renderEquipPicker({
+                    lit: { html, nothing },
+                    icon,
+                    items: this._equipItems(),
+                    room: this._roomsOn() ? it.room : null,
+                    roomName: this._roomsOn() && it.room ? this._roomName(it.room) || "" : "",
+                    value: null,
+                    query: f.eqQ || "",
+                    more: !!f.eqMore,
+                    autofocus: true,
+                    onQuery: (q) => this._setForm({ eqQ: q, eqMore: false }),
+                    onMore: () => this._setForm({ eqMore: true }),
+                    onPick: (id) => {
+                      const e = this._equipOf(id);
+                      const room = e && e.comodo && this._roomsOn() && this._roomList().some((c) => c.id === e.comodo) ? e.comodo : it.room;
+                      this._setImportItem(i, { equip: id, room });
+                      this._setForm({ eqFor: null, eqQ: "" });
+                    },
+                  })}
+                  ${it.equip ? html`<button type="button" class="eq-more" @click=${() => (this._setImportItem(i, { equip: null }), this._setForm({ eqFor: null }))}>Sem equipamento</button>` : nothing}
+                </div>`
                 : nothing}
             </div>`;
             },

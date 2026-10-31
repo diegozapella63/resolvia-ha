@@ -7,6 +7,7 @@
 import { html, nothing, unsafeSVG } from "../vendor/lit-all.min.js";
 import { ICONS } from "./icons.js";
 import { plural, clip } from "./util.js";
+import { renderEquipPicker } from "./equip-picker.js";
 
 const icon = (name, cls = "") =>
   html`<svg class="i ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${unsafeSVG(ICONS[name] || ICONS["list-checks"])}</svg>`;
@@ -80,34 +81,36 @@ export const RoomsMixin = (Base) =>
       return e ? html`<span class="tag room">${icon("package")}${clip(e.nome, 26)}</span>` : nothing;
     }
 
-    /** The items grouped by room, as <option>s for a native picker (many items fit better in it than in chips). */
-    _equipOptions(selected) {
-      const groups = new Map();
-      for (const i of this._equipList()) {
-        const g = this._roomList().find((c) => c.id === i.comodo);
-        const k = g ? g.nome : "Outros";
-        if (!groups.has(k)) groups.set(k, []);
-        groups.get(k).push(i);
-      }
-      return [...groups].map(([g, list]) => html`<optgroup label=${g}>${list.map((i) => html`<option value=${i.id} ?selected=${i.id === selected}>${i.nome}${i.zona ? ` · ${i.zona}` : ""}</option>`)}</optgroup>`);
+    /** The items for the picker: with the name of their room. */
+    _equipItems() {
+      return this._equipList().map((i) => ({ id: i.id, nome: i.nome, zona: i.zona, roomId: i.comodo, roomName: this._roomName(i.comodo) || "" }));
     }
 
-    /** Item sheet: Equipamento (when on). Picking one also fills the room, when there is none yet. */
+    /** Item sheet: Equipamento (when on), searched among the items of the room chosen above. Picking one sets its room. */
     _renderEquipField(f) {
       if (!this._equipsOn()) return nothing;
-      const pick = (id) => {
-        const e = this._equipOf(id);
-        const changes = { equip: id || null };
-        if (e && e.comodo && this._roomsOn() && !f.room && this._roomList().some((c) => c.id === e.comodo)) changes.room = e.comodo;
-        this._setForm(changes);
-      };
-      return html`<label class="field">
+      const room = this._roomsOn() ? f.room : null;
+      return html`<div class="field">
         <span class="flabel">Equipamento</span>
-        <select class="select" aria-label="Equipamento" @change=${(e) => pick(e.target.value)}>
-          <option value="" ?selected=${!f.equip}>Nenhum</option>
-          ${this._equipOptions(f.equip)}
-        </select>
-      </label>`;
+        ${renderEquipPicker({
+          lit: { html, nothing },
+          icon,
+          items: this._equipItems(),
+          room,
+          roomName: room ? this._roomName(room) || "" : "",
+          value: f.equip,
+          query: f.equipQ || "",
+          more: !!f.equipMore,
+          onQuery: (q) => this._setForm({ equipQ: q, equipMore: false }),
+          onMore: () => this._setForm({ equipMore: true }),
+          onPick: (id) => {
+            const e = this._equipOf(id);
+            const changes = { equip: id || null, equipQ: "", equipMore: false };
+            if (e && e.comodo && this._roomsOn() && this._roomList().some((c) => c.id === e.comodo)) changes.room = e.comodo;
+            this._setForm(changes);
+          },
+        })}
+      </div>`;
     }
 
     /** The room id of a task (or null). */
@@ -142,7 +145,12 @@ export const RoomsMixin = (Base) =>
     /** Item sheet: Cômodo (when on). */
     _renderRoomField(f) {
       if (!this._roomsOn()) return nothing;
-      const pick = (id) => this._setForm({ room: f.room === id ? null : id });
+      // another room: an equipment of the old one doesn't fit any more
+      const pick = (id) => {
+        const room = f.room === id ? null : id;
+        const e = this._equipOf(f.equip);
+        this._setForm({ room, ...(e && room && e.comodo !== room ? { equip: null } : {}) });
+      };
       return html`<div class="field">
         <span class="flabel">Cômodo</span>
         <div class="chip-row grid">
