@@ -46,6 +46,8 @@ const APP_FIELDS = {
   sensors_on: ["boolean"],
   // Mais > Integrações > Cômodos do InventarIA: true = each task can have a room (off unless turned on)
   rooms_on: ["boolean"],
+  // Mais > Integrações > InventarIA › Usar equipamentos: each task can point to an item of the InventarIA
+  equips_on: ["boolean"],
 };
 
 /** A repeating task from a file (import, restore): only the known fields, sane values. */
@@ -113,7 +115,7 @@ function cleanRooms(raw) {
 
 /** The file contents, checked. Strict (imports) also validates every preference. */
 export function normalize(raw, strict = false) {
-  const data = { version: 1, prefs: { lists: {}, app: {} }, rules: {}, points: {}, rooms: {} };
+  const data = { version: 1, prefs: { lists: {}, app: {} }, rules: {}, points: {}, rooms: {}, equips: {} };
   if (!isObj(raw)) return data;
   if (isObj(raw.prefs)) {
     if (isObj(raw.prefs.lists)) {
@@ -158,6 +160,7 @@ export function normalize(raw, strict = false) {
   }
   data.points = cleanPoints(raw.points);
   data.rooms = cleanRooms(raw.rooms);
+  data.equips = cleanRooms(raw.equips); // same shape: {todo.x: {task key: item id of the InventarIA}}
   return data;
 }
 
@@ -230,6 +233,15 @@ export class Store {
     return this.data.rooms || {};
   }
 
+  get equips() {
+    return this.data.equips || {};
+  }
+
+  /** Sets the equipment of a task (an InventarIA item id; null removes it). */
+  setEquip(entityId, summary, equip, previous = null) {
+    return this._setLink("equips", entityId, summary, equip, previous);
+  }
+
   /** The room of a task (an InventarIA room id), or null. */
   roomFor(entityId, summary) {
     const map = this.rooms[entityId];
@@ -238,18 +250,24 @@ export class Store {
 
   /** Sets the room of a task (null removes); `previous` is the old name after a rename. */
   setRoom(entityId, summary, room, previous = null) {
+    return this._setLink("rooms", entityId, summary, room, previous);
+  }
+
+  /** rooms / equips: {todo.x: {task key: id}}, by the name of the task (like the points). */
+  _setLink(field, entityId, summary, value, previous = null) {
     if (typeof entityId !== "string" || !/^todo\.[a-z0-9_]+$/.test(entityId)) throw new Error("Not a to-do entity");
     const key = taskKey(summary);
     if (!key) throw new Error("Task name required");
-    if (room != null && room !== "" && !/^[A-Za-z0-9_-]{1,64}$/.test(String(room))) throw new Error("Cômodo inválido");
-    const map = { ...(this.rooms[entityId] || {}) };
+    if (value != null && value !== "" && !/^[A-Za-z0-9_-]{1,64}$/.test(String(value))) throw new Error(field === "rooms" ? "Cômodo inválido" : "Equipamento inválido");
+    const cur = this.data[field] || {};
+    const map = { ...(cur[entityId] || {}) };
     if (previous != null && taskKey(previous) !== key) delete map[taskKey(previous)];
-    if (room) map[key] = String(room);
+    if (value) map[key] = String(value);
     else delete map[key];
-    const all = { ...this.rooms };
+    const all = { ...cur };
     if (Object.keys(map).length) all[entityId] = map;
     else delete all[entityId];
-    this.data.rooms = all;
+    this.data[field] = all;
     this.save();
     return all;
   }

@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.29.0
+
+- **Equipamentos do InventarIA**: o painel de Mais › Integrações virou **InventarIA**, com **Usar cômodos** e **Usar equipamentos** (os dois desligados por padrão). Com os equipamentos ligados, cada tarefa pode apontar para um item do InventarIA (1.15.0 ou mais novo), escolhido no item numa lista separada por cômodo; escolher o equipamento já preenche o cômodo dele. A tarefa mostra o equipamento como etiqueta.
+- **A IA entende os equipamentos**: na leitura por IA ela sugere o equipamento de cada item (trocar a resistência do chuveiro → Chuveiro), com o cômodo dele, e no **Sugerir com IA** ela sabe de que equipamento é cada tarefa.
+- Na revisão da leitura, lista, cômodo e equipamento ficam juntos embaixo de cada item.
+- O **CronologIA** (1.34.0 ou mais novo) mostra o equipamento das tarefas e pede o equipamento em Novo › Tarefa.
+
 ## 2.28.0
 
 - **Cômodos do InventarIA**: em Mais › Integrações, **Usar cômodos** (desligado por padrão) liga cada tarefa a um cômodo da casa, com os cômodos do InventarIA (1.14.0 ou mais novo). O cômodo é escolhido no item e aparece como etiqueta embaixo da tarefa.

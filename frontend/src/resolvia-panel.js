@@ -44,7 +44,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.28.0";
+const VERSION = "2.29.0";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -829,6 +829,7 @@ class ResolviaPanel extends RoomsMixin(SuggestMixin(PointsMixin(DataMixin(LitEle
       repeatOrig: 0,
       repeatCustom: false,
       room: null,
+      equip: null,
     });
     this.updateComplete.then(() => {
       const ta = this.renderRoot.querySelector(".sheet textarea");
@@ -1152,9 +1153,11 @@ class ResolviaPanel extends RoomsMixin(SuggestMixin(PointsMixin(DataMixin(LitEle
     const target = this._list(this._form.target);
     const live = () => token === this._importToken && this._sheet === "import";
     const keep = appending ? this._form.items || [] : [];
-    const merge = (found, lists = [], rooms = []) => {
+    const merge = (found, lists = [], rooms = [], equips = []) => {
       const seen = new Set(keep.map((i) => i.text.trim().toLowerCase()));
-      const fresh = found.map((t, k) => ({ text: t, on: true, list: lists[k] || null, room: rooms[k] || null })).filter((it) => !seen.has(it.text.trim().toLowerCase()));
+      // the room of the equipment, when the AI gave the equipment but no room
+      const roomOf = (eq, room) => room || (eq && this._roomsOn() && (this._equipOf(eq) || {}).comodo) || null;
+      const fresh = found.map((t, k) => ({ text: t, on: true, list: lists[k] || null, room: roomOf(equips[k], rooms[k]), equip: equips[k] || null })).filter((it) => !seen.has(it.text.trim().toLowerCase()));
       return [...keep, ...fresh];
     };
     try {
@@ -1174,7 +1177,7 @@ class ResolviaPanel extends RoomsMixin(SuggestMixin(PointsMixin(DataMixin(LitEle
         return;
       }
       this._haptic("success");
-      this._setForm({ step: "review", items: merge(found, res.lists || [], res.rooms || []), provider: res.provider || null, note: null, error: null });
+      this._setForm({ step: "review", items: merge(found, res.lists || [], res.rooms || [], res.equips || []), provider: res.provider || null, note: null, error: null });
     } catch (err) {
       if (!live()) return;
       if (text) {
@@ -1426,6 +1429,7 @@ class ResolviaPanel extends RoomsMixin(SuggestMixin(PointsMixin(DataMixin(LitEle
         n++;
         used.add(it.dest);
         if (it.room && this._roomsOn()) await this._setTaskRoom(it.dest, it.text.trim(), it.room);
+        if (it.equip && this._equipsOn()) await this._setTaskEquip(it.dest, it.text.trim(), it.equip);
       } else break;
     }
     if (!n) return;
@@ -1455,6 +1459,8 @@ class ResolviaPanel extends RoomsMixin(SuggestMixin(PointsMixin(DataMixin(LitEle
       pointsOrig: this._rawPoints(list.id, item.summary),
       room: this._roomIdOf(list.id, item.summary),
       roomOrig: this._roomIdOf(list.id, item.summary),
+      equip: this._equipIdOf(list.id, item.summary),
+      equipOrig: this._equipIdOf(list.id, item.summary),
     });
     this._loadPoints();
   }
@@ -1483,6 +1489,7 @@ class ResolviaPanel extends RoomsMixin(SuggestMixin(PointsMixin(DataMixin(LitEle
       if (ok && f.repeat) await this._setRule(target.id, { summary, days: f.repeat });
       if (ok && f.points) await this._setTaskPoints(target.id, summary, f.points);
       if (ok && f.room) await this._setTaskRoom(target.id, summary, f.room);
+      if (ok && f.equip) await this._setTaskEquip(target.id, summary, f.equip);
       if (ok && this._view().id !== target.id) this._showToast(`Adicionado em ${clip(target.name, 28)}`);
       return;
     }
@@ -1504,6 +1511,8 @@ class ResolviaPanel extends RoomsMixin(SuggestMixin(PointsMixin(DataMixin(LitEle
         if (f.pointsOrig) await this._setTaskPoints(list.id, item.summary, 0);
         if (f.room) await this._setTaskRoom(target.id, summary, f.room);
         if (f.roomOrig) await this._setTaskRoom(list.id, item.summary, null);
+        if (f.equip) await this._setTaskEquip(target.id, summary, f.equip);
+        if (f.equipOrig) await this._setTaskEquip(list.id, item.summary, null);
         await this._call("remove_item", { item: [f.key] }, list.id);
         this._showToast(`Movido para ${clip(target.name, 28)}`);
       }
@@ -1526,6 +1535,9 @@ class ResolviaPanel extends RoomsMixin(SuggestMixin(PointsMixin(DataMixin(LitEle
     }
     if ((f.room || null) !== (f.roomOrig || null) || (f.roomOrig && summary !== item.summary)) {
       await this._setTaskRoom(list.id, summary, f.room || null, summary !== item.summary ? item.summary : null);
+    }
+    if ((f.equip || null) !== (f.equipOrig || null) || (f.equipOrig && summary !== item.summary)) {
+      await this._setTaskEquip(list.id, summary, f.equip || null, summary !== item.summary ? item.summary : null);
     }
     if ((f.repeat || 0) !== (f.repeatOrig || 0)) {
       await this._setRule(list.id, { uid: item.uid, summary, days: f.repeat });
@@ -2090,10 +2102,10 @@ class ResolviaPanel extends RoomsMixin(SuggestMixin(PointsMixin(DataMixin(LitEle
           <div class="it-text">${this._renderText(item.summary || "", opts.query)}</div>
           ${stripMark(item.description) ? html`<div class="it-desc">${this._renderText(stripMark(item.description), opts.query)}</div>` : nothing}
           ${opts.why ? html`<div class="it-why">${icon(opts.whyIcon || "lightbulb")}<span>${opts.why}</span></div>` : nothing}
-          ${due || opts.showList || rule || this._pointsOf(l.id, item.summary, item.uid) || this._roomIdOf(l.id, item.summary)
+          ${due || opts.showList || rule || this._pointsOf(l.id, item.summary, item.uid) || this._roomIdOf(l.id, item.summary) || this._equipIdOf(l.id, item.summary)
             ? html`<div class="chips">
                 ${opts.showList ? html`<span class="tag list">${icon(l.icon)}${clip(l.name, 24)}</span>` : nothing}
-                ${this._renderRoomTag(l.id, item)}
+                ${this._renderRoomTag(l.id, item)} ${this._renderEquipTag(l.id, item)}
                 ${due
                   ? l.noDue
                     ? html`<span class="tag info" title=${l.canDue ? "Prazos desligados: a data é só informação" : "Data da integração, não é prazo"}>${icon("clock-fading")}${due.text}</span>`
@@ -2727,6 +2739,7 @@ class ResolviaPanel extends RoomsMixin(SuggestMixin(PointsMixin(DataMixin(LitEle
           </div>`
         : nothing}
       ${this._renderRoomField(f)}
+      ${this._renderEquipField(f)}
       ${this._renderPointsField(f)}
       ${targets.length > 1
         ? html`<div class="field">
@@ -2828,10 +2841,12 @@ class ResolviaPanel extends RoomsMixin(SuggestMixin(PointsMixin(DataMixin(LitEle
           ${f.items.map(
             (it, i) => {
               const dest = this._list(this._importListOf(it));
-              return html`<div class="imp-row ${it.on ? "" : "off"} ${many || this._roomsOn() ? "has-dest" : ""}">
+              return html`<div class="imp-row ${it.on ? "" : "off"} ${many || this._roomsOn() || this._equipsOn() ? "has-dest" : ""}">
               <button class="check ${it.on ? "on" : ""}" role="checkbox" aria-checked=${it.on ? "true" : "false"} aria-label="Incluir" @click=${() => this._setImportItem(i, { on: !it.on })}>${icon("check")}</button>
               <input type="text" .value=${it.text} aria-label="Item" @input=${(e) => this._setImportItem(i, { text: e.target.value })} />
               <button class="icon-btn mini" aria-label="Remover" @click=${() => this._setForm({ items: f.items.filter((_, j) => j !== i) })}>${icon("x")}</button>
+              ${many || this._roomsOn() || this._equipsOn()
+                ? html`<div class="imp-chips">
               ${many && dest
                 ? html`<label class="imp-dest" style=${colorVars(dest.color, this._dark)}>
                     <span class="dot"></span><span class="dname">${clip(dest.name, 30)}</span>${icon("chevron-down")}
@@ -2848,6 +2863,21 @@ class ResolviaPanel extends RoomsMixin(SuggestMixin(PointsMixin(DataMixin(LitEle
                       ${this._roomList().map((c) => html`<option value=${c.id} ?selected=${c.id === it.room}>${c.nome}</option>`)}
                     </select>
                   </label>`
+                : nothing}
+              ${this._equipsOn()
+                ? html`<label class="imp-dest imp-room imp-equip ${it.equip ? "" : "none"}">
+                    ${icon("package")}<span class="dname">${it.equip ? clip((this._equipOf(it.equip) || {}).nome || "", 30) : "Equipamento"}</span>${icon("chevron-down")}
+                    <select aria-label="Equipamento de ${it.text}" @change=${(e) => {
+                      const eq = e.target.value || null;
+                      const room = !it.room && eq && this._roomsOn() ? (this._equipOf(eq) || {}).comodo || null : it.room;
+                      this._setImportItem(i, { equip: eq, room });
+                    }}>
+                      <option value="" ?selected=${!it.equip}>Nenhum</option>
+                      ${this._equipOptions(it.equip)}
+                    </select>
+                  </label>`
+                : nothing}
+                  </div>`
                 : nothing}
             </div>`;
             },

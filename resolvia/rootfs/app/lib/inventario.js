@@ -9,13 +9,14 @@ const coded = (code, message) => Object.assign(new Error(message), { code });
 const EVERY_MS = 10 * 60 * 1000;
 
 export class Inventario {
-  /** enabled(): Mais › Integrações › Cômodos do InventarIA (off by default). */
-  constructor({ shareDir, log, enabled = () => false, onChange = () => {} }) {
+  /** enabled(): Mais › Integrações › InventarIA › cômodos on; items(): equipamentos on (both off by default). */
+  constructor({ shareDir, log, enabled = () => false, items = () => false, onChange = () => {} }) {
     this.file = path.join(shareDir, "inventario", "integracao.json");
     this.log = log;
     this.enabled = enabled;
+    this.items = items;
     this.onChange = onChange;
-    this.state = { encontrado: false, comodos: [], erro: null, versao: null, at: null };
+    this.state = { encontrado: false, comodos: [], itens: [], erro: null, versao: null, at: null };
     this.busy = null;
     this.timer = null;
     this.lastLog = "";
@@ -39,7 +40,7 @@ export class Inventario {
       try {
         const res = await fetch(`${base}${route}`, { headers: { authorization: `Bearer ${info.chave}`, "x-app": "ResolvIA" }, signal: AbortSignal.timeout(15000) });
         const out = await res.json().catch(() => ({}));
-        if (!res.ok) throw Object.assign(new Error(out.error || `O InventarIA respondeu ${res.status}`), { code: "inventario_error", http: true });
+        if (!res.ok) throw Object.assign(new Error(out.error || `O InventarIA respondeu ${res.status}`), { code: "inventario_error", http: true, status: res.status });
         return out;
       } catch (err) {
         last = err;
@@ -54,18 +55,34 @@ export class Inventario {
     if (this.busy) return this.busy;
     this.busy = (async () => {
       const before = JSON.stringify(this.state);
-      if (!this.enabled()) {
-        this.state = { encontrado: !!this.info(), comodos: [], erro: null, versao: null, at: null };
+      if (!this.enabled() && !this.items()) {
+        this.state = { encontrado: !!this.info(), comodos: [], itens: [], erro: null, versao: null, at: null };
       } else if (!this.info()) {
-        this.state = { encontrado: false, comodos: [], erro: null, versao: null, at: null };
+        this.state = { encontrado: false, comodos: [], itens: [], erro: null, versao: null, at: null };
       } else {
         try {
+          // the rooms always come (the equipment is grouped by them)
           const out = await this.request("/api/integracao/comodos");
           const comodos = (Array.isArray(out.comodos) ? out.comodos : [])
             .filter((c) => c && typeof c.id === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(c.id))
             .slice(0, 80)
             .map((c) => ({ id: c.id, nome: String(c.nome || c.id).slice(0, 60), itens: Number(c.itens) || 0 }));
-          this.state = { encontrado: true, comodos, erro: null, versao: out.versao || null, at: new Date().toISOString() };
+          let itens = [];
+          let erro = null;
+          if (this.items()) {
+            try {
+              const got = await this.request("/api/integracao/itens");
+              itens = (Array.isArray(got.itens) ? got.itens : [])
+                .filter((i) => i && typeof i.id === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(i.id) && i.nome)
+                .slice(0, 2000)
+                .map((i) => ({ id: i.id, nome: String(i.nome).slice(0, 120), comodo: typeof i.comodo === "string" ? i.comodo : "", zona: String(i.zona || "").slice(0, 60) }));
+            } catch (err) {
+              // an InventarIA 1.14.0 has the rooms but not the items
+              erro = err.status === 404 ? "Para os equipamentos, atualize o InventarIA (1.15.0 ou mais nova)." : err.message;
+              itens = this.state.itens || [];
+            }
+          }
+          this.state = { encontrado: true, comodos, itens, erro, versao: out.versao || null, at: new Date().toISOString() };
           this.lastLog = "";
         } catch (err) {
           // keep the rooms read before: a restart of the InventarIA should not empty the tasks
@@ -86,6 +103,12 @@ export class Inventario {
     this.refresh().catch(() => {});
     clearInterval(this.timer);
     this.timer = setInterval(() => this.refresh().catch(() => {}), EVERY_MS);
+  }
+
+  /** "Geladeira (Cozinha)": an item with its room, for the AI and the pickers. */
+  itemLabel(i) {
+    const room = this.nameOf(i.comodo);
+    return room ? `${i.nome} (${room})` : i.nome;
   }
 
   /** The name of a room id (or null). */

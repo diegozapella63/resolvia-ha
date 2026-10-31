@@ -88,16 +88,18 @@ Com o **CronologIA** no mesmo Home Assistant, a integração com o ResolvIA liga
 
 Os pontos ficam pelo nome da tarefa em cada lista, então valem também quando uma tarefa que se repete volta. A mesma tarefa no mesmo dia conta uma vez só, mesmo concluída no CronologIA. Concluir pela Alexa ou pela tela padrão do Home Assistant não dá pontos (o app não sabe quem foi).
 
-## Cômodos (InventarIA)
+## Cômodos e equipamentos (InventarIA)
 
-Com o **InventarIA** (1.14.0 ou mais novo) no mesmo Home Assistant, ligue **Mais › Integrações › Cômodos do InventarIA › Usar cômodos** (desligado por padrão). A partir daí:
+Com o **InventarIA** (1.14.0 ou mais novo) no mesmo Home Assistant, ligue **Mais › Integrações › InventarIA › Usar cômodos** (desligado por padrão). A partir daí:
 
 - cada tarefa pode ter um **cômodo** (Cozinha, Sala…), escolhido no item; ele aparece como etiqueta embaixo da tarefa;
 - ao ler com IA (mensagem, foto ou Falar), a IA sugere o cômodo de cada item na revisão, e dá para trocar;
 - o **Sugerir com IA** considera os cômodos e junta o que dá para fazer no mesmo lugar;
 - o **CronologIA** mostra o cômodo das tarefas e pede o cômodo em **Novo › Tarefa**.
 
-Os cômodos vêm do InventarIA (só leitura, pela rede interna dos apps, com a chave que ele grava em `share/inventario`). O ResolvIA guarda o cômodo de cada tarefa pelo nome, junto com os pontos, e ele entra no exportar e no backup.
+Com **Usar equipamentos** ligado (InventarIA 1.15.0 ou mais novo), cada tarefa pode apontar também para um item do InventarIA (um equipamento, um móvel), escolhido numa lista separada por cômodo; escolher o equipamento já preenche o cômodo. A IA sugere o equipamento na leitura e o considera no Sugerir com IA, e o CronologIA mostra e pede o equipamento no Novo › Tarefa.
+
+Os cômodos e os itens vêm do InventarIA (só leitura, pela rede interna dos apps, com a chave que ele grava em `share/inventario`). O ResolvIA guarda o cômodo de cada tarefa pelo nome, junto com os pontos, e ele entra no exportar e no backup.
 
 ## Levar uma lista para o CronologIA
 

@@ -1,7 +1,8 @@
-// Cômodos: each task can say where in the house it is done, with the rooms of the
-// InventarIA (the inventory app of the same family). Turned on in Mais ›
-// Integrações; the server reads the rooms and keeps the room of each task (by its
-// name, like the points), and shares both with the CronologIA.
+// Cômodos e equipamentos: each task can say where in the house it is done and
+// which item it is about, with the rooms and items of the InventarIA (the
+// inventory app of the same family). Turned on in Mais › Integrações › InventarIA;
+// the server reads them and keeps the room and the item of each task (by its name,
+// like the points), and shares them with the CronologIA.
 // Mixed into <resolvia-panel>.
 import { html, nothing, unsafeSVG } from "../vendor/lit-all.min.js";
 import { ICONS } from "./icons.js";
@@ -40,6 +41,73 @@ export const RoomsMixin = (Base) =>
 
     _roomList() {
       return (this._rooms && this._rooms.comodos) || [];
+    }
+
+    /** Usar equipamentos on, and the InventarIA gave the items. */
+    _equipsOn() {
+      const r = this._rooms;
+      return !!(r && r.equips_on && r.itens && r.itens.length);
+    }
+
+    _equipList() {
+      return (this._rooms && this._rooms.itens) || [];
+    }
+
+    _equipOf(id) {
+      return id ? this._equipList().find((x) => x.id === id) || null : null;
+    }
+
+    /** The item id of a task (or null). */
+    _equipIdOf(listId, summary) {
+      if (!this._equipsOn()) return null;
+      const map = this._rooms.emap && this._rooms.emap[listId];
+      const id = map && map[taskKey(summary)];
+      return this._equipOf(id) ? id : null;
+    }
+
+    async _setTaskEquip(listId, summary, equip, previous = null) {
+      if (!this._equipsOn()) return;
+      try {
+        this._rooms = await this.hass.callWS({ type: "resolvia/equips/set", entity_id: listId, summary, equip: equip || null, ...(previous != null ? { previous_summary: previous } : {}) });
+        this.requestUpdate();
+      } catch (err) {
+        this._showToast(err.message || "Não consegui guardar o equipamento");
+      }
+    }
+
+    _renderEquipTag(listId, item) {
+      const e = this._equipOf(this._equipIdOf(listId, item.summary));
+      return e ? html`<span class="tag room">${icon("package")}${clip(e.nome, 26)}</span>` : nothing;
+    }
+
+    /** The items grouped by room, as <option>s for a native picker (many items fit better in it than in chips). */
+    _equipOptions(selected) {
+      const groups = new Map();
+      for (const i of this._equipList()) {
+        const g = this._roomList().find((c) => c.id === i.comodo);
+        const k = g ? g.nome : "Outros";
+        if (!groups.has(k)) groups.set(k, []);
+        groups.get(k).push(i);
+      }
+      return [...groups].map(([g, list]) => html`<optgroup label=${g}>${list.map((i) => html`<option value=${i.id} ?selected=${i.id === selected}>${i.nome}${i.zona ? ` · ${i.zona}` : ""}</option>`)}</optgroup>`);
+    }
+
+    /** Item sheet: Equipamento (when on). Picking one also fills the room, when there is none yet. */
+    _renderEquipField(f) {
+      if (!this._equipsOn()) return nothing;
+      const pick = (id) => {
+        const e = this._equipOf(id);
+        const changes = { equip: id || null };
+        if (e && e.comodo && this._roomsOn() && !f.room && this._roomList().some((c) => c.id === e.comodo)) changes.room = e.comodo;
+        this._setForm(changes);
+      };
+      return html`<label class="field">
+        <span class="flabel">Equipamento</span>
+        <select class="select" aria-label="Equipamento" @change=${(e) => pick(e.target.value)}>
+          <option value="" ?selected=${!f.equip}>Nenhum</option>
+          ${this._equipOptions(f.equip)}
+        </select>
+      </label>`;
     }
 
     /** The room id of a task (or null). */
@@ -84,38 +152,45 @@ export const RoomsMixin = (Base) =>
       </div>`;
     }
 
-    /** Mais › Integrações › Cômodos do InventarIA. */
+    /** Mais › Integrações › InventarIA: cômodos and equipamentos. */
     _renderRoomsPanel() {
       if (!this.hass.resolvia) return nothing;
       const r = this._rooms || {};
       const on = this._app("rooms_on", false) === true;
-      const n = (r.comodos || []).length;
-      const sw = html`<div class="row switch-row">
-        <div class="grow"><div class="label">Usar cômodos</div><div class="hint" style="white-space:normal">${on ? "Cada tarefa pode ter um cômodo, e a IA sugere qual." : "Desligado."}</div></div>
-        <label class="switch"><input type="checkbox" role="switch" .checked=${on} @change=${(e) => this._toggleRooms(e.target.checked)} aria-label="Usar cômodos" /><span class="track"></span></label>
+      const eon = this._app("equips_on", false) === true;
+      const nr = (r.comodos || []).length;
+      const ne = (r.itens || []).length;
+      const sw = (label, value, hint, change) => html`<div class="row switch-row">
+        <div class="grow"><div class="label">${label}</div><div class="hint" style="white-space:normal">${value ? hint : "Desligado."}</div></div>
+        <label class="switch"><input type="checkbox" role="switch" .checked=${value} @change=${(e) => change(e.target.checked)} aria-label=${label} /><span class="track"></span></label>
       </div>`;
       let state = nothing;
-      if (on) {
-        const tone = this._roomsBusy ? "off" : n ? (r.erro ? "warn" : "ok") : "bad";
-        const title = this._roomsBusy ? "Verificando…" : n ? plural(n, "cômodo", "cômodos") : r.encontrado ? "Sem cômodos" : "InventarIA não encontrado";
+      if (on || eon) {
+        const got = [on && nr ? plural(nr, "cômodo", "cômodos") : "", eon && ne ? plural(ne, "equipamento", "equipamentos") : ""].filter(Boolean).join(" · ");
+        const tone = this._roomsBusy ? "off" : got ? (r.erro ? "warn" : "ok") : "bad";
+        const title = this._roomsBusy ? "Verificando…" : got || (r.encontrado ? "Nada cadastrado" : "InventarIA não encontrado");
         const detail = this._roomsBusy
           ? ""
-          : n
-            ? r.comodos.map((c) => c.nome).join(", ")
-            : r.erro || (r.encontrado ? "Cadastre os cômodos no InventarIA." : "Instale ou atualize o InventarIA (1.14.0 ou mais nova) neste Home Assistant.");
+          : r.erro || (got ? (on && nr ? r.comodos.map((c) => c.nome).join(", ") : "") : r.encontrado ? "Cadastre os cômodos e os itens no InventarIA." : "Instale ou atualize o InventarIA (1.15.0 ou mais nova) neste Home Assistant.");
         state = html`<div class="ai-state ${tone}"><span class="dot"></span><div><b>${title}</b>${detail ? html`<span>${detail}</span>` : nothing}</div></div>
           <div class="ai-actions"><button class="btn outline" ?disabled=${this._roomsBusy} @click=${() => this._refreshRooms()}>${icon("rotate-ccw")}Verificar de novo</button></div>`;
       }
       return html`<div class="panel" id="comodos">
-        ${this._secHead("house", "Cômodos do InventarIA", "Para ligar uma tarefa a um cômodo da casa.")}
-        ${sw} ${state}
+        ${this._secHead("house", "InventarIA", "Para ligar uma tarefa a um cômodo ou a um equipamento da casa.")}
+        ${sw("Usar cômodos", on, "Cada tarefa pode ter um cômodo, e a IA sugere qual.", (v) => this._toggleRooms(v))}
+        ${sw("Usar equipamentos", eon, "Cada tarefa pode ser de um equipamento ou móvel, e a IA sugere qual.", (v) => this._toggleEquips(v))}
+        ${state}
       </div>`;
+    }
+
+    async _toggleEquips(on) {
+      await this._saveAppPrefs({ equips_on: on ? true : null });
+      await this._refreshRooms();
     }
 
     async _toggleRooms(on) {
       await this._saveAppPrefs({ rooms_on: on ? true : null });
-      if (on) await this._refreshRooms();
-      else await this._loadRooms();
+      await this._refreshRooms();
     }
 
     async _refreshRooms() {

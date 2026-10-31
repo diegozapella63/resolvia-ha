@@ -25,7 +25,7 @@ const STRUCTURE = {
 };
 
 /** With several lists to choose from: a second field, the list of each item (in the same order). */
-function structureFor(lists, listName, rooms = []) {
+function structureFor(lists, listName, rooms = [], equips = []) {
   const out = { ...STRUCTURE };
   if (lists && lists.length > 1) {
     out.listas = {
@@ -42,6 +42,14 @@ function structureFor(lists, listName, rooms = []) {
       selector: { text: { multiple: true } },
     };
   }
+  // Equipamentos do InventarIA: the thing a task is about ("" when none)
+  if (equips && equips.length) {
+    out.equipamentos = {
+      description: `Para cada item, na mesma ordem dos itens, o equipamento ou móvel da casa de que ele trata, escrito exatamente como um destes: ${equips.map((e) => e.name).join("; ")}. Use "" quando o item não trata de nenhum deles.`,
+      required: false,
+      selector: { text: { multiple: true } },
+    };
+  }
   return out;
 }
 
@@ -51,6 +59,14 @@ const fold = (s) =>
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .trim();
+
+/** An equipment the AI wrote: the same label, or the same name without the room (no loose match: "Ar" is not "Armário"). */
+export function matchExact(name, list) {
+  const n = fold(name);
+  if (!n || !list || !list.length) return null;
+  const hit = list.find((x) => fold(x.name) === n) || list.find((x) => fold(x.name).replace(/\s*\([^)]*\)$/, "") === n);
+  return hit ? hit.id : null;
+}
 
 /** The list a name the AI wrote stands for: the same name, or one that contains the other. */
 export function matchList(name, lists) {
@@ -62,7 +78,7 @@ export function matchList(name, lists) {
   return near ? near.id : null;
 }
 
-function instructions({ text, images, listName, lists, rooms = [] }) {
+function instructions({ text, images, listName, lists, rooms = [], equips = [] }) {
   const source = images ? (images > 1 ? "fotos" : "uma foto") : "uma mensagem";
   return [
     `Você recebe ${source} com uma lista de compras ou de tarefas (pode ser manuscrita, impressa, print de conversa ou mensagem de WhatsApp).`,
@@ -81,6 +97,9 @@ function instructions({ text, images, listName, lists, rooms = [] }) {
     rooms && rooms.length
       ? `Cômodos da casa: ${rooms.map((r) => `"${r.name}"`).join(", ")}. Para cada item, diga em "comodos" o cômodo onde ele é feito (consertar a pia → a cozinha ou o banheiro em que ela está), na mesma ordem dos itens; "" quando não é de um cômodo.`
       : "",
+    equips && equips.length
+      ? `Equipamentos e móveis da casa: ${equips.map((e) => `"${e.name}"`).join(", ")}. Para cada item que trata de um deles (trocar o filtro do ar-condicionado → o ar-condicionado), diga em "equipamentos" qual, na mesma ordem dos itens; "" quando não trata de nenhum.`
+      : "",
     text ? `\nMensagem:\n"""\n${text.slice(0, 20000)}\n"""` : "",
   ]
     .filter(Boolean)
@@ -88,21 +107,24 @@ function instructions({ text, images, listName, lists, rooms = [] }) {
 }
 
 /** The items and, for each one, the id of the list the AI picked (null when none matched). */
-export function cleanItemsWithLists(raw, lists, rooms = []) {
+export function cleanItemsWithLists(raw, lists, rooms = [], equips = []) {
   let items = raw;
   let names = [];
   let roomNames = [];
+  let equipNames = [];
   if (items && !Array.isArray(items) && typeof items === "object") {
     names = Array.isArray(items.listas) ? items.listas : [];
     roomNames = Array.isArray(items.comodos) ? items.comodos : [];
+    equipNames = Array.isArray(items.equipamentos) ? items.equipamentos : [];
     items = items.items;
   }
   if (typeof items === "string") items = items.split(/\r?\n/);
-  if (!Array.isArray(items)) return { items: [], lists: [], rooms: [] };
+  if (!Array.isArray(items)) return { items: [], lists: [], rooms: [], equips: [] };
   const seen = new Set();
   const out = [];
   const outLists = [];
   const outRooms = [];
+  const outEquips = [];
   items.forEach((v, i) => {
     const one = cleanItems([v]);
     if (!one.length || out.length >= MAX_ITEMS) return;
@@ -112,8 +134,9 @@ export function cleanItemsWithLists(raw, lists, rooms = []) {
     out.push(one[0]);
     outLists.push(matchList(names[i], lists));
     outRooms.push(matchList(roomNames[i], rooms));
+    outEquips.push(matchExact(equipNames[i], equips));
   });
-  return { items: out, lists: outLists, rooms: outRooms };
+  return { items: out, lists: outLists, rooms: outRooms, equips: outEquips };
 }
 
 export function cleanItems(raw) {
@@ -167,6 +190,7 @@ export function cleanSuggestItems(raw) {
       repete: Number.isFinite(i.repete) && i.repete > 0 ? Math.min(Math.round(i.repete), 365) : 0,
       compras: i.compras === true,
       comodo: oneLine(i.comodo, 60),
+      equipamento: oneLine(i.equipamento, 120),
     });
   }
   return out;
@@ -183,6 +207,7 @@ export function suggestInstructions(items, now = new Date()) {
       i.pontos ? `${i.pontos} pontos` : "",
       i.repete ? `repete a cada ${i.repete} dias` : "",
       i.comodo ? `cômodo: ${i.comodo}` : "",
+      i.equipamento ? `equipamento: ${i.equipamento}` : "",
     ]
       .filter((x) => x !== "")
       .join(" | "),
@@ -190,7 +215,7 @@ export function suggestInstructions(items, now = new Date()) {
   return [
     "Você ajuda uma família a decidir o que resolver agora nas listas de tarefas da casa.",
     `Agora é ${when}.`,
-    "Abaixo estão os itens pendentes, um por linha: número | lista | item | há quanto tempo está na lista | pontos | repetição | cômodo.",
+    "Abaixo estão os itens pendentes, um por linha: número | lista | item | há quanto tempo está na lista | pontos | repetição | cômodo | equipamento.",
     "Escolha até 5 itens que valem a pena resolver agora. Dê preferência ao que está parado há muito tempo, ao que é rápido de fazer, ao que fecha uma lista, ao que vale pontos e ao que combina com o dia e a hora.",
     "Itens de listas de compras só entram se a lista estiver cheia ou parada há muito tempo; nesse caso escolha um deles e diga para ir às compras.",
     items.some((i) => i.comodo) ? "Itens do mesmo cômodo podem ser feitos de uma vez: quando fizer sentido, escolha juntos e diga isso no motivo." : "",
@@ -339,7 +364,8 @@ export class AI {
     return out;
   }
 
-  async extract({ text, images, listName, lists, rooms }) {
+  async extract({ text, images, listName, lists, rooms, equips }) {
+    equips = Array.isArray(equips) ? equips.filter((e) => e && typeof e.id === "string" && e.name).slice(0, 300).map((e) => ({ id: e.id, name: String(e.name).slice(0, 140) })) : [];
     // Cômodos do InventarIA (when on): the AI says where each task is done
     rooms = Array.isArray(rooms) ? rooms.filter((r) => r && typeof r.id === "string" && r.name).slice(0, 60).map((r) => ({ id: r.id, name: String(r.name).slice(0, 60) })) : [];
     // the lists to choose from (the app sends the ones you can add to): the AI picks one for each item
@@ -356,14 +382,14 @@ export class AI {
     const entity = await this.resolve(images.length > 0);
     if (images.length && !this.mediaWritable()) throw coded("no_media", "A pasta media do Home Assistant não está disponível para o app.");
     const name = typeof listName === "string" ? listName.slice(0, 120) : "";
-    const prompt = instructions({ text, images: images.length, listName: name, lists, rooms });
+    const prompt = instructions({ text, images: images.length, listName: name, lists, rooms, equips });
     const started = Date.now();
     let items = null;
     let failure = null;
     try {
-      const got = await this._viaHA(entity.id, prompt, images, structureFor(lists, name, rooms), lists, rooms);
+      const got = await this._viaHA(entity.id, prompt, images, structureFor(lists, name, rooms, equips), lists, rooms, equips);
       items = got.items;
-      return { items, lists: got.lists, rooms: rooms.length ? got.rooms : undefined, provider: entity.name, entity: entity.id };
+      return { items, lists: got.lists, rooms: rooms.length ? got.rooms : undefined, equips: equips.length ? got.equips : undefined, provider: entity.name, entity: entity.id };
     } catch (err) {
       failure = err;
       throw err;
@@ -421,7 +447,7 @@ export class AI {
     }
   }
 
-  async _viaHA(entityId, prompt, images, structure = STRUCTURE, lists = [], rooms = []) {
+  async _viaHA(entityId, prompt, images, structure = STRUCTURE, lists = [], rooms = [], equips = []) {
     const files = [];
     try {
       const attachments = [];
@@ -440,7 +466,7 @@ export class AI {
         120000,
       );
       const out = res && res.response ? res.response.data : null;
-      return cleanItemsWithLists(out, lists, rooms);
+      return cleanItemsWithLists(out, lists, rooms, equips);
     } finally {
       for (const f of files) fs.rm(f, { force: true }, () => {});
     }

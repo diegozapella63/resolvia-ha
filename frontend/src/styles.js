@@ -1991,9 +1991,21 @@ export const styles = css`
     --cs: color-mix(in srgb, var(--rv-muted) 14%, transparent);
     --ci: var(--rv-text-2);
   }
-  .imp-dest:not(.imp-room) ~ .imp-dest.imp-room {
-    margin-left: 6px;
-    max-width: calc(100% - 32px - 6px);
+  /* list, room and equipment under the text: they wrap, all with the indent of the text */
+  .imp-chips {
+    order: 10;
+    flex-basis: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding-left: 32px;
+    box-sizing: border-box;
+    min-width: 0;
+  }
+  .imp-chips .imp-dest {
+    margin-left: 0;
+    max-width: 100%;
+    order: 0;
   }
   .imp-dest.imp-room.none {
     opacity: 0.75;

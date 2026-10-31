@@ -21,7 +21,7 @@ import { Inventario } from "./lib/inventario.js";
 import { Voice, readRaw, MAX_VOICE_BYTES } from "./lib/voice.js";
 import { snapshot, toCSV, backupZip, parseImport, Backups, listVersions, readVersion, fileStamp } from "./lib/data.js";
 
-const VERSION = "2.28.0";
+const VERSION = "2.29.0";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const WWW = path.join(HERE, "www");
 const DEV = process.env.RESOLVIA_DEV === "1";
@@ -62,10 +62,12 @@ const backups = new Backups({ dir: path.join(SHARE_DIR, "resolvia") });
 const placar = new Placar({ shareDir: SHARE_DIR });
 // Cômodos do InventarIA (Mais › Integrações; off by default): a room for each task
 const roomsOn = () => store.prefs.app.rooms_on === true;
-const inventario = new Inventario({ shareDir: SHARE_DIR, log, enabled: roomsOn, onChange: () => publishPresence() });
-/** What the screens need: on, the rooms of the InventarIA, and the room of each task. */
+// … and the equipment (Mais › Integrações › InventarIA › Usar equipamentos; off by default): an item for each task
+const equipsOn = () => store.prefs.app.equips_on === true;
+const inventario = new Inventario({ shareDir: SHARE_DIR, log, enabled: roomsOn, items: equipsOn, onChange: () => publishPresence() });
+/** What the screens need: what is on, the rooms and items of the InventarIA, and the room and item of each task. */
 function roomsState() {
-  return { on: roomsOn(), ...inventario.state, map: roomsOn() ? store.rooms : {} };
+  return { on: roomsOn(), equips_on: equipsOn(), ...inventario.state, map: roomsOn() ? store.rooms : {}, emap: equipsOn() ? store.equips : {} };
 }
 const pad2 = (n) => String(n).padStart(2, "0");
 const today = () => {
@@ -176,12 +178,13 @@ ha.subscribe({ type: "subscribe_events", event_type: "state_changed" }, (ev) => 
   syncItemSubs();
 });
 
-// The CronologIA created a task with a room (Novo › Tarefa): {entity_id, tarefa, comodo}
+// The CronologIA created a task with a room and/or an equipment (Novo › Tarefa): {entity_id, tarefa, comodo?, equipamento?}
 ha.subscribe({ type: "subscribe_events", event_type: "resolvia_comodo" }, (ev) => {
   const d = (ev && ev.data) || {};
-  if (!roomsOn() || !isTodo(d.entity_id) || !d.tarefa) return;
+  if (!isTodo(d.entity_id) || !d.tarefa) return;
   try {
-    store.setRoom(d.entity_id, String(d.tarefa), d.comodo ? String(d.comodo) : null);
+    if (roomsOn() && "comodo" in d) store.setRoom(d.entity_id, String(d.tarefa), d.comodo ? String(d.comodo) : null);
+    if (equipsOn() && "equipamento" in d) store.setEquip(d.entity_id, String(d.tarefa), d.equipamento ? String(d.equipamento) : null);
     publishPresence();
   } catch (err) {
     log.warn(`Cômodo vindo do ${d.origem || "CronologIA"}: ${err.message}`);
@@ -432,7 +435,7 @@ class Session {
       case "resolvia/prefs/set_app": {
         const prefs = store.setAppPrefs(msg.prefs);
         if ("points_on" in (msg.prefs || {}) || "due_off" in (msg.prefs || {})) publishPresence();
-        if ("rooms_on" in (msg.prefs || {})) inventario.refresh().then(() => publishPresence()).catch(() => {});
+        if ("rooms_on" in (msg.prefs || {}) || "equips_on" in (msg.prefs || {})) inventario.refresh().then(() => publishPresence()).catch(() => {});
         // Sensores no Home Assistant: on creates the sensor now, off removes it
         if ("sensors_on" in (msg.prefs || {})) (store.prefs.app.sensors_on === true ? usage.publish() : usage.remove()).catch(() => {});
         if ("repeat_on" in (msg.prefs || {})) {
@@ -451,6 +454,13 @@ class Session {
       case "resolvia/rooms/refresh":
         await inventario.refresh();
         return this.result(id, roomsState());
+
+      case "resolvia/equips/set": {
+        if (!equipsOn()) return this.error(id, "equips_off", "Os equipamentos estão desligados em Mais › Integrações.");
+        store.setEquip(msg.entity_id, String(msg.summary || ""), msg.equip ? String(msg.equip) : null, msg.previous_summary == null ? null : String(msg.previous_summary));
+        publishPresence();
+        return this.result(id, roomsState());
+      }
 
       case "resolvia/rooms/set": {
         if (!roomsOn()) return this.error(id, "rooms_off", "Os cômodos estão desligados em Mais › Integrações.");
@@ -695,7 +705,8 @@ function handleExtract(req, res) {
     const started = Date.now();
     try {
       const rooms = roomsOn() ? inventario.state.comodos.map((c) => ({ id: c.id, name: c.nome })) : [];
-      const out = await ai.extract({ text: body.text, images: body.images, listName: body.list_name, lists: body.lists, rooms });
+      const equips = equipsOn() ? inventario.state.itens.map((i) => ({ id: i.id, name: inventario.itemLabel(i) })) : [];
+      const out = await ai.extract({ text: body.text, images: body.images, listName: body.list_name, lists: body.lists, rooms, equips });
       log.info(`Importação: ${out.items.length} itens via ${out.provider} em ${((Date.now() - started) / 1000).toFixed(1)}s`);
       sendJson(res, 200, out);
     } catch (err) {
@@ -792,7 +803,9 @@ function publishPresence() {
     const prazos = !store.prefs.app.due_off;
     // comodos: the rooms of the InventarIA and the room of each task, so the CronologIA shows and asks for them too
     const comodos = roomsOn() && inventario.state.comodos.length ? { lista: inventario.state.comodos.map((c) => ({ id: c.id, nome: c.nome })), tarefas: store.rooms } : null;
-    fs.writeFileSync(tmp, JSON.stringify({ app: "ResolvIA", versao: VERSION, gravado_em: new Date().toISOString(), prazos, sem_prazo: semPrazo, pontos, repete, ...(comodos ? { comodos } : {}) }, null, 1));
+    // equipamentos: the items of the InventarIA (with their room) and the item of each task
+    const equipamentos = equipsOn() && inventario.state.itens.length ? { lista: inventario.state.itens.map((i) => ({ id: i.id, nome: i.nome, comodo: inventario.nameOf(i.comodo) || "" })), tarefas: store.equips } : null;
+    fs.writeFileSync(tmp, JSON.stringify({ app: "ResolvIA", versao: VERSION, gravado_em: new Date().toISOString(), prazos, sem_prazo: semPrazo, pontos, repete, ...(comodos ? { comodos } : {}), ...(equipamentos ? { equipamentos } : {}) }, null, 1));
     fs.renameSync(tmp, path.join(dir, "integracao.json"));
     publishWarned = false;
   } catch (err) {

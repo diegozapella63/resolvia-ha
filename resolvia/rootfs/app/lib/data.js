@@ -37,6 +37,7 @@ export function snapshot(store, lists, version) {
     rules: store.data.rules,
     points: store.data.points,
     rooms: store.data.rooms || {},
+    equips: store.data.equips || {},
     lists: lists.map((l) => ({
       entity_id: l.entity_id,
       name: l.name,

@@ -152,6 +152,7 @@ export const SuggestMixin = (Base) =>
             repete: rule ? rule.days : 0,
             compras: isShopping(l),
             comodo: this._roomName(this._roomIdOf(l.id, i.summary)) || "",
+            equipamento: (this._equipOf(this._equipIdOf(l.id, i.summary)) || {}).nome || "",
           });
         }
       }
