@@ -24,15 +24,6 @@ export function ageText(days) {
   return plural(Math.floor(days / 365), "ano", "anos");
 }
 
-function agoText(ms, now = Date.now()) {
-  const min = Math.max(0, Math.round((now - ms) / 60000));
-  if (min < 1) return "agora há pouco";
-  if (min < 60) return `há ${min} min`;
-  const h = Math.floor(min / 60);
-  if (h < 24) return `há ${h} h`;
-  return `há ${plural(Math.floor(h / 24), "dia", "dias")}`;
-}
-
 const isShopping = (l) => l.icon === "shopping-cart";
 
 export const SuggestMixin = (Base) =>
@@ -217,10 +208,10 @@ export const SuggestMixin = (Base) =>
       return html`<div class="panel items start ${byAi ? "by-ai" : ""}">
         <div class="mais-head"><span class="mais-ic" aria-hidden="true">${icon(byAi ? "sparkles" : "flag")}</span><h2>Comece por aqui</h2><small class="mh-count">${rows.length}</small></div>
         ${byAi
-          ? html`<p class="start-by">${icon("sparkles")}<span>Escolhidos por ${pick.provider || "IA"} ${agoText(pick.at)}.</span></p>`
+          ? html`<p class="start-by">${icon("sparkles")}<span>Escolhidos pela IA.</span></p>`
           : nothing}
         ${repeat(rows, (r) => r.l.id + (r.i.uid || r.i.summary), (r) => this._renderItem(r.l, r.i, { showList: true, why: r.why, whyIcon: r.ai ? "sparkles" : null }))}
-        ${pick && !byAi ? html`<p class="ai-note">Tudo o que a IA sugeriu já foi resolvido. Estes são os automáticos.</p>` : nothing}
+        ${pick && !byAi ? html`<p class="ai-note">Tudo o que a IA sugeriu foi resolvido.</p>` : nothing}
         ${aiOn && !ai.ready && ai.reason ? html`<p class="ai-note">${ai.reason}</p>` : nothing}
         ${this._aiErr ? html`<p class="ai-note err">${this._aiErr}</p>` : nothing}
         ${aiOn
@@ -259,7 +250,6 @@ export const SuggestMixin = (Base) =>
                       )}
                     </div>`
                   : nothing}
-                <p class="suggest-foot">${icon("info")}<span>O automático olha há quanto tempo cada item está na lista, o que fecha uma lista, os pontos, as repetições e as datas do CronologIA${this._aiOn() ? "; Sugerir com IA deixa a IA escolher e explicar (entra no Uso da IA)" : ""}. Mude em Mais › Opções › Prazos.</span></p>
               `
             : html`<div class="panel">
                 <div class="empty">

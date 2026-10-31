@@ -183,7 +183,7 @@ export const DataMixin = (Base) =>
       </li>`;
       return html`<div id="dados">
         <div class="panel">
-          ${this._secHead("download", "Exportar", "Baixe para guardar ou levar para outro programa. Os arquivos são abertos e legíveis.")}
+          ${this._secHead("download", "Exportar")}
           <ul class="opts">
             ${exp("csv", "Planilha (CSV)", "Abre no Excel e no Google Planilhas, com um item por linha.", "Baixar CSV")}
             ${exp("json", "Dados completos (JSON)", "Todos os campos, para backup ou para outro sistema.", "Baixar JSON")}
@@ -191,7 +191,7 @@ export const DataMixin = (Base) =>
           </ul>
         </div>
         <div class="panel">
-          ${this._secHead("archive", "Backup na pasta share", html`Cria uma cópia completa em <code>share/resolvia</code>, que você acessa pela rede do Home Assistant. Os backups do próprio Home Assistant também incluem o ResolvIA e as listas locais.`)}
+          ${this._secHead("archive", "Backup na pasta share", html`Cópia completa em <code>share/resolvia</code>.`)}
           <div class="btn-row sec-actions">
             <button class="btn primary sm" ?disabled=${this._dataBusy === "backup" || (b && b.available === false)} @click=${() => this._createBackup()}>${icon("archive")}${this._dataBusy === "backup" ? "Criando…" : "Criar backup"}</button>
           </div>
@@ -208,15 +208,15 @@ export const DataMixin = (Base) =>
             : nothing}
         </div>
         <div class="panel">
-          ${this._secHead("upload", "Importar", "Traz de volta um .zip ou .json exportado pelo ResolvIA: nomes, cores e ícones das listas, as tarefas que se repetem e os itens pendentes que estiverem faltando, sem duplicar. Antes de importar, o app guarda uma cópia do que existe hoje.")}
+          ${this._secHead("upload", "Importar", "Um .zip ou .json exportado pelo ResolvIA, sem duplicar.")}
           <div class="btn-row sec-actions"><button class="btn outline sm" @click=${() => this._pickDataImport()}>${icon("upload")}Escolher arquivo</button></div>
         </div>
         <div class="panel">
-          ${this._secHead("archive-restore", "Versões anteriores", "O app guarda sozinho uma cópia dos ajustes e das repetições a cada 10 minutos de uso e antes de importar ou restaurar, e mantém as 3 mais recentes. Se algo sair errado, volte para uma delas.")}
+          ${this._secHead("archive-restore", "Versões anteriores", "As 3 últimas cópias dos ajustes e das repetições, guardadas sozinhas.")}
           <div class="btn-row sec-actions"><button class="btn outline sm" @click=${() => this._openVersions()}>${icon("archive-restore")}Ver versões</button></div>
         </div>
         <div class="panel">
-          ${this._secHead("database", "Onde ficam os dados", html`Os itens ficam nas próprias listas do Home Assistant (locais, Google Tasks, Alexa…). O app guarda nomes, cores, ícones e as tarefas que se repetem em <code>/data/resolvia.json</code>, que entra no backup do Home Assistant.`)}
+          ${this._secHead("database", "Onde ficam os dados", html`Os itens ficam nas listas do Home Assistant; os ajustes, em <code>/data/resolvia.json</code>.`)}
         </div>
         <input id="rv-data-import" class="sr" type="file" accept=".zip,.json,application/zip,application/json" tabindex="-1" aria-hidden="true" @change=${(e) => this._onDataImport(e)} />
       </div>`;

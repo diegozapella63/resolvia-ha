@@ -152,8 +152,8 @@ export const PointsMixin = (Base) =>
           ? html`<div class="field-hint">${icon("trophy")}<span>${pl && pl.ativo
               ? `Quem concluir ganha ${n} pontos no placar do CronologIA (${pl.participantes.join(" × ")}).`
               : pl && pl.desligado
-                ? "A integração com o ResolvIA está desligada no CronologIA: os pontos valem quando ela for ligada."
-                : "O placar do CronologIA está desligado: os pontos valem quando ele for ligado."}</span></div>`
+                ? "A integração com o ResolvIA está desligada no CronologIA."
+                : "O placar do CronologIA está desligado."}</span></div>`
           : nothing}
       </div>`;
     }
@@ -186,15 +186,15 @@ export const PointsMixin = (Base) =>
             <div class="label">Usar recompensas</div>
             <div class="hint" style="white-space:normal">${on
               ? n
-                ? `${plural(n, "tarefa vale", "tarefas valem")} pontos. Para mudar, abra o item e escolha “Pontos para quem concluir”.`
-                : "Abra um item e escolha “Pontos para quem concluir”. Quem concluir ganha os pontos no placar."
-              : "Desligado: as tarefas não valem pontos e nada vai para o placar do CronologIA."}</div>
+                ? `${plural(n, "tarefa vale", "tarefas valem")} pontos.`
+                : "Abra um item e escolha “Pontos para quem concluir”."
+              : "Desligado."}</div>
           </div>
           <label class="switch"><input type="checkbox" role="switch" .checked=${on} @change=${(e) => this._setPointsOn(e.target.checked)} aria-label="Usar recompensas" /><span class="track"></span></label>
         </div>`;
       if (!on) {
         return html`<div class="panel" id="recompensas">
-          ${this._secHead("trophy", "Recompensas", "As tarefas daqui podem valer pontos no placar da casa do CronologIA, para quem concluir.")}
+          ${this._secHead("trophy", "Recompensas", "Pontos no placar do CronologIA para quem concluir.")}
           ${sw}
         </div>`;
       }
@@ -210,7 +210,7 @@ export const PointsMixin = (Base) =>
               text: `${pl.participantes.join(" × ")} · fecha ${PERIOD[pl.periodo] || "toda semana"}. ${pl.eu ? `Neste usuário, os pontos vão para ${pl.eu}.` : "Este usuário do Home Assistant não está no placar: ao concluir, o app pergunta quem fez."}`,
             };
       return html`<div class="panel" id="recompensas">
-        ${this._secHead("trophy", "Recompensas", "As tarefas daqui podem valer pontos no placar da casa do CronologIA, para quem concluir.")}
+        ${this._secHead("trophy", "Recompensas", "Pontos no placar do CronologIA para quem concluir.")}
         ${sw}
         <div class="ai-state ${state.tone}" style="margin-bottom:16px"><span class="dot"></span><div><b>${state.title}</b><span>${state.text}</span></div></div>
       </div>`;

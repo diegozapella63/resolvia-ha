@@ -43,7 +43,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.26.3";
+const VERSION = "2.27.0";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -877,7 +877,7 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
       u: this._usage,
       day: this._usageDay,
       onDay: (d) => ((this._usageDay = d), this.requestUpdate()),
-      head: this._secHead("chart-column", "Uso da IA", "Cada mensagem ou foto lida é uma chamada para a IA do Home Assistant. O Home Assistant não informa tokens nem custo, então o ResolvIA conta as chamadas e estima os tokens pelo tamanho do texto."),
+      head: this._secHead("chart-column", "Uso da IA", "As chamadas do app para a IA. Os tokens são estimados."),
       app: "ResolvIA",
       using: (ai.using && ai.using.id) || "",
       names: Object.fromEntries((ai.entities || []).map((e) => [e.id, e.name])),
@@ -962,7 +962,7 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
     const detail = checking
       ? ""
       : v.ready
-        ? `Transcreve com ${v.name}${v.chosen ? "" : " (o do assistente de voz do Home Assistant)"}.${v.missing ? " O escolhido não foi encontrado: usando o automático." : ""}`
+        ? `Transcreve com ${v.name}.${v.missing ? " O escolhido não foi encontrado: usando o automático." : ""}`
         : v.reason || "";
     const again = async () => {
       this._voiceChecking = true;
@@ -972,7 +972,7 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
       this.requestUpdate();
     };
     return html`<div class="panel" id="falar">
-      ${this._secHead("mic", "Falar", "O microfone no alto da tela: o Home Assistant transforma a fala em texto e a IA da leitura separa os itens. Escolha aqui quem transcreve, sem mexer no assistente de voz do Home Assistant.")}
+      ${this._secHead("mic", "Falar", "Quem transforma a fala em texto. Não muda o assistente de voz do Home Assistant.")}
       <div class="ai-state ${tone}"><span class="dot"></span><div><b>${title}</b>${detail ? html`<span>${detail}</span>` : nothing}</div></div>
       ${opts.length || sel
         ? html`<label class="field" style="margin:14px 0 0">
@@ -982,7 +982,6 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
               ${opts.map((o) => html`<option value=${o.id} ?selected=${o.id === sel}>${o.name}</option>`)}
               ${sel && !opts.some((o) => o.id === sel) ? html`<option value=${sel} selected>${sel} (não encontrado)</option>` : nothing}
             </select>
-            <span class="field-hint">${icon("mic")}<span>“Automático” usa o assistente de voz preferido do Home Assistant (Configurações › Assistentes de voz).</span></span>
           </label>`
         : nothing}
       <div class="ai-actions"><button class="btn outline" ?disabled=${checking} @click=${again}>${icon("rotate-ccw")}Verificar de novo</button></div>
@@ -1061,7 +1060,6 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
 
   _renderVoiceStep(head) {
     const f = this._form;
-    const ai = this._aiInfo();
     const v = this._voice || {};
     const on = f.rec === "on";
     const mm = Math.floor((f.secs || 0) / 60);
@@ -1082,7 +1080,7 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
         <button class="btn outline" @click=${() => this._closeSheet()}>Cancelar</button>
         <button class="btn primary" ?disabled=${!on} @click=${() => this._finishVoice()}>${icon("sparkles")}Pronto</button>
       </div>
-      <p class="sheet-note">${v.ready ? `${v.name || "O Home Assistant"} transcreve e ${ai.ready ? `${ai.using.name} separa os itens` : "eu separo os itens por vírgulas e “e”"} (troque em Mais › Integrações). Você revisa antes de adicionar.` : v.reason || ""}</p>
+      ${v.ready ? nothing : html`<p class="sheet-note">${v.reason || ""}</p>`}
     `;
   }
 
@@ -2352,12 +2350,12 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
     `;
     return html`
         <div class="panel">
-          ${this._secHead("list-checks", "Listas", "Nome, cor, ícone e quais aparecem na tela inicial. Toque numa lista para personalizar.")}
+          ${this._secHead("list-checks", "Listas", "Toque numa lista para personalizar.")}
           ${this._L.length ? repeat(this._L.filter((l) => !l.hidden), (l) => l.id, row) : html`<div class="row"><div class="hint">Nenhuma lista encontrada.</div></div>`}
           ${off.length
             ? html`<button class="row inact-head ${this._inactOpen ? "open" : ""}" aria-expanded=${this._inactOpen ? "true" : "false"} @click=${() => ((this._inactOpen = !this._inactOpen), this.requestUpdate())}>
                   <span class="tile muted">${icon("eye-off")}</span>
-                  <span class="grow"><div class="label">Inativas <span class="count">${off.length}</span></div><div class="hint">Desligadas: não aparecem na tela inicial</div></span>
+                  <span class="grow"><div class="label">Inativas <span class="count">${off.length}</span></div></span>
                   ${icon("chevron-down", "chev")}
                 </button>
                 ${this._inactOpen ? repeat(off, (l) => l.id, row) : nothing}`
@@ -2391,8 +2389,8 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
                 <div class="grow">
                   <div class="label">Repetir depois de concluir</div>
                   <div class="hint" style="white-space:normal">${on
-                    ? "Ligado: nos itens aparece “Repetir depois de concluir”, e o item volta sozinho N dias depois de feito."
-                    : "Desligado: os itens não têm o campo de repetição. Para o que se repete com dia certo ou depois de feito, use a Rotina da casa do CronologIA."}</div>
+                    ? "O item volta sozinho N dias depois de feito."
+                    : "Desligado."}</div>
                 </div>
                 <label class="switch"><input type="checkbox" role="switch" .checked=${on} @change=${(e) => this._toggleRepeat(e)} aria-label="Repetir depois de concluir" /><span class="track"></span></label>
               </div>
@@ -2402,7 +2400,7 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
               : html`<div class="panel ${on ? "" : "paused"}">
               ${this._secHead("rotate-ccw", "Tarefas que se repetem")}
               ${!on && this._rules.length
-                ? html`<p class="panel-lead">Ficaram de quando a repetição estava ligada e não voltam mais sozinhas. Exclua para limpar.</p>
+                ? html`<p class="panel-lead">Não voltam mais sozinhas. Exclua para limpar.</p>
                     <div class="btn-row sec-actions"><button class="btn danger sm" @click=${() => this._confirmClearRules(false)}>${icon("trash")}Excluir ${plural(this._rules.length, "repetição", "repetições")}</button></div>`
                 : nothing}
               ${this._rules.length
@@ -2418,7 +2416,7 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
                       <button class="icon-btn" style="color:var(--rv-muted)" aria-label="Parar de repetir" @click=${() => this._setRule(r.entity_id, { uid: r.uid, summary: r.match || r.summary, days: null })}>${icon("x")}</button>
                     </div>`;
                   })
-                : html`<div class="row"><div class="hint" style="white-space:normal">Nenhuma ainda. Abra um item e escolha “Repetir depois de concluir” — ex.: passar pano 3 dias depois de feito.</div></div>`}
+                : html`<div class="row"><div class="hint" style="white-space:normal">Nenhuma ainda. Abra um item e escolha “Repetir depois de concluir”.</div></div>`}
             </div>`}`;
   }
 
@@ -2459,8 +2457,8 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
           ${this._secHead("calendar-clock", "Prazos")}
           <div class="row">
             <div class="grow"><div class="label">Controlar prazos</div><div class="hint" style="white-space:normal">${dueOn
-              ? "Ligado: o item tem campo de prazo, o que vence fica vermelho e entra na aba Prazos."
-              : "Desligado: a aba Prazos vira Sugestões e o item não tem mais campo de prazo. As datas que já existem aparecem só como informação."}</div></div>
+              ? "O que vence fica vermelho e entra em Prazos."
+              : "A aba Prazos vira Sugestões."}</div></div>
             ${sw(dueOn, "Controlar prazos", (e) => this._saveAppPrefs({ due_off: e.target.checked ? null : true }))}
           </div>
         </div>
@@ -2483,11 +2481,11 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
     const accent = this._app("accent", "vermelho");
     return html`
         <div class="panel">
-          ${this._secHead("contrast", "Tema", "Automático segue o modo claro ou escuro do Home Assistant. Cada aparelho guarda a sua escolha.")}
+          ${this._secHead("contrast", "Tema", "Cada aparelho guarda a sua escolha.")}
           ${themePicker({ theme: this._theme, onTheme: (k) => this._setTheme(k), icon })}
         </div>
         <div class="panel">
-          ${this._secHead("palette", "Cor do app", "Muda os botões principais, a aba escolhida e os destaques. Vale para todos os aparelhos.")}
+          ${this._secHead("palette", "Cor do app", "Vale para todos os aparelhos.")}
           ${colorPicker({ palette: PALETTE, value: accent, onPick: (id) => this._saveAppPrefs({ accent: id === "vermelho" ? null : id }) })}
         </div>
     `;
@@ -2500,7 +2498,7 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
     return html`<div class="panel" id="sensores">
       ${this._secHead("activity", "Sensores no Home Assistant", "Para usar em painéis e automações do Home Assistant.")}
       <div class="row switch-row">
-        <div class="grow"><div class="label">Criar sensores</div><div class="hint" style="white-space:normal">${on ? "Ligado: o app mantém este sensor atualizado." : "Desligado: o app não cria sensores no Home Assistant, e apaga os que tinha criado."}</div></div>
+        <div class="grow"><div class="label">Criar sensores</div><div class="hint" style="white-space:normal">${on ? "Ligado." : "Desligado: nenhum sensor no Home Assistant."}</div></div>
         <label class="switch"><input type="checkbox" role="switch" .checked=${on} @change=${(e) => this._saveAppPrefs({ sensors_on: e.target.checked ? true : null })} aria-label="Criar sensores" /><span class="track"></span></label>
       </div>
       ${on ? html`<div class="sensor-list"><div class="sensor-row"><code>sensor.resolvia_ia_hoje</code><span>chamadas de IA hoje, com erros, cota e tokens estimados</span></div></div>` : nothing}
@@ -2512,13 +2510,13 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
     const on = this._aiOn();
     const sw = html`<div class="row switch-row">
         <div class="grow"><div class="label">Usar IA</div><div class="hint" style="white-space:normal">${on
-          ? "Ligado: em Adicionar aparecem Colar mensagem, Escolher fotos e Digitalizar com IA."
-          : "Desligado: Colar mensagem, Escolher fotos e Digitalizar com IA somem. Colar várias linhas no campo de adicionar continua criando um item por linha."}</div></div>
+          ? "Ligado."
+          : "Desligado: sem leitura por IA, sem Falar."}</div></div>
         <label class="switch"><input type="checkbox" role="switch" .checked=${on} @change=${(e) => this._saveAppPrefs({ ai_off: e.target.checked ? null : true })} aria-label="Usar IA" /><span class="track"></span></label>
       </div>`;
     if (!on) {
       return html`<div class="panel" id="leitura-ia">
-        ${this._secHead("sparkles", "Leitura por IA", "Separa os itens de mensagens coladas, prints e fotos de listas em papel, com a IA configurada no Home Assistant.")}
+        ${this._secHead("sparkles", "Leitura por IA", "Separa os itens de mensagens, prints e fotos.")}
         ${sw}
       </div>`;
     }
@@ -2534,7 +2532,7 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
     }
     if (ai.reason) detail = `${detail} ${ai.reason}`.trim();
     return html`<div class="panel" id="leitura-ia">
-      ${this._secHead("sparkles", "Leitura por IA", "Separa os itens de mensagens coladas, prints e fotos de listas em papel. Usa a integração de IA configurada no Home Assistant (Anthropic Claude, OpenAI, Google Gemini ou um modelo local pelo Ollama); o app não guarda nenhuma chave.")}
+      ${this._secHead("sparkles", "Leitura por IA", "Separa os itens de mensagens, prints e fotos, com a IA do Home Assistant.")}
       ${sw}
       <div class="ai-state ${tone}"><span class="dot"></span><div><b>${title}</b>${detail ? html`<span>${detail}</span>` : nothing}</div></div>
       ${ents.length || sel
@@ -2545,7 +2543,6 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
               ${ents.map((e) => html`<option value=${e.id} ?selected=${e.id === sel}>${e.name}${e.images ? "" : " (só texto)"}${e.available ? "" : " (indisponível)"}</option>`)}
               ${sel && !ents.some((e) => e.id === sel) ? html`<option value=${sel} selected>${sel} (não encontrada)</option>` : nothing}
             </select>
-            <span class="field-hint">${icon("sparkles")}<span>“Padrão do Home Assistant” usa a IA preferida definida em Configurações › Sistema › Geral.</span></span>
           </label>`
         : nothing}
       <div class="ai-actions"><button class="btn outline" ?disabled=${this._aiChecking} @click=${() => this._refreshAi()}>${icon("rotate-ccw")}Verificar de novo</button></div>
@@ -2612,7 +2609,7 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
         </div>
         ${f.description ? html`<p>${f.description}</p>` : nothing}
       </div>
-      <p class="sheet-note with-icon">${icon("calendar-clock")}<span>Vem do CronologIA. Concluir aqui marca como feito lá${m.pontos ? ` e dá ${m.pontos} pontos para quem fez` : ""}, e a tarefa volta com a próxima data. O nome, a data, as notas e os pontos se mudam no CronologIA.${canDelete ? " Excluir tira da lista só até a próxima data." : ""}</span></p>
+      <p class="sheet-note with-icon">${icon("calendar-clock")}<span>Vem do CronologIA: concluir aqui marca como feito lá${m.pontos ? ` (${m.pontos} pontos)` : ""}. Para editar, use o CronologIA.</span></p>
       <div class="sheet-actions">
         ${canDelete ? html`<button class="btn danger" @click=${() => this._deleteItem()} aria-label="Excluir">${icon("trash")}</button>` : nothing}
         <button class="btn primary" @click=${() => this._closeSheet()}>Fechar</button>
@@ -2710,7 +2707,7 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
                 </div>`
               : nothing}
             ${f.repeat
-              ? html`<div class="field-hint">${icon("repeat")}<span>Quando você concluir, volta sozinha ${f.repeat === 1 ? "no dia seguinte" : `em ${f.repeat} dias`} (no começo do dia).</span></div>`
+              ? html`<div class="field-hint">${icon("repeat")}<span>Volta sozinha ${f.repeat === 1 ? "no dia seguinte" : `em ${f.repeat} dias`} depois de concluída.</span></div>`
               : nothing}
           </div>`
         : nothing}
@@ -2747,14 +2744,12 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
           ${tile("scan", "scan-text", "Digitalizar com\u00a0IA", !ai.images, camOk ? "" : "Precisa de https")}
         </div>
         ${ai.images && !camOk
-          ? html`<p class="imp-help">Neste endereço (http) a câmera não abre aqui dentro: o celular só deixa com o endereço seguro (https). Tire a foto com a câmera do celular e use Escolher fotos.</p>`
+          ? html`<p class="imp-help">Em http a câmera não abre aqui: tire a foto pelo celular e use Escolher fotos.</p>`
           : android && ai.images
-            ? html`<p class="imp-help">No app do Home Assistant, Escolher fotos abre a galeria (uma foto por vez). Para fotografar uma lista na hora, use Digitalizar com IA, que abre a câmera aqui dentro.</p>`
+            ? html`<p class="imp-help">No app do Home Assistant, a galeria manda uma foto por vez.</p>`
             : nothing}
       </div>
-      <div class="ai-box">${icon("scan-text")}<span>${ai.ready
-        ? "Com uma mensagem ou foto, a IA separa os itens da lista. Você confere antes de adicionar."
-        : "Sem IA configurada, a mensagem é separada por linhas e vírgulas. Para ler fotos, configure a Leitura por IA em Mais."}</span></div>`;
+      ${ai.ready ? nothing : html`<div class="ai-box">${icon("scan-text")}<span>Sem IA configurada, a mensagem é separada por linhas e vírgulas. Para ler fotos, configure a Leitura por IA em Mais.</span></div>`}`;
   }
 
   _renderImportSheet() {
@@ -2785,7 +2780,7 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
           ${this._clipOk() ? html`<button class="btn outline" @click=${() => this._pasteClipboard()}>${icon("clipboard-paste")}Colar</button>` : nothing}
           <button class="btn primary" ?disabled=${!(f.text || "").trim()} @click=${() => this._readText()}>${ai.ready ? icon("sparkles") : nothing}Separar itens</button>
         </div>
-        <p class="sheet-note">${ai.ready ? `${ai.using.name} separa os itens, mesmo de mensagens corridas.` : "Sem IA configurada: separo por linhas, vírgulas e “e”."}</p>
+        ${ai.ready ? nothing : html`<p class="sheet-note">Sem IA configurada: separo por linhas, vírgulas e “e”.</p>`}
       `;
     }
 
@@ -2807,13 +2802,11 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
       const targets = this._importTargets();
       const many = targets.length > 1;
       const dests = new Set(f.items.filter((i) => i.on && i.text.trim()).map((i) => this._importListOf(i)));
-      const from =
-        f.provider === "local" ? "separados por linha" : f.provider ? `lidos por ${f.provider}` : "";
       return html`
         ${head("Revisar itens", toPick)}
         ${thumbs}
         ${f.heard ? html`<p class="heard">${icon("mic")}<span>“${f.heard}”</span></p>` : nothing}
-        <p class="sheet-note top">${plural(f.items.length, "item encontrado", "itens encontrados")}${from ? ` · ${from}` : ""}. Toque no texto para corrigir.</p>
+        <p class="sheet-note top">${plural(f.items.length, "item encontrado", "itens encontrados")}.</p>
         ${f.note ? html`<div class="imp-error soft">${icon("sparkles")}<span>${f.note}</span></div>` : nothing}
         <div class="imp-list">
           ${f.items.map(
@@ -2854,7 +2847,6 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
               <div class="chip-row grid">
                 ${targets.map((t) => html`<button class="pick list ${dests.size === 1 && dests.has(t.id) ? "on" : ""}" style=${colorVars(t.color, this._dark)} @click=${() => this._setForm({ target: t.id, items: f.items.map((it) => ({ ...it, list: t.id })) })}><span class="dot"></span><span>${clip(t.name, 26)}</span></button>`)}
               </div>
-              <span class="field-hint">${icon("info")}<span>Cada item vai para a lista escrita embaixo dele${f.provider && f.provider !== "local" ? " (a IA já sugeriu)" : ""}. Toque nela para trocar, ou escolha uma acima para todos.</span></span>
             </div>`
           : nothing}
         <div class="sheet-actions">
@@ -2868,7 +2860,6 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
     // pick
     return html`
       ${head("Importar itens")}
-      <p class="sheet-lead">Traga uma lista pronta de uma mensagem do WhatsApp, de um print ou de uma lista em papel.</p>
       ${this._renderImportTiles(
         {
           text: () => (this._setForm({ step: "text", error: null }), this._focusImportText()),
@@ -2947,12 +2938,12 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
         ? html`<div class="row" style="border:0;padding-top:0">
             <div class="grow">
               <div class="label">Prazos</div>
-              <div class="hint" style="white-space:normal">${f.deadlines ? "O prazo que você define fica vermelho quando vence e entra em Prazos." : "As datas aparecem só como informação: não ficam vermelhas nem entram em Prazos."}</div>
+              <div class="hint" style="white-space:normal">${f.deadlines ? "Vencidos ficam vermelhos e entram em Prazos." : "Datas só como informação."}</div>
             </div>
             <label class="switch"><input type="checkbox" role="switch" .checked=${f.deadlines} @change=${(e) => this._setForm({ deadlines: e.target.checked })} aria-label="Prazos" /><span class="track"></span></label>
           </div>`
         : l.hasDates
-          ? html`<p class="sheet-note with-icon">${icon("info")}<span>Esta lista não deixa definir prazo. As datas dos itens vêm da integração (ex.: desde quando um aparelho está fora do ar) e aparecem só como informação, sem ficar vermelhas nem entrar em Prazos.</span></p>`
+          ? html`<p class="sheet-note with-icon">${icon("info")}<span>Esta lista não aceita prazo: as datas vêm da integração, só como informação.</span></p>`
           : nothing}
       <div class="sheet-actions">
         <button class="btn outline" @click=${() => this._setForm({ name: "", color: null, icon: null, hidden: false, deadlines: l.canDue })}>${icon("rotate-ccw")}Padrão</button>

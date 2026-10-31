@@ -26,10 +26,10 @@ const when = (iso, now) => {
 
 function provider(ids) {
   const j = ids.join(" ").toLowerCase();
-  if (/google|gemini/.test(j)) return html`Consumo exato do Gemini: no <a href="https://console.cloud.google.com/apis/dashboard" target="_blank" rel="noopener">Google Cloud Console</a>, abra APIs e serviços ativados → Generative Language API; o gráfico de tráfego mostra os pedidos e os erros 429 de cota. Os limites do plano grátis estão no <a href="https://aistudio.google.com/" target="_blank" rel="noopener">Google AI Studio</a>.`;
-  if (/openai|chatgpt|gpt/.test(j)) return html`Consumo exato e custo da OpenAI: <a href="https://platform.openai.com/usage" target="_blank" rel="noopener">platform.openai.com/usage</a>.`;
-  if (/anthropic|claude/.test(j)) return html`Consumo exato e custo da Anthropic: <a href="https://platform.claude.com/usage" target="_blank" rel="noopener">Claude Console → Usage</a>.`;
-  return "O consumo exato e o custo ficam no painel do provedor da sua IA (Google, OpenAI, Anthropic…).";
+  if (/google|gemini/.test(j)) return html`Consumo exato e cota: <a href="https://console.cloud.google.com/apis/dashboard" target="_blank" rel="noopener">Google Cloud Console</a>.`;
+  if (/openai|chatgpt|gpt/.test(j)) return html`Consumo exato e custo: <a href="https://platform.openai.com/usage" target="_blank" rel="noopener">platform.openai.com/usage</a>.`;
+  if (/anthropic|claude/.test(j)) return html`Consumo exato e custo: <a href="https://platform.claude.com/usage" target="_blank" rel="noopener">Claude Console</a>.`;
+  return "O consumo exato fica no painel do provedor da IA.";
 }
 
 /**
@@ -78,7 +78,7 @@ export function usagePanel({ u, day, onDay, head, app, using = "", names = {} })
           : html`<li>Nenhuma chamada ainda.</li>`}
       </ul>
     </details>
-    <p class="uso-note">${provider(ids)} A estimativa de tokens daqui conta só o texto; as imagens e as instruções da IA somam mais.</p>
+    <p class="uso-note">${provider(ids)}</p>
   </div>`;
 }
 

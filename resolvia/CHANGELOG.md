@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.27.0
+
+- **Menos explicação, mais tela**: os textos de ajuda ficaram curtos ou saíram onde só repetiam o que a tela já mostra. Os mais visíveis: Exportar sem frase de abertura; Backup, Importar, Versões e Onde ficam os dados em uma linha; os interruptores dizem só Ligado/Desligado (com uma frase curta quando precisa); Leitura por IA e Falar sem a lista de integrações e sem a nota do "Automático"; no Falar e no Colar mensagem saiu a nota de quem transcreve e quem separa; na revisão, só a quantidade de itens; saiu a dica embaixo da escolha de lista; Sugestões sem o rodapé que explicava o automático; Uso da IA com uma linha só para o consumo exato.
+- **Comece por aqui escolhido pela IA**: a linha de cima diz só **Escolhidos pela IA.**
+
 ## 2.26.3
 
 - **Comece por aqui escolhido pela IA**: a linha de cima diz só quem escolheu e quando (o "Embaixo de cada um, o porquê" saiu: o porquê já está embaixo de cada item). A IA também é orientada a escrever o motivo todo em português, sem palavras em inglês.
