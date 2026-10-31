@@ -213,13 +213,13 @@ export const SuggestMixin = (Base) =>
             ? html`
                 ${s.top.length
                   ? html`<div class="panel items">
-                      <div class="overline">Comece por aqui · ${s.top.length}</div>
+                      <div class="mais-head"><span class="mais-ic" aria-hidden="true">${icon("flag")}</span><h2>Comece por aqui</h2><small class="mh-count">${s.top.length}</small></div>
                       ${repeat(s.top, (r) => r.l.id + (r.i.uid || r.i.summary), (r) => this._renderItem(r.l, r.i, { showList: true, why: r.why }))}
                     </div>`
                   : nothing}
                 ${s.shopping.length
                   ? html`<div class="panel">
-                      <div class="overline">Compras</div>
+                      <div class="mais-head"><span class="mais-ic" aria-hidden="true">${icon("shopping-cart")}</span><h2>Compras</h2><small class="mh-count">${s.shopping.length}</small></div>
                       ${s.shopping.map(
                         (x) => html`<button class="list-card" style=${colorVars(x.l.color, this._dark)} @click=${() => this._go(`/lista/${x.l.id}`)}>
                           <span class="tile">${icon(x.l.icon)}</span>

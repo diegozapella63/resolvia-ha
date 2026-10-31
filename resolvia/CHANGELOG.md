@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.22.1
+
+- **Sugestões**: **Comece por aqui** e **Compras** ganharam o cabeçalho com ícone, como o **Pedir à IA**, com a quantidade à direita.
+
 ## 2.22.0
 
 - **Listas com mais pendências primeiro**, na tela inicial (e o grupo com mais pendências primeiro) e na barra lateral do computador. Empates seguem a ordem de Mais › Listas.

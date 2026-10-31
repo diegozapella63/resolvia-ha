@@ -412,6 +412,16 @@ export const styles = css`
     height: 21px;
     stroke-width: 1.9;
   }
+  .mais-head .mh-count {
+    margin-left: auto;
+    font-size: 14px;
+    color: var(--rv-muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .mais-head + .item,
+  .mais-head + .list-card {
+    border-top: 0;
+  }
   .mais-head + .panel-lead {
     margin-top: 0;
   }
