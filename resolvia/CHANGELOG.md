@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.25.0
+
+- **Mais › Listas: as desligadas vão para o fim**, recolhidas em **Inativas** (com a quantidade). Tocar abre; ligar uma lista de novo a traz de volta para cima.
+- **Dados: botões do mesmo tamanho** (Baixar CSV, JSON, ZIP, Criar backup, Escolher arquivo, Ver versões). No celular cada um fica embaixo do seu texto, todos alinhados; no computador, à direita.
+- **Uso da IA** não fala mais do sensor `sensor.resolvia_ia_hoje` (nem para mandar ligar). Ele aparece explicado só em **Sensores no Home Assistant**, com os sensores ligados.
+
 ## 2.24.0
 
 - **Falar: escolha quem transcreve**, como na leitura por IA. Em Mais › Integrações › **Falar** aparece a lista dos motores de fala para texto do Home Assistant (Home Assistant Cloud, Whisper, Google…). **Automático** continua usando o assistente de voz preferido do Home Assistant; escolher outro aqui não mexe nele. O app descobre o idioma que cada motor usa para o português (pt-BR, pt…). Com **Usar IA** desligado, o painel some junto com o Falar.

@@ -2494,12 +2494,12 @@ export const styles = css`
     display: flex;
     align-items: center;
     gap: 14px;
-    padding: 14px 2px;
+    padding: 14px 0;
     border-bottom: 1px solid var(--rv-line);
   }
   .opts .ot {
     flex: 1;
-    min-width: 0;
+    min-width: min(100%, 13em);
   }
   .opts .ot b {
     display: block;
@@ -2513,8 +2513,49 @@ export const styles = css`
     line-height: 1.4;
     color: var(--rv-muted);
   }
-  .opts .btn {
+  /* Mais › Listas: the lists turned off, folded at the end */
+  .inact-head {
+    width: 100%;
+    text-align: left;
+  }
+  .inact-head .tile.muted {
+    background: color-mix(in srgb, var(--rv-muted) 16%, transparent);
+    color: var(--rv-muted);
+  }
+  .inact-head .label .count {
+    display: inline-block;
+    min-width: 1.6em;
+    margin-left: 6px;
+    padding: 0 7px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--rv-muted) 16%, transparent);
+    color: var(--rv-muted);
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+    vertical-align: 2px;
+  }
+  .inact-head .chev {
+    color: var(--rv-muted);
+    transition: transform 0.2s;
+  }
+  .inact-head.open .chev {
+    transform: rotate(180deg);
+  }
+  .row.inact .label {
+    color: var(--rv-text-2);
+  }
+  /* Dados: every button the same width; on the phone it goes under its text, all lined up */
+  .opts > li {
+    flex-wrap: wrap;
+  }
+  .opts .btn,
+  #dados .sec-actions .btn {
     flex: none;
+    width: 11.5em;
+    max-width: 100%;
+    justify-content: center;
+    white-space: nowrap;
   }
   /* Sensores no Home Assistant: the entities, one per line */
   .sensor-list {

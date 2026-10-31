@@ -43,7 +43,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.24.0";
+const VERSION = "2.25.0";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -2300,23 +2300,30 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
   /** Mais › Listas: name, color, icon and show/hide of each list; new lists. */
   _renderListsTab() {
     const sw = (on, label, ev) => html`<label class="switch"><input type="checkbox" role="switch" .checked=${on} @change=${ev} aria-label=${label} /><span class="track"></span></label>`;
+    // the ones turned off go last, folded under Inativas
+    const off = this._L.filter((l) => l.hidden);
+    const row = (l) => html`
+      <div class="row ${l.hidden ? "inact" : ""}" style=${colorVars(l.color, this._dark)}>
+        <button class="tile" @click=${() => this._openCustomize(l)} aria-label="Personalizar ${l.name}">${icon(l.icon)}</button>
+        <button class="grow" style="text-align:left" @click=${() => this._openCustomize(l)}>
+          <div class="label">${l.name}</div>
+          <div class="hint">${l.group || l.id}</div>
+        </button>
+        ${sw(!l.hidden, `Mostrar ${l.name}`, (e) => this._saveListPrefs(l.id, { hidden: e.target.checked ? null : true }))}
+      </div>
+    `;
     return html`
         <div class="panel">
           ${this._secHead("list-checks", "Listas", "Nome, cor, ícone e quais aparecem na tela inicial. Toque numa lista para personalizar.")}
-          ${this._L.length
-            ? this._L.map(
-                (l) => html`
-                  <div class="row" style=${colorVars(l.color, this._dark)}>
-                    <button class="tile" @click=${() => this._openCustomize(l)} aria-label="Personalizar ${l.name}">${icon(l.icon)}</button>
-                    <button class="grow" style="text-align:left" @click=${() => this._openCustomize(l)}>
-                      <div class="label">${l.name}</div>
-                      <div class="hint">${l.group || l.id}</div>
-                    </button>
-                    ${sw(!l.hidden, `Mostrar ${l.name}`, (e) => this._saveListPrefs(l.id, { hidden: e.target.checked ? null : true }))}
-                  </div>
-                `,
-              )
-            : html`<div class="row"><div class="hint">Nenhuma lista encontrada.</div></div>`}
+          ${this._L.length ? repeat(this._L.filter((l) => !l.hidden), (l) => l.id, row) : html`<div class="row"><div class="hint">Nenhuma lista encontrada.</div></div>`}
+          ${off.length
+            ? html`<button class="row inact-head ${this._inactOpen ? "open" : ""}" aria-expanded=${this._inactOpen ? "true" : "false"} @click=${() => ((this._inactOpen = !this._inactOpen), this.requestUpdate())}>
+                  <span class="tile muted">${icon("eye-off")}</span>
+                  <span class="grow"><div class="label">Inativas <span class="count">${off.length}</span></div><div class="hint">Desligadas: não aparecem na tela inicial</div></span>
+                  ${icon("chevron-down", "chev")}
+                </button>
+                ${this._inactOpen ? repeat(off, (l) => l.id, row) : nothing}`
+            : nothing}
         </div>
 
         ${this.hass.user && this.hass.user.is_admin
@@ -2458,7 +2465,7 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
         <div class="grow"><div class="label">Criar sensores</div><div class="hint" style="white-space:normal">${on ? "Ligado: o app mantém este sensor atualizado." : "Desligado: o app não cria sensores no Home Assistant, e apaga os que tinha criado."}</div></div>
         <label class="switch"><input type="checkbox" role="switch" .checked=${on} @change=${(e) => this._saveAppPrefs({ sensors_on: e.target.checked ? true : null })} aria-label="Criar sensores" /><span class="track"></span></label>
       </div>
-      ${on ? html`<div class="sensor-list"><div class="sensor-row"><code>sensor.resolvia_ia_hoje</code><span>chamadas de IA hoje</span></div></div>` : nothing}
+      ${on ? html`<div class="sensor-list"><div class="sensor-row"><code>sensor.resolvia_ia_hoje</code><span>chamadas de IA hoje, com erros, cota e tokens estimados</span></div></div>` : nothing}
     </div>`;
   }
 
