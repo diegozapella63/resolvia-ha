@@ -20,7 +20,7 @@ import { Placar } from "./lib/placar.js";
 import { Voice, readRaw, MAX_VOICE_BYTES } from "./lib/voice.js";
 import { snapshot, toCSV, backupZip, parseImport, Backups, listVersions, readVersion, fileStamp } from "./lib/data.js";
 
-const VERSION = "2.25.0";
+const VERSION = "2.26.0";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const WWW = path.join(HERE, "www");
 const DEV = process.env.RESOLVIA_DEV === "1";
@@ -89,7 +89,25 @@ const ai = new AI({ ha, log, mediaDir: MEDIA_DIR, selected: () => store.prefs.ap
 const itemSubs = new Map(); // entity_id -> subscription (for the recurring engine and the ages)
 // Sugestões: since when each pending item is on its list, and the last suggestion of the AI
 const ages = new Ages({ dir: DATA_DIR, log });
+// the last pick of the AI (Sugestões › Comece por aqui), kept on disk so it survives a restart or an update
+const SUGGEST_FILE = path.join(DATA_DIR, "sugestao_ia.json");
 let lastSuggest = null;
+try {
+  const raw = JSON.parse(fs.readFileSync(SUGGEST_FILE, "utf8"));
+  if (raw && Number.isFinite(raw.at) && Array.isArray(raw.picks)) lastSuggest = { at: raw.at, picks: raw.picks.filter((p) => p && typeof p.key === "string").slice(0, 10), provider: raw.provider || null };
+} catch (e) {
+  /* none yet */
+}
+function saveSuggest() {
+  try {
+    if (lastSuggest) fs.writeFileSync(SUGGEST_FILE, JSON.stringify(lastSuggest));
+    else fs.rmSync(SUGGEST_FILE, { force: true });
+  } catch (err) {
+    log.warn(`Sugestão da IA: ${err.message}`);
+  }
+}
+// a pick running: whoever opens Sugestões meanwhile sees "Pensando…" and gets the same answer
+let suggestRun = null;
 const listWatchers = new Set(); // {session, id}
 const ruleWatchers = new Set(); // {session, id}
 let registryCache = null;
@@ -264,6 +282,7 @@ class Session {
   }
 
   send(obj) {
+    // (a screen that closed while the AI was thinking: the socket ignores it)
     this.ws.send(JSON.stringify(obj));
   }
   result(id, result = null) {
@@ -336,14 +355,30 @@ class Session {
 
       // Sugestões (when Mais › Opções › Controlar prazos is off)
       case "resolvia/suggest/get":
-        return this.result(id, { ages: ages.all(), ai: lastSuggest });
+        return this.result(id, { ages: ages.all(), ai: lastSuggest, busy: !!suggestRun });
 
       case "resolvia/ai/suggest": {
         if (store.prefs.app.ai_off) return this.error(id, "ai_off", "A IA está desligada em Mais › Integrações");
-        const out = await ai.suggest(msg.items);
-        lastSuggest = { at: Date.now(), picks: out.picks, provider: out.provider };
-        return this.result(id, lastSuggest);
+        if (!suggestRun) {
+          suggestRun = ai
+            .suggest(msg.items)
+            .then((out) => {
+              lastSuggest = { at: Date.now(), picks: out.picks, provider: out.provider };
+              saveSuggest();
+              return lastSuggest;
+            })
+            .finally(() => {
+              suggestRun = null;
+            });
+        }
+        return this.result(id, await suggestRun);
       }
+
+      // Comece por aqui › Voltar ao automático
+      case "resolvia/ai/suggest/clear":
+        lastSuggest = null;
+        saveSuggest();
+        return this.result(id, null);
 
       case "resolvia/subscribe_lists":
         this.watch(listWatchers, id);

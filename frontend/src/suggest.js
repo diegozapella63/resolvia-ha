@@ -2,7 +2,8 @@
 // off. What to resolve now, from the lists: what has been there longest, what
 // closes a list, what is worth points, what came back (repeats), what the
 // CronologIA dated for today. Shopping lists go apart (you resolve them at the
-// store). With Usar IA on, the AI can pick too (only when asked).
+// store). With Usar IA on, Sugerir com IA lets the AI pick the Comece por aqui
+// instead, each with why (only when asked; kept until asked again or Voltar ao automático).
 // Mixed into <resolvia-panel>.
 import { html, nothing, repeat, unsafeSVG } from "../vendor/lit-all.min.js";
 import { ICONS } from "./icons.js";
@@ -43,7 +44,12 @@ export const SuggestMixin = (Base) =>
       try {
         const res = await this.hass.callWS({ type: "resolvia/suggest/get" });
         this._ages = res.ages || {};
-        if (res.ai && (!this._aiPick || res.ai.at > this._aiPick.at)) this._aiPick = res.ai;
+        // the server keeps the pick (also after a restart); null = back to the automatic one
+        if (!this._aiAsking) this._aiPick = res.ai || null;
+        // asked on another screen (or before leaving this one): still thinking
+        this._aiBusy = !!res.busy || !!this._aiAsking;
+        clearTimeout(this._aiPoll);
+        if (res.busy && !this._aiAsking) this._aiPoll = setTimeout(() => this._loadSuggest(), 3000);
       } catch (e) {
         this._ages = this._ages || {};
       }
@@ -159,6 +165,7 @@ export const SuggestMixin = (Base) =>
       }
       if (!items.length) return;
       this._aiBusy = true;
+      this._aiAsking = true;
       this._aiErr = null;
       this.requestUpdate();
       try {
@@ -167,38 +174,63 @@ export const SuggestMixin = (Base) =>
       } catch (err) {
         this._aiErr = (err && err.message) || "Não consegui falar com a IA.";
       }
+      this._aiAsking = false;
       this._aiBusy = false;
       this.requestUpdate();
     }
 
-    _renderAiSuggest() {
-      if (!this._aiOn() || !this.hass.resolvia) return nothing;
-      const ai = this._aiInfo();
+    /** Comece por aqui › Voltar ao automático: forget the pick of the AI. */
+    async _clearAi() {
+      this._aiPick = null;
+      this._aiErr = null;
+      this.requestUpdate();
+      try {
+        await this.hass.callWS({ type: "resolvia/ai/suggest/clear" });
+      } catch (e) {
+        /* it comes back on the next load */
+      }
+    }
+
+    /** The items the AI picked, still there (a just-resolved one stays until the screen changes). */
+    _aiRows() {
       const pick = this._aiPick;
       const rows = [];
-      if (pick) {
-        for (const p of pick.picks || []) {
-          const [id, uid] = [p.key.slice(0, p.key.indexOf("|")), p.key.slice(p.key.indexOf("|") + 1)];
-          const l = this._list(id);
-          const i = l && l.items && l.items.find((x) => x.uid === uid);
-          if (l && i && (i.status !== "completed" || this._recent.has(i.uid))) rows.push({ l, i, why: p.motivo });
-        }
+      for (const p of (pick && pick.picks) || []) {
+        const at = p.key.indexOf("|");
+        const l = this._list(p.key.slice(0, at));
+        const i = l && l.items && l.items.find((x) => x.uid === p.key.slice(at + 1));
+        if (l && i && !l.hidden && (i.status !== "completed" || this._recent.has(i.uid))) rows.push({ l, i, why: p.motivo || "Escolhido pela IA", ai: true });
       }
-      const busy = this._aiBusy;
-      const button = html`<button class="btn ${pick ? "outline" : "primary"} ai-ask" ?disabled=${busy || !ai.ready} @click=${() => this._askAi()}>
-        ${icon(busy ? "loader-circle" : "sparkles", busy ? "ai-spin" : "")}${busy ? "Pensando…" : pick ? "Sugerir de novo" : "Sugerir com IA"}
-      </button>`;
-      return html`<div class="panel items suggest-ai">
-        ${this._secHead("sparkles", "Pedir à IA", "A IA do Home Assistant olha as listas e escolhe o que resolver agora, com o porquê. Só roda quando você toca e entra no Uso da IA.")}
-        ${rows.length
-          ? repeat(rows, (r) => r.l.id + r.i.uid, (r) => this._renderItem(r.l, r.i, { showList: true, why: r.why, whyIcon: "sparkles" }))
-          : pick
-            ? html`<p class="ai-note">Tudo o que a IA sugeriu já foi resolvido.</p>`
-            : nothing}
-        ${pick ? html`<p class="ai-note">Sugerido ${agoText(pick.at)}${pick.provider ? ` por ${pick.provider}` : ""}.</p>` : nothing}
-        ${!ai.ready && ai.reason ? html`<p class="ai-note">${ai.reason}</p>` : nothing}
+      return rows;
+    }
+
+    /** Comece por aqui: the automatic pick, or the one of the AI with why; Sugerir com IA at the bottom. */
+    _renderStart(s) {
+      const aiOn = this._aiOn() && !!this.hass.resolvia;
+      const ai = aiOn ? this._aiInfo() : null;
+      const pick = aiOn ? this._aiPick : null;
+      const aiRows = pick ? this._aiRows() : [];
+      const byAi = aiRows.length > 0;
+      const rows = byAi ? aiRows : s.top;
+      if (!rows.length && !aiOn) return nothing;
+      const busy = !!this._aiBusy;
+      return html`<div class="panel items start ${byAi ? "by-ai" : ""}">
+        <div class="mais-head"><span class="mais-ic" aria-hidden="true">${icon(byAi ? "sparkles" : "flag")}</span><h2>Comece por aqui</h2><small class="mh-count">${rows.length}</small></div>
+        ${byAi
+          ? html`<p class="start-by">${icon("sparkles")}<span>Escolhidos por ${pick.provider || "IA"} ${agoText(pick.at)}. Embaixo de cada um, o porquê.</span></p>`
+          : nothing}
+        ${repeat(rows, (r) => r.l.id + (r.i.uid || r.i.summary), (r) => this._renderItem(r.l, r.i, { showList: true, why: r.why, whyIcon: r.ai ? "sparkles" : null }))}
+        ${pick && !byAi ? html`<p class="ai-note">Tudo o que a IA sugeriu já foi resolvido. Estes são os automáticos.</p>` : nothing}
+        ${aiOn && !ai.ready && ai.reason ? html`<p class="ai-note">${ai.reason}</p>` : nothing}
         ${this._aiErr ? html`<p class="ai-note err">${this._aiErr}</p>` : nothing}
-        <div class="ai-actions">${button}</div>
+        ${aiOn
+          ? html`<div class="ai-actions start-acts">
+              <button class="btn ${byAi ? "outline" : "primary"} sm ai-ask" ?disabled=${busy || !ai.ready} @click=${() => this._askAi()}>
+                ${icon(busy ? "loader-circle" : "sparkles", busy ? "ai-spin" : "")}${busy ? "Pensando…" : byAi ? "Sugerir de novo" : "Sugerir com IA"}
+              </button>
+              ${pick && !busy ? html`<button class="btn outline sm" @click=${() => this._clearAi()}>${icon("rotate-ccw")}Voltar ao automático</button>` : nothing}
+            </div>`
+          : nothing}
       </div>`;
     }
 
@@ -211,12 +243,7 @@ export const SuggestMixin = (Base) =>
           })}
           ${s.pending
             ? html`
-                ${s.top.length
-                  ? html`<div class="panel items">
-                      <div class="mais-head"><span class="mais-ic" aria-hidden="true">${icon("flag")}</span><h2>Comece por aqui</h2><small class="mh-count">${s.top.length}</small></div>
-                      ${repeat(s.top, (r) => r.l.id + (r.i.uid || r.i.summary), (r) => this._renderItem(r.l, r.i, { showList: true, why: r.why }))}
-                    </div>`
-                  : nothing}
+                ${this._renderStart(s)}
                 ${s.shopping.length
                   ? html`<div class="panel">
                       <div class="mais-head"><span class="mais-ic" aria-hidden="true">${icon("shopping-cart")}</span><h2>Compras</h2><small class="mh-count">${s.shopping.length}</small></div>
@@ -232,8 +259,7 @@ export const SuggestMixin = (Base) =>
                       )}
                     </div>`
                   : nothing}
-                ${this._renderAiSuggest()}
-                <p class="suggest-foot">${icon("info")}<span>As sugestões olham há quanto tempo cada item está na lista, o que fecha uma lista, os pontos, as repetições e as datas do CronologIA. Mude em Mais › Opções › Prazos.</span></p>
+                <p class="suggest-foot">${icon("info")}<span>O automático olha há quanto tempo cada item está na lista, o que fecha uma lista, os pontos, as repetições e as datas do CronologIA${this._aiOn() ? "; Sugerir com IA deixa a IA escolher e explicar (entra no Uso da IA)" : ""}. Mude em Mais › Opções › Prazos.</span></p>
               `
             : html`<div class="panel">
                 <div class="empty">

@@ -757,8 +757,35 @@ export const styles = css`
     margin-top: 1px;
     color: var(--rv-accent-ink);
   }
-  .suggest-ai {
+  .suggest-ai,
+  .panel.start {
     padding-bottom: 14px;
+  }
+  /* Comece por aqui chosen by the AI: who chose it and when */
+  .start-by {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    margin: -2px 0 6px;
+    font-size: 13.5px;
+    line-height: 1.45;
+    color: var(--rv-text-2);
+  }
+  .start-by .i {
+    width: 16px;
+    height: 16px;
+    flex: none;
+    margin-top: 2px;
+    color: var(--rv-accent-ink);
+  }
+  /* the same size, side by side when they fit, one under the other on the phone */
+  .ai-actions.start-acts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 13em), 1fr));
+    gap: 8px;
+  }
+  .start-acts .btn {
+    width: 100%;
   }
   .ai-note {
     font-size: 13px;

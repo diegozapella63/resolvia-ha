@@ -43,7 +43,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.25.0";
+const VERSION = "2.26.0";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -1190,11 +1190,26 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
 
   async _openCamera() {
     const md = navigator.mediaDevices;
+    const appending = !!(this._form && this._form.step === "review");
     if (!md || !md.getUserMedia) {
-      this._pickFiles("scan");
+      // http:// (not the https address): the browser does not let a page use the camera. Say so
+      // instead of opening the gallery as if it were the camera.
+      this._cam = {
+        status: "error",
+        shots: [],
+        appending,
+        flash: 0,
+        error: window.isSecureContext === false
+          ? "A câmera aqui dentro só funciona quando o Home Assistant é aberto por um endereço seguro (https), como o do Home Assistant Cloud ou o seu endereço externo. Neste endereço (http), escolha uma foto: dá para tirar na hora pela câmera do celular e depois escolher."
+          : "Este navegador não deixa o app usar a câmera. Escolha uma foto: dá para tirar na hora pela câmera do celular e depois escolher.",
+      };
+      try {
+        history.pushState({ ...(history.state || {}), rvCam: true }, "");
+      } catch (e) {
+        /* ignore */
+      }
       return;
     }
-    const appending = !!(this._form && this._form.step === "review");
     this._cam = { status: "starting", shots: [], torch: false, torchOk: false, appending, flash: 0 };
     try {
       history.pushState({ ...(history.state || {}), rvCam: true }, "");

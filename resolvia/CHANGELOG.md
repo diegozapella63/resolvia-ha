@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.26.0
+
+- **Sugerir com IA dentro do Comece por aqui**: saiu o quadro separado **Pedir à IA**. O botão fica no fim do **Comece por aqui**, e a IA troca os itens dele pelos que ela escolheu, com o porquê embaixo de cada um (e quem escolheu, e quando). **Sugerir de novo** pede outra escolha; **Voltar ao automático** volta para a escolha do app.
+- A escolha da IA **fica guardada** (antes sumia quando o app reiniciava ou atualizava). Se você sair da tela enquanto ela pensa, ao voltar aparece **Pensando…** e depois o resultado.
+- **Digitalizar com IA** sem acesso à câmera (Home Assistant aberto por http): em vez de abrir a galeria como se fosse a câmera, explica que a câmera aqui dentro precisa do endereço seguro (https) e oferece **Escolher foto**.
+
 ## 2.25.0
 
 - **Mais › Listas: as desligadas vão para o fim**, recolhidas em **Inativas** (com a quantidade). Tocar abre; ligar uma lista de novo a traz de volta para cima.
