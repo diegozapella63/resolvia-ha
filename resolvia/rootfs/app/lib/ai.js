@@ -24,7 +24,37 @@ const STRUCTURE = {
   },
 };
 
-function instructions({ text, images, listName }) {
+/** With several lists to choose from: a second field, the list of each item (in the same order). */
+function structureFor(lists, listName) {
+  if (!lists || lists.length < 2) return STRUCTURE;
+  return {
+    ...STRUCTURE,
+    listas: {
+      description: `Para cada item, na mesma ordem dos itens, o nome da lista em que ele deve entrar, escrito exatamente como um destes: ${lists.map((l) => l.name).join("; ")}.${listName ? ` Na dúvida, "${listName}".` : ""}`,
+      required: false,
+      selector: { text: { multiple: true } },
+    },
+  };
+}
+
+const fold = (s) =>
+  String(s || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+
+/** The list a name the AI wrote stands for: the same name, or one that contains the other. */
+export function matchList(name, lists) {
+  const n = fold(name);
+  if (!n || !lists || !lists.length) return null;
+  const exact = lists.find((l) => fold(l.name) === n);
+  if (exact) return exact.id;
+  const near = lists.find((l) => fold(l.name).includes(n) || n.includes(fold(l.name)));
+  return near ? near.id : null;
+}
+
+function instructions({ text, images, listName, lists }) {
   const source = images ? (images > 1 ? "fotos" : "uma foto") : "uma mensagem";
   return [
     `Você recebe ${source} com uma lista de compras ou de tarefas (pode ser manuscrita, impressa, print de conversa ou mensagem de WhatsApp).`,
@@ -35,11 +65,40 @@ function instructions({ text, images, listName }) {
     "- Ignore saudações, assinaturas, horários e nomes de quem mandou a mensagem, comentários soltos, preços e totais.",
     "- Ignore itens riscados ou marcados como já feitos.",
     "- Não invente itens. Se não houver nenhum item, devolva a lista vazia.",
-    listName ? `A lista de destino se chama "${listName}".` : "",
+    lists && lists.length > 1
+      ? `Listas que existem: ${lists.map((l) => `"${l.name}"`).join(", ")}. Para cada item, escolha a lista que combina com ele (compras numa lista de compras, uma tarefa de alguém na lista dessa pessoa, e assim por diante) e devolva em "listas", na mesma ordem dos itens.${listName ? ` Quando nenhuma combinar, use "${listName}".` : ""}`
+      : listName
+        ? `A lista de destino se chama "${listName}".`
+        : "",
     text ? `\nMensagem:\n"""\n${text.slice(0, 20000)}\n"""` : "",
   ]
     .filter(Boolean)
     .join("\n");
+}
+
+/** The items and, for each one, the id of the list the AI picked (null when none matched). */
+export function cleanItemsWithLists(raw, lists) {
+  let items = raw;
+  let names = [];
+  if (items && !Array.isArray(items) && typeof items === "object") {
+    names = Array.isArray(items.listas) ? items.listas : [];
+    items = items.items;
+  }
+  if (typeof items === "string") items = items.split(/\r?\n/);
+  if (!Array.isArray(items)) return { items: [], lists: [] };
+  const seen = new Set();
+  const out = [];
+  const outLists = [];
+  items.forEach((v, i) => {
+    const one = cleanItems([v]);
+    if (!one.length || out.length >= MAX_ITEMS) return;
+    const key = one[0].toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    out.push(one[0]);
+    outLists.push(matchList(names[i], lists));
+  });
+  return { items: out, lists: outLists };
 }
 
 export function cleanItems(raw) {
@@ -262,20 +321,29 @@ export class AI {
     return out;
   }
 
-  async extract({ text, images, listName }) {
+  async extract({ text, images, listName, lists }) {
+    // the lists to choose from (the app sends the ones you can add to): the AI picks one for each item
+    lists = Array.isArray(lists)
+      ? lists
+          .filter((l) => l && typeof l.id === "string" && /^todo\.[a-z0-9_]+$/.test(l.id) && typeof l.name === "string")
+          .slice(0, 20)
+          .map((l) => ({ id: l.id, name: l.name.slice(0, 80) }))
+      : [];
     images = Array.isArray(images) ? images.slice(0, 6) : [];
     text = typeof text === "string" ? text.trim() : "";
     if (!text && !images.length) return { items: [], provider: null };
     if (!this.ha.ready) throw coded("no_ai", "Sem conexão com o Home Assistant.");
     const entity = await this.resolve(images.length > 0);
     if (images.length && !this.mediaWritable()) throw coded("no_media", "A pasta media do Home Assistant não está disponível para o app.");
-    const prompt = instructions({ text, images: images.length, listName: typeof listName === "string" ? listName.slice(0, 120) : "" });
+    const name = typeof listName === "string" ? listName.slice(0, 120) : "";
+    const prompt = instructions({ text, images: images.length, listName: name, lists });
     const started = Date.now();
     let items = null;
     let failure = null;
     try {
-      items = await this._viaHA(entity.id, prompt, images);
-      return { items, provider: entity.name, entity: entity.id };
+      const got = await this._viaHA(entity.id, prompt, images, structureFor(lists, name), lists);
+      items = got.items;
+      return { items, lists: got.lists, provider: entity.name, entity: entity.id };
     } catch (err) {
       failure = err;
       throw err;
@@ -333,7 +401,7 @@ export class AI {
     }
   }
 
-  async _viaHA(entityId, prompt, images) {
+  async _viaHA(entityId, prompt, images, structure = STRUCTURE, lists = []) {
     const files = [];
     try {
       const attachments = [];
@@ -345,14 +413,14 @@ export class AI {
         files.push(full);
         attachments.push({ media_content_id: `media-source://media_source/local/${TMP_REL}/${name}`, media_content_type: img.mime || "image/jpeg" });
       }
-      const data = { task_name: "ResolvIA: ler lista", instructions: prompt, structure: STRUCTURE, entity_id: entityId };
+      const data = { task_name: "ResolvIA: ler lista", instructions: prompt, structure, entity_id: entityId };
       if (attachments.length) data.attachments = attachments;
       const res = await this.ha.send(
         { type: "call_service", domain: "ai_task", service: "generate_data", service_data: data, return_response: true },
         120000,
       );
       const out = res && res.response ? res.response.data : null;
-      return cleanItems(out);
+      return cleanItemsWithLists(out, lists);
     } finally {
       for (const f of files) fs.rm(f, { force: true }, () => {});
     }

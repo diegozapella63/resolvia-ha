@@ -43,7 +43,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.22.1";
+const VERSION = "2.23.0";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -1090,15 +1090,18 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
     const target = this._list(this._form.target);
     const live = () => token === this._importToken && this._sheet === "import";
     const keep = appending ? this._form.items || [] : [];
-    const merge = (found) => {
+    const merge = (found, lists = []) => {
       const seen = new Set(keep.map((i) => i.text.trim().toLowerCase()));
-      return [...keep, ...found.filter((t) => !seen.has(t.trim().toLowerCase())).map((t) => ({ text: t, on: true }))];
+      const fresh = found.map((t, k) => ({ text: t, on: true, list: lists[k] || null })).filter((it) => !seen.has(it.text.trim().toLowerCase()));
+      return [...keep, ...fresh];
     };
     try {
       const res = await this.hass.resolvia.extract({
         text,
         images: images ? images.map(({ data, mime }) => ({ data, mime })) : undefined,
         list_name: target ? target.name : undefined,
+        // the AI picks the list of each item among these
+        lists: this._importTargets().map((l) => ({ id: l.id, name: l.name })),
       });
       if (!live()) return;
       const found = res.items || [];
@@ -1109,7 +1112,7 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
         return;
       }
       this._haptic("success");
-      this._setForm({ step: "review", items: merge(found), provider: res.provider || null, note: null, error: null });
+      this._setForm({ step: "review", items: merge(found, res.lists || []), provider: res.provider || null, note: null, error: null });
     } catch (err) {
       if (!live()) return;
       if (text) {
@@ -1300,21 +1303,38 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
     this._setForm({ items });
   }
 
+  /** The lists an import can go to: the ones that take new items (and the one already picked). */
+  _importTargets() {
+    const f = this._form || {};
+    return this._L.filter((l) => has(l.features, F.CREATE) && !l.unavailable && (!l.hidden || l.id === f.target));
+  }
+
+  /** The list of an item under review: its own (picked by the AI or by hand), else the one of all. */
+  _importListOf(it) {
+    const ok = this._importTargets();
+    return (it.list && ok.some((l) => l.id === it.list) && it.list) || this._form.target;
+  }
+
   async _importAdd() {
     const f = this._form;
     const target = this._list(f.target);
-    const items = f.items.filter((i) => i.on && i.text.trim());
+    const items = f.items.filter((i) => i.on && i.text.trim()).map((i) => ({ ...i, dest: this._importListOf(i) }));
     if (!target || !items.length) return;
     store.set(LAST_LIST_KEY, target.id);
     this._releaseImages();
     this._closeSheet();
     this._haptic("success");
     let n = 0;
+    const used = new Set();
     for (const it of items) {
-      if (await this._call("add_item", { item: it.text.trim() }, target.id)) n++;
-      else break;
+      if (await this._call("add_item", { item: it.text.trim() }, it.dest)) {
+        n++;
+        used.add(it.dest);
+      } else break;
     }
-    if (n) this._showToast(`${plural(n, "item adicionado", "itens adicionados")} em ${clip(target.name, 24)}`);
+    if (!n) return;
+    const one = used.size === 1 ? this._list([...used][0]) : null;
+    this._showToast(`${plural(n, "item adicionado", "itens adicionados")} ${one ? `em ${clip(one.name, 24)}` : `em ${used.size} listas`}`);
   }
 
   _openEdit(list, item) {
@@ -2680,7 +2700,9 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
     if (f.step === "review") {
       const target = this._list(f.target);
       const chosen = f.items.filter((i) => i.on && i.text.trim()).length;
-      const targets = this._L.filter((l) => has(l.features, F.CREATE) && !l.unavailable && (!l.hidden || l.id === f.target));
+      const targets = this._importTargets();
+      const many = targets.length > 1;
+      const dests = new Set(f.items.filter((i) => i.on && i.text.trim()).map((i) => this._importListOf(i)));
       const from =
         f.provider === "local" ? "separados por linha" : f.provider ? `lidos por ${f.provider}` : "";
       return html`
@@ -2691,11 +2713,22 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
         ${f.note ? html`<div class="imp-error soft">${icon("sparkles")}<span>${f.note}</span></div>` : nothing}
         <div class="imp-list">
           ${f.items.map(
-            (it, i) => html`<div class="imp-row ${it.on ? "" : "off"}">
+            (it, i) => {
+              const dest = this._list(this._importListOf(it));
+              return html`<div class="imp-row ${it.on ? "" : "off"} ${many ? "has-dest" : ""}">
               <button class="check ${it.on ? "on" : ""}" role="checkbox" aria-checked=${it.on ? "true" : "false"} aria-label="Incluir" @click=${() => this._setImportItem(i, { on: !it.on })}>${icon("check")}</button>
               <input type="text" .value=${it.text} aria-label="Item" @input=${(e) => this._setImportItem(i, { text: e.target.value })} />
               <button class="icon-btn mini" aria-label="Remover" @click=${() => this._setForm({ items: f.items.filter((_, j) => j !== i) })}>${icon("x")}</button>
-            </div>`,
+              ${many && dest
+                ? html`<label class="imp-dest" style=${colorVars(dest.color, this._dark)}>
+                    <span class="dot"></span><span class="dname">${clip(dest.name, 30)}</span>${icon("chevron-down")}
+                    <select aria-label="Lista de ${it.text}" @change=${(e) => this._setImportItem(i, { list: e.target.value })}>
+                      ${targets.map((t) => html`<option value=${t.id} ?selected=${t.id === dest.id}>${t.name}</option>`)}
+                    </select>
+                  </label>`
+                : nothing}
+            </div>`;
+            },
           )}
           <button class="pick ghost add-row" @click=${() => {
             this._setForm({ items: [...f.items, { text: "", on: true }] });
@@ -2711,17 +2744,18 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
               <button class="pick" @click=${() => this._openCamera()}>${icon("scan-text")}<span>Digitalizar mais</span></button>
             </div>`
           : nothing}
-        ${targets.length > 1
+        ${many
           ? html`<div class="field">
-              <span class="flabel">Adicionar em</span>
+              <span class="flabel">Todos em</span>
               <div class="chip-row grid">
-                ${targets.map((t) => html`<button class="pick list ${f.target === t.id ? "on" : ""}" style=${colorVars(t.color, this._dark)} @click=${() => this._setForm({ target: t.id })}><span class="dot"></span><span>${clip(t.name, 26)}</span></button>`)}
+                ${targets.map((t) => html`<button class="pick list ${dests.size === 1 && dests.has(t.id) ? "on" : ""}" style=${colorVars(t.color, this._dark)} @click=${() => this._setForm({ target: t.id, items: f.items.map((it) => ({ ...it, list: t.id })) })}><span class="dot"></span><span>${clip(t.name, 26)}</span></button>`)}
               </div>
+              <span class="field-hint">${icon("info")}<span>Cada item vai para a lista escrita embaixo dele${f.provider && f.provider !== "local" ? " (a IA já sugeriu)" : ""}. Toque nela para trocar, ou escolha uma acima para todos.</span></span>
             </div>`
           : nothing}
         <div class="sheet-actions">
           <button class="btn primary" ?disabled=${!chosen} @click=${() => this._importAdd()}>
-            ${chosen ? `Adicionar ${plural(chosen, "item", "itens")}` : "Nenhum item marcado"}${target && targets.length <= 1 ? ` em ${clip(target.name, 18)}` : ""}
+            ${chosen ? `Adicionar ${plural(chosen, "item", "itens")}` : "Nenhum item marcado"}${chosen && dests.size > 1 ? ` em ${dests.size} listas` : chosen && dests.size === 1 && this._list([...dests][0]) ? ` em ${clip(this._list([...dests][0]).name, 18)}` : ""}
           </button>
         </div>
       `;

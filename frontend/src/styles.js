@@ -1879,6 +1879,74 @@ export const styles = css`
     color: var(--rv-faint);
     text-decoration: line-through;
   }
+  /* the list of each item: a chip under the text, a native picker over it */
+  .imp-row.has-dest {
+    flex-wrap: wrap;
+    row-gap: 0;
+    padding-bottom: 10px;
+  }
+  .imp-row.has-dest input {
+    padding-bottom: 4px;
+  }
+  /* a line break before the list chip, so the chip keeps its own width */
+  .imp-row.has-dest::after {
+    content: "";
+    flex-basis: 100%;
+    height: 0;
+    order: 5;
+  }
+  .imp-dest {
+    position: relative;
+    order: 10;
+    flex: 0 1 auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: fit-content;
+    max-width: calc(100% - 32px);
+    margin-left: 32px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: var(--cs);
+    color: var(--ci);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    box-sizing: border-box;
+  }
+  .imp-dest .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--c);
+    flex: none;
+  }
+  .imp-dest .dname {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .imp-dest .i {
+    width: 14px;
+    height: 14px;
+    flex: none;
+  }
+  .imp-dest select {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    font-size: 16px;
+  }
+  .imp-dest:focus-within {
+    outline: 2px solid var(--c);
+    outline-offset: 1px;
+  }
+  .imp-row.off .imp-dest {
+    opacity: 0.5;
+  }
   .icon-btn.mini {
     width: 36px;
     height: 36px;

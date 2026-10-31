@@ -20,7 +20,7 @@ import { Placar } from "./lib/placar.js";
 import { Voice, readRaw, MAX_VOICE_BYTES } from "./lib/voice.js";
 import { snapshot, toCSV, backupZip, parseImport, Backups, listVersions, readVersion, fileStamp } from "./lib/data.js";
 
-const VERSION = "2.22.1";
+const VERSION = "2.23.0";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const WWW = path.join(HERE, "www");
 const DEV = process.env.RESOLVIA_DEV === "1";
@@ -622,7 +622,7 @@ function handleExtract(req, res) {
     if (store.prefs.app.ai_off) return sendJson(res, 409, { error: "A IA está desligada em Mais › Integrações", code: "ai_off" });
     const started = Date.now();
     try {
-      const out = await ai.extract({ text: body.text, images: body.images, listName: body.list_name });
+      const out = await ai.extract({ text: body.text, images: body.images, listName: body.list_name, lists: body.lists });
       log.info(`Importação: ${out.items.length} itens via ${out.provider} em ${((Date.now() - started) / 1000).toFixed(1)}s`);
       sendJson(res, 200, out);
     } catch (err) {

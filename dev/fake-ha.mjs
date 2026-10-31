@@ -175,7 +175,16 @@ function fakeAI(msg) {
     const m = (d.instructions || "").split('"""')[1] || "";
     items = m.split(/[\n,]|\se\s/).map((x) => x.replace(/^.*?:\s*/, "").trim()).filter(Boolean);
   }
-  return { context: { id: "ctx" }, response: { conversation_id: "c1", data: { items } } };
+  // with several lists ("listas" in the structure): food and errands to the shopping list, the rest to the default one
+  const data = { items };
+  if (d.structure.listas) {
+    const desc = d.structure.listas.description || "";
+    const names = ((desc.split("um destes: ")[1] || "").split(".")[0] || "").split("; ").filter(Boolean);
+    const dflt = (/Na dúvida, "([^"]+)"/.exec(desc) || [])[1] || names[0] || "";
+    const shop = names.find((n) => /shopping|compra|mercado/i.test(n));
+    data.listas = items.map((t) => (shop && /comprar|leite|ovos|café|pão|arroz|feij|detergente/i.test(t) ? shop : dflt));
+  }
+  return { context: { id: "ctx" }, response: { conversation_id: "c1", data } };
 }
 
 class Conn {
