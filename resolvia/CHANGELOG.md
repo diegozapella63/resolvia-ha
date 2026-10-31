@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.28.0
+
+- **Cômodos do InventarIA**: em Mais › Integrações, **Usar cômodos** (desligado por padrão) liga cada tarefa a um cômodo da casa, com os cômodos do InventarIA (1.14.0 ou mais novo). O cômodo é escolhido no item e aparece como etiqueta embaixo da tarefa.
+- **A IA entende os cômodos**: na leitura por IA (mensagem, foto ou Falar), ela sugere o cômodo de cada item na revisão (trocável, ao lado da lista); no **Sugerir com IA**, ela junta o que dá para fazer no mesmo cômodo.
+- O **CronologIA** (1.33.0 ou mais novo) mostra o cômodo das tarefas e pede o cômodo em Novo › Tarefa; o ResolvIA guarda a escolha. Os cômodos entram no exportar e no backup.
+
 ## 2.27.0
 
 - **Menos explicação, mais tela**: os textos de ajuda ficaram curtos ou saíram onde só repetiam o que a tela já mostra. Os mais visíveis: Exportar sem frase de abertura; Backup, Importar, Versões e Onde ficam os dados em uma linha; os interruptores dizem só Ligado/Desligado (com uma frase curta quando precisa); Leitura por IA e Falar sem a lista de integrações e sem a nota do "Automático"; no Falar e no Colar mensagem saiu a nota de quem transcreve e quem separa; na revisão, só a quantidade de itens; saiu a dica embaixo da escolha de lista; Sugestões sem o rodapé que explicava o automático; Uso da IA com uma linha só para o consumo exato.

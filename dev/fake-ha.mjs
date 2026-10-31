@@ -184,6 +184,13 @@ function fakeAI(msg) {
     const shop = names.find((n) => /shopping|compra|mercado/i.test(n));
     data.listas = items.map((t) => (shop && /comprar|leite|ovos|café|pão|arroz|feij|detergente/i.test(t) ? shop : dflt));
   }
+  // with the rooms of the InventarIA ("comodos"): the room whose name is in the item; the sink goes to the kitchen
+  if (d.structure.comodos) {
+    const desc = d.structure.comodos.description || "";
+    const names = ((desc.split("um destes: ")[1] || "").split(". Use")[0] || "").split("; ").filter(Boolean);
+    const f = (x) => x.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    data.comodos = items.map((t) => names.find((n) => f(t).includes(f(n))) || (/\bpia\b/i.test(t) && names.find((n) => /cozinha/i.test(n))) || "");
+  }
   return { context: { id: "ctx" }, response: { conversation_id: "c1", data } };
 }
 

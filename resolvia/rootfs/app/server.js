@@ -17,10 +17,11 @@ import { AiUsage } from "./lib/usage.js";
 import { Ages } from "./lib/ages.js";
 import { Restore } from "./lib/restore.js";
 import { Placar } from "./lib/placar.js";
+import { Inventario } from "./lib/inventario.js";
 import { Voice, readRaw, MAX_VOICE_BYTES } from "./lib/voice.js";
 import { snapshot, toCSV, backupZip, parseImport, Backups, listVersions, readVersion, fileStamp } from "./lib/data.js";
 
-const VERSION = "2.27.0";
+const VERSION = "2.28.0";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const WWW = path.join(HERE, "www");
 const DEV = process.env.RESOLVIA_DEV === "1";
@@ -59,6 +60,13 @@ const recurring = new Recurring({ ha, store, log, states: todoStates, dayMs: DAY
 const restore = new Restore({ ha, store, recurring, states: todoStates, log });
 const backups = new Backups({ dir: path.join(SHARE_DIR, "resolvia") });
 const placar = new Placar({ shareDir: SHARE_DIR });
+// Cômodos do InventarIA (Mais › Integrações; off by default): a room for each task
+const roomsOn = () => store.prefs.app.rooms_on === true;
+const inventario = new Inventario({ shareDir: SHARE_DIR, log, enabled: roomsOn, onChange: () => publishPresence() });
+/** What the screens need: on, the rooms of the InventarIA, and the room of each task. */
+function roomsState() {
+  return { on: roomsOn(), ...inventario.state, map: roomsOn() ? store.rooms : {} };
+}
 const pad2 = (n) => String(n).padStart(2, "0");
 const today = () => {
   const d = new Date();
@@ -168,6 +176,18 @@ ha.subscribe({ type: "subscribe_events", event_type: "state_changed" }, (ev) => 
   syncItemSubs();
 });
 
+// The CronologIA created a task with a room (Novo › Tarefa): {entity_id, tarefa, comodo}
+ha.subscribe({ type: "subscribe_events", event_type: "resolvia_comodo" }, (ev) => {
+  const d = (ev && ev.data) || {};
+  if (!roomsOn() || !isTodo(d.entity_id) || !d.tarefa) return;
+  try {
+    store.setRoom(d.entity_id, String(d.tarefa), d.comodo ? String(d.comodo) : null);
+    publishPresence();
+  } catch (err) {
+    log.warn(`Cômodo vindo do ${d.origem || "CronologIA"}: ${err.message}`);
+  }
+});
+
 // The CronologIA brought these tasks over as routines (Trazer do ResolvIA) and deleted them from
 // the list: forget their repetition (or a done one would be created again) and their points.
 ha.subscribe({ type: "subscribe_events", event_type: "resolvia_esquecer" }, (ev) => {
@@ -218,6 +238,7 @@ ha.on("ready", async () => {
     await loadStates();
     log.info(`${todoStates.size} listas de tarefas encontradas`);
     publishPresence();
+    inventario.start();
   } catch (err) {
     log.error(`Não consegui ler as listas: ${err.message}`);
   }
@@ -411,6 +432,7 @@ class Session {
       case "resolvia/prefs/set_app": {
         const prefs = store.setAppPrefs(msg.prefs);
         if ("points_on" in (msg.prefs || {}) || "due_off" in (msg.prefs || {})) publishPresence();
+        if ("rooms_on" in (msg.prefs || {})) inventario.refresh().then(() => publishPresence()).catch(() => {});
         // Sensores no Home Assistant: on creates the sensor now, off removes it
         if ("sensors_on" in (msg.prefs || {})) (store.prefs.app.sensors_on === true ? usage.publish() : usage.remove()).catch(() => {});
         if ("repeat_on" in (msg.prefs || {})) {
@@ -422,6 +444,21 @@ class Session {
       }
 
       // ---- Recompensas: points per task, given to the CronologIA scoreboard
+      // ---- Cômodos do InventarIA
+      case "resolvia/rooms/get":
+        return this.result(id, roomsState());
+
+      case "resolvia/rooms/refresh":
+        await inventario.refresh();
+        return this.result(id, roomsState());
+
+      case "resolvia/rooms/set": {
+        if (!roomsOn()) return this.error(id, "rooms_off", "Os cômodos estão desligados em Mais › Integrações.");
+        store.setRoom(msg.entity_id, String(msg.summary || ""), msg.room ? String(msg.room) : null, msg.previous_summary == null ? null : String(msg.previous_summary));
+        publishPresence();
+        return this.result(id, roomsState());
+      }
+
       case "resolvia/points/get":
         return this.result(id, pointsState(this.user.id));
 
@@ -657,7 +694,8 @@ function handleExtract(req, res) {
     if (store.prefs.app.ai_off) return sendJson(res, 409, { error: "A IA está desligada em Mais › Integrações", code: "ai_off" });
     const started = Date.now();
     try {
-      const out = await ai.extract({ text: body.text, images: body.images, listName: body.list_name, lists: body.lists });
+      const rooms = roomsOn() ? inventario.state.comodos.map((c) => ({ id: c.id, name: c.nome })) : [];
+      const out = await ai.extract({ text: body.text, images: body.images, listName: body.list_name, lists: body.lists, rooms });
       log.info(`Importação: ${out.items.length} itens via ${out.provider} em ${((Date.now() - started) / 1000).toFixed(1)}s`);
       sendJson(res, 200, out);
     } catch (err) {
@@ -752,7 +790,9 @@ function publishPresence() {
     lastRepeat = JSON.stringify(repete);
     // prazos: Mais › Opções › Controlar prazos (false: the CronologIA doesn't offer a deadline for new tasks either)
     const prazos = !store.prefs.app.due_off;
-    fs.writeFileSync(tmp, JSON.stringify({ app: "ResolvIA", versao: VERSION, gravado_em: new Date().toISOString(), prazos, sem_prazo: semPrazo, pontos, repete }, null, 1));
+    // comodos: the rooms of the InventarIA and the room of each task, so the CronologIA shows and asks for them too
+    const comodos = roomsOn() && inventario.state.comodos.length ? { lista: inventario.state.comodos.map((c) => ({ id: c.id, nome: c.nome })), tarefas: store.rooms } : null;
+    fs.writeFileSync(tmp, JSON.stringify({ app: "ResolvIA", versao: VERSION, gravado_em: new Date().toISOString(), prazos, sem_prazo: semPrazo, pontos, repete, ...(comodos ? { comodos } : {}) }, null, 1));
     fs.renameSync(tmp, path.join(dir, "integracao.json"));
     publishWarned = false;
   } catch (err) {

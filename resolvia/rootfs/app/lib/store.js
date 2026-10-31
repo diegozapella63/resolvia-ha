@@ -44,6 +44,8 @@ const APP_FIELDS = {
   due_off: ["boolean"],
   // Mais > Integrações > Sensores no Home Assistant: true = on (off unless turned on)
   sensors_on: ["boolean"],
+  // Mais > Integrações > Cômodos do InventarIA: true = each task can have a room (off unless turned on)
+  rooms_on: ["boolean"],
 };
 
 /** A repeating task from a file (import, restore): only the known fields, sane values. */
@@ -94,9 +96,24 @@ function cleanPoints(raw) {
   return out;
 }
 
+/** {todo.x: {task key: room id of the InventarIA}}, checked. */
+function cleanRooms(raw) {
+  const out = {};
+  if (!isObj(raw)) return out;
+  for (const [id, map] of Object.entries(raw)) {
+    if (!/^todo\.[a-z0-9_]+$/.test(id) || !isObj(map)) continue;
+    for (const [k, v] of Object.entries(map)) {
+      const key = taskKey(k);
+      if (!key || typeof v !== "string" || !/^[A-Za-z0-9_-]{1,64}$/.test(v)) continue;
+      (out[id] || (out[id] = {}))[key] = v;
+    }
+  }
+  return out;
+}
+
 /** The file contents, checked. Strict (imports) also validates every preference. */
 export function normalize(raw, strict = false) {
-  const data = { version: 1, prefs: { lists: {}, app: {} }, rules: {}, points: {} };
+  const data = { version: 1, prefs: { lists: {}, app: {} }, rules: {}, points: {}, rooms: {} };
   if (!isObj(raw)) return data;
   if (isObj(raw.prefs)) {
     if (isObj(raw.prefs.lists)) {
@@ -140,6 +157,7 @@ export function normalize(raw, strict = false) {
     if (clean && !data.rules[clean.id]) data.rules[clean.id] = clean;
   }
   data.points = cleanPoints(raw.points);
+  data.rooms = cleanRooms(raw.rooms);
   return data;
 }
 
@@ -206,6 +224,34 @@ export class Store {
 
   get points() {
     return this.data.points;
+  }
+
+  get rooms() {
+    return this.data.rooms || {};
+  }
+
+  /** The room of a task (an InventarIA room id), or null. */
+  roomFor(entityId, summary) {
+    const map = this.rooms[entityId];
+    return (map && map[taskKey(summary)]) || null;
+  }
+
+  /** Sets the room of a task (null removes); `previous` is the old name after a rename. */
+  setRoom(entityId, summary, room, previous = null) {
+    if (typeof entityId !== "string" || !/^todo\.[a-z0-9_]+$/.test(entityId)) throw new Error("Not a to-do entity");
+    const key = taskKey(summary);
+    if (!key) throw new Error("Task name required");
+    if (room != null && room !== "" && !/^[A-Za-z0-9_-]{1,64}$/.test(String(room))) throw new Error("Cômodo inválido");
+    const map = { ...(this.rooms[entityId] || {}) };
+    if (previous != null && taskKey(previous) !== key) delete map[taskKey(previous)];
+    if (room) map[key] = String(room);
+    else delete map[key];
+    const all = { ...this.rooms };
+    if (Object.keys(map).length) all[entityId] = map;
+    else delete all[entityId];
+    this.data.rooms = all;
+    this.save();
+    return all;
   }
 
   /** Points a task is worth (0: none). */

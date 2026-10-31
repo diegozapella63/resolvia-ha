@@ -151,6 +151,7 @@ export const SuggestMixin = (Base) =>
             pontos: this._pointsOf(l.id, i.summary, i.uid) || 0,
             repete: rule ? rule.days : 0,
             compras: isShopping(l),
+            comodo: this._roomName(this._roomIdOf(l.id, i.summary)) || "",
           });
         }
       }

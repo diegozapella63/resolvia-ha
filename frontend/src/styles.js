@@ -645,6 +645,10 @@ export const styles = css`
     width: 17px;
     height: 17px;
   }
+  .tag.room {
+    background: color-mix(in srgb, var(--rv-muted) 14%, transparent);
+    color: var(--rv-text-2);
+  }
   .tag.list {
     border-color: transparent;
     background: var(--cs);
@@ -1980,6 +1984,19 @@ export const styles = css`
   .imp-dest:focus-within {
     outline: 2px solid var(--c);
     outline-offset: 1px;
+  }
+  /* the room chip: neutral, beside the list chip */
+  .imp-dest.imp-room {
+    --c: var(--rv-muted);
+    --cs: color-mix(in srgb, var(--rv-muted) 14%, transparent);
+    --ci: var(--rv-text-2);
+  }
+  .imp-dest:not(.imp-room) ~ .imp-dest.imp-room {
+    margin-left: 6px;
+    max-width: calc(100% - 32px - 6px);
+  }
+  .imp-dest.imp-room.none {
+    opacity: 0.75;
   }
   .imp-row.off .imp-dest {
     opacity: 0.5;

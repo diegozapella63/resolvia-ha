@@ -16,6 +16,7 @@ import { unsafeCSS } from "../vendor/lit-all.min.js";
 import { DataMixin } from "./datapanel.js";
 import { PointsMixin, stripMark, markOf } from "./points.js";
 import { SuggestMixin } from "./suggest.js";
+import { RoomsMixin } from "./rooms.js";
 import { Recorder, micError, VOICE_RATE, VOICE_MAX_S } from "./voice.js";
 import {
   F,
@@ -43,7 +44,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.27.0";
+const VERSION = "2.28.0";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -80,7 +81,7 @@ const REPEAT_PICKS = [
 ];
 const keyOf = (item) => item.uid || item.summary;
 
-class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
+class ResolviaPanel extends RoomsMixin(SuggestMixin(PointsMixin(DataMixin(LitElement)))) {
   static properties = {
     hass: { attribute: false },
     narrow: { type: Boolean },
@@ -98,6 +99,7 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
     _doneOpen: { state: true },
     _rules: { state: true },
     _cam: { state: true },
+    _rooms: { state: true },
     _rulesOk: { state: true },
     _pts: { state: true },
     _aiState: { state: true },
@@ -215,6 +217,7 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
         this._prefsLoaded = true;
         this._loadPrefs();
         this._loadPoints();
+        this._loadRooms();
       }
       if (!this._rulesUnsub && this.isConnected) this._subscribeRules();
       if (!this._voiceAsked && this.hass.resolvia && this.hass.resolvia.voiceStatus) {
@@ -244,6 +247,7 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
       if (tab === "integracoes") {
         this._refreshAi(false);
         this._loadPoints();
+        this._loadRooms();
         this._loadUsage();
       }
       if (tab === "dados") this._loadBackups();
@@ -824,6 +828,7 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
       repeat: 0,
       repeatOrig: 0,
       repeatCustom: false,
+      room: null,
     });
     this.updateComplete.then(() => {
       const ta = this.renderRoot.querySelector(".sheet textarea");
@@ -1147,9 +1152,9 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
     const target = this._list(this._form.target);
     const live = () => token === this._importToken && this._sheet === "import";
     const keep = appending ? this._form.items || [] : [];
-    const merge = (found, lists = []) => {
+    const merge = (found, lists = [], rooms = []) => {
       const seen = new Set(keep.map((i) => i.text.trim().toLowerCase()));
-      const fresh = found.map((t, k) => ({ text: t, on: true, list: lists[k] || null })).filter((it) => !seen.has(it.text.trim().toLowerCase()));
+      const fresh = found.map((t, k) => ({ text: t, on: true, list: lists[k] || null, room: rooms[k] || null })).filter((it) => !seen.has(it.text.trim().toLowerCase()));
       return [...keep, ...fresh];
     };
     try {
@@ -1169,7 +1174,7 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
         return;
       }
       this._haptic("success");
-      this._setForm({ step: "review", items: merge(found, res.lists || []), provider: res.provider || null, note: null, error: null });
+      this._setForm({ step: "review", items: merge(found, res.lists || [], res.rooms || []), provider: res.provider || null, note: null, error: null });
     } catch (err) {
       if (!live()) return;
       if (text) {
@@ -1420,6 +1425,7 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
       if (await this._call("add_item", { item: it.text.trim() }, it.dest)) {
         n++;
         used.add(it.dest);
+        if (it.room && this._roomsOn()) await this._setTaskRoom(it.dest, it.text.trim(), it.room);
       } else break;
     }
     if (!n) return;
@@ -1447,6 +1453,8 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
       repeatCustom: !!days && !REPEAT_PICKS.some((p) => p.days === days),
       points: this._rawPoints(list.id, item.summary),
       pointsOrig: this._rawPoints(list.id, item.summary),
+      room: this._roomIdOf(list.id, item.summary),
+      roomOrig: this._roomIdOf(list.id, item.summary),
     });
     this._loadPoints();
   }
@@ -1474,6 +1482,7 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
       const ok = await this._addFull(target, { summary, description, date: f.date, time: f.time });
       if (ok && f.repeat) await this._setRule(target.id, { summary, days: f.repeat });
       if (ok && f.points) await this._setTaskPoints(target.id, summary, f.points);
+      if (ok && f.room) await this._setTaskRoom(target.id, summary, f.room);
       if (ok && this._view().id !== target.id) this._showToast(`Adicionado em ${clip(target.name, 28)}`);
       return;
     }
@@ -1493,6 +1502,8 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
         if (f.repeatOrig) await this._setRule(list.id, { uid: item.uid, summary: item.summary, days: null });
         if (f.points) await this._setTaskPoints(target.id, summary, f.points);
         if (f.pointsOrig) await this._setTaskPoints(list.id, item.summary, 0);
+        if (f.room) await this._setTaskRoom(target.id, summary, f.room);
+        if (f.roomOrig) await this._setTaskRoom(list.id, item.summary, null);
         await this._call("remove_item", { item: [f.key] }, list.id);
         this._showToast(`Movido para ${clip(target.name, 28)}`);
       }
@@ -1512,6 +1523,9 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
     this._closeSheet();
     if ((f.points || 0) !== (f.pointsOrig || 0) || (f.pointsOrig && summary !== item.summary)) {
       await this._setTaskPoints(list.id, summary, f.points || 0, summary !== item.summary ? item.summary : null);
+    }
+    if ((f.room || null) !== (f.roomOrig || null) || (f.roomOrig && summary !== item.summary)) {
+      await this._setTaskRoom(list.id, summary, f.room || null, summary !== item.summary ? item.summary : null);
     }
     if ((f.repeat || 0) !== (f.repeatOrig || 0)) {
       await this._setRule(list.id, { uid: item.uid, summary, days: f.repeat });
@@ -2076,9 +2090,10 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
           <div class="it-text">${this._renderText(item.summary || "", opts.query)}</div>
           ${stripMark(item.description) ? html`<div class="it-desc">${this._renderText(stripMark(item.description), opts.query)}</div>` : nothing}
           ${opts.why ? html`<div class="it-why">${icon(opts.whyIcon || "lightbulb")}<span>${opts.why}</span></div>` : nothing}
-          ${due || opts.showList || rule || this._pointsOf(l.id, item.summary, item.uid)
+          ${due || opts.showList || rule || this._pointsOf(l.id, item.summary, item.uid) || this._roomIdOf(l.id, item.summary)
             ? html`<div class="chips">
                 ${opts.showList ? html`<span class="tag list">${icon(l.icon)}${clip(l.name, 24)}</span>` : nothing}
+                ${this._renderRoomTag(l.id, item)}
                 ${due
                   ? l.noDue
                     ? html`<span class="tag info" title=${l.canDue ? "Prazos desligados: a data é só informação" : "Data da integração, não é prazo"}>${icon("clock-fading")}${due.text}</span>`
@@ -2312,7 +2327,7 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
     let body;
     let status = { text: `ResolvIA ${VERSION}${this._prefsRemote ? " · personalizações sincronizadas" : ""}` };
     if (tab === "repeticoes") body = this._renderRulesTab();
-    else if (tab === "integracoes") body = html`${this._renderRewardsPanel()} ${this._renderAiPanel()} ${this.hass.resolvia && this.hass.resolvia.voiceStatus && this._aiOn() ? this._renderVoicePanel() : nothing} ${this.hass.resolvia && this._aiOn() ? this._renderUsage() : nothing} ${this._renderSensorsPanel()}`;
+    else if (tab === "integracoes") body = html`${this._renderRewardsPanel()} ${this._renderRoomsPanel()} ${this._renderAiPanel()} ${this.hass.resolvia && this.hass.resolvia.voiceStatus && this._aiOn() ? this._renderVoicePanel() : nothing} ${this.hass.resolvia && this._aiOn() ? this._renderUsage() : nothing} ${this._renderSensorsPanel()}`;
     else if (tab === "dados") body = this._renderDataPanel();
     else if (tab === "aparencia") body = this._renderAppearanceTab();
     else if (tab === "opcoes") body = this._renderOptionsTab();
@@ -2711,6 +2726,7 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
               : nothing}
           </div>`
         : nothing}
+      ${this._renderRoomField(f)}
       ${this._renderPointsField(f)}
       ${targets.length > 1
         ? html`<div class="field">
@@ -2812,7 +2828,7 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
           ${f.items.map(
             (it, i) => {
               const dest = this._list(this._importListOf(it));
-              return html`<div class="imp-row ${it.on ? "" : "off"} ${many ? "has-dest" : ""}">
+              return html`<div class="imp-row ${it.on ? "" : "off"} ${many || this._roomsOn() ? "has-dest" : ""}">
               <button class="check ${it.on ? "on" : ""}" role="checkbox" aria-checked=${it.on ? "true" : "false"} aria-label="Incluir" @click=${() => this._setImportItem(i, { on: !it.on })}>${icon("check")}</button>
               <input type="text" .value=${it.text} aria-label="Item" @input=${(e) => this._setImportItem(i, { text: e.target.value })} />
               <button class="icon-btn mini" aria-label="Remover" @click=${() => this._setForm({ items: f.items.filter((_, j) => j !== i) })}>${icon("x")}</button>
@@ -2821,6 +2837,15 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
                     <span class="dot"></span><span class="dname">${clip(dest.name, 30)}</span>${icon("chevron-down")}
                     <select aria-label="Lista de ${it.text}" @change=${(e) => this._setImportItem(i, { list: e.target.value })}>
                       ${targets.map((t) => html`<option value=${t.id} ?selected=${t.id === dest.id}>${t.name}</option>`)}
+                    </select>
+                  </label>`
+                : nothing}
+              ${this._roomsOn()
+                ? html`<label class="imp-dest imp-room ${it.room ? "" : "none"}">
+                    ${icon("door-open")}<span class="dname">${it.room ? clip(this._roomName(it.room) || "", 30) : "Cômodo"}</span>${icon("chevron-down")}
+                    <select aria-label="Cômodo de ${it.text}" @change=${(e) => this._setImportItem(i, { room: e.target.value || null })}>
+                      <option value="" ?selected=${!it.room}>Nenhum</option>
+                      ${this._roomList().map((c) => html`<option value=${c.id} ?selected=${c.id === it.room}>${c.nome}</option>`)}
                     </select>
                   </label>`
                 : nothing}

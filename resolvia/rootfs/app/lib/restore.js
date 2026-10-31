@@ -118,7 +118,12 @@ export class Restore {
       const t = to(id);
       if (!points[t] || id === t) points[t] = map;
     }
-    this.store.replaceAll({ prefs: { lists, app }, rules, points }, reason);
+    const rooms = {};
+    for (const [id, m] of Object.entries(isObj(raw.rooms) ? raw.rooms : {})) {
+      const t = to(id);
+      if (!rooms[t] || id === t) rooms[t] = m;
+    }
+    this.store.replaceAll({ prefs: { lists, app }, rules, points, rooms }, reason);
 
     // Repeating tasks whose item isn't here (yet) bind again by name.
     for (const r of Object.values(this.store.rules)) {
