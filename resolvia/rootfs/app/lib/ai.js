@@ -176,7 +176,7 @@ export function suggestInstructions(items, now = new Date()) {
     "Abaixo estão os itens pendentes, um por linha: número | lista | item | há quanto tempo está na lista | pontos | repetição.",
     "Escolha até 5 itens que valem a pena resolver agora. Dê preferência ao que está parado há muito tempo, ao que é rápido de fazer, ao que fecha uma lista, ao que vale pontos e ao que combina com o dia e a hora.",
     "Itens de listas de compras só entram se a lista estiver cheia ou parada há muito tempo; nesse caso escolha um deles e diga para ir às compras.",
-    'Responda um elemento por item escolhido, do mais importante para o menos, no formato "número | motivo". O motivo explica por que começar por ele (até 100 caracteres), em português do Brasil, fala com a família e não repete o texto do item.',
+    'Responda um elemento por item escolhido, do mais importante para o menos, no formato "número | motivo". O motivo explica por que começar por ele (até 100 caracteres), todo em português do Brasil (sem palavras em inglês), fala com a família e não repete o texto do item.',
     "Não invente itens nem números.",
     `\nItens:\n"""\n${rows.join("\n")}\n"""`,
   ].join("\n");

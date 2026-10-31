@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.26.3
+
+- **Comece por aqui escolhido pela IA**: a linha de cima diz só quem escolheu e quando (o "Embaixo de cada um, o porquê" saiu: o porquê já está embaixo de cada item). A IA também é orientada a escrever o motivo todo em português, sem palavras em inglês.
+
 ## 2.26.2
 
 - **Colar mensagem**: o botão **Colar** só aparece quando consegue ler o que foi copiado. Com o Home Assistant aberto por http ele não funciona (o navegador não deixa), então some, e o campo continua aceitando colar do jeito normal (tocar e segurar). Se o aparelho recusar uma vez, o botão também some.

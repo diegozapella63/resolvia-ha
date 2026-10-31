@@ -217,7 +217,7 @@ export const SuggestMixin = (Base) =>
       return html`<div class="panel items start ${byAi ? "by-ai" : ""}">
         <div class="mais-head"><span class="mais-ic" aria-hidden="true">${icon(byAi ? "sparkles" : "flag")}</span><h2>Comece por aqui</h2><small class="mh-count">${rows.length}</small></div>
         ${byAi
-          ? html`<p class="start-by">${icon("sparkles")}<span>Escolhidos por ${pick.provider || "IA"} ${agoText(pick.at)}. Embaixo de cada um, o porquê.</span></p>`
+          ? html`<p class="start-by">${icon("sparkles")}<span>Escolhidos por ${pick.provider || "IA"} ${agoText(pick.at)}.</span></p>`
           : nothing}
         ${repeat(rows, (r) => r.l.id + (r.i.uid || r.i.summary), (r) => this._renderItem(r.l, r.i, { showList: true, why: r.why, whyIcon: r.ai ? "sparkles" : null }))}
         ${pick && !byAi ? html`<p class="ai-note">Tudo o que a IA sugeriu já foi resolvido. Estes são os automáticos.</p>` : nothing}
