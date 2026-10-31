@@ -43,7 +43,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.23.0";
+const VERSION = "2.24.0";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -936,13 +936,67 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
   // ------------------------------------------------------------ Falar
 
   /** Whether Falar works here (the speech-to-text of Home Assistant). */
-  async _loadVoice() {
+  async _loadVoice(fresh = false) {
     try {
-      this._voice = await this.hass.resolvia.voiceStatus();
+      this._voice = await this.hass.resolvia.voiceStatus(fresh);
     } catch (err) {
       this._voice = { ready: false, reason: err.message };
     }
     this.requestUpdate();
+  }
+
+  /** Mais › Integrações › Falar: the speech-to-text the app uses ("" = the voice assistant's). */
+  async _chooseVoice(id) {
+    await this._saveAppPrefs({ voice_engine: id || null });
+    await this._loadVoice(true);
+    this._showToast("Fala para texto atualizada");
+  }
+
+  _renderVoicePanel() {
+    const v = this._voice;
+    const sel = this._app("voice_engine", "") || "";
+    const opts = (v && v.options) || [];
+    const checking = !v || this._voiceChecking;
+    const tone = checking ? "off" : v.ready && !v.missing ? "ok" : v.ready ? "warn" : "bad";
+    const title = checking ? "Verificando…" : v.ready ? "Pronto para ouvir" : "Sem fala para texto";
+    const detail = checking
+      ? ""
+      : v.ready
+        ? `Transcreve com ${v.name}${v.chosen ? "" : " (o do assistente de voz do Home Assistant)"}.${v.missing ? " O escolhido não foi encontrado: usando o automático." : ""}`
+        : v.reason || "";
+    const again = async () => {
+      this._voiceChecking = true;
+      this.requestUpdate();
+      await this._loadVoice(true);
+      this._voiceChecking = false;
+      this.requestUpdate();
+    };
+    return html`<div class="panel" id="falar">
+      ${this._secHead("mic", "Falar", "O microfone no alto da tela: o Home Assistant transforma a fala em texto e a IA da leitura separa os itens. Escolha aqui quem transcreve, sem mexer no assistente de voz do Home Assistant.")}
+      <div class="ai-state ${tone}"><span class="dot"></span><div><b>${title}</b>${detail ? html`<span>${detail}</span>` : nothing}</div></div>
+      ${opts.length || sel
+        ? html`<label class="field" style="margin:14px 0 0">
+            <span class="flabel">Fala para texto</span>
+            <select class="select" aria-label="Fala para texto" @change=${(e) => this._chooseVoice(e.target.value)}>
+              <option value="" ?selected=${!sel}>Automático${v && v.auto ? `: ${v.auto.name}` : ""}</option>
+              ${opts.map((o) => html`<option value=${o.id} ?selected=${o.id === sel}>${o.name}</option>`)}
+              ${sel && !opts.some((o) => o.id === sel) ? html`<option value=${sel} selected>${sel} (não encontrado)</option>` : nothing}
+            </select>
+            <span class="field-hint">${icon("mic")}<span>“Automático” usa o assistente de voz preferido do Home Assistant (Configurações › Assistentes de voz).</span></span>
+          </label>`
+        : nothing}
+      <div class="ai-actions"><button class="btn outline" ?disabled=${checking} @click=${again}>${icon("rotate-ccw")}Verificar de novo</button></div>
+      ${v && !v.ready
+        ? html`<div class="steps-box">
+            <b>Como configurar</b>
+            <ol class="steps">
+              <li>Com o Home Assistant Cloud, a fala para texto já vem pronta.</li>
+              <li>Sem ele, instale um motor de fala: o app Whisper (local, de graça) com a integração Wyoming, ou a fala para texto de uma IA como Google Gemini ou OpenAI.</li>
+              <li>Volte aqui, toque em Verificar de novo e escolha o motor na lista.</li>
+            </ol>
+          </div>`
+        : nothing}
+    </div>`;
   }
 
   /** Falar, at the top right of the screens: speak the items, they are separated, you check and add.
@@ -1028,7 +1082,7 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
         <button class="btn outline" @click=${() => this._closeSheet()}>Cancelar</button>
         <button class="btn primary" ?disabled=${!on} @click=${() => this._finishVoice()}>${icon("sparkles")}Pronto</button>
       </div>
-      <p class="sheet-note">${v.ready ? `O Home Assistant transcreve${v.name ? ` (${v.name})` : ""} e ${ai.ready ? `${ai.using.name} separa os itens` : "eu separo os itens por vírgulas e “e”"}. Você revisa antes de adicionar.` : v.reason || ""}</p>
+      <p class="sheet-note">${v.ready ? `${v.name || "O Home Assistant"} transcreve e ${ai.ready ? `${ai.using.name} separa os itens` : "eu separo os itens por vírgulas e “e”"} (troque em Mais › Integrações). Você revisa antes de adicionar.` : v.reason || ""}</p>
     `;
   }
 
@@ -2222,7 +2276,7 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
     let body;
     let status = { text: `ResolvIA ${VERSION}${this._prefsRemote ? " · personalizações sincronizadas" : ""}` };
     if (tab === "repeticoes") body = this._renderRulesTab();
-    else if (tab === "integracoes") body = html`${this._renderRewardsPanel()} ${this._renderAiPanel()} ${this.hass.resolvia && this._aiOn() ? this._renderUsage() : nothing} ${this._renderSensorsPanel()}`;
+    else if (tab === "integracoes") body = html`${this._renderRewardsPanel()} ${this._renderAiPanel()} ${this.hass.resolvia && this.hass.resolvia.voiceStatus && this._aiOn() ? this._renderVoicePanel() : nothing} ${this.hass.resolvia && this._aiOn() ? this._renderUsage() : nothing} ${this._renderSensorsPanel()}`;
     else if (tab === "dados") body = this._renderDataPanel();
     else if (tab === "aparencia") body = this._renderAppearanceTab();
     else if (tab === "opcoes") body = this._renderOptionsTab();

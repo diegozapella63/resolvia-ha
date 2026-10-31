@@ -20,7 +20,7 @@ import { Placar } from "./lib/placar.js";
 import { Voice, readRaw, MAX_VOICE_BYTES } from "./lib/voice.js";
 import { snapshot, toCSV, backupZip, parseImport, Backups, listVersions, readVersion, fileStamp } from "./lib/data.js";
 
-const VERSION = "2.23.0";
+const VERSION = "2.24.0";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const WWW = path.join(HERE, "www");
 const DEV = process.env.RESOLVIA_DEV === "1";
@@ -83,7 +83,7 @@ async function restoreAll(raw, reason, opts) {
 }
 const HA_REST = process.env.HA_REST_URL || "http://supervisor/core/api";
 // Falar: the speech-to-text of Home Assistant (Assist)
-const voice = new Voice({ ha, rest: HA_REST, token: TOKEN, log });
+const voice = new Voice({ ha, rest: HA_REST, token: TOKEN, log, pick: () => store.prefs.app.voice_engine || "" });
 const usage = new AiUsage({ dir: DATA_DIR, sensor: "sensor.resolvia_ia_hoje", label: "ResolvIA", rest: HA_REST, token: TOKEN, log, enabled: () => store.prefs.app.sensors_on === true });
 const ai = new AI({ ha, log, mediaDir: MEDIA_DIR, selected: () => store.prefs.app.ai_entity || "", usage });
 const itemSubs = new Map(); // entity_id -> subscription (for the recurring engine and the ages)
@@ -325,7 +325,7 @@ class Session {
       }
 
       case "resolvia/voice/status":
-        return this.result(id, await voice.status());
+        return this.result(id, await voice.status({ fresh: !!msg.fresh }));
 
       case "resolvia/ai/status":
         return this.result(id, await ai.status());

@@ -219,6 +219,13 @@ class Conn {
           return ok([
             ...Object.keys(lists).map(stateOf),
             { entity_id: "light.sala", state: "on", attributes: {} },
+            // Falar: the speech-to-text engines (Home Assistant Cloud, and a local Whisper that names Portuguese "pt")
+            ...(process.env.FAKE_NO_STT
+              ? []
+              : [
+                  { entity_id: "stt.home_assistant_cloud", state: "unknown", attributes: { friendly_name: "Home Assistant Cloud" } },
+                  { entity_id: "stt.faster_whisper", state: "unknown", attributes: { friendly_name: "faster-whisper" } },
+                ]),
             ...(WITH_AI
               ? [
                   { entity_id: "ai_task.google_ai_task", state: "unknown", attributes: { friendly_name: "Google AI Task", supported_features: 3 } },
@@ -293,6 +300,11 @@ const server = http.createServer((req, res) => {
   }
   // Falar: speech-to-text like Home Assistant's REST API (the transcript is FAKE_STT_TEXT)
   const stt = req.url.match(/^\/api\/stt\/(stt\.[a-z0-9_]+)$/);
+  // GET /api/stt/<engine>: what it accepts (the languages, as each engine names them)
+  if (stt && req.method === "GET") {
+    res.writeHead(200, { "content-type": "application/json" });
+    return res.end(JSON.stringify({ languages: stt[1] === "stt.faster_whisper" ? ["en", "es", "pt"] : ["en-US", "pt-BR", "pt-PT"], formats: ["wav"], codecs: ["pcm"], sample_rates: [16000], bit_rates: [16], channels: [1] }));
+  }
   if (stt && req.method === "POST") {
     let bytes = 0;
     req.on("data", (c) => (bytes += c.length));
@@ -304,7 +316,8 @@ const server = http.createServer((req, res) => {
       const head = at >= 0 ? String(raw[at + 1]) : "";
       console.log("stt", stt[1], bytes, head);
       if (!head) return res.writeHead(400).end("Missing X-Speech-Content header");
-      if (!/format=wav/.test(head) || !/sample_rate=16000/.test(head) || !/language=pt-BR/.test(head)) return res.writeHead(415).end("Unsupported");
+      const lang = stt[1] === "stt.faster_whisper" ? /language=pt(;|$)/ : /language=pt-BR/;
+      if (!/format=wav/.test(head) || !/sample_rate=16000/.test(head) || !lang.test(head)) return res.writeHead(415).end("Unsupported");
       res.writeHead(200, { "content-type": "application/json" });
       res.end(JSON.stringify({ text: process.env.FAKE_STT_TEXT || "Comprar pilhas, trocar a lâmpada da sala e ligar para o encanador", result: "success" }));
     });

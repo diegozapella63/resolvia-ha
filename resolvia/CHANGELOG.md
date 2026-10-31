@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.24.0
+
+- **Falar: escolha quem transcreve**, como na leitura por IA. Em Mais › Integrações › **Falar** aparece a lista dos motores de fala para texto do Home Assistant (Home Assistant Cloud, Whisper, Google…). **Automático** continua usando o assistente de voz preferido do Home Assistant; escolher outro aqui não mexe nele. O app descobre o idioma que cada motor usa para o português (pt-BR, pt…). Com **Usar IA** desligado, o painel some junto com o Falar.
+
 ## 2.23.0
 
 - **Ler com IA, Colar e Falar: cada item na sua lista.** Na revisão, embaixo de cada item aparece a lista para onde ele vai; toque nela para trocar. A IA já sugere a lista de cada item (comprar leite → lista de compras, consertar a pia → Casa). Os botões **Todos em** (antes "Adicionar em") mandam todos para uma lista só. O botão final diz quantas listas recebem itens.

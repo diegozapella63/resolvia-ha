@@ -32,6 +32,8 @@ const APP_FIELDS = {
   list_order: ["list", 200],
   // "" / null = the AI Home Assistant prefers (Mais > Leitura por IA).
   ai_entity: ["string", 80],
+  // Mais > Integrações > Falar: the speech-to-text (stt.* or an engine of a voice assistant); null = the voice assistant's
+  voice_engine: ["string", 80],
   // Mais > Integrações > Recompensas: tasks can be worth points in the CronologIA scoreboard.
   points_on: ["boolean"],
   // Mais > Repetições: "Repetir depois de concluir" on (true) or off (false); unset = on when there are rules
@@ -123,6 +125,7 @@ export function normalize(raw, strict = false) {
           }
         }
         if (app.ai_entity && !/^ai_task\.[a-z0-9_]+$/.test(app.ai_entity)) delete app.ai_entity;
+        if (app.voice_engine && !/^[a-z0-9_.]+$/.test(app.voice_engine)) delete app.voice_engine;
         data.prefs.app = Store.merge({}, app);
       }
     }
@@ -299,6 +302,7 @@ export class Store {
   setAppPrefs(changes) {
     const clean = Store.clean(changes, APP_FIELDS);
     if ("ai_entity" in clean && clean.ai_entity !== null && !/^ai_task\.[a-z0-9_]+$/.test(clean.ai_entity)) clean.ai_entity = null;
+    if ("voice_engine" in clean && clean.voice_engine !== null && !/^[a-z0-9_.]+$/.test(clean.voice_engine)) clean.voice_engine = null;
     this.data.prefs.app = Store.merge(this.data.prefs.app, clean);
     this.save();
     return this.data.prefs;

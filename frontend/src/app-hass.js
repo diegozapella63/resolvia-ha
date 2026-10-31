@@ -197,7 +197,7 @@ export async function createAppHass(onChange) {
       ai: boot.ai || { ready: false, images: false, entities: [] },
       aiStatus: () => conn.sendMessagePromise({ type: "resolvia/ai/status" }),
       // Falar: the speech-to-text of Home Assistant
-      voiceStatus: () => conn.sendMessagePromise({ type: "resolvia/voice/status" }),
+      voiceStatus: (fresh = false) => conn.sendMessagePromise({ type: "resolvia/voice/status", ...(fresh ? { fresh: true } : {}) }),
       async voiceText(pcm) {
         const res = await fetch(new URL("api/voice", location.href), {
           method: "POST",
