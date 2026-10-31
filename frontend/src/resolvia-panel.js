@@ -43,7 +43,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.26.1";
+const VERSION = "2.26.2";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -1360,15 +1360,33 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
     else this._setForm({ error: "Não encontrei itens nesse texto." });
   }
 
+  /**
+   * Whether the Colar button can read what was copied: not over http:// (the browser has no clipboard
+   * there), and not after this device refused it once. Without it, there is no Colar button (the field
+   * takes a paste as always).
+   */
+  _clipOk() {
+    return !!(navigator.clipboard && navigator.clipboard.readText) && !this._clipFailed;
+  }
+
   async _pasteClipboard() {
+    let t = "";
     try {
-      const t = await navigator.clipboard.readText();
-      if (!t) throw new Error("empty");
-      this._setForm({ text: t, error: null });
+      t = await navigator.clipboard.readText();
     } catch (e) {
+      // refused (permission, or the app of Home Assistant): no Colar button from now on
+      this._clipFailed = true;
       this._focusImportText();
-      this._showToast("Toque e segure no campo para colar");
+      this._showToast("Este aparelho não deixa o app ler o que foi copiado. Toque e segure no campo e escolha Colar.");
+      this.requestUpdate();
+      return;
     }
+    if (!t) {
+      this._focusImportText();
+      this._showToast("Não há nada copiado.");
+      return;
+    }
+    this._setForm({ text: t, error: null });
   }
 
   _setImportItem(i, changes) {
@@ -2764,7 +2782,7 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
         </label>
         ${error}
         <div class="sheet-actions">
-          <button class="btn outline" @click=${() => this._pasteClipboard()}>${icon("clipboard-paste")}Colar</button>
+          ${this._clipOk() ? html`<button class="btn outline" @click=${() => this._pasteClipboard()}>${icon("clipboard-paste")}Colar</button>` : nothing}
           <button class="btn primary" ?disabled=${!(f.text || "").trim()} @click=${() => this._readText()}>${ai.ready ? icon("sparkles") : nothing}Separar itens</button>
         </div>
         <p class="sheet-note">${ai.ready ? `${ai.using.name} separa os itens, mesmo de mensagens corridas.` : "Sem IA configurada: separo por linhas, vírgulas e “e”."}</p>
