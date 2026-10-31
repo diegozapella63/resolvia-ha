@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.26.1
+
+- **Home Assistant aberto por http**: o **Digitalizar com IA** já avisa no próprio botão (**Precisa de https**), com uma linha explicando que neste endereço a câmera não abre aqui dentro (tire a foto com a câmera do celular e use Escolher fotos). O **Falar** explica que o microfone também precisa do endereço seguro, mesmo pelo app do Home Assistant.
+
 ## 2.26.0
 
 - **Sugerir com IA dentro do Comece por aqui**: saiu o quadro separado **Pedir à IA**. O botão fica no fim do **Comece por aqui**, e a IA troca os itens dele pelos que ela escolheu, com o porquê embaixo de cada um (e quem escolheu, e quando). **Sugerir de novo** pede outra escolha; **Voltar ao automático** volta para a escolha do app.

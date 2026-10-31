@@ -1662,6 +1662,16 @@ export const styles = css`
     grid-template-columns: repeat(3, 1fr);
     gap: 10px;
   }
+  /* Digitalizar without camera (http): says so on the tile */
+  .imp-tile.no-cam {
+    border-style: dotted;
+    color: var(--rv-muted);
+  }
+  .imp-tile.no-cam small {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--rv-late, var(--rv-muted));
+  }
   .imp-tile {
     aspect-ratio: 1;
     border-radius: 12px;

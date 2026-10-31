@@ -96,6 +96,9 @@ export function micError(err) {
     return "O microfone está bloqueado. Permita o microfone para o Home Assistant (no navegador, no cadeado ao lado do endereço; no app do celular, nas permissões do app Home Assistant) e tente de novo.";
   if (n === "NotFoundError" || n === "OverconstrainedError") return "Não achei um microfone neste aparelho.";
   if (n === "NotReadableError") return "O microfone está sendo usado por outro app. Feche o outro e tente de novo.";
-  if (n === "NoApi") return "Este navegador não deixa usar o microfone aqui. Abra o Home Assistant pelo endereço com https (como o do Nabu Casa) ou pelo app.";
+  if (n === "NoApi")
+    return window.isSecureContext === false
+      ? "O microfone aqui dentro só funciona quando o Home Assistant é aberto por um endereço seguro (https), como o do Home Assistant Cloud ou o seu endereço externo. Neste endereço (http), o celular e o navegador não deixam usar o microfone, nem pelo app do Home Assistant."
+      : "Este navegador não deixa usar o microfone aqui.";
   return `Não consegui abrir o microfone (${(err && err.message) || n || "erro"}).`;
 }

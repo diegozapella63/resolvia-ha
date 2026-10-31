@@ -43,7 +43,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.26.0";
+const VERSION = "2.26.1";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -1110,6 +1110,11 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
    * with `multiple` and ignores `capture`, so it gets one photo at a time and
    * our own camera screen instead.
    */
+  /** Whether this page may use the camera (not over http://: the browser and the HA app refuse it). */
+  _camOk() {
+    return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+  }
+
   _isHaAndroid() {
     return /Home Assistant\//.test(navigator.userAgent) && /Android/.test(navigator.userAgent);
   }
@@ -2714,15 +2719,20 @@ class ResolviaPanel extends SuggestMixin(PointsMixin(DataMixin(LitElement))) {
   _renderImportTiles(run, { label = true } = {}) {
     const ai = this._aiInfo();
     const android = this._isHaAndroid();
-    const tile = (key, ic, text, off = false) => html`<button type="button" class="imp-tile" ?disabled=${off} @click=${run[key]}>${icon(ic)}<span>${text}</span></button>`;
+    const camOk = this._camOk();
+    const tile = (key, ic, text, off = false, note = "") => html`<button type="button" class="imp-tile ${note ? "no-cam" : ""}" ?disabled=${off} @click=${run[key]}>${icon(ic)}<span>${text}</span>${note ? html`<small>${note}</small>` : nothing}</button>`;
     return html`<div class="field imp-field">
         ${label ? html`<span class="flabel">Trazer de mensagem ou foto</span>` : nothing}
         <div class="imp-tiles">
           ${tile("text", "clipboard-paste", "Colar mensagem")}
           ${tile("photos", "images", "Escolher fotos", !ai.images)}
-          ${tile("scan", "scan-text", "Digitalizar com\u00a0IA", !ai.images)}
+          ${tile("scan", "scan-text", "Digitalizar com\u00a0IA", !ai.images, camOk ? "" : "Precisa de https")}
         </div>
-        ${android && ai.images ? html`<p class="imp-help">No app do Home Assistant, Escolher fotos abre a galeria (uma foto por vez). Para fotografar uma lista na hora, use Digitalizar com IA, que abre a câmera aqui dentro.</p>` : nothing}
+        ${ai.images && !camOk
+          ? html`<p class="imp-help">Neste endereço (http) a câmera não abre aqui dentro: o celular só deixa com o endereço seguro (https). Tire a foto com a câmera do celular e use Escolher fotos.</p>`
+          : android && ai.images
+            ? html`<p class="imp-help">No app do Home Assistant, Escolher fotos abre a galeria (uma foto por vez). Para fotografar uma lista na hora, use Digitalizar com IA, que abre a câmera aqui dentro.</p>`
+            : nothing}
       </div>
       <div class="ai-box">${icon("scan-text")}<span>${ai.ready
         ? "Com uma mensagem ou foto, a IA separa os itens da lista. Você confere antes de adicionar."
