@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.30.0
+
+- **Buscar por cômodo e equipamento**: em **Buscar**, digitar o cômodo ("cozinha") ou o equipamento ("ar-condicionado", ou a zona dele) traz as tarefas ligadas a eles. Ao lado de **Incluir concluídos** ficam **Incluir cômodos** e **Incluir equipamentos**, ligados por padrão; com **Usar cômodos** ou **Usar equipamentos** desligado em Mais › Integrações, o botão fica inativo.
+
 ## 2.29.1
 
 - **Equipamento com busca**: no lugar da lista padrão, uma busca. Com um cômodo escolhido, aparecem os equipamentos dele; ao buscar (pelo nome, pela zona ou pelo cômodo, sem ligar para acentos), o que está em outros cômodos aparece separado, com o cômodo. O trecho buscado fica destacado, e o escolhido vira um cartão com zona e cômodo (× para tirar). Escolher um equipamento de outro cômodo troca o cômodo; trocar o cômodo tira um equipamento que não é dele.

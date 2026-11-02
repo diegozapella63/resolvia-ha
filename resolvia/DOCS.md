@@ -99,6 +99,8 @@ Com o **InventarIA** (1.14.0 ou mais novo) no mesmo Home Assistant, ligue **Mais
 
 Com **Usar equipamentos** ligado (InventarIA 1.15.0 ou mais novo), cada tarefa pode apontar também para um item do InventarIA (um equipamento, um móvel), escolhido numa lista separada por cômodo; escolher o equipamento já preenche o cômodo. A IA sugere o equipamento na leitura e o considera no Sugerir com IA, e o CronologIA mostra e pede o equipamento no Novo › Tarefa.
 
+No **Buscar**, digitar o cômodo ou o equipamento (o nome ou a zona) traz as tarefas ligadas a eles; os botões **Incluir cômodos** e **Incluir equipamentos** ligam e desligam isso (inativos quando a opção está desligada).
+
 Os cômodos e os itens vêm do InventarIA (só leitura, pela rede interna dos apps, com a chave que ele grava em `share/inventario`). O ResolvIA guarda o cômodo de cada tarefa pelo nome, junto com os pontos, e ele entra no exportar e no backup.
 
 ## Levar uma lista para o CronologIA

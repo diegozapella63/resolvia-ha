@@ -1118,6 +1118,11 @@ export const styles = css`
     margin: 0 0 18px;
     flex-wrap: wrap;
   }
+  /* Buscar: Incluir cômodos/equipamentos with Usar cômodos/equipamentos off */
+  .filters .pick:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
 
   /* ---------- chips / pickers ---------- */
   .pick {

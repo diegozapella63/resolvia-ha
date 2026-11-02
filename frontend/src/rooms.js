@@ -113,6 +113,13 @@ export const RoomsMixin = (Base) =>
       </div>`;
     }
 
+    /** Where a task is, as text for Buscar: its room, its item (and the item's zone); each can be left out. */
+    _placeText(listId, summary, { rooms = true, equips = true } = {}) {
+      const room = rooms ? this._roomIdOf(listId, summary) : null;
+      const e = equips ? this._equipOf(this._equipIdOf(listId, summary)) : null;
+      return [room ? this._roomName(room) : "", e ? e.nome : "", e && e.zona ? e.zona : ""].filter(Boolean).join(" ");
+    }
+
     /** The room id of a task (or null). */
     _roomIdOf(listId, summary) {
       if (!this._roomsOn()) return null;

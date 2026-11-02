@@ -45,7 +45,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.29.1";
+const VERSION = "2.30.0";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -96,6 +96,8 @@ class ResolviaPanel extends RoomsMixin(SuggestMixin(PointsMixin(DataMixin(LitEle
     _toast: { state: true },
     _query: { state: true },
     _searchDone: { state: true },
+    _searchRooms: { state: true },
+    _searchEquips: { state: true },
     _theme: { state: true },
     _doneOpen: { state: true },
     _rules: { state: true },
@@ -124,6 +126,9 @@ class ResolviaPanel extends RoomsMixin(SuggestMixin(PointsMixin(DataMixin(LitEle
     this._toast = null;
     this._query = "";
     this._searchDone = false;
+    // Buscar also by the room and by the item of the InventarIA (when they are on)
+    this._searchRooms = true;
+    this._searchEquips = true;
     this._theme = store.get(THEME_KEY, "auto");
     this._doneOpen = {};
     this._lastTodoStates = null;
@@ -2264,11 +2269,15 @@ class ResolviaPanel extends RoomsMixin(SuggestMixin(PointsMixin(DataMixin(LitEle
     const needle = fold(q);
     const results = [];
     let count = 0;
+    const byRoom = this._roomsOn() && this._searchRooms;
+    const byEquip = this._equipsOn() && this._searchEquips;
+    const place = (l, i) => (byRoom || byEquip ? fold(this._placeText(l.id, i.summary, { rooms: byRoom, equips: byEquip })).includes(needle) : false);
     if (needle) {
       // only the lists that are on (Mais › Listas): the hidden ones are not searched
       for (const l of this._visible()) {
         const hits = (l.items || []).filter(
-          (i) => (this._searchDone || !isDone(i)) && (fold(i.summary).includes(needle) || fold(i.description).includes(needle)),
+          // also by the room or the item of the InventarIA ("cozinha", "fogão")
+          (i) => (this._searchDone || !isDone(i)) && (fold(i.summary).includes(needle) || fold(i.description).includes(needle) || place(l, i)),
         );
         if (hits.length) {
           hits.sort((a, b) => Number(isDone(a)) - Number(isDone(b)));
@@ -2287,6 +2296,10 @@ class ResolviaPanel extends RoomsMixin(SuggestMixin(PointsMixin(DataMixin(LitEle
         </label>
         <div class="filters">
           <button class="pick ${this._searchDone ? "on" : ""}" @click=${() => (this._searchDone = !this._searchDone)}>${icon("circle-check")}<span>Incluir concluídos</span></button>
+          ${this._rooms && this._rooms.encontrado
+            ? html`<button class="pick ${this._roomsOn() && this._searchRooms ? "on" : ""}" ?disabled=${!this._roomsOn()} title=${this._roomsOn() ? "" : "Ligue Usar cômodos em Mais › Integrações"} @click=${() => (this._searchRooms = !this._searchRooms)}>${icon("door-open")}<span>Incluir cômodos</span></button>
+                <button class="pick ${this._equipsOn() && this._searchEquips ? "on" : ""}" ?disabled=${!this._equipsOn()} title=${this._equipsOn() ? "" : "Ligue Usar equipamentos em Mais › Integrações"} @click=${() => (this._searchEquips = !this._searchEquips)}>${icon("package")}<span>Incluir equipamentos</span></button>`
+            : nothing}
         </div>
         ${!needle
           ? html`<p class="page-sub" style="margin-top:0">Procure por qualquer palavra, em todas as listas.</p>`
