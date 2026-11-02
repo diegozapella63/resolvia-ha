@@ -97,9 +97,10 @@ describe("Home Assistant restarts", () => {
     assert.ok((await items(c, CASA)).some((i) => i.summary === "Feito durante a queda"));
   });
 
-  it("the lists are read again after the restart (bootstrap of a new screen)", async () => {
+  it("down for longer than the first retry (a real restart): the app still gets back, and reads the lists again", async () => {
     const lines = stack.app.count(/listas de tarefas encontradas/);
-    await stack.restartFake(200);
+    // the first retry (after 1 s) is refused: Node's WebSocket says only "error" then
+    await stack.restartFake(2500);
     await waitFor(() => stack.app.count(/listas de tarefas encontradas/) > lines, { what: "lists read again", timeout: 15_000 });
     const other = await stack.client();
     const b = await other.call("resolvia/bootstrap");

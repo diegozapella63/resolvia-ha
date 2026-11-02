@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.30.3
+
+- **O aviso de baixo não cobre mais os botões de uma janela aberta.** No celular, por uns 4 segundos depois de concluir um item, o aviso ficava bem em cima dos botões da janela. Tocar em **Limpar**, em Limpar concluídos, acertava o **Desfazer** do aviso. Com uma janela aberta, o aviso agora sobe para o alto da tela.
+- **Tarefa criada de novo continua se repetindo.** Os concluídos apagados antes da hora fazem a tarefa ser criada de novo. Essa cópia não voltava mais sozinha depois de concluída, porque o Home Assistant manda o item novo antes de responder.
+- **Volta a se conectar depois de um reinício do Home Assistant.** Se o Home Assistant demorava mais de um segundo para voltar, o app parava de tentar: o Node avisa a conexão recusada sem fechá-la.
+- **Sem Desfazer** depois de excluir um item numa lista que não aceita itens novos, porque desfazer seria criar o item de novo, e a lista recusa.
+- **Mais testes**: 585 unitários e de integração e 6 roteiros visuais novos, com 216 conferências. O teste visual principal (repetir, concluir, voltar sozinha, limpar concluídos) agora confere de verdade: antes ele só mostrava os resultados. Os roteiros novos cobrem:
+  - os itens: adicionar, colar várias linhas, editar, concluir, Desfazer, excluir, reordenar, mover e limpar concluídos;
+  - o que cada tipo de lista permite;
+  - o Buscar;
+  - Mais › Listas;
+  - a queda de conexão;
+  - os Prazos.
+
 ## 2.30.2
 
 - A conexão da tela ignora o que ainda chega depois de fechada (achado pelos testes da CronologIA, que usa o mesmo código). Mais testes: o aviso de arquivo ou fala grande demais e a conexão fechada.

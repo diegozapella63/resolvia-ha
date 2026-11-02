@@ -25,6 +25,7 @@ URL = f"http://127.0.0.1:{APP_PORT}/"
 passed, failed = 0, []
 def check(c, label):
     global passed
+    label = label.replace("\n", " ")
     print(("PASS " if c else "FAIL ") + label, flush=True)
     if c: passed += 1
     else: failed.append(label)
@@ -36,7 +37,7 @@ async def main():
     global fake
     async with async_playwright() as p:
         b = await p.chromium.launch()
-        ctx = await b.new_context(viewport={"width": 412, "height": 892}, device_scale_factor=2, color_scheme="dark", has_touch=True)
+        ctx = await b.new_context(viewport={"width": 412, "height": 892}, device_scale_factor=2, color_scheme="dark", has_touch=True, timezone_id="America/Sao_Paulo")
         pg = await ctx.new_page()
         errs = []
         pg.on("console", lambda m: m.type in ("error", "warning") and errs.append(f"{m.type}: {m.text}"))

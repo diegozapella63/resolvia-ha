@@ -229,6 +229,14 @@ describe("repetitions", () => {
     await waitFor(() => !stack.presence().repete[CASA], { what: "repete cleared" });
   });
 
+  it("odd task names from the CronologIA (only spaces) are skipped; the others are still forgotten", async () => {
+    await c.call("resolvia/points/set", { entity_id: CASA, summary: "Trocar filtro do ar", points: 5 });
+    await stack.fire("resolvia_esquecer", { entity_id: CASA, uids: [], tarefas: ["   ", "Trocar filtro do ar"], origem: "CronologIA" });
+    await stack.app.waitLine(/Levadas para o CronologIA: 2 tarefas de todo\.casa$/);
+    assert.equal(((await c.call("resolvia/points/get")).points[CASA] || {})["trocar filtro do ar"], undefined);
+    assert.equal(await c.call("ping"), "pong");
+  });
+
   it("an item deleted while pending deletes its rule; recurring/clear removes them all", async () => {
     await c.call("call_service", svc("add_item", { item: "Regar a horta" }));
     const t1 = await byName(CASA, "Regar a horta");

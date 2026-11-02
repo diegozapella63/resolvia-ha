@@ -53,8 +53,21 @@ export class HAClient extends EventEmitter {
       const list = Array.isArray(msg) ? msg : [msg];
       for (const m of list) this._onMessage(m);
     };
-    ws.onclose = () => this._onClose();
-    ws.onerror = () => {};
+    // once per connection: a failure can come as "error", "close" or both
+    let opened = false;
+    let over = false;
+    const closed = () => {
+      if (over) return;
+      over = true;
+      this._onClose();
+    };
+    ws.onopen = () => (opened = true);
+    ws.onclose = closed;
+    // Node's WebSocket reports a refused connection (Home Assistant restarting) with "error" and
+    // no "close": without this, the first try that fails would stop the reconnecting for good
+    ws.onerror = () => {
+      if (!opened) closed();
+    };
   }
 
   _onMessage(msg) {

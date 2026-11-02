@@ -115,6 +115,38 @@ describe("Recorder.start", () => {
     assert.deepEqual(stopped.sort(), ["ctx", "node", "src", "track"]);
     assert.equal(node.onaudioprocess, null);
   });
+
+  it("cancel() still frees the microphone when the audio graph is already gone (disconnect throws)", async () => {
+    const stopped = [];
+    const stream = { getTracks: () => [{ stop: () => stopped.push("track") }] };
+    Object.defineProperty(globalThis, "navigator", { value: { mediaDevices: { getUserMedia: async () => stream } }, configurable: true });
+    class AC {
+      constructor() {
+        this.sampleRate = 16000;
+        this.state = "running";
+        this.destination = {};
+      }
+      async resume() {}
+      async close() {
+        this.state = "closed";
+        stopped.push("ctx");
+      }
+      createMediaStreamSource() {
+        return { connect: () => {}, disconnect: () => { throw new Error("InvalidAccessError"); } };
+      }
+      createScriptProcessor() {
+        return { connect: () => {}, disconnect: () => {} };
+      }
+    }
+    globalThis.window = { AudioContext: AC };
+    const r = new Recorder();
+    await r.start();
+    r.cancel();
+    assert.deepEqual(stopped.sort(), ["ctx", "track"], "the track and the audio context are still released");
+    assert.deepEqual([r.stream, r.node, r.src, r.seconds()], [null, null, null, 0]);
+    r.cancel();
+    assert.deepEqual(stopped.sort(), ["ctx", "track"], "a second cancel does nothing more");
+  });
 });
 
 describe("micError: why the microphone did not open", () => {

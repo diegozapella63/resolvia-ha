@@ -258,6 +258,26 @@ describe("an AI that answers out of format", () => {
   });
 });
 
+describe("a data folder that refuses the AI's pick", () => {
+  let stack;
+  let c;
+  before(async () => {
+    stack = new Stack();
+    // where the pick is kept there is a folder: it cannot be read nor written
+    fs.mkdirSync(path.join(stack.dirs.data, "sugestao_ia.json"));
+    await stack.start();
+    c = await stack.client();
+  });
+  after(() => stack && stack.stop());
+
+  it("the pick still comes back and is kept while the app runs; the log says why it was not saved", async () => {
+    const out = await c.call("resolvia/ai/suggest", { items: SUGGEST_ITEMS });
+    assert.equal(out.picks.length, 3);
+    await stack.app.waitLine(/WARNING Sugestão da IA: .*EISDIR/);
+    assert.deepEqual((await c.call("resolvia/suggest/get")).ai.picks, out.picks);
+  });
+});
+
 describe("a Home Assistant without AI", () => {
   let stack;
   let c;
