@@ -319,6 +319,25 @@ describe("readRaw", () => {
     await assert.rejects(readRaw(req, 10), { code: "too_big" });
   });
 
+  it("too big: reads to the end before saying so (the 413 reaches the browser); far too big: closes", async () => {
+    const { EventEmitter } = await import("node:events");
+    const fake = () => Object.assign(new EventEmitter(), { destroyed: false, destroy() { this.destroyed = true; } });
+    const r = fake();
+    const p = readRaw(r, 4).catch((x) => x);
+    r.emit("data", Buffer.from("abc"));
+    r.emit("data", Buffer.from("def"));
+    assert.equal(r.destroyed, false, "not cut in the middle of the upload");
+    r.emit("end");
+    assert.equal((await p).code, "too_big");
+    const big = fake();
+    const q = readRaw(big, 4).catch((x) => x);
+    big.emit("data", Buffer.alloc(10));
+    big.emit("data", Buffer.alloc(10));
+    assert.equal(big.destroyed, true, "over 4 times the limit");
+    big.emit("end");
+    assert.equal((await q).code, "too_big");
+  });
+
   it("passes on a stream error", async () => {
     const req = new Readable({ read() {} });
     const p = readRaw(req, 10);

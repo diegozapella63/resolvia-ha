@@ -179,6 +179,15 @@ describe("WsConnection: control frames and limits", () => {
     assert.equal(c.closed, true);
   });
 
+  it("what arrives after the close is discarded (RFC 6455)", (t) => {
+    const { socket, messages } = conn(t);
+    const code = Buffer.alloc(2);
+    code.writeUInt16BE(1000);
+    socket.emit("data", frame(8, code));
+    socket.emit("data", frame(1, '{"id":9,"type":"resolvia/points/get"}'));
+    assert.deepEqual(messages, []);
+  });
+
   it("closes with 1002 on an unmasked frame", (t) => {
     const { socket, messages, closes } = conn(t);
     socket.emit("data", frame(1, "x", { mask: false }));

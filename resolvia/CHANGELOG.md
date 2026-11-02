@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.30.2
+
+- A conexão da tela ignora o que ainda chega depois de fechada (achado pelos testes da CronologIA, que usa o mesmo código). Mais testes: o aviso de arquivo ou fala grande demais e a conexão fechada.
+
 ## 2.30.1
 
 - **Testes**: o ResolvIA agora tem 543 testes unitários e de integração (`npm test`) e os testes visuais no Chromium (`tests/e2e/run.sh`), rodando no GitHub a cada mudança. Eles acharam e esta versão corrige:
