@@ -29,10 +29,25 @@ export function searchEquips(items, { room = null, query = "" } = {}) {
 function marked(html, text, query) {
   const t = fold(query).split(/\s+/).filter(Boolean)[0];
   if (!t) return text;
-  const at = fold(text).indexOf(t);
-  if (at < 0) return text;
+  // by character (an emoji or an accent never shifts the mark)
   const chars = [...text];
-  return html`${chars.slice(0, at).join("")}<mark>${chars.slice(at, at + t.length).join("")}</mark>${chars.slice(at + t.length).join("")}`;
+  const f = chars.map(foldChar);
+  let at = -1;
+  let end = -1;
+  for (let i = 0; i < chars.length && at < 0; i++) {
+    let acc = "";
+    for (let j = i; j < chars.length; j++) {
+      acc += f[j];
+      if (acc === t) {
+        at = i;
+        end = j + 1;
+        break;
+      }
+      if (!t.startsWith(acc)) break;
+    }
+  }
+  if (at < 0) return text;
+  return html`${chars.slice(0, at).join("")}<mark>${chars.slice(at, end).join("")}</mark>${chars.slice(end).join("")}`;
 }
 
 /**

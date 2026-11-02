@@ -8,7 +8,14 @@ import crypto from "node:crypto";
 const VERSION_EVERY = 10 * 60 * 1000;
 const MAX_VERSIONS = 3; // Versões anteriores: only the 3 newest copies are kept
 const pad = (n) => String(n).padStart(2, "0");
-const stamp = (d = new Date()) => `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+// to the millisecond: two copies in the same second (a double Restaurar) keep both
+const stamp = (d = new Date()) => `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}${String(d.getMilliseconds()).padStart(3, "0")}`;
+
+/** The order of the safety copies: by when they were made ("resolvia-YYYYMMDD-HHMMSS[mmm]-motivo.json"), not by the name. */
+export const versionKey = (name) => {
+  const m = /^resolvia-(\d{8})-(\d{6})(\d{3})?/.exec(name || "");
+  return m ? `${m[1]}${m[2]}${m[3] || "000"}` : "";
+};
 const isObj = (v) => v && typeof v === "object" && !Array.isArray(v);
 const str = (v, max) => (typeof v === "string" && v.trim() ? v.slice(0, max) : null);
 const num = (v) => (Number.isFinite(v) ? v : null);
@@ -193,7 +200,10 @@ export class Store {
   /** Keeps only the newest MAX_VERSIONS copies in /data/versoes. */
   trimVersions() {
     try {
-      const all = fs.readdirSync(this.versionsDir).filter((f) => /^resolvia-.*\.json$/.test(f)).sort();
+      const all = fs
+        .readdirSync(this.versionsDir)
+        .filter((f) => /^resolvia-.*\.json$/.test(f))
+        .sort((a, b) => versionKey(a).localeCompare(versionKey(b)) || a.localeCompare(b));
       for (const old of all.slice(0, Math.max(0, all.length - MAX_VERSIONS))) fs.rmSync(path.join(this.versionsDir, old), { force: true });
     } catch (e) {
       /* no versions yet */
@@ -206,7 +216,12 @@ export class Store {
     if (!fs.existsSync(this.file)) return null;
     try {
       fs.mkdirSync(this.versionsDir, { recursive: true });
-      const name = `resolvia-${stamp()}-${reason}.json`;
+      let at = new Date();
+      let name = `resolvia-${stamp(at)}-${reason}.json`;
+      while (fs.existsSync(path.join(this.versionsDir, name))) {
+        at = new Date(at.getTime() + 1);
+        name = `resolvia-${stamp(at)}-${reason}.json`;
+      }
       fs.copyFileSync(this.file, path.join(this.versionsDir, name));
       this.lastVersion = Date.now();
       this.trimVersions();

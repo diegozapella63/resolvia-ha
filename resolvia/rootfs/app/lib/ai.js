@@ -149,7 +149,8 @@ export function cleanItems(raw) {
   for (let v of list) {
     if (v && typeof v === "object") v = v.summary || v.item || v.name || v.text || "";
     if (typeof v !== "string") continue;
-    let s = v.trim().replace(/^([-*•·▪◦‣–—]|\d+[.)]|\[[ xX✓]?\])\s*/, "").trim();
+    // a list number ("1.", "2)") goes, a quantity ("1.5 kg") stays
+    let s = v.trim().replace(/^([-*•·▪◦‣–—]|\d+[.)](?!\d)|\[[ xX✓]?\])\s*/, "").trim();
     if (!s) continue;
     s = s.slice(0, 255);
     s = s.charAt(0).toUpperCase() + s.slice(1);

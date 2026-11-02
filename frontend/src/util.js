@@ -53,6 +53,8 @@ export const fold = (s) =>
 // Same length as the input, so indexes map back to the original string.
 export const foldKeepLength = (s) =>
   Array.from(s || "", (ch) => {
+    // an emoji (two code units) stays whole, so the length is kept
+    if (ch.length !== 1) return ch;
     const f = ch.normalize("NFD")[0] || ch;
     return f.toLowerCase().length === 1 ? f.toLowerCase() : ch;
   }).join("");
@@ -106,7 +108,7 @@ const ICON_RULES = [
   [/receita|comida|jantar|almoço|almoco/, "utensils"],
   [/jardim|planta|horta/, "flower-2"],
   [/carro|auto/, "car"],
-  [/pet|cachorro|dog/, "dog"],
+  [/\bpets?\b|cachorro|dog\b/, "dog"],
   [/gato|cat\b/, "cat"],
   [/filme|serie|série|tv/, "tv"],
   [/jogo|game/, "gamepad-2"],
@@ -256,7 +258,8 @@ export function splitLinks(text) {
 
 // ---------- import (no AI) ----------
 
-const BULLET = /^(\s*([-*•·▪◦‣–—>]|\d{1,3}[.)-]|\[[ xX✓✔]?\]|[☐☑✅✔️🔲🔳⬜]))+\s*/u;
+// a list number ("1.", "2)", "3-") goes; a quantity or a range ("1.5 kg", "2-3 tomates") stays
+const BULLET = /^(\s*([-*•·▪◦‣–—>]|\d{1,3}[.)-](?!\d)|\[[ xX✓✔]?\]|[☐☑✅✔️🔲🔳⬜]))+\s*/u;
 // WhatsApp exports: "[18/10/26, 20:15] Fulano: texto" or "18/10/2026 20:15 - Fulano: texto"
 const CHAT_PREFIX = /^\[?\d{1,2}[/.]\d{1,2}(?:[/.]\d{2,4})?,?\s+\d{1,2}:\d{2}(?::\d{2})?\]?\s*(?:-\s*)?[^:]{1,40}:\s*/;
 

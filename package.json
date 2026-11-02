@@ -1,0 +1,11 @@
+{
+  "name": "resolvia-ha",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "TZ=America/Sao_Paulo node --test 'tests/*.test.mjs' 'tests/integration/*.test.mjs'",
+    "test:unit": "TZ=America/Sao_Paulo node --test 'tests/*.test.mjs'",
+    "test:integration": "TZ=America/Sao_Paulo node --test 'tests/integration/*.test.mjs'",
+    "test:coverage": "TZ=America/Sao_Paulo node --test --experimental-test-coverage 'tests/*.test.mjs' 'tests/integration/*.test.mjs'"
+  }
+}

@@ -1,0 +1,56 @@
+name: Testes
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  unit:
+    name: Unitários e integração
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm test
+
+  visual:
+    name: Visuais (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      # os apps da família lado a lado, como os testes esperam
+      - uses: actions/checkout@v4
+        with:
+          path: resolvia-ha
+      - uses: actions/checkout@v4
+        with:
+          repository: diegozapella63/cronologia-ha
+          path: cronologia-ha
+      - uses: actions/checkout@v4
+        with:
+          repository: diegozapella63/gerencia-ha
+          path: gerencia-ha
+      - uses: actions/checkout@v4
+        with:
+          repository: diegozapella63/inventario-ha
+          path: inventario-ha
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install playwright && python -m playwright install --with-deps chromium
+      - run: resolvia-ha/tests/e2e/run.sh
+        env:
+          E2E_TMP: ${{ runner.temp }}/e2e
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: capturas-e-saidas
+          path: ${{ runner.temp }}/e2e
+          retention-days: 7

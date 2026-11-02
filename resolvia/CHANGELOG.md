@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.30.1
+
+- **Testes**: o ResolvIA agora tem 543 testes unitários e de integração (`npm test`) e os testes visuais no Chromium (`tests/e2e/run.sh`), rodando no GitHub a cada mudança. Eles acharam e esta versão corrige:
+- Colar ou ler uma lista com quantidades: "1.5 kg de carne" virava "5 kg de carne", "1.000 folhas" virava "000 folhas" e "2-3 tomates" virava "3 tomates". Agora só o número da lista ("1.", "2)") sai.
+- Buscar com emoji no nome: o destaque caía nas letras erradas (na busca e no Equipamento).
+- Duas cópias de segurança no mesmo segundo (um Restaurar tocado duas vezes) ficavam numa só, e a cópia do que havia antes era perdida. Agora o nome vai até o milésimo e a ordem é pela hora.
+- Um arquivo grande demais (importar, ler com IA) ou uma fala longa demais às vezes davam "conexão perdida" em vez do aviso.
+- Quando a CronologIA assume tarefas, o cômodo e o equipamento delas também saem daqui (os pontos e a repetição já saíam).
+- Listas com "tapete" ou "repetições" no nome ganhavam o ícone de cachorro.
+
 ## 2.30.0
 
 - **Buscar por cômodo e equipamento**: em **Buscar**, digitar o cômodo ("cozinha") ou o equipamento ("ar-condicionado", ou a zona dele) traz as tarefas ligadas a eles. Ao lado de **Incluir concluídos** ficam **Incluir cômodos** e **Incluir equipamentos**, ligados por padrão; com **Usar cômodos** ou **Usar equipamentos** desligado em Mais › Integrações, o botão fica inativo.

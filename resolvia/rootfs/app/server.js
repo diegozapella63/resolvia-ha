@@ -21,7 +21,7 @@ import { Inventario } from "./lib/inventario.js";
 import { Voice, readRaw, MAX_VOICE_BYTES } from "./lib/voice.js";
 import { snapshot, toCSV, backupZip, parseImport, Backups, listVersions, readVersion, fileStamp } from "./lib/data.js";
 
-const VERSION = "2.30.0";
+const VERSION = "2.30.1";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const WWW = path.join(HERE, "www");
 const DEV = process.env.RESOLVIA_DEV === "1";
@@ -209,11 +209,18 @@ ha.subscribe({ type: "subscribe_events", event_type: "resolvia_esquecer" }, (ev)
       log.warn(`Não consegui tirar a repetição de "${r.summary}": ${err.message}`);
     }
   }
+  // what this app kept about them goes too: points, room and equipment
   for (const name of names) {
     try {
       store.setPoints(d.entity_id, name, 0);
     } catch (e) {
       /* no points for it */
+    }
+    try {
+      store.setRoom(d.entity_id, name, null);
+      store.setEquip(d.entity_id, name, null);
+    } catch (e) {
+      /* no room or equipment for it */
     }
   }
   publishPresence();
@@ -651,16 +658,21 @@ function handleImport(req, res) {
   let aborted = false;
   req.on("data", (c) => {
     size += c.length;
+    // too big: stop keeping it, but read to the end so the answer (413) reaches the browser
+    // (closing mid-upload made it see a broken connection); far too big: close
+    if (aborted) {
+      if (size > MAX_UPLOAD * 4) req.destroy();
+      return;
+    }
     if (size > MAX_UPLOAD) {
       aborted = true;
-      sendJson(res, 413, { error: "Arquivo grande demais" });
-      req.destroy();
+      chunks.length = 0;
       return;
     }
     chunks.push(c);
   });
   req.on("end", async () => {
-    if (aborted) return;
+    if (aborted) return sendJson(res, 413, { error: "Arquivo grande demais" });
     let name = "";
     try {
       name = decodeURIComponent(req.headers["x-file-name"] || "");
@@ -685,16 +697,21 @@ function handleExtract(req, res) {
   let aborted = false;
   req.on("data", (c) => {
     size += c.length;
+    // too big: stop keeping it, but read to the end so the answer (413) reaches the browser
+    // (closing mid-upload made it see a broken connection); far too big: close
+    if (aborted) {
+      if (size > MAX_UPLOAD * 4) req.destroy();
+      return;
+    }
     if (size > MAX_UPLOAD) {
       aborted = true;
-      sendJson(res, 413, { error: "Arquivo grande demais" });
-      req.destroy();
+      chunks.length = 0;
       return;
     }
     chunks.push(c);
   });
   req.on("end", async () => {
-    if (aborted) return;
+    if (aborted) return sendJson(res, 413, { error: "Arquivo grande demais" });
     let body;
     try {
       body = JSON.parse(Buffer.concat(chunks).toString("utf8"));

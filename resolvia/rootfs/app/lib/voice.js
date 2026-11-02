@@ -184,16 +184,22 @@ export function readRaw(req, max) {
   return new Promise((resolve, reject) => {
     const chunks = [];
     let size = 0;
+    let big = false;
     req.on("data", (c) => {
       size += c.length;
+      // too long: stop keeping it, but read to the end so the answer reaches the browser; far too long: close
+      if (big) {
+        if (size > max * 4) req.destroy();
+        return;
+      }
       if (size > max) {
-        reject(coded("too_big", "Fale até 2 minutos de cada vez."));
-        req.destroy();
+        big = true;
+        chunks.length = 0;
         return;
       }
       chunks.push(c);
     });
-    req.on("end", () => resolve(Buffer.concat(chunks)));
+    req.on("end", () => (big ? reject(coded("too_big", "Fale até 2 minutos de cada vez.")) : resolve(Buffer.concat(chunks))));
     req.on("error", reject);
   });
 }

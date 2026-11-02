@@ -5,11 +5,11 @@
 import fs from "node:fs";
 import path from "node:path";
 import { makeZip, readZip } from "./zip.js";
-import { taskKey as taskKeyOf } from "./store.js";
+import { taskKey as taskKeyOf, versionKey } from "./store.js";
 
 const pad = (n) => String(n).padStart(2, "0");
 const BACKUP_RE = /^resolvia-[\w-]+\.zip$/;
-export const VERSION_RE = /^resolvia-(\d{8})-(\d{6})-?([\w-]*)\.json$/;
+export const VERSION_RE = /^resolvia-(\d{8})-(\d{6})(\d{3})?-?([\w-]*)\.json$/;
 
 export const fileStamp = (d = new Date()) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}`;
 const dateTime = (ms) => {
@@ -182,13 +182,15 @@ export class Backups {
 export function listVersions(dir) {
   if (!fs.existsSync(dir)) return [];
   const out = [];
-  for (const name of fs.readdirSync(dir).sort().reverse()) {
+  // newest first, by when they were made (two in the same second: the later one first)
+  const names = fs.readdirSync(dir).sort((a, b) => versionKey(b).localeCompare(versionKey(a)) || b.localeCompare(a));
+  for (const name of names) {
     const m = VERSION_RE.exec(name);
     if (!m) continue;
     try {
       const d = JSON.parse(fs.readFileSync(path.join(dir, name), "utf8"));
-      const [, ymd, hms, reason] = m;
-      const at = new Date(+ymd.slice(0, 4), +ymd.slice(4, 6) - 1, +ymd.slice(6, 8), +hms.slice(0, 2), +hms.slice(2, 4), +hms.slice(4, 6)).getTime();
+      const [, ymd, hms, ms, reason] = m;
+      const at = new Date(+ymd.slice(0, 4), +ymd.slice(4, 6) - 1, +ymd.slice(6, 8), +hms.slice(0, 2), +hms.slice(2, 4), +hms.slice(4, 6), +(ms || 0)).getTime();
       out.push({ name, when: at, reason: reason || "auto", lists: Object.keys((d.prefs && d.prefs.lists) || {}).length, rules: Object.keys(d.rules || {}).length });
     } catch (e) {
       /* skip broken file */
