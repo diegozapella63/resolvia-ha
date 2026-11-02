@@ -81,7 +81,7 @@ export const text = (view) =>
     .replace(/<[^>]+>/g, " ")
     .replace(/&quot;/g, '"')
     .replace(/\s+/g, " ")
-    .replace(/ ([.,;:!?)])/g, "$1") // "<b>8 chamadas</b>." reads "8 chamadas."
+    .replace(/ ([.,;:!?)])(?=\s|$)/g, "$1") // "<b>8 chamadas</b>." reads "8 chamadas." (but ".ics" stays)
     .trim();
 
 /** The elements with a handler: [{tag, attrs, text, on: {click: fn}}]. */
