@@ -2,7 +2,7 @@
 // through the real server against the fake Home Assistant.
 import { describe, it, before, after } from "node:test";
 import assert from "node:assert/strict";
-import { Stack, waitFor, items } from "./_harness.mjs";
+import { Stack, waitFor, items, APP_VERSION } from "./_harness.mjs";
 
 const CASA = "todo.casa";
 const SHOP = "todo.notas_e_rotinas_do_alexa_shopping_list";
@@ -29,7 +29,7 @@ describe("connection and bootstrap", () => {
 
   it("bootstrap: version, user, time zone, the to-do lists and their devices", async () => {
     const b = await c.call("resolvia/bootstrap");
-    assert.equal(b.version, "2.30.0");
+    assert.equal(b.version, APP_VERSION);
     assert.deepEqual(b.user, { id: "user-ana", name: "Ana Souza" });
     assert.equal(b.time_zone, "America/Sao_Paulo", "Home Assistant's time zone, not the process's UTC");
     await stack.app.waitLine(/Fuso horário: America\/Sao_Paulo/);
@@ -145,7 +145,7 @@ describe("the integration file (share/resolvia/integracao.json)", () => {
   it("lists without due dates are 'sem prazo'; deadlines on by default; no points while off", async () => {
     const p = await waitFor(() => stack.presence(), { what: "integracao.json" });
     assert.equal(p.app, "ResolvIA");
-    assert.equal(p.versao, "2.30.0");
+    assert.equal(p.versao, APP_VERSION);
     assert.ok(Date.now() - Date.parse(p.gravado_em) < 60_000);
     assert.deepEqual(p.sem_prazo.sort(), [PROBLEMS, SHOP, TODO].sort());
     assert.equal(p.prazos, true);

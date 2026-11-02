@@ -11,6 +11,8 @@ import { fileURLToPath } from "node:url";
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const SERVER = path.join(ROOT, "resolvia", "rootfs", "app", "server.js");
+/** The version of the add-on (config.yaml), so a version bump does not break the tests. */
+export const APP_VERSION = /^version:\s*"([^"]+)"/m.exec(fs.readFileSync(path.join(ROOT, "resolvia", "config.yaml"), "utf8"))[1];
 const FAKE_HA = path.join(ROOT, "dev", "fake-ha.mjs");
 const TOKEN = "integration-token";
 

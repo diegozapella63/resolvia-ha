@@ -4,7 +4,7 @@ import { describe, it, before, after } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
-import { Stack, waitFor, items, rawPost } from "./_harness.mjs";
+import { Stack, waitFor, items, rawPost, APP_VERSION } from "./_harness.mjs";
 import { readZip } from "../../resolvia/rootfs/app/lib/zip.js";
 
 const CASA = "todo.casa";
@@ -45,7 +45,7 @@ describe("exports", () => {
     assert.equal(res.headers.get("cache-control"), "no-store");
     snap = await res.json();
     assert.equal(snap.app_name, "ResolvIA");
-    assert.equal(snap.app_version, "2.30.0");
+    assert.equal(snap.app_version, APP_VERSION);
     assert.deepEqual(snap.prefs.lists[CASA], { name: "Minha Casa", color: "menta", icon: "house" });
     assert.deepEqual(snap.points, { [CASA]: { "passar pano na casa": 10 } });
     assert.deepEqual(snap.rooms, { [CASA]: { "passar pano na casa": "sala" } });
