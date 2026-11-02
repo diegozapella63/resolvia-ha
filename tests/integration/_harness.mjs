@@ -162,7 +162,7 @@ export class Stack {
 
   baseEnv() {
     const env = { ...process.env };
-    for (const k of ["SUPERVISOR_TOKEN", "HA_TOKEN", "HA_WS_URL", "HA_REST_URL", "DATA_DIR", "SHARE_DIR", "MEDIA_DIR", "PORT", "RESOLVIA_DEV", "RESOLVIA_DAY_MS", "RESOLVIA_DEV_USER_ID", "FAKE_HA_PORT", "FAKE_HA_TOKEN", "FAKE_MEDIA_DIR", "FAKE_HA_NO_AI", "FAKE_NO_STT", "FAKE_STT_TEXT", "FAKE_AI_SUGGEST_BAD", "NODE_TEST_CONTEXT"]) delete env[k];
+    for (const k of ["SUPERVISOR_TOKEN", "HA_TOKEN", "HA_WS_URL", "HA_REST_URL", "DATA_DIR", "SHARE_DIR", "MEDIA_DIR", "PORT", "RESOLVIA_DEV", "RESOLVIA_DAY_MS", "RESOLVIA_DEV_USER_ID", "FAKE_HA_PORT", "FAKE_HA_TOKEN", "FAKE_MEDIA_DIR", "FAKE_HA_NO_AI", "FAKE_NO_STT", "FAKE_STT_TEXT", "FAKE_AI_SUGGEST_BAD", "FAKE_FAIL", "NODE_TEST_CONTEXT"]) delete env[k];
     env.TZ = "America/Sao_Paulo";
     return env;
   }

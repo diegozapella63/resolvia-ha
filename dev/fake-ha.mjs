@@ -98,6 +98,9 @@ function changed(id) {
   }
 }
 
+// FAKE_FAIL=get_config,todo/item/subscribe: those commands answer with an error (to test how the app copes)
+const FAILS = new Set((process.env.FAKE_FAIL || "").split(",").map((x) => x.trim()).filter(Boolean));
+
 function fail(code, message) {
   const e = new Error(message);
   e.code = code;
@@ -228,6 +231,7 @@ class Conn {
     }
     const ok = (result = null) => this.send({ id: msg.id, type: "result", success: true, result });
     try {
+      if (FAILS.has(msg.type)) fail("home_assistant_error", `Falha simulada em ${msg.type}`);
       switch (msg.type) {
         case "get_states":
           return ok([

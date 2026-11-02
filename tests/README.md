@@ -11,3 +11,8 @@ Três camadas, todas rodando a cada push no GitHub (aba Actions):
 `npm test` roda as duas primeiras (só Node 22, sem instalar nada; uns 20 segundos). Os visuais precisam de `python3` e `pip install playwright && playwright install chromium`, e dos outros apps da família ao lado deste repositório (`../cronologia-ha`, `../inventario-ha`, `../gerencia-ha`) ou nas variáveis `E2E_*`; um teste que precisa de um app que não está lá é pulado. As capturas ficam em `$E2E_TMP/shots`.
 
 `npm run test:coverage` mostra quanto do código os testes percorrem.
+
+## Peças que ajudam
+
+- `tests/_lit.mjs`: deixa testar no Node os mixins da tela (Lit) sem navegador. Importe antes do módulo da tela; `text(view)` lê o que a pessoa veria, `click(view, "rótulo")` e `fire(view, rótulo, "change", ev)` rodam o que o botão faz, e `hostOf(Mixin)` dá um painel de mentira (toasts, janelas, preferências salvas) com `fakeHass({tipo: resposta})`.
+- `FAKE_FAIL=get_config,todo/item/subscribe` no `dev/fake-ha.mjs`: esses comandos do Home Assistant respondem com erro (ver `tests/integration/resilience.test.mjs`).
