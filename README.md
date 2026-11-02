@@ -57,6 +57,8 @@ dev/fake-ha.mjs          Home Assistant falso para desenvolver sem o HA
 
 ## Desenvolvimento
 
+Como trabalhar no projeto (checklist de cada mudança, versão, testes, arquivos em comum com os outros apps e como eles conversam): [AGENTS.md](AGENTS.md). Os testes: [tests/README.md](tests/README.md).
+
 ```bash
 cd frontend && npm install && npm run build      # gera resolvia/rootfs/app/www/resolvia.js
 node dev/fake-ha.mjs                             # HA falso em :8123 (token "dev")
