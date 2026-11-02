@@ -4,7 +4,7 @@ import { describe, it, before, after } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
-import { Stack, waitFor } from "./_harness.mjs";
+import { Stack, waitFor, rawPost } from "./_harness.mjs";
 
 const CASA = "todo.casa";
 const SHOP = "todo.notas_e_rotinas_do_alexa_shopping_list";
@@ -89,6 +89,21 @@ describe("with the fake AI", () => {
 
     it("refuses a body that is not JSON", async () => {
       assert.deepEqual(await extract(stack, "{nope", true), { status: 400, body: { error: "JSON inválido" } });
+    });
+
+    it("photos over 30 MB are refused with 413 'Arquivo grande demais', without asking the AI (every time)", async () => {
+      const lines = stack.fake.count(/fake AI call/);
+      const got = [];
+      for (let i = 0; i < 3; i++) got.push(await rawPost(stack, "/api/extract", 31 * 1024 * 1024, { "content-type": "application/json" }));
+      assert.deepEqual(got, Array(3).fill('HTTP 413 {"error":"Arquivo grande demais"}'));
+      await settle();
+      assert.equal(stack.fake.count(/fake AI call/), lines);
+    });
+
+    it("far too big (over 120 MB): the upload is cut, and the app keeps working", async () => {
+      const got = await rawPost(stack, "/api/extract", 125 * 1024 * 1024, { "content-type": "application/json" });
+      assert.match(got, /^ERROR |^HTTP 413/);
+      assert.equal(await c.call("ping"), "pong");
     });
   });
 

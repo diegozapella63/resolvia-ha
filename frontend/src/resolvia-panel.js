@@ -1572,16 +1572,22 @@ class ResolviaPanel extends RoomsMixin(SuggestMixin(PointsMixin(DataMixin(LitEle
       return;
     }
     const due = parseDue(item.due);
-    this._showToast("Item excluído", {
-      label: "Desfazer",
-      run: () =>
-        this._addFull(list, {
-          summary: item.summary,
-          description: item.description,
-          date: due ? due.date : null,
-          time: due ? due.time : null,
-        }),
-    });
+    // Desfazer adds it again: only where the list takes new items
+    this._showToast(
+      "Item excluído",
+      has(list.features, F.CREATE)
+        ? {
+            label: "Desfazer",
+            run: () =>
+              this._addFull(list, {
+                summary: item.summary,
+                description: item.description,
+                date: due ? due.date : null,
+                time: due ? due.time : null,
+              }),
+          }
+        : null,
+    );
   }
 
   _confirmClearDone(list) {

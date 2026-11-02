@@ -67,6 +67,23 @@ const lists = {
     items: [it("Passar pano na casa"), it("Pagar conta de luz", { due: day(-1) }), it("Trocar filtro do ar", { due: day(0) })],
   },
 };
+// FAKE_HA_EXTRA=1: lists that each allow less, for the tests of "O ResolvIA mostra só o que cada lista suporta"
+if (process.env.FAKE_HA_EXTRA === "1") {
+  Object.assign(lists, {
+    // like the Shopping list integration: reorder, no dates, no notes
+    "todo.shopping_list": { name: "Lista de compras", device: null, en: "Lista de compras", features: F.CREATE | F.DELETE | F.UPDATE | F.MOVE, items: [it("Pão"), it("Manteiga"), it("Queijo"), done("Açúcar")] },
+    // like Google Tasks: a due date without time, notes, reorder
+    "todo.google_tasks": { name: "Google Tasks", device: null, en: "Google Tasks", features: F.CREATE | F.DELETE | F.UPDATE | F.MOVE | F.DUE_DATE | F.DESCRIPTION, items: [it("Renovar passaporte", { due: day(3) })] },
+    // read only (an integration that only shows its items)
+    "todo.avisos": { name: "Avisos do condomínio", device: null, en: "Avisos do condomínio", features: 0, items: [it("Assembleia na quinta"), done("Dedetização")] },
+    // takes no new items, but its items can be completed, edited and deleted
+    "todo.sem_novos": { name: "Chamados", device: null, en: "Chamados", features: F.UPDATE | F.DELETE, items: [it("Ligar para o síndico")] },
+    // a list whose integration is not answering
+    "todo.caldav": { name: "CalDAV", device: null, en: "CalDAV", features: 127, unavailable: true, items: [] },
+  });
+}
+// FAKE_HA_FAIL=get_config,config/device_registry/list: these commands fail (a Home Assistant that refuses them)
+const FAILING = new Set((process.env.FAKE_HA_FAIL || "").split(",").filter(Boolean));
 const devices = [
   { id: "dev_alexa", name: "Notas e Rotinas do Alexa", name_by_user: null },
   { id: "dev_other", name: "Lâmpada da sala", name_by_user: null },
@@ -78,7 +95,7 @@ const stateOf = (id) => {
   const l = lists[id];
   return {
     entity_id: id,
-    state: String(l.items.filter((i) => i.status !== "completed").length),
+    state: l.unavailable ? "unavailable" : String(l.items.filter((i) => i.status !== "completed").length),
     attributes: { friendly_name: l.name, supported_features: l.features },
     last_changed: new Date().toISOString(),
   };
@@ -112,6 +129,9 @@ function callService(msg) {
     const l = lists[id];
     if (!l) fail("not_found", "Entity not found");
     const find = (k) => l.items.find((i) => i.uid === k || i.summary === k);
+    // like Home Assistant (required_features of each todo action)
+    const needs = { add_item: F.CREATE, update_item: F.UPDATE, remove_item: F.DELETE, remove_completed_items: F.DELETE }[msg.service];
+    if (needs && !(l.features & needs)) fail("service_validation_error", `Entity ${id} does not support action todo.${msg.service}`);
     const fields = (item) => {
       if ("due_date" in data) {
         if (!(l.features & F.DUE_DATE)) fail("service_validation_error", "due_date not supported");
@@ -228,6 +248,7 @@ class Conn {
     }
     const ok = (result = null) => this.send({ id: msg.id, type: "result", success: true, result });
     try {
+      if (FAILING.has(msg.type)) fail("unknown_error", `${msg.type} failed`);
       switch (msg.type) {
         case "get_states":
           return ok([
@@ -270,6 +291,8 @@ class Conn {
           return ok();
         case "todo/item/subscribe":
           if (!lists[msg.entity_id]) fail("invalid_entity_id", "not found");
+          // an older integration without item subscriptions (the screens read the items instead)
+          if (lists[msg.entity_id].no_subscribe) fail("not_supported", "This entity does not support item subscriptions");
           this.subs.set(msg.id, { type: "todo", entity_id: msg.entity_id });
           ok();
           return this.event(msg.id, { items: lists[msg.entity_id].items.map((i) => ({ ...i })) });
@@ -360,6 +383,28 @@ const server = http.createServer((req, res) => {
     const v = restStates.get(st[1]);
     res.writeHead(v ? 200 : 404, { "content-type": "application/json" });
     return res.end(JSON.stringify(v || { message: "Entity not found." }));
+  }
+  // POST /dev/list {entity_id, name, features, items?, no_subscribe?}: a list created in Home Assistant;
+  // DELETE /dev/list/<entity_id>: the list removed (the apps see its state go)
+  const dl = req.url.match(/^\/dev\/list(?:\/(todo\.[a-z0-9_]+))?$/);
+  if (dl && req.method === "POST") {
+    let body = "";
+    req.on("data", (c) => (body += c));
+    req.on("end", () => {
+      const b = JSON.parse(body || "{}");
+      lists[b.entity_id] = { name: b.name, device: null, en: b.name, features: b.features ?? 127, no_subscribe: !!b.no_subscribe, items: (b.items || []).map((s) => it(s)) };
+      changed(b.entity_id);
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify(stateOf(b.entity_id)));
+    });
+    return;
+  }
+  if (dl && dl[1] && req.method === "DELETE") {
+    const had = !!lists[dl[1]];
+    delete lists[dl[1]];
+    for (const c of conns) for (const [sid, sub] of c.subs) if (sub.type === "state") c.event(sid, { event_type: "state_changed", data: { entity_id: dl[1], new_state: null } });
+    res.writeHead(had ? 200 : 404, { "content-type": "application/json" });
+    return res.end("{}");
   }
   // POST /dev/fire {event_type, data}: an event from another app (the CronologIA, an automation)
   if (req.url === "/dev/fire" && req.method === "POST") {

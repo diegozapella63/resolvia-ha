@@ -565,6 +565,15 @@ describe("Store: saving and versions", () => {
     },
   );
 
+  it("two copies in the very same millisecond: the second one is named a millisecond later, none is lost", (t) => {
+    const { store, versions } = newStore(t, { now: local(2026, 11, 2, 10, 0, 0) });
+    store.flush();
+    assert.equal(store.version("antes-de-restaurar", true), "resolvia-20261102-100000000-antes-de-restaurar.json");
+    assert.equal(store.version("antes-de-restaurar", true), "resolvia-20261102-100000001-antes-de-restaurar.json");
+    assert.equal(store.version("antes-de-restaurar", true), "resolvia-20261102-100000002-antes-de-restaurar.json");
+    assert.equal(versions().length, 3);
+  });
+
   it("version() without a file returns null", (t) => {
     const { store } = newStore(t);
     assert.equal(store.version("x", true), null);
