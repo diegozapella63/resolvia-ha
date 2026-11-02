@@ -33,6 +33,10 @@ async def main():
         a = pg.locator("resolvia-panel")
         await a.evaluate("(el) => el._openImport(null, 'pick')"); await pg.wait_for_timeout(400)
         tile = a.locator(".sheet .imp-tile", has_text="Digitalizar")
+        # the AI status can take a moment on a slow machine (GitHub): the tiles turn on with it
+        for _ in range(60):
+            if await tile.count() and await tile.is_enabled(): break
+            await pg.wait_for_timeout(250)
         check("Precisa de https" in await tile.inner_text() and "no-cam" in (await tile.get_attribute("class")), "the tile says it needs https before the tap")
         check("Em http a câmera não abre aqui" in await a.locator(".sheet").inner_text(), "and the help line explains")
         await a.locator(".sheet").screenshot(path=f"{SP}/shots/rvc-tiles.png")
