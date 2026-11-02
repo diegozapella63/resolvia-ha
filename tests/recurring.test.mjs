@@ -338,6 +338,26 @@ describe("tick: bringing tasks back", () => {
     assert.equal(r.uid, "new");
   });
 
+  it("created again: binds to the new item even when Home Assistant sends it before the answer (its completion counts)", async () => {
+    // Home Assistant pushes the new list to the subscribers before it answers todo.add_item
+    const r = completed();
+    const s = setup({ rules: { r1: r }, now: new Date(due), features: F.CREATE | F.UPDATE | F.DUE_DATE });
+    s.ha.send = async (msg) => {
+      s.calls.push(msg);
+      if (msg.service === "add_item") s.rec.process("todo.casa", [item({ uid: "new", due: "2026-11-05" })]);
+      return {};
+    };
+    s.rec.items.set("todo.casa", []);
+    s.rec.tick();
+    await flushPromises();
+    assert.equal(s.calls.length, 1);
+    assert.deepEqual([r.uid, r.match, r.completed_at], ["new", null, null], "bound right away");
+    // the next change is its completion: it is scheduled to come back
+    s.clock.t = due + 60 * MIN;
+    s.rec.process("todo.casa", [item({ uid: "new", status: "completed" })]);
+    assert.equal(r.reopen_at, local(2026, 11, 8).getTime());
+  });
+
   it("a list that can't update replaces the completed item (remove + add)", async () => {
     const r = completed();
     const { rec, calls } = setup({ rules: { r1: r }, now: new Date(due), features: F.CREATE | F.DELETE });

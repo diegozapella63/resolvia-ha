@@ -45,7 +45,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.30.2";
+const VERSION = "2.30.3";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -1572,16 +1572,22 @@ class ResolviaPanel extends RoomsMixin(SuggestMixin(PointsMixin(DataMixin(LitEle
       return;
     }
     const due = parseDue(item.due);
-    this._showToast("Item excluído", {
-      label: "Desfazer",
-      run: () =>
-        this._addFull(list, {
-          summary: item.summary,
-          description: item.description,
-          date: due ? due.date : null,
-          time: due ? due.time : null,
-        }),
-    });
+    // Desfazer adds it again: only where the list takes new items
+    this._showToast(
+      "Item excluído",
+      has(list.features, F.CREATE)
+        ? {
+            label: "Desfazer",
+            run: () =>
+              this._addFull(list, {
+                summary: item.summary,
+                description: item.description,
+                date: due ? due.date : null,
+                time: due ? due.time : null,
+              }),
+          }
+        : null,
+    );
   }
 
   _confirmClearDone(list) {

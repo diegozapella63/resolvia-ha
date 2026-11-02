@@ -194,6 +194,7 @@ export class Recurring extends EventEmitter {
     const item = rule.uid ? items.find((i) => i.uid === rule.uid) : null;
     const call = (service, data) =>
       this.ha.send({ type: "call_service", domain: "todo", service, service_data: data, target: { entity_id: rule.entity_id } });
+    let created = false;
     try {
       if (item && item.status === "needs_action") {
         // Already back (someone unchecked it).
@@ -206,6 +207,7 @@ export class Recurring extends EventEmitter {
         await call("add_item", data);
         rule.uid = null;
         rule.match = rule.summary;
+        created = true;
       } else {
         this.log.warn(`A lista ${rule.entity_id} não permite reabrir "${rule.summary}"`);
       }
@@ -214,6 +216,9 @@ export class Recurring extends EventEmitter {
       delete rule.retry_at;
       this.log.info(`De volta: "${rule.summary}" (${rule.entity_id})`);
       this._changed();
+      // Home Assistant sends the new item before it answers add_item: bind to it now, or its
+      // completion (the next change) would not be seen and it would not come back again
+      if (created) this.process(rule.entity_id, this.items.get(rule.entity_id) || []);
     } catch (err) {
       rule.retry_at = this.now() + RETRY_MS;
       this.log.warn(`Não consegui reabrir "${rule.summary}": ${err.message}. Tento de novo em 5 min.`);

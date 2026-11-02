@@ -189,6 +189,29 @@ describe("repetitions", () => {
     await stack.app.waitLine(/De volta: "Passar pano na casa" \(todo\.casa\)/);
   });
 
+  it("completed items cleared before their time: created again, and the new item's completion counts too", async () => {
+    await c.call("call_service", svc("add_item", { item: "Lavar o quintal" }));
+    const t1 = await byName(CASA, "Lavar o quintal");
+    const rules = await c.subscribe("resolvia/recurring/subscribe");
+    const rule = await c.call("resolvia/recurring/set", { entity_id: CASA, uid: t1.uid, summary: t1.summary, days: 1 });
+    const ruleNow = () => rules.events.at(-1).rules.find((r) => r.id === rule.id);
+    await c.call("call_service", svc("update_item", { item: t1.uid, status: "completed" }));
+    await c.call("call_service", svc("remove_completed_items", {}));
+    assert.equal(await byName(CASA, "Lavar o quintal"), undefined, "cleared");
+    const t2 = await waitFor(async () => {
+      const i = await byName(CASA, "Lavar o quintal");
+      return i && i.status === "needs_action" ? i : null;
+    }, { what: "created again" });
+    assert.notEqual(t2.uid, t1.uid);
+    // Home Assistant sends the new item before it answers add_item: the rule binds to it anyway
+    await waitFor(() => ruleNow().uid === t2.uid, { what: "rule bound to the new item" });
+    await c.call("call_service", svc("update_item", { item: t2.uid, status: "completed" }));
+    await waitFor(() => ruleNow().reopen_at, { what: "the new item scheduled" });
+    await waitFor(async () => (await byName(CASA, "Lavar o quintal")).status === "needs_action", { what: "back again" });
+    await c.call("resolvia/recurring/set", { entity_id: CASA, uid: t2.uid, summary: t2.summary, days: 0 });
+    await c.call("unsubscribe_events", { subscription: rules.id });
+  });
+
   it("validation of rules", async () => {
     await assert.rejects(c.call("resolvia/recurring/set", { entity_id: CASA, uid: "x", days: 400 }), { message: /between 1 and 365/ });
     await assert.rejects(c.call("resolvia/recurring/set", { entity_id: "light.x", uid: "x", days: 2 }), { message: /Not a to-do entity/ });
@@ -204,6 +227,14 @@ describe("repetitions", () => {
     await waitFor(() => rules.events.length, { what: "rules" });
     assert.deepEqual(rules.events[0].rules, []);
     await waitFor(() => !stack.presence().repete[CASA], { what: "repete cleared" });
+  });
+
+  it("odd task names from the CronologIA (only spaces) are skipped; the others are still forgotten", async () => {
+    await c.call("resolvia/points/set", { entity_id: CASA, summary: "Trocar filtro do ar", points: 5 });
+    await stack.fire("resolvia_esquecer", { entity_id: CASA, uids: [], tarefas: ["   ", "Trocar filtro do ar"], origem: "CronologIA" });
+    await stack.app.waitLine(/Levadas para o CronologIA: 2 tarefas de todo\.casa$/);
+    assert.equal(((await c.call("resolvia/points/get")).points[CASA] || {})["trocar filtro do ar"], undefined);
+    assert.equal(await c.call("ping"), "pong");
   });
 
   it("an item deleted while pending deletes its rule; recurring/clear removes them all", async () => {

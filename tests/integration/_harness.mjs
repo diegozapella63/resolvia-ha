@@ -146,14 +146,16 @@ export class Client {
 }
 
 /**
- * The whole stack. opts: {fakeEnv, appEnv, dev (default true), inventario: false}
- * Exposes: dirs (data, share, media), haUrl, appUrl, app/fake processes, client(), restartApp(), stop().
+ * The whole stack. opts: {fakeEnv, appEnv, dev (default true), waitLists (default true: start() waits
+ * until the app has read the lists; false for a Home Assistant that refuses it)}
+ * Exposes: dirs (data, share, media), haUrl, appUrl, app/fake processes, client(), restartApp(), restartFake(), stop().
  */
 export class Stack {
-  constructor({ fakeEnv = {}, appEnv = {}, dev = true } = {}) {
+  constructor({ fakeEnv = {}, appEnv = {}, dev = true, waitLists = true } = {}) {
     this.fakeEnv = fakeEnv;
     this.appEnv = appEnv;
     this.dev = dev;
+    this.waitLists = waitLists;
     this.root = fs.mkdtempSync(path.join(os.tmpdir(), "resolvia-int-"));
     this.dirs = { data: path.join(this.root, "data"), share: path.join(this.root, "share"), media: path.join(this.root, "media") };
     for (const d of Object.values(this.dirs)) fs.mkdirSync(d, { recursive: true });
@@ -172,10 +174,21 @@ export class Stack {
     this.appPort = await freePort();
     this.haUrl = `http://127.0.0.1:${this.haPort}`;
     this.appUrl = `http://127.0.0.1:${this.appPort}`;
-    this.fake = new Proc("fake-ha", FAKE_HA, { ...this.baseEnv(), FAKE_HA_PORT: String(this.haPort), FAKE_HA_TOKEN: TOKEN, FAKE_MEDIA_DIR: this.dirs.media, __CWD: this.root, ...this.fakeEnv });
-    await this.fake.waitLine(/fake Home Assistant on/);
+    await this.startFake();
     await this.startApp();
     return this;
+  }
+
+  async startFake() {
+    this.fake = new Proc("fake-ha", FAKE_HA, { ...this.baseEnv(), FAKE_HA_PORT: String(this.haPort), FAKE_HA_TOKEN: TOKEN, FAKE_MEDIA_DIR: this.dirs.media, __CWD: this.root, ...this.fakeEnv });
+    await this.fake.waitLine(/fake Home Assistant on/);
+  }
+
+  /** Home Assistant restarts (the fake starts again with its first lists), on the same port. pause: ms it stays down. */
+  async restartFake(pause = 0) {
+    await this.fake.stop();
+    if (pause) await new Promise((r) => setTimeout(r, pause));
+    await this.startFake();
   }
 
   async startApp() {
@@ -193,7 +206,7 @@ export class Stack {
     };
     this.app = new Proc("app", SERVER, env);
     await this.app.waitLine(/ouvindo na porta/);
-    await this.app.waitLine(/listas de tarefas encontradas/);
+    if (this.waitLists) await this.app.waitLine(/listas de tarefas encontradas/);
   }
 
   /** Stops the app (SIGTERM: it saves what it has) and starts it again on the same folders and port. */
@@ -213,6 +226,16 @@ export class Stack {
   async fire(event_type, data) {
     const res = await fetch(`${this.haUrl}/dev/fire`, { method: "POST", body: JSON.stringify({ event_type, data }) });
     assert200(res);
+  }
+
+  /** A list created in Home Assistant ({entity_id, name, features, items: [summary], no_subscribe}). */
+  async addList(list) {
+    assert200(await fetch(`${this.haUrl}/dev/list`, { method: "POST", body: JSON.stringify(list) }));
+  }
+
+  /** A list removed from Home Assistant. */
+  async removeList(entityId) {
+    assert200(await fetch(`${this.haUrl}/dev/list/${entityId}`, { method: "DELETE" }));
   }
 
   /** The events the app fired on Home Assistant's bus. */

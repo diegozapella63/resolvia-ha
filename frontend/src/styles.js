@@ -2426,8 +2426,10 @@ export const styles = css`
   :host([dark]) .toast button {
     color: var(--rv-accent-ink-light);
   }
+  /* with a sheet open, the bottom is the sheet's buttons (Salvar, Limpar…): the toast goes to the top */
   .toast.has-sheet {
-    bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+    top: calc(16px + env(safe-area-inset-top, 0px));
+    bottom: auto;
   }
 
   @media (min-width: 700px) {
@@ -2950,6 +2952,7 @@ export const styles = css`
     .toast,
     .toast.has-sheet {
       left: calc(50% + var(--rv-side-w) / 2);
+      top: auto;
       bottom: 24px;
     }
   }

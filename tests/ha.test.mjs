@@ -120,6 +120,26 @@ describe("HAClient: connecting", () => {
     assert.equal(ha.backoff, 1000);
   });
 
+  it("a connection refused with only 'error' (Node's WebSocket sends no 'close') is retried too, once per failure", (t) => {
+    const { ha, events } = client(t);
+    ws().close();
+    t.mock.timers.tick(1000);
+    assert.equal(FakeWS.all.length, 2, "first try");
+    // Home Assistant still restarting: refused, and Node's WebSocket only says "error"
+    ws().onerror({ type: "error" });
+    t.mock.timers.tick(2000);
+    assert.equal(FakeWS.all.length, 3, "tried again after 2 s");
+    // the browser way: error, then close: still one new try, not two
+    ws().onerror({ type: "error" });
+    ws().close();
+    t.mock.timers.tick(8000);
+    assert.equal(FakeWS.all.length, 4, "one try for one failure");
+    ws().receive({ type: "auth_required" });
+    ws().receive({ type: "auth_ok" });
+    assert.equal(ha.ready, true);
+    assert.deepEqual(events, ["ready", "disconnected", "ready"]);
+  });
+
   it("stop() closes and does not reconnect", (t) => {
     const { ha } = client(t);
     ha.stop();
