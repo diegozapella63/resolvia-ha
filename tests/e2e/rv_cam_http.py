@@ -10,7 +10,7 @@ from playwright.async_api import async_playwright
 SP = _os.environ["E2E_TMP"]; REPO = RESOLVIA
 DATA, SHARE = f"{SP}/rvc-data", f"{SP}/rvc-share"
 for d in (DATA, SHARE): shutil.rmtree(d, ignore_errors=True)
-os.makedirs(SHARE); os.makedirs(DATA)
+os.makedirs(SHARE); os.makedirs(DATA); os.makedirs(f"{SP}/rvc-media", exist_ok=True)
 n_ok, failed = 0, []
 def check(c, label):
     global n_ok
@@ -19,7 +19,7 @@ def check(c, label):
     else: failed.append(label)
 fake = subprocess.Popen(["node", f"{REPO}/dev/fake-ha.mjs"], env=dict(os.environ, FAKE_HA_TOKEN="test", FAKE_HA_PORT="8123", TZ="America/Sao_Paulo"), stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
 time.sleep(0.6)
-app = subprocess.Popen(["node", f"{REPO}/resolvia/rootfs/app/server.js"], env=dict(os.environ, TZ="America/Sao_Paulo", RESOLVIA_DEV="1", HA_WS_URL="ws://127.0.0.1:8123/api/websocket", HA_REST_URL="http://127.0.0.1:8123/api", HA_TOKEN="test", DATA_DIR=DATA, SHARE_DIR=SHARE, PORT="8099"), stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+app = subprocess.Popen(["node", f"{REPO}/resolvia/rootfs/app/server.js"], env=dict(os.environ, TZ="America/Sao_Paulo", RESOLVIA_DEV="1", HA_WS_URL="ws://127.0.0.1:8123/api/websocket", HA_REST_URL="http://127.0.0.1:8123/api", HA_TOKEN="test", DATA_DIR=DATA, SHARE_DIR=SHARE, MEDIA_DIR=f"{SP}/rvc-media", PORT="8099"), stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
 time.sleep(1.2)
 async def main():
     async with async_playwright() as p:
