@@ -115,7 +115,7 @@ async def main():
         await a.locator("#comodos").screenshot(path=f"{T}/panel2.png")
         # the item sheet: Equipamento, grouped by room; picking it fills the room
         await a.evaluate("(el) => el._openAdd('todo.casa')"); await pg.wait_for_timeout(400)
-        eq = sheet.locator(".field", has_text="Equipamento")
+        eq = sheet.locator(".field:has(.flabel:text-is('Equipamento')), .field:has(.flabel:text-is('Equipamentos'))")
         check(await eq.locator("input[aria-label='Buscar equipamento']").count() == 1 and "busque entre 3 equipamentos" in await eq.inner_text(), "Equipamento: a search, and how many there are")
         # a room chosen: only its items
         await sheet.locator(".pick.room", has_text="Cozinha").click(); await pg.wait_for_timeout(200)
@@ -132,18 +132,32 @@ async def main():
         await eq.locator(".eq-row", has_text="Ar-condicionado").click(); await pg.wait_for_timeout(200)
         check(await sheet.locator(".pick.room.on", has_text="Sala").count() == 1, "the room of the equipment comes along")
         check("Ar-condicionado" in await eq.locator(".eq-sel").inner_text() and "Parede · Sala" in await eq.locator(".eq-sel").inner_text(), "the chosen one: a card with zone and room")
+        # 2.31: with equipment the room is locked (it is the equipment's)
+        room_field = sheet.locator(".field:has(.flabel:text-is('Cômodo')), .field:has(.flabel:text-is('Cômodos'))")
+        check(await room_field.locator(".pick[disabled]").count() >= 3 and "Vem do equipamento." in await room_field.inner_text(), "the room is locked: it comes from the equipment")
         await eq.screenshot(path=f"{T}/picked.png")
-        # another room: the equipment of the old one goes away
-        await sheet.locator(".pick.room", has_text="Cozinha").click(); await pg.wait_for_timeout(200)
-        check(await eq.locator(".eq-sel").count() == 0, "another room: the equipment of the old one goes")
-        await sheet.locator(".pick.room", has_text="Sala").click(); await pg.wait_for_timeout(200)
-        await eq.locator(".eq-row", has_text="Ar-condicionado").click(); await pg.wait_for_timeout(200)
+        # another equipment, in another room: Outro equipamento, then both rooms
+        check(await eq.locator("input").count() == 0 and await eq.locator(".eq-add", has_text="Outro equipamento").count() == 1, "with one chosen: Outro equipamento instead of the search")
+        await eq.locator(".eq-add").click(); await pg.wait_for_timeout(200)
+        await eq.locator("input").fill("gela"); await pg.wait_for_timeout(200)
+        await eq.locator(".eq-row", has_text="Geladeira").click(); await pg.wait_for_timeout(200)
+        cards = [t.split("\n")[0] for t in await eq.locator(".eq-sel .eq-tx b").all_inner_texts()]
+        check(cards == ["Ar-condicionado", "Geladeira"] and await sheet.locator(".flabel", has_text="Equipamentos").count() == 1, f"two equipments ({cards})")
+        on = sorted(t.strip() for t in await room_field.locator(".pick.on").all_inner_texts())
+        check(on == ["Cozinha", "Sala"] and "Vem dos equipamentos." in await room_field.inner_text() and await sheet.locator(".flabel", has_text="Cômodos").count() == 1, f"both rooms, locked ({on})")
+        await sheet.screenshot(path=f"{T}/two-equips.png")
+        # × on one: it goes; the other stays
+        await eq.locator(".eq-sel", has_text="Geladeira").locator("button").click(); await pg.wait_for_timeout(200)
+        check([t.split("\n")[0] for t in await eq.locator(".eq-sel .eq-tx b").all_inner_texts()] == ["Ar-condicionado"], "× takes that one out")
+        await eq.locator(".eq-add").click(); await pg.wait_for_timeout(200)
+        await eq.locator("input").fill("gela"); await pg.wait_for_timeout(200)
+        await eq.locator(".eq-row", has_text="Geladeira").click(); await pg.wait_for_timeout(200)
         await sheet.locator(".btn.primary").last.click(); await pg.wait_for_timeout(1200)
         st = stored()
-        check(st.get("equips", {}).get("todo.casa", {}).get("limpar o filtro") == "sal-001" and st["rooms"]["todo.casa"].get("limpar o filtro") == "sala", f"saved: the equipment and its room ({st.get('equips')})")
+        check(st.get("equips", {}).get("todo.casa", {}).get("limpar o filtro") == ["sal-001", "coz-001"] and st["rooms"]["todo.casa"].get("limpar o filtro") == ["sala", "cozinha"], f"saved: both equipments and their rooms ({st.get('equips')}, {st.get('rooms')})")
         await a.evaluate("(el) => el._go('/lista/todo.casa')"); await pg.wait_for_timeout(700)
         row = a.locator(".item", has_text="Limpar o filtro")
-        check(await row.locator(".tag", has_text="Ar-condicionado").count() == 1 and await row.locator(".tag", has_text="Sala").count() == 1, "the task shows the equipment and the room")
+        check(await row.locator(".tag", has_text="Ar-condicionado").count() == 1 and await row.locator(".tag", has_text="Geladeira").count() == 1 and await row.locator(".tag", has_text="Sala").count() == 1 and await row.locator(".tag", has_text="Cozinha").count() == 1, "the task shows both equipments and both rooms")
         await pg.screenshot(path=f"{T}/list2.png")
         # the AI picks the equipment too
         await a.evaluate("(el) => el._openImport('todo.casa', 'text')"); await pg.wait_for_timeout(400)

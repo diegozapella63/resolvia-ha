@@ -97,7 +97,7 @@ Com o **InventarIA** (1.14.0 ou mais novo) no mesmo Home Assistant, ligue **Mais
 - o **Sugerir com IA** considera os cômodos e junta o que dá para fazer no mesmo lugar;
 - o **CronologIA** mostra o cômodo das tarefas e pede o cômodo em **Novo › Tarefa**.
 
-Com **Usar equipamentos** ligado (InventarIA 1.15.0 ou mais novo), cada tarefa pode apontar também para um item do InventarIA (um equipamento, um móvel), escolhido numa lista separada por cômodo; escolher o equipamento já preenche o cômodo. A IA sugere o equipamento na leitura e o considera no Sugerir com IA, e o CronologIA mostra e pede o equipamento no Novo › Tarefa.
+Com **Usar equipamentos** ligado (InventarIA 1.15.0 ou mais novo), cada tarefa pode apontar também para itens do InventarIA (equipamentos, móveis), um ou vários (**Outro equipamento**), buscados entre os do cômodo e os dos outros. Com equipamento, o cômodo fica bloqueado: é o dos equipamentos, um ou vários. A IA sugere o equipamento na leitura e o considera no Sugerir com IA, e o CronologIA mostra e pede o equipamento no Novo › Tarefa.
 
 No **Buscar**, digitar o cômodo ou o equipamento (o nome ou a zona) traz as tarefas ligadas a eles; os botões **Incluir cômodos** e **Incluir equipamentos** ligam e desligam isso (inativos quando a opção está desligada).
 

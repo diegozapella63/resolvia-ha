@@ -45,7 +45,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.30.3";
+const VERSION = "2.31.0";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -835,7 +835,7 @@ class ResolviaPanel extends RoomsMixin(SuggestMixin(PointsMixin(DataMixin(LitEle
       repeatOrig: 0,
       repeatCustom: false,
       room: null,
-      equip: null,
+      equips: [],
     });
     this.updateComplete.then(() => {
       const ta = this.renderRoot.querySelector(".sheet textarea");
@@ -1464,9 +1464,9 @@ class ResolviaPanel extends RoomsMixin(SuggestMixin(PointsMixin(DataMixin(LitEle
       points: this._rawPoints(list.id, item.summary),
       pointsOrig: this._rawPoints(list.id, item.summary),
       room: this._roomIdOf(list.id, item.summary),
-      roomOrig: this._roomIdOf(list.id, item.summary),
-      equip: this._equipIdOf(list.id, item.summary),
-      equipOrig: this._equipIdOf(list.id, item.summary),
+      roomsOrig: this._roomIdsOf(list.id, item.summary),
+      equips: this._equipIdsOf(list.id, item.summary),
+      equipsOrig: this._equipIdsOf(list.id, item.summary),
     });
     this._loadPoints();
   }
@@ -1494,8 +1494,7 @@ class ResolviaPanel extends RoomsMixin(SuggestMixin(PointsMixin(DataMixin(LitEle
       const ok = await this._addFull(target, { summary, description, date: f.date, time: f.time });
       if (ok && f.repeat) await this._setRule(target.id, { summary, days: f.repeat });
       if (ok && f.points) await this._setTaskPoints(target.id, summary, f.points);
-      if (ok && f.room) await this._setTaskRoom(target.id, summary, f.room);
-      if (ok && f.equip) await this._setTaskEquip(target.id, summary, f.equip);
+      if (ok) await this._saveTaskPlace(target.id, summary, f);
       if (ok && this._view().id !== target.id) this._showToast(`Adicionado em ${clip(target.name, 28)}`);
       return;
     }
@@ -1515,10 +1514,9 @@ class ResolviaPanel extends RoomsMixin(SuggestMixin(PointsMixin(DataMixin(LitEle
         if (f.repeatOrig) await this._setRule(list.id, { uid: item.uid, summary: item.summary, days: null });
         if (f.points) await this._setTaskPoints(target.id, summary, f.points);
         if (f.pointsOrig) await this._setTaskPoints(list.id, item.summary, 0);
-        if (f.room) await this._setTaskRoom(target.id, summary, f.room);
-        if (f.roomOrig) await this._setTaskRoom(list.id, item.summary, null);
-        if (f.equip) await this._setTaskEquip(target.id, summary, f.equip);
-        if (f.equipOrig) await this._setTaskEquip(list.id, item.summary, null);
+        await this._saveTaskPlace(target.id, summary, { ...f, roomsOrig: [], equipsOrig: [] });
+        if ((f.roomsOrig || []).length) await this._setTaskRoom(list.id, item.summary, null);
+        if ((f.equipsOrig || []).length) await this._setTaskEquip(list.id, item.summary, null);
         await this._call("remove_item", { item: [f.key] }, list.id);
         this._showToast(`Movido para ${clip(target.name, 28)}`);
       }
@@ -1539,12 +1537,7 @@ class ResolviaPanel extends RoomsMixin(SuggestMixin(PointsMixin(DataMixin(LitEle
     if ((f.points || 0) !== (f.pointsOrig || 0) || (f.pointsOrig && summary !== item.summary)) {
       await this._setTaskPoints(list.id, summary, f.points || 0, summary !== item.summary ? item.summary : null);
     }
-    if ((f.room || null) !== (f.roomOrig || null) || (f.roomOrig && summary !== item.summary)) {
-      await this._setTaskRoom(list.id, summary, f.room || null, summary !== item.summary ? item.summary : null);
-    }
-    if ((f.equip || null) !== (f.equipOrig || null) || (f.equipOrig && summary !== item.summary)) {
-      await this._setTaskEquip(list.id, summary, f.equip || null, summary !== item.summary ? item.summary : null);
-    }
+    await this._saveTaskPlace(list.id, summary, f, summary !== item.summary ? item.summary : null);
     if ((f.repeat || 0) !== (f.repeatOrig || 0)) {
       await this._setRule(list.id, { uid: item.uid, summary, days: f.repeat });
       if (f.repeat) this._showToast(`Repete ${this._everyLabel(f.repeat)} depois de concluir`);

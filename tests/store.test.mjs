@@ -242,6 +242,14 @@ describe("normalize", () => {
       });
     }
 
+    it("rooms and equips: several ids per task (2.31): a list, each once, at most 10; one stays a plain id", () => {
+      const raw = { "todo.casa": { Dois: ["pia_1", "ar_1", "pia_1"], Um: ["pia_1"], Nada: [], Ruim: ["a b", 5], Meio: ["ok_1", "a b"], Muitos: Array.from({ length: 12 }, (_, i) => `i${i}`) } };
+      const d = normalize({ rooms: raw, equips: raw });
+      const want = { "todo.casa": { dois: ["pia_1", "ar_1"], um: "pia_1", meio: "ok_1", muitos: Array.from({ length: 10 }, (_, i) => `i${i}`) } };
+      assert.deepEqual(d.equips, want);
+      assert.deepEqual(d.rooms, want);
+    });
+
     it("drops a list whose every entry is invalid", () => {
       assert.deepEqual(normalize({ rooms: { "todo.casa": { a: "" } }, points: { "todo.casa": { a: 0 } } }).rooms, {});
       assert.deepEqual(normalize({ points: { "todo.casa": { a: 0 } } }).points, {});

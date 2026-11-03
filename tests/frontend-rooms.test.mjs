@@ -94,8 +94,8 @@ describe("rooms: saving", () => {
     const p = panel(ROOMS(), { "resolvia/rooms/set": ROOMS(), "resolvia/equips/set": new Error("") });
     await p._setTaskRoom("todo.casa", "Limpar", "cozinha");
     await p._setTaskRoom("todo.casa", "Limpar 2", "", "Limpar");
-    assert.deepEqual(p.hass.calls[0], { type: "resolvia/rooms/set", entity_id: "todo.casa", summary: "Limpar", room: "cozinha" });
-    assert.deepEqual(p.hass.calls[1], { type: "resolvia/rooms/set", entity_id: "todo.casa", summary: "Limpar 2", room: null, previous_summary: "Limpar" });
+    assert.deepEqual(p.hass.calls[0], { type: "resolvia/rooms/set", entity_id: "todo.casa", summary: "Limpar", rooms: ["cozinha"] });
+    assert.deepEqual(p.hass.calls[1], { type: "resolvia/rooms/set", entity_id: "todo.casa", summary: "Limpar 2", rooms: [], previous_summary: "Limpar" });
     await p._setTaskEquip("todo.casa", "Limpar", "geladeira");
     assert.deepEqual(p.toasts, ["Não consegui guardar o equipamento"]);
     const off = panel({ ...ROOMS(), on: false, equips_on: false });
@@ -127,28 +127,50 @@ describe("rooms: on the screen", () => {
     click(p._renderRoomField(p._form), "Cozinha");
     assert.equal(p._form.room, null);
   });
-  it("another room drops an equipment of the old one", () => {
+  it("with equipment the room is locked: the rooms of the items, marked, and the chips do nothing", () => {
     const p = panel();
-    p._form = { room: "cozinha", equip: "geladeira" };
-    click(p._renderRoomField(p._form), "Quarto de hóspedes co…");
-    assert.deepEqual([p._form.room, p._form.equip], ["quarto", null]);
-    p._form = { room: "cozinha", equip: "geladeira" };
-    click(p._renderRoomField(p._form), "Nenhum");
-    assert.deepEqual([p._form.room, p._form.equip], [null, "geladeira"], "Nenhum keeps the equipment");
+    p._form = { room: null, equips: ["geladeira", "ar"] };
+    const f = p._renderRoomField(p._form);
+    assert.match(text(f), /Cômodos/);
+    assert.match(text(f), /Vem dos equipamentos\./);
+    const on = (f.values || []).flat(Infinity);
+    assert.ok(/chip-row grid locked/.test(f.strings.join("")) || /locked/.test(JSON.stringify(on)), "the chips are locked");
+    assert.deepEqual(p._formRooms(p._form), ["cozinha", "quarto"]);
+    p._form = { room: "quarto", equips: [] };
+    assert.deepEqual(p._formRooms(p._form), ["quarto"], "without equipment: the room chosen");
   });
   it("rooms off: no field", () => assert.equal(text(panel({ ...ROOMS(), on: false })._renderRoomField({})), ""));
-  it("Equipamento: picking one sets its room (when rooms are on)", () => {
+  it("Equipamento: picking adds to the list; the room comes from the items (when rooms are on)", () => {
     const p = panel();
-    p._form = { room: null, equip: null, equipQ: "gela" };
+    p._form = { room: null, equips: [], equipQ: "gela" };
     const f = p._renderEquipField(p._form);
     assert.match(text(f), /Equipamento/);
     click(f, /Geladeira/);
-    assert.deepEqual([p._form.equip, p._form.room, p._form.equipQ], ["geladeira", "cozinha", ""]);
+    assert.deepEqual([p._form.equips, p._form.equipQ, p._form.equipAdding], [["geladeira"], "", false]);
+    assert.deepEqual(p._formRooms(p._form), ["cozinha"]);
+    p._form = { ...p._form, equipAdding: true, equipQ: "ar" };
+    click(p._renderEquipField(p._form), /Ar-condicionado/);
+    assert.deepEqual(p._form.equips, ["geladeira", "ar"]);
+    assert.match(text(p._renderEquipField(p._form)), /Equipamentos/);
     const q = panel({ ...ROOMS(), on: false });
-    q._form = { equipQ: "gela" };
+    q._form = { equipQ: "gela", equips: [] };
     click(q._renderEquipField(q._form), /Geladeira/);
-    assert.equal(q._form.room, undefined, "rooms off: the room is not set");
+    assert.deepEqual(q._formRooms(q._form), [], "rooms off: no room");
     assert.equal(text(panel({ ...ROOMS(), equips_on: false })._renderEquipField({})), "");
+  });
+  it("taking the last item out frees the room, starting from the one it had", () => {
+    const p = panel();
+    p._form = { room: null, equips: ["ar"] };
+    p._renderEquipField(p._form);
+    const tpl = p._renderEquipField(p._form);
+    click(tpl, /Tirar Ar-condicionado/);
+    assert.deepEqual([p._form.equips, p._form.room], [[], "quarto"]);
+  });
+  it("the tags show every room and item of a task (two items, then +N)", () => {
+    const p = panel({ ...ROOMS(), map: { "todo.casa": { a: ["cozinha", "quarto"] } }, emap: { "todo.casa": { a: ["geladeira", "ar", "escada"] } } });
+    assert.match(text(p._renderRoomTag("todo.casa", { summary: "A" })), /Cozinha.*Quarto/);
+    assert.match(text(p._renderEquipTag("todo.casa", { summary: "A" })), /Geladeira.*Ar-condicionado.*\+1/);
+    assert.match(p._placeText("todo.casa", "A"), /Cozinha.*Quarto.*Geladeira.*Ar-condicionado.*Escada/);
   });
 });
 

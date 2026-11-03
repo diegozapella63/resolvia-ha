@@ -22,6 +22,10 @@ export const taskKey = (s) =>
     .trim()
     .slice(0, 255);
 
+/** A link as the server keeps it: one id, or a list of ids (several items, several rooms). */
+const asIds = (v) => (Array.isArray(v) ? v : v ? [v] : []);
+const sameIds = (a, b) => asIds(a).join("|") === asIds(b).join("|");
+
 export const RoomsMixin = (Base) =>
   class extends Base {
     async _loadRooms(type = "resolvia/rooms/get") {
@@ -58,18 +62,29 @@ export const RoomsMixin = (Base) =>
       return id ? this._equipList().find((x) => x.id === id) || null : null;
     }
 
-    /** The item id of a task (or null). */
-    _equipIdOf(listId, summary) {
-      if (!this._equipsOn()) return null;
+    /** The item ids of a task ([] when none). */
+    _equipIdsOf(listId, summary) {
+      if (!this._equipsOn()) return [];
       const map = this._rooms.emap && this._rooms.emap[listId];
-      const id = map && map[taskKey(summary)];
-      return this._equipOf(id) ? id : null;
+      return asIds(map && map[taskKey(summary)]).filter((id) => this._equipOf(id));
     }
 
-    async _setTaskEquip(listId, summary, equip, previous = null) {
+    /** The first item id of a task (or null). */
+    _equipIdOf(listId, summary) {
+      return this._equipIdsOf(listId, summary)[0] || null;
+    }
+
+    /** The rooms of some items (each once, in their order). */
+    _roomsOfEquips(ids) {
+      const rooms = asIds(ids).map((id) => (this._equipOf(id) || {}).comodo).filter((c) => c && this._roomList().some((r) => r.id === c));
+      return [...new Set(rooms)];
+    }
+
+    /** Sets the items of a task (an id, a list of ids; null or [] removes); its room comes from them. */
+    async _setTaskEquip(listId, summary, equips, previous = null) {
       if (!this._equipsOn()) return;
       try {
-        this._rooms = await this.hass.callWS({ type: "resolvia/equips/set", entity_id: listId, summary, equip: equip || null, ...(previous != null ? { previous_summary: previous } : {}) });
+        this._rooms = await this.hass.callWS({ type: "resolvia/equips/set", entity_id: listId, summary, equips: asIds(equips), ...(previous != null ? { previous_summary: previous } : {}) });
         this.requestUpdate();
       } catch (err) {
         this._showToast(err.message || "Não consegui guardar o equipamento");
@@ -77,8 +92,9 @@ export const RoomsMixin = (Base) =>
     }
 
     _renderEquipTag(listId, item) {
-      const e = this._equipOf(this._equipIdOf(listId, item.summary));
-      return e ? html`<span class="tag room">${icon("package")}${clip(e.nome, 26)}</span>` : nothing;
+      const es = this._equipIdsOf(listId, item.summary).map((id) => this._equipOf(id));
+      if (!es.length) return nothing;
+      return html`${es.slice(0, 2).map((e) => html`<span class="tag room">${icon("package")}${clip(e.nome, 26)}</span>`)}${es.length > 2 ? html`<span class="tag room">+${es.length - 2}</span>` : nothing}`;
     }
 
     /** The items for the picker: with the name of their room. */
@@ -86,46 +102,72 @@ export const RoomsMixin = (Base) =>
       return this._equipList().map((i) => ({ id: i.id, nome: i.nome, zona: i.zona, roomId: i.comodo, roomName: this._roomName(i.comodo) || "" }));
     }
 
-    /** Item sheet: Equipamento (when on), searched among the items of the room chosen above. Picking one sets its room. */
+    /**
+     * Item sheet: Equipamentos (when on), one or several, searched among the items of the room chosen
+     * above (the others apart). With items, the room is theirs (one or several) and is locked.
+     */
     _renderEquipField(f) {
       if (!this._equipsOn()) return nothing;
-      const room = this._roomsOn() ? f.room : null;
+      const ids = f.equips || [];
+      const room = this._roomsOn() ? (ids.length ? this._roomsOfEquips(ids)[0] || null : f.room) : null;
       return html`<div class="field">
-        <span class="flabel">Equipamento</span>
+        <span class="flabel">${ids.length > 1 ? "Equipamentos" : "Equipamento"}</span>
         ${renderEquipPicker({
           lit: { html, nothing },
           icon,
           items: this._equipItems(),
           room,
           roomName: room ? this._roomName(room) || "" : "",
-          value: f.equip,
+          value: ids,
           query: f.equipQ || "",
           more: !!f.equipMore,
+          adding: !!f.equipAdding,
+          autofocus: !!f.equipAdding,
           onQuery: (q) => this._setForm({ equipQ: q, equipMore: false }),
           onMore: () => this._setForm({ equipMore: true }),
-          onPick: (id) => {
-            const e = this._equipOf(id);
-            const changes = { equip: id || null, equipQ: "", equipMore: false };
-            if (e && e.comodo && this._roomsOn() && this._roomList().some((c) => c.id === e.comodo)) changes.room = e.comodo;
-            this._setForm(changes);
+          onAdd: () => this._setForm({ equipAdding: true, equipQ: "", equipMore: false }),
+          onPick: (id) => this._setForm({ equips: [...ids, id], equipQ: "", equipMore: false, equipAdding: false }),
+          onRemove: (id) => {
+            const next = ids.filter((x) => x !== id);
+            // the last one out: the room is free again, starting from the one it had
+            this._setForm({ equips: next, ...(!next.length && this._roomsOn() ? { room: this._roomsOfEquips(ids)[0] || f.room || null } : {}) });
           },
         })}
       </div>`;
     }
 
-    /** Where a task is, as text for Buscar: its room, its item (and the item's zone); each can be left out. */
-    _placeText(listId, summary, { rooms = true, equips = true } = {}) {
-      const room = rooms ? this._roomIdOf(listId, summary) : null;
-      const e = equips ? this._equipOf(this._equipIdOf(listId, summary)) : null;
-      return [room ? this._roomName(room) : "", e ? e.nome : "", e && e.zona ? e.zona : ""].filter(Boolean).join(" ");
+    /** The rooms a form saves: those of its items (locked), or the one chosen. */
+    _formRooms(f) {
+      if (!this._roomsOn()) return [];
+      const ids = this._equipsOn() ? f.equips || [] : [];
+      return ids.length ? this._roomsOfEquips(ids) : f.room ? [f.room] : [];
     }
 
-    /** The room id of a task (or null). */
-    _roomIdOf(listId, summary) {
-      if (!this._roomsOn()) return null;
+    /** Saves the room and the items of a task when they changed (or the task was renamed). */
+    async _saveTaskPlace(listId, summary, f, previous = null) {
+      const rooms = this._formRooms(f);
+      const equips = this._equipsOn() ? f.equips || [] : [];
+      if (!sameIds(rooms, f.roomsOrig || []) || (previous && (f.roomsOrig || []).length)) await this._setTaskRoom(listId, summary, rooms, previous);
+      if (!sameIds(equips, f.equipsOrig || []) || (previous && (f.equipsOrig || []).length)) await this._setTaskEquip(listId, summary, equips, previous);
+    }
+
+    /** Where a task is, as text for Buscar: its rooms, its items (and their zones); each can be left out. */
+    _placeText(listId, summary, { rooms = true, equips = true } = {}) {
+      const rs = rooms ? this._roomIdsOf(listId, summary).map((id) => this._roomName(id)) : [];
+      const es = equips ? this._equipIdsOf(listId, summary).map((id) => this._equipOf(id)) : [];
+      return [...rs, ...es.flatMap((e) => [e.nome, e.zona || ""])].filter(Boolean).join(" ");
+    }
+
+    /** The room ids of a task ([] when none; several when its items are in several rooms). */
+    _roomIdsOf(listId, summary) {
+      if (!this._roomsOn()) return [];
       const map = this._rooms.map && this._rooms.map[listId];
-      const id = map && map[taskKey(summary)];
-      return id && this._roomList().some((c) => c.id === id) ? id : null;
+      return asIds(map && map[taskKey(summary)]).filter((id) => this._roomList().some((c) => c.id === id));
+    }
+
+    /** The (first) room id of a task, or null. */
+    _roomIdOf(listId, summary) {
+      return this._roomIdsOf(listId, summary)[0] || null;
     }
 
     _roomName(id) {
@@ -133,11 +175,11 @@ export const RoomsMixin = (Base) =>
       return c ? c.nome : null;
     }
 
-    /** Sets the room of a task (null removes it); `previous` is the old name after a rename. */
+    /** Sets the room(s) of a task (an id or a list; null or [] removes it); `previous` is the old name after a rename. */
     async _setTaskRoom(listId, summary, room, previous = null) {
       if (!this._roomsOn()) return;
       try {
-        this._rooms = await this.hass.callWS({ type: "resolvia/rooms/set", entity_id: listId, summary, room: room || null, ...(previous != null ? { previous_summary: previous } : {}) });
+        this._rooms = await this.hass.callWS({ type: "resolvia/rooms/set", entity_id: listId, summary, rooms: asIds(room), ...(previous != null ? { previous_summary: previous } : {}) });
         this.requestUpdate();
       } catch (err) {
         this._showToast(err.message || "Não consegui guardar o cômodo");
@@ -145,25 +187,22 @@ export const RoomsMixin = (Base) =>
     }
 
     _renderRoomTag(listId, item) {
-      const id = this._roomIdOf(listId, item.summary);
-      return id ? html`<span class="tag room">${icon("door-open")}${clip(this._roomName(id), 22)}</span>` : nothing;
+      const ids = this._roomIdsOf(listId, item.summary);
+      return ids.length ? html`${ids.map((id) => html`<span class="tag room">${icon("door-open")}${clip(this._roomName(id), 22)}</span>`)}` : nothing;
     }
 
-    /** Item sheet: Cômodo (when on). */
+    /** Item sheet: Cômodo (when on). With equipment, the rooms are those of the items, locked. */
     _renderRoomField(f) {
       if (!this._roomsOn()) return nothing;
-      // another room: an equipment of the old one doesn't fit any more
-      const pick = (id) => {
-        const room = f.room === id ? null : id;
-        const e = this._equipOf(f.equip);
-        this._setForm({ room, ...(e && room && e.comodo !== room ? { equip: null } : {}) });
-      };
+      const locked = this._equipsOn() && (f.equips || []).length > 0;
+      const rooms = locked ? this._roomsOfEquips(f.equips) : f.room ? [f.room] : [];
       return html`<div class="field">
-        <span class="flabel">Cômodo</span>
-        <div class="chip-row grid">
-          <button class="pick ${!f.room ? "on" : ""}" @click=${() => this._setForm({ room: null })}>Nenhum</button>
-          ${this._roomList().map((c) => html`<button class="pick room ${f.room === c.id ? "on" : ""}" @click=${() => pick(c.id)}>${icon("door-open")}<span>${clip(c.nome, 22)}</span></button>`)}
+        <span class="flabel">${rooms.length > 1 ? "Cômodos" : "Cômodo"}</span>
+        <div class="chip-row grid ${locked ? "locked" : ""}">
+          <button class="pick ${!rooms.length ? "on" : ""}" ?disabled=${locked} @click=${() => this._setForm({ room: null })}>Nenhum</button>
+          ${this._roomList().map((c) => html`<button class="pick room ${rooms.includes(c.id) ? "on" : ""}" ?disabled=${locked} @click=${() => this._setForm({ room: f.room === c.id ? null : c.id })}>${icon("door-open")}<span>${clip(c.nome, 22)}</span></button>`)}
         </div>
+        ${locked ? html`<span class="field-hint">${icon("lock")}<span>Vem ${f.equips.length > 1 ? "dos equipamentos" : "do equipamento"}.</span></span>` : nothing}
       </div>`;
     }
 

@@ -52,18 +52,32 @@ function marked(html, text, query) {
 
 /**
  * The picker. lit: {html, nothing}; icon(name); room/roomName: the room chosen in the form (or null);
- * value: the chosen item id; query, more: the search and "Mostrar mais"; onQuery, onPick(id|null), onMore.
+ * query, more: the search and "Mostrar mais"; onQuery, onMore.
+ * One item: value is its id (or null); onPick(id|null).
+ * Several: value is a list of ids; onPick(id) adds one, onRemove(id) takes it out; with some chosen,
+ * the search opens with "Outro equipamento" (adding: open; onAdd() opens it).
  */
-export function renderEquipPicker({ lit, icon, items, room = null, roomName = "", value = null, query = "", more = false, onQuery, onPick, onMore, autofocus = false }) {
+export function renderEquipPicker({ lit, icon, items, room = null, roomName = "", value = null, query = "", more = false, onQuery, onPick, onMore, onRemove, onAdd, adding = false, autofocus = false }) {
   const { html, nothing } = lit;
-  const sel = value ? items.find((i) => i.id === value) : null;
-  if (sel) {
-    return html`<div class="eq-sel">
+  const card = (sel, remove) => html`<div class="eq-sel">
       <span class="eq-ic">${icon("package")}</span>
       <span class="eq-tx"><b>${sel.nome}</b><small>${[sel.zona, sel.roomName].filter(Boolean).join(" · ") || "Sem cômodo"}</small></span>
-      <button type="button" class="icon-btn mini" aria-label="Tirar o equipamento" @click=${() => onPick(null)}>${icon("x")}</button>
+      <button type="button" class="icon-btn mini" aria-label="Tirar ${sel.nome}" @click=${remove}>${icon("x")}</button>
     </div>`;
+  if (Array.isArray(value)) {
+    const chosen = value.map((id) => items.find((i) => i.id === id)).filter(Boolean);
+    const cards = chosen.map((c) => card(c, () => onRemove(c.id)));
+    if (chosen.length && !adding) {
+      return html`<div class="eq-pick">${cards}<button type="button" class="eq-more eq-add" @click=${() => onAdd()}>${icon("plus")}Outro equipamento</button></div>`;
+    }
+    const rest = items.filter((i) => !value.includes(i.id));
+    return html`<div class="eq-pick">${cards}${search(rest, chosen.length > 0 || autofocus)}</div>`;
   }
+  const sel = value ? items.find((i) => i.id === value) : null;
+  if (sel) return card(sel, () => onPick(null));
+  return search(items, autofocus);
+
+  function search(items, autofocus) {
   const { inRoom, others } = searchEquips(items, { room, query });
   const limit = more ? 40 : 6;
   const row = (i, showRoom) => html`<button type="button" class="eq-row" @click=${() => onPick(i.id)}>
@@ -84,6 +98,7 @@ export function renderEquipPicker({ lit, icon, items, room = null, roomName = ""
     ${hidden > 0 ? html`<button type="button" class="eq-more" @click=${() => onMore()}>Mostrar mais ${hidden}</button>` : nothing}
     ${hint}
   </div>`;
+  }
 }
 
 export const equipPickerStyles = `
@@ -108,4 +123,7 @@ export const equipPickerStyles = `
   .eq-hint { margin: 0; padding: 2px; font-size: 13px; color: var(--rv-muted); }
   .eq-sel { display: flex; align-items: center; gap: 12px; padding: 10px 6px 10px 12px; border-radius: 14px; border: 1.5px solid var(--rv-accent); background: var(--rv-accent-soft); }
   .eq-sel .eq-ic { background: var(--rv-accent); color: var(--rv-on-accent, #fff); }
+  .eq-pick > .eq-pick { gap: 8px; }
+  .eq-add { display: inline-flex; align-items: center; gap: 6px; }
+  .eq-add .i { width: 16px; height: 16px; }
 `;

@@ -109,13 +109,28 @@ describe("equipment", () => {
     ]);
   });
 
-  it("sets and renames the equipment of a task, apart from its room", async () => {
+  it("sets and renames the equipment of a task; its room comes from it", async () => {
     let r = await c.call("resolvia/equips/set", { entity_id: CASA, summary: "Trocar o filtro do ar", equip: "ar_1" });
     assert.deepEqual(r.emap, { [CASA]: { "trocar o filtro do ar": "ar_1" } });
     r = await c.call("resolvia/equips/set", { entity_id: CASA, summary: "Limpar o filtro do ar", equip: "ar_1", previous_summary: "Trocar o filtro do ar" });
     assert.deepEqual(r.emap, { [CASA]: { "limpar o filtro do ar": "ar_1" } });
-    assert.deepEqual(r.map, { [CASA]: { "trocar o filtro do ar": "quarto" } }, "the room is a separate link");
+    assert.equal(r.map[CASA]["limpar o filtro do ar"], "quarto", "the room of the equipment");
     await assert.rejects(c.call("resolvia/equips/set", { entity_id: CASA, summary: "x", equip: "a b" }), { message: "Equipamento inválido" });
+  });
+
+  it("several items (2.31): a list, and the rooms of all of them; [] removes the items, the room stays", async () => {
+    let r = await c.call("resolvia/equips/set", { entity_id: CASA, summary: "Limpeza geral", equips: ["pia_1", "ar_1", "pia_1"] });
+    assert.deepEqual(r.emap[CASA]["limpeza geral"], ["pia_1", "ar_1"]);
+    assert.deepEqual(r.map[CASA]["limpeza geral"], ["cozinha", "quarto"]);
+    r = await c.call("resolvia/equips/set", { entity_id: CASA, summary: "Limpeza geral", equips: ["geladeira_1"] });
+    assert.equal(r.emap[CASA]["limpeza geral"], "geladeira_1", "one stays a plain id (older CronologIA reads it)");
+    assert.equal(r.map[CASA]["limpeza geral"], "cozinha");
+    r = await c.call("resolvia/equips/set", { entity_id: CASA, summary: "Limpeza geral", equips: [] });
+    assert.equal(r.emap[CASA]["limpeza geral"], undefined);
+    assert.equal(r.map[CASA]["limpeza geral"], "cozinha");
+    r = await c.call("resolvia/rooms/set", { entity_id: CASA, summary: "Limpeza geral", rooms: [] });
+    assert.equal(r.map[CASA]["limpeza geral"], undefined);
+    await assert.rejects(c.call("resolvia/equips/set", { entity_id: CASA, summary: "x", equips: ["ok_1", "a b"] }), { message: "Equipamento inválido" });
   });
 
   it("the integration file lists the items with their room name", async () => {

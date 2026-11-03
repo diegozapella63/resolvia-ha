@@ -106,15 +106,33 @@ function cleanPoints(raw) {
 }
 
 /** {todo.x: {task key: room id of the InventarIA}}, checked. */
-function cleanRooms(raw) {
+const LINK_ID = /^[A-Za-z0-9_-]{1,64}$/;
+const MAX_LINKS = 10;
+
+/** The rooms or items of a task: an id (one) or a list of ids (several), checked; [] when none. */
+export function linkIds(v) {
+  const all = Array.isArray(v) ? v : v == null || v === "" ? [] : [v];
+  return [...new Set(all.filter((x) => typeof x === "string" && LINK_ID.test(x)))].slice(0, MAX_LINKS);
+}
+export const equipIds = linkIds;
+
+/** How the links of a task are kept: one id as a plain string (as before 2.31), several as a list. */
+const linkValue = (ids) => (ids.length === 1 ? ids[0] : ids);
+
+/**
+ * {todo.x: {task key: id | [ids]}}: the room(s) and the item(s) of the InventarIA of each task
+ * (several items can be in several rooms).
+ */
+function cleanLinks(raw) {
   const out = {};
   if (!isObj(raw)) return out;
   for (const [id, map] of Object.entries(raw)) {
     if (!/^todo\.[a-z0-9_]+$/.test(id) || !isObj(map)) continue;
     for (const [k, v] of Object.entries(map)) {
       const key = taskKey(k);
-      if (!key || typeof v !== "string" || !/^[A-Za-z0-9_-]{1,64}$/.test(v)) continue;
-      (out[id] || (out[id] = {}))[key] = v;
+      const ids = linkIds(v);
+      if (!key || !ids.length) continue;
+      (out[id] || (out[id] = {}))[key] = linkValue(ids);
     }
   }
   return out;
@@ -166,8 +184,8 @@ export function normalize(raw, strict = false) {
     if (clean && !data.rules[clean.id]) data.rules[clean.id] = clean;
   }
   data.points = cleanPoints(raw.points);
-  data.rooms = cleanRooms(raw.rooms);
-  data.equips = cleanRooms(raw.equips); // same shape: {todo.x: {task key: item id of the InventarIA}}
+  data.rooms = cleanLinks(raw.rooms); // {todo.x: {task key: room id | [room ids]}}
+  data.equips = cleanLinks(raw.equips); // {todo.x: {task key: item id | [item ids] of the InventarIA}}
   return data;
 }
 
@@ -252,18 +270,29 @@ export class Store {
     return this.data.equips || {};
   }
 
-  /** Sets the equipment of a task (an InventarIA item id; null removes it). */
+  /** Sets the items of a task (an InventarIA item id or a list of them; null or [] removes). */
   setEquip(entityId, summary, equip, previous = null) {
     return this._setLink("equips", entityId, summary, equip, previous);
   }
 
-  /** The room of a task (an InventarIA room id), or null. */
-  roomFor(entityId, summary) {
-    const map = this.rooms[entityId];
-    return (map && map[taskKey(summary)]) || null;
+  /** The items of a task (InventarIA ids), [] when none. */
+  equipsFor(entityId, summary) {
+    const map = this.equips[entityId];
+    return linkIds(map && map[taskKey(summary)]);
   }
 
-  /** Sets the room of a task (null removes); `previous` is the old name after a rename. */
+  /** The rooms of a task (InventarIA ids), [] when none (several when its items are in several rooms). */
+  roomsFor(entityId, summary) {
+    const map = this.rooms[entityId];
+    return linkIds(map && map[taskKey(summary)]);
+  }
+
+  /** The room of a task (an InventarIA room id; the first one when several), or null. */
+  roomFor(entityId, summary) {
+    return this.roomsFor(entityId, summary)[0] || null;
+  }
+
+  /** Sets the room(s) of a task (an id or a list; null or [] removes); `previous` is the old name after a rename. */
   setRoom(entityId, summary, room, previous = null) {
     return this._setLink("rooms", entityId, summary, room, previous);
   }
@@ -273,11 +302,16 @@ export class Store {
     if (typeof entityId !== "string" || !/^todo\.[a-z0-9_]+$/.test(entityId)) throw new Error("Not a to-do entity");
     const key = taskKey(summary);
     if (!key) throw new Error("Task name required");
-    if (value != null && value !== "" && !/^[A-Za-z0-9_-]{1,64}$/.test(String(value))) throw new Error(field === "rooms" ? "Cômodo inválido" : "Equipamento inválido");
+    const bad = field === "rooms" ? "Cômodo inválido" : "Equipamento inválido";
+    if (Array.isArray(value)) {
+      if (value.some((x) => !LINK_ID.test(String(x)))) throw new Error(bad);
+      const ids = linkIds(value);
+      value = ids.length ? linkValue(ids) : null;
+    } else if (value != null && value !== "" && !LINK_ID.test(String(value))) throw new Error(bad);
     const cur = this.data[field] || {};
     const map = { ...(cur[entityId] || {}) };
     if (previous != null && taskKey(previous) !== key) delete map[taskKey(previous)];
-    if (value) map[key] = String(value);
+    if (Array.isArray(value) ? value.length : value) map[key] = Array.isArray(value) ? value : String(value);
     else delete map[key];
     const all = { ...cur };
     if (Object.keys(map).length) all[entityId] = map;

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.31.0
+
+- **Vários equipamentos**: uma tarefa pode ter mais de um equipamento. Depois do primeiro, **Outro equipamento** abre a busca de novo; cada um vira um cartão com × para tirar. A tarefa mostra todos (dois e "+N").
+- **Cômodo bloqueado com equipamento**: com equipamento escolhido, o cômodo vem dele e fica bloqueado ("Vem do equipamento."); com equipamentos de cômodos diferentes, a tarefa fica nos vários cômodos. Tirando o último equipamento, o cômodo volta a poder ser escolhido.
+- A CronologIA (1.39.0 ou mais nova) mostra e pede os vários equipamentos também.
+
 ## 2.30.3
 
 - **O aviso de baixo não cobre mais os botões de uma janela aberta.** No celular, por uns 4 segundos depois de concluir um item, o aviso ficava bem em cima dos botões da janela. Tocar em **Limpar**, em Limpar concluídos, acertava o **Desfazer** do aviso. Com uma janela aberta, o aviso agora sobe para o alto da tela.

@@ -103,7 +103,7 @@ describe("renderEquipPicker", () => {
   it("the chosen item becomes a card with zone and room, and × removes it", () => {
     const { tpl, t, calls } = picker({ value: "geladeira" });
     assert.match(t, /<b>Geladeira<\/b><small>Bancada · Cozinha<\/small>/);
-    assert.match(t, /aria-label="Tirar o equipamento"/);
+    assert.match(t, /aria-label="Tirar Geladeira"/);
     handlers(tpl)[0]();
     assert.deepEqual(calls.pick, [null]);
     assert.match(picker({ value: "solto" }).t, /<small>Sem cômodo<\/small>/);
@@ -188,5 +188,39 @@ describe("renderEquipPicker", () => {
     assert.deepEqual(calls.query, ["gel"]);
     for (const f of hs.filter((f) => /onPick\(i\.id\)/.test(f.toString()))) f();
     assert.deepEqual(calls.pick, ["filtro", "fogao", "geladeira"]);
+  });
+});
+
+describe("renderEquipPicker with several (2.31)", () => {
+  const multi = (opts) => {
+    const calls = { pick: [], remove: [], add: 0 };
+    const tpl = renderEquipPicker({ lit, icon, items: ITEMS, onPick: (id) => calls.pick.push(id), onRemove: (id) => calls.remove.push(id), onAdd: () => calls.add++, onQuery: () => {}, onMore: () => {}, ...opts });
+    const t = text(tpl).replace(/\s+/g, " ");
+    return { tpl, t, calls, cards: (t.match(/class="eq-sel"/g) || []).length, rows: (t.match(/class="eq-row"/g) || []).length };
+  };
+  it("none chosen: the search, as with one", () => {
+    const { t, cards } = multi({ value: [] });
+    assert.equal(cards, 0);
+    assert.match(t, /eq-search/);
+  });
+  it("some chosen: a card for each (× takes that one out) and Outro equipamento, no search", () => {
+    const { tpl, t, cards, calls } = multi({ value: ["geladeira", ITEMS.find((i) => i.id !== "geladeira").id] });
+    assert.equal(cards, 2);
+    assert.doesNotMatch(t, /eq-search/);
+    assert.match(t, /Outro equipamento/);
+    const hs = handlers(tpl);
+    hs[0]();
+    assert.deepEqual(calls.remove, ["geladeira"]);
+    hs[hs.length - 1]();
+    assert.equal(calls.add, 1);
+  });
+  it("adding: the cards and the search, without the ones already chosen", () => {
+    const { t, cards } = multi({ value: ["geladeira"], adding: true, query: "gela" });
+    assert.equal(cards, 1);
+    assert.match(t, /eq-search/);
+    assert.doesNotMatch(t.split("eq-search")[1], /<b>.*Geladeira.*<\/b>/, "Geladeira is not offered again");
+  });
+  it("an id that is gone is left out", () => {
+    assert.equal(multi({ value: ["sumiu", "geladeira"] }).cards, 1);
   });
 });

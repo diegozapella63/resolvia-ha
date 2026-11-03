@@ -1174,6 +1174,14 @@ export const styles = css`
     gap: 8px;
   }
   /* the choices of a form (Prazo, Repetir, Lista): buttons of the same width, like the EconomIA */
+  /* Cômodo locked by the equipment: the rooms of the items stay marked, the others fade */
+  .chip-row.locked .pick:disabled {
+    cursor: default;
+    opacity: 0.4;
+  }
+  .chip-row.locked .pick.on:disabled {
+    opacity: 1;
+  }
   .chip-row.grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(min(100%, 9.5em), 1fr));

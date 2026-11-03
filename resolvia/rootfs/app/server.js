@@ -21,7 +21,7 @@ import { Inventario } from "./lib/inventario.js";
 import { Voice, readRaw, MAX_VOICE_BYTES } from "./lib/voice.js";
 import { snapshot, toCSV, backupZip, parseImport, Backups, listVersions, readVersion, fileStamp } from "./lib/data.js";
 
-const VERSION = "2.30.3";
+const VERSION = "2.31.0";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const WWW = path.join(HERE, "www");
 const DEV = process.env.RESOLVIA_DEV === "1";
@@ -69,6 +69,19 @@ const inventario = new Inventario({ shareDir: SHARE_DIR, log, enabled: roomsOn, 
 function roomsState() {
   return { on: roomsOn(), equips_on: equipsOn(), ...inventario.state, map: roomsOn() ? store.rooms : {}, emap: equipsOn() ? store.equips : {} };
 }
+
+/**
+ * With equipment, the room of a task is the room of its items (one or several; the screens lock it);
+ * without equipment, it stays as chosen.
+ */
+function roomsFromEquips(entityId, summary) {
+  if (!roomsOn() || !equipsOn()) return;
+  const ids = store.equipsFor(entityId, summary);
+  if (!ids.length) return;
+  const rooms = [...new Set(ids.map((id) => (inventario.state.itens.find((i) => i.id === id) || {}).comodo).filter(Boolean))];
+  if (rooms.length) store.setRoom(entityId, summary, rooms);
+}
+
 const pad2 = (n) => String(n).padStart(2, "0");
 const today = () => {
   const d = new Date();
@@ -184,7 +197,11 @@ ha.subscribe({ type: "subscribe_events", event_type: "resolvia_comodo" }, (ev) =
   if (!isTodo(d.entity_id) || !d.tarefa) return;
   try {
     if (roomsOn() && "comodo" in d) store.setRoom(d.entity_id, String(d.tarefa), d.comodo ? String(d.comodo) : null);
-    if (equipsOn() && "equipamento" in d) store.setEquip(d.entity_id, String(d.tarefa), d.equipamento ? String(d.equipamento) : null);
+    // one item ("pia_1") or several (["pia_1", "fogao_1"]); "" or [] removes
+    if (equipsOn() && "equipamento" in d) {
+      store.setEquip(d.entity_id, String(d.tarefa), Array.isArray(d.equipamento) ? d.equipamento.map(String) : d.equipamento ? String(d.equipamento) : null);
+      roomsFromEquips(d.entity_id, String(d.tarefa));
+    }
     publishPresence();
   } catch (err) {
     log.warn(`Cômodo vindo do ${d.origem || "CronologIA"}: ${err.message}`);
@@ -464,14 +481,19 @@ class Session {
 
       case "resolvia/equips/set": {
         if (!equipsOn()) return this.error(id, "equips_off", "Os equipamentos estão desligados em Mais › Integrações.");
-        store.setEquip(msg.entity_id, String(msg.summary || ""), msg.equip ? String(msg.equip) : null, msg.previous_summary == null ? null : String(msg.previous_summary));
+        // equips: the list of items of the task ([] removes); equip: one item (older screens)
+        const value = Array.isArray(msg.equips) ? msg.equips.map(String) : msg.equip ? String(msg.equip) : null;
+        store.setEquip(msg.entity_id, String(msg.summary || ""), value, msg.previous_summary == null ? null : String(msg.previous_summary));
+        roomsFromEquips(msg.entity_id, String(msg.summary || ""));
         publishPresence();
         return this.result(id, roomsState());
       }
 
       case "resolvia/rooms/set": {
         if (!roomsOn()) return this.error(id, "rooms_off", "Os cômodos estão desligados em Mais › Integrações.");
-        store.setRoom(msg.entity_id, String(msg.summary || ""), msg.room ? String(msg.room) : null, msg.previous_summary == null ? null : String(msg.previous_summary));
+        // rooms: the list (several when the items of the task are in several rooms); room: one (older screens)
+        const rooms = Array.isArray(msg.rooms) ? msg.rooms.map(String) : msg.room ? String(msg.room) : null;
+        store.setRoom(msg.entity_id, String(msg.summary || ""), rooms, msg.previous_summary == null ? null : String(msg.previous_summary));
         publishPresence();
         return this.result(id, roomsState());
       }
