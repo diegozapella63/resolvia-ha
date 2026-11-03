@@ -15,7 +15,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Testes e cobertura (mínimo: linhas 98%, ramos 94%, funções 93%)
+      - name: "Testes e cobertura (mínimo: linhas 98%, ramos 94%, funções 93%)"
         run: |
           set -o pipefail
           npm run test:coverage 2>&1 | tee cobertura.txt
