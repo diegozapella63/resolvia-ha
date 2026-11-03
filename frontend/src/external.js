@@ -4,7 +4,7 @@
 // Mixed into <resolvia-panel>.
 import { html, nothing, unsafeSVG } from "../vendor/lit-all.min.js";
 import { ICONS } from "./icons.js";
-import { clip } from "./util.js";
+import { clip, F, has } from "./util.js";
 import { taskKey } from "./rooms.js";
 
 const icon = (name, cls = "") =>
@@ -60,9 +60,13 @@ export const ExternalMixin = (Base) =>
       return e ? html`<span class="tag ext">${icon("hard-hat")}${e === true ? "Serviço externo" : clip(e, 26)}</span>` : nothing;
     }
 
-    /** Item sheet: Quem faz (the house, or a Serviço externo, with who when said). */
-    _renderExternalField(f) {
+    /**
+     * Item sheet: Quem faz (the house, or a Serviço externo, with who when said). Not on a plain list
+     * without dates and notes (a shopping list, the Alexa one), unless the task already has one.
+     */
+    _renderExternalField(f, features = F.DUE_DATE | F.DESCRIPTION) {
       const e = clean(f.ext);
+      if (!e && !has(features, F.DUE_DATE) && !has(features, F.DUE_DATETIME) && !has(features, F.DESCRIPTION)) return nothing;
       return html`<div class="field">
         <span class="flabel">Quem faz</span>
         <div class="chip-row ext-row">

@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { html } from "../frontend/vendor/lit-all.min.js";
 import { text, click, labels, controls, render, fakeHass, hostOf } from "./_lit.mjs";
 import { usagePanel, kTokens, usageStyles } from "../frontend/src/usage-panel.js";
-import { themePicker, colorPicker, lookStyles } from "../frontend/src/look.js";
+import { themePicker, colorPicker, lookStyles, colorOfDay } from "../frontend/src/look.js";
 import { swipeStart, swipeEnd, slideIn } from "../frontend/src/swipe.js";
 import { DataMixin } from "../frontend/src/datapanel.js";
 import { local } from "./_helpers.mjs";
@@ -118,6 +118,30 @@ describe("look: Aparência", () => {
     assert.match(c[1].attrs, /aria-checked="true"/);
     click(v, "Vermelho");
     assert.equal(got, "vermelho");
+  });
+  describe("Cor do dia", () => {
+    const palette = ["vermelho", "rosa", "grafite", "azul", "menta"].map((id) => ({ id }));
+    const day = (y, m, d, h = 12, min = 0) => colorOfDay(palette, new Date(y, m - 1, d, h, min)).id;
+    it("the same color all day, the next one tomorrow, round and round", () => {
+      assert.equal(day(2026, 11, 3, 0, 0), day(2026, 11, 3, 23, 59));
+      const week = [3, 4, 5, 6, 7, 8, 9].map((d) => day(2026, 11, d));
+      const order = ["vermelho", "rosa", "azul", "menta"];
+      const start = order.indexOf(week[0]);
+      assert.deepEqual(week, week.map((_, i) => order[(start + i) % 4]));
+      assert.notEqual(day(2026, 11, 3, 23, 59), day(2026, 11, 4, 0, 0), "it changes at midnight");
+    });
+    it("never the gray one, also across months, years and before 1970", () => {
+      for (const [y, m, d] of [[2026, 12, 31], [2027, 1, 1], [2028, 2, 29], [1969, 12, 31], [1960, 1, 1]]) assert.notEqual(day(y, m, d), "grafite");
+      const seen = new Set();
+      for (let i = 0; i < 8; i++) seen.add(colorOfDay(palette, new Date(2026, 10, 28 + i)).id);
+      assert.deepEqual([...seen].sort(), ["azul", "menta", "rosa", "vermelho"]);
+    });
+    it("a known day (the same on every device: by the local date only)", () => {
+      // 2026-11-03 is day 20760 since 1970-01-01; 20760 % 4 = 0
+      assert.equal(day(2026, 11, 3), "vermelho");
+      assert.equal(day(2026, 11, 4), "rosa");
+      assert.equal(colorOfDay(palette).id.length > 0, true, "today by default");
+    });
   });
 });
 

@@ -34,6 +34,8 @@ export function datesInfo(prefs, features) {
 }
 const APP_FIELDS = {
   accent: ["string", 24],
+  // Mais › Aparência › Cor do dia: on unless false
+  accent_daily: ["boolean"],
   group_by_device: ["boolean"],
   show_done: ["boolean"],
   list_order: ["list", 200],

@@ -12,7 +12,7 @@ import { swipeStart, swipeEnd, slideIn } from "./swipe.js";
 import { styles } from "./styles.js";
 import { usagePanel, usageStyles } from "./usage-panel.js";
 import { renderEquipPicker, equipPickerStyles } from "./equip-picker.js";
-import { themePicker, colorPicker, lookStyles } from "./look.js";
+import { themePicker, colorPicker, lookStyles, colorOfDay } from "./look.js";
 import { unsafeCSS } from "../vendor/lit-all.min.js";
 import { DataMixin } from "./datapanel.js";
 import { PointsMixin, stripMark, markOf } from "./points.js";
@@ -48,7 +48,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.34.0";
+const VERSION = "2.35.0";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -156,6 +156,15 @@ class ResolviaPanel extends ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(Poin
   connectedCallback() {
     super.connectedCallback();
     ensureFonts();
+    // Cor do dia: past midnight, the color of the new day (and the dates) without a reload
+    this._today = new Date().toDateString();
+    this._dayTimer = setInterval(() => {
+      const d = new Date().toDateString();
+      if (d !== this._today) {
+        this._today = d;
+        this.requestUpdate();
+      }
+    }, 60000);
     window.addEventListener("popstate", this._onPopState);
     window.addEventListener("resize", this._onResize);
     window.addEventListener("keydown", this._onKey);
@@ -193,6 +202,7 @@ class ResolviaPanel extends ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(Poin
 
   disconnectedCallback() {
     super.disconnectedCallback();
+    clearInterval(this._dayTimer);
     window.removeEventListener("popstate", this._onPopState);
     window.removeEventListener("resize", this._onResize);
     window.removeEventListener("keydown", this._onKey);
@@ -437,7 +447,13 @@ class ResolviaPanel extends ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(Poin
     return v === undefined ? fallback : v;
   }
 
+  /** Mais › Aparência › Cor do dia: on unless turned off. */
+  _accentDaily() {
+    return this._app("accent_daily", true) !== false;
+  }
+
   _accent() {
+    if (this._accentDaily()) return colorOfDay(PALETTE, new Date());
     return colorById(this._app("accent", "vermelho")) || PALETTE[0];
   }
 
@@ -2664,7 +2680,8 @@ class ResolviaPanel extends ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(Poin
 
   /** Mais › Aparência: theme and color. */
   _renderAppearanceTab() {
-    const accent = this._app("accent", "vermelho");
+    const daily = this._accentDaily();
+    const accent = daily ? this._accent().id : this._app("accent", "vermelho");
     return html`
         <div class="panel">
           ${this._secHead("contrast", "Tema", "Cada aparelho guarda a sua escolha.")}
@@ -2672,7 +2689,11 @@ class ResolviaPanel extends ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(Poin
         </div>
         <div class="panel">
           ${this._secHead("palette", "Cor do app", "Vale para todos os aparelhos.")}
-          ${colorPicker({ palette: PALETTE, value: accent, onPick: (id) => this._saveAppPrefs({ accent: id === "vermelho" ? null : id }) })}
+          <div class="row switch-row daily-row">
+            <div class="grow"><div class="label">Cor do dia</div><div class="hint">Muda a cor do app todo dia.</div></div>
+            <label class="switch"><input type="checkbox" role="switch" .checked=${daily} @change=${(e) => this._saveAppPrefs({ accent_daily: e.target.checked ? null : false })} aria-label="Cor do dia" /><span class="track"></span></label>
+          </div>
+          ${colorPicker({ palette: PALETTE, value: accent, onPick: (id) => this._saveAppPrefs({ accent: id === "vermelho" ? null : id, accent_daily: false }) })}
         </div>
     `;
   }
@@ -2901,7 +2922,7 @@ class ResolviaPanel extends ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(Poin
         : nothing}
       ${this._renderRoomField(f)}
       ${this._renderEquipField(f)}
-      ${this._renderExternalField(f)}
+      ${this._renderExternalField(f, feat)}
       ${this._renderPointsField(f)}
       ${targets.length > 1
         ? html`<div class="field">

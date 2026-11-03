@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.35.0
+
+- **Cor do dia**: a cor do app muda todo dia, sozinha (a mesma em todos os aparelhos, e troca à meia-noite mesmo com o app aberto). Vem ligada; em Mais › Aparência, desligue em **Cor do dia** ou escolha uma cor para ficar sempre nela. As listas com cor própria continuam com a delas.
+- **Quem faz** não aparece mais nas listas de compras (sem prazo nem notas), a não ser que o item já tenha um serviço externo.
+
 ## 2.34.0
 
 - **Serviço externo**: no item, **Quem faz** marca quando uma pessoa ou empresa de fora vai fazer (eletricista, assistência técnica…), com o nome se quiser. A tarefa mostra a etiqueta com quem faz, o Buscar acha por ela, mover a tarefa leva junto e a IA (Sugerir e Conversa) sabe disso. Vai também nos backups.

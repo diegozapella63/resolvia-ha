@@ -6,6 +6,16 @@ import { html } from "../vendor/lit-all.min.js";
 const TAG = "M8 0h20a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H8L0 13V7z";
 const HOLE = "M9.7 10a2.7 2.7 0 1 0-5.4 0a2.7 2.7 0 1 0 5.4 0z";
 
+/**
+ * Cor do dia: one color of the palette for each day (the same all day, on every device; the next one
+ * tomorrow), from the local date. The gray ones are left out.
+ */
+export function colorOfDay(palette, date = new Date()) {
+  const list = palette.filter((c) => c.id !== "grafite");
+  const day = Math.floor(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / 86400000);
+  return list[((day % list.length) + list.length) % list.length];
+}
+
 /** Automático / Claro / Escuro. icon(name) draws an app icon. */
 export function themePicker({ theme, onTheme, icon }) {
   return html`<div class="seg themes" role="radiogroup" aria-label="Tema">

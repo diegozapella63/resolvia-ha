@@ -508,6 +508,14 @@ describe("Store: list and app prefs", () => {
     assert.deepEqual(store.prefs.app, { rooms_on: true, equips_on: false });
   });
 
+  it("app prefs: Cor do dia (on by default; false turns it off, null back on)", (t) => {
+    const { store } = newStore(t);
+    store.setAppPrefs({ accent: "azul", accent_daily: false });
+    assert.deepEqual(store.prefs.app, { accent: "azul", accent_daily: false });
+    store.setAppPrefs({ accent_daily: null });
+    assert.deepEqual(store.prefs.app, { accent: "azul" });
+  });
+
   it("app prefs: an invalid AI or voice engine falls back to the default (removed)", (t) => {
     const { store } = newStore(t);
     store.setAppPrefs({ ai_entity: "ai_task.google_ai_task", voice_engine: "stt.faster_whisper" });

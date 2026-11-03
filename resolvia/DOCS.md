@@ -10,7 +10,7 @@ Nada é copiado: o ResolvIA mostra e edita as mesmas listas que o HA já tem.
 2. Ative **Mostrar na barra lateral** (e, se quiser, **Watchdog**).
 3. Abra o **ResolvIA** pela barra lateral.
 
-O **Mais** fica em abas no alto: **Listas** (nome, cor, ícone, mostrar/ocultar e criar lista), **Repetições** (ligar ou desligar a repetição e as tarefas que voltam sozinhas), **Integrações** (recompensas do CronologIA e leitura por IA), **Dados** (exportar, backup, importar, versões), **Aparência** (tema e cor) e **Opções** (controlar prazos e como as listas aparecem: agrupar por dispositivo, concluídos abertos).
+O **Mais** fica em abas no alto: **Listas** (nome, cor, ícone, mostrar/ocultar e criar lista), **Repetições** (ligar ou desligar a repetição e as tarefas que voltam sozinhas), **Integrações** (recompensas do CronologIA e leitura por IA), **Dados** (exportar, backup, importar, versões), **Aparência** (tema e cor; com **Cor do dia**, ligada no começo, a cor muda todo dia sozinha, e escolher uma cor deixa fixa nela) e **Opções** (controlar prazos e como as listas aparecem: agrupar por dispositivo, concluídos abertos).
 
 ### No computador
 

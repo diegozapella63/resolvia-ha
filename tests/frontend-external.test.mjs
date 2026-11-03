@@ -4,6 +4,8 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { text, click, fire, labels, fakeHass, hostOf } from "./_lit.mjs";
 import { ExternalMixin } from "../frontend/src/external.js";
+import { F } from "../frontend/src/util.js";
+import { nothing } from "../frontend/vendor/lit-all.min.js";
 
 const Panel = hostOf(ExternalMixin);
 const panel = (ext = { "todo.casa": { "trocar resistencia": "Eletricista", "consertar portao": true } }, answers = {}) => {
@@ -62,6 +64,15 @@ describe("external: the item sheet (Quem faz)", () => {
     assert.equal(p._form.ext, "Eletricista João");
     click(p._renderExternalField(p._form), "Nós mesmos");
     assert.equal(p._form.ext, null);
+  });
+  it("not on a plain list without dates and notes (shopping), unless the task already has one", () => {
+    const p = panel();
+    p._form = { ext: null };
+    assert.equal(p._renderExternalField(p._form, F.CREATE | F.UPDATE | F.DELETE | F.MOVE), nothing);
+    assert.deepEqual(labels(p._renderExternalField(p._form, F.CREATE | F.DUE_DATETIME)), ["Nós mesmos", "Serviço externo"]);
+    assert.deepEqual(labels(p._renderExternalField(p._form, F.CREATE | F.DESCRIPTION)), ["Nós mesmos", "Serviço externo"]);
+    p._form = { ext: "Loja" };
+    assert.deepEqual(labels(p._renderExternalField(p._form, F.CREATE)), ["Nós mesmos", "Serviço externo"], "already set: it can still be cleared");
   });
   it("saving: only when it changed, or the task was renamed; who is cleaned", async () => {
     const p = panel({}, { "resolvia/external/set": (m) => ({ ext: { [m.entity_id]: m.value ? { x: m.value } : {} } }) });
