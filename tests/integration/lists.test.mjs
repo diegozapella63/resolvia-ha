@@ -217,6 +217,17 @@ describe("repetitions", () => {
     await assert.rejects(c.call("resolvia/recurring/set", { entity_id: "light.x", uid: "x", days: 2 }), { message: /Not a to-do entity/ });
   });
 
+  it("Serviço externo: set, renamed, cleared; the CronologIA taking a task over removes it", async () => {
+    let r = await c.call("resolvia/external/set", { entity_id: CASA, summary: "Trocar o chuveiro", value: "Eletricista" });
+    assert.deepEqual(r.ext, { [CASA]: { "trocar o chuveiro": "Eletricista" } });
+    r = await c.call("resolvia/external/set", { entity_id: CASA, summary: "Trocar o chuveiro novo", value: true, previous_summary: "Trocar o chuveiro" });
+    assert.deepEqual(r.ext, { [CASA]: { "trocar o chuveiro novo": true } });
+    assert.deepEqual((await c.call("resolvia/external/get")).ext, r.ext);
+    await stack.fire("resolvia_esquecer", { entity_id: CASA, uids: [], tarefas: ["Trocar o chuveiro novo"], origem: "CronologIA" });
+    await waitFor(async () => !Object.keys((await c.call("resolvia/external/get")).ext).length, { what: "external cleared" });
+    await assert.rejects(c.call("resolvia/external/set", { entity_id: "light.x", summary: "a", value: true }), /Not a to-do entity/);
+  });
+
   it("the CronologIA takes tasks over (resolvia_esquecer): their repetition and points go", async () => {
     const task = await byName(CASA, "Passar pano na casa");
     assert.equal((await c.call("resolvia/points/get")).points[CASA]["passar pano na casa"], 10);

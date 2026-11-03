@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.34.0
+
+- **Serviço externo**: no item, **Quem faz** marca quando uma pessoa ou empresa de fora vai fazer (eletricista, assistência técnica…), com o nome se quiser. A tarefa mostra a etiqueta com quem faz, o Buscar acha por ela, mover a tarefa leva junto e a IA (Sugerir e Conversa) sabe disso. Vai também nos backups.
+
 ## 2.33.1
 
 - Conversa: um prazo que não existe no calendário (como 30/02) não vai mais para o item; ele é adicionado sem prazo.

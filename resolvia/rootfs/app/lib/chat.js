@@ -43,7 +43,7 @@ export const CHAT_STRUCTURE = {
 
 /**
  * What the screen sends, checked: {messages: [{role: "user"|"ia", text}], context: {tela, listas: [{id,
- * nome, adicionar, itens: [{texto, prazo?, atrasado?, pontos?, comodo?, equipamento?}]}]}}.
+ * nome, adicionar, itens: [{texto, prazo?, atrasado?, pontos?, comodo?, equipamento?, externo?}]}]}}.
  * The last message is the person's.
  */
 export function cleanChat(raw) {
@@ -70,6 +70,7 @@ export function cleanChat(raw) {
         pontos: Number.isFinite(i.pontos) && i.pontos > 0 ? Math.min(Math.round(i.pontos), 999) : 0,
         comodo: oneLine(i.comodo, 80),
         equipamento: oneLine(i.equipamento, 120),
+        externo: oneLine(i.externo, 60),
       });
     }
     listas.push({ id: l.id, nome: oneLine(l.nome, 60) || l.id, adicionar: l.adicionar !== false, prazos: l.prazos === true, itens, pendentes: Number.isFinite(l.pendentes) ? Math.max(0, Math.round(l.pendentes)) : itens.length });
@@ -87,7 +88,7 @@ export function chatInstructions({ messages, context }, now = new Date()) {
     ? context.listas
         .map((l) => {
           const rows = l.itens.map((i) => {
-            const extra = [i.prazo ? `prazo ${i.prazo}${i.atrasado ? " (atrasado)" : ""}` : "", i.pontos ? `${i.pontos} pontos` : "", i.comodo ? `cômodo: ${i.comodo}` : "", i.equipamento ? `equipamento: ${i.equipamento}` : ""].filter(Boolean);
+            const extra = [i.prazo ? `prazo ${i.prazo}${i.atrasado ? " (atrasado)" : ""}` : "", i.pontos ? `${i.pontos} pontos` : "", i.comodo ? `cômodo: ${i.comodo}` : "", i.equipamento ? `equipamento: ${i.equipamento}` : "", i.externo ? `serviço externo: ${i.externo}` : ""].filter(Boolean);
             return `  - ${i.texto}${extra.length ? ` (${extra.join("; ")})` : ""}`;
           });
           const more = l.pendentes > l.itens.length ? `  - … e mais ${l.pendentes - l.itens.length}` : "";

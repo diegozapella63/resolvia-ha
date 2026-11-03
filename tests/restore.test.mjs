@@ -339,6 +339,7 @@ describe("backup round trip: export here, restore on another Home Assistant", ()
     a.store.setPoints("todo.casa", "Limpar o Fogão", 15);
     a.store.setRoom("todo.casa", "Limpar o Fogão", "cozinha");
     a.store.setEquip("todo.casa", "Limpar o Fogão", "fogao_1");
+    a.store.setExternal("todo.casa", "Limpar o Fogão", "Assistência técnica");
     a.store.data.rules.r1 = { id: "r1", entity_id: "todo.casa", uid: "u1", match: null, summary: "Limpar o Fogão", description: null, days: 7, completed_at: null, reopen_at: null, created_at: 1 };
     const lists = [{ entity_id: "todo.casa", name: "Minha Casa", ha_name: "Casa", items: [{ uid: "u1", summary: "Limpar o Fogão", status: "needs_action", due: "2026-11-10" }, { uid: "u2", summary: "Feito", status: "completed" }] }];
     const zip = backupZip(snapshot(a.store, lists, "2.30.0"), "2.30.0");
@@ -352,6 +353,7 @@ describe("backup round trip: export here, restore on another Home Assistant", ()
     assert.equal(b.store.pointsFor("todo.casa_nova", "limpar o fogao"), 15);
     assert.equal(b.store.roomFor("todo.casa_nova", "Limpar o Fogão"), "cozinha");
     assert.deepEqual(b.store.equips, { "todo.casa_nova": { "limpar o fogao": "fogao_1" } });
+    assert.deepEqual(b.store.external, { "todo.casa_nova": { "limpar o fogao": "Assistência técnica" } }, "Serviço externo goes along");
     assert.deepEqual([b.store.rules.r1.entity_id, b.store.rules.r1.uid, b.store.rules.r1.match], ["todo.casa_nova", null, "Limpar o Fogão"]);
     assert.deepEqual(b.adds(), [["todo.casa_nova", { item: "Limpar o Fogão", due_date: "2026-11-10" }]]);
 

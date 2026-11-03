@@ -5,7 +5,7 @@ import path from "node:path";
 import { Store, normalize, taskKey, datesInfo } from "../resolvia/rootfs/app/lib/store.js";
 import { tmpDir, fakeLog, local } from "./_helpers.mjs";
 
-const EMPTY = { version: 1, prefs: { lists: {}, app: {} }, rules: {}, points: {}, rooms: {}, equips: {} };
+const EMPTY = { version: 1, prefs: { lists: {}, app: {} }, rules: {}, points: {}, rooms: {}, equips: {}, ext: {} };
 
 /** A store in a fresh temp dir, with its timers and clock under the test's control. */
 function newStore(t, { now = local(2026, 11, 2, 9, 0, 0), file } = {}) {
@@ -361,6 +361,37 @@ describe("Store: points", () => {
     store.setPoints("todo.mercado", "Varrer", 9);
     store.setPoints("todo.casa", "Varrer", 0);
     assert.deepEqual(store.points, { "todo.mercado": { varrer: 9 } });
+  });
+});
+
+describe("Store: Serviço externo", () => {
+  it("true or who (cleaned, up to 60 characters), by the folded name; null or false removes", (t) => {
+    const { store, onDisk } = newStore(t);
+    store.setExternal("todo.casa", "Trocar a Resistência", "  Eletricista   João  ");
+    store.setExternal("todo.casa", "Consertar portão", true);
+    assert.equal(store.externalFor("todo.casa", "trocar a resistencia"), "Eletricista João");
+    assert.equal(store.externalFor("todo.casa", "Consertar Portão"), true);
+    assert.equal(store.externalFor("todo.casa", "Lavar"), null);
+    store.setExternal("todo.casa", "x", "y".repeat(80));
+    assert.equal(store.externalFor("todo.casa", "x").length, 60);
+    store.setExternal("todo.casa", "x", false);
+    store.setExternal("todo.casa", "Consertar portão", null);
+    store.setExternal("todo.casa", "Trocar a resistência", "   ");
+    assert.deepEqual(store.external, {}, "an empty who removes too; the list entry goes with the last one");
+    store.flush();
+    assert.deepEqual(onDisk().ext, {});
+  });
+  it("a rename moves it; bad lists or names are refused", (t) => {
+    const { store } = newStore(t);
+    store.setExternal("todo.casa", "Trocar", "Eletricista");
+    store.setExternal("todo.casa", "Trocar a resistência", "Eletricista", "Trocar");
+    assert.deepEqual(store.external, { "todo.casa": { "trocar a resistencia": "Eletricista" } });
+    assert.throws(() => store.setExternal("light.x", "a", true), /Not a to-do entity/);
+    assert.throws(() => store.setExternal("todo.casa", "  ", true), /Task name required/);
+  });
+  it("normalize keeps only true or who for valid lists", () => {
+    const d = normalize({ ext: { "todo.casa": { "A": true, "B": " Diarista ", "C": "", "D": 5, "E": false }, "light.x": { a: true }, "todo.y": "no" } });
+    assert.deepEqual(d.ext, { "todo.casa": { a: true, b: "Diarista" } });
   });
 });
 

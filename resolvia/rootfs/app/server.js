@@ -21,7 +21,7 @@ import { Inventario } from "./lib/inventario.js";
 import { Voice, readRaw, MAX_VOICE_BYTES } from "./lib/voice.js";
 import { snapshot, toCSV, backupZip, parseImport, Backups, listVersions, readVersion, fileStamp } from "./lib/data.js";
 
-const VERSION = "2.33.1";
+const VERSION = "2.34.0";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const WWW = path.join(HERE, "www");
 const DEV = process.env.RESOLVIA_DEV === "1";
@@ -236,6 +236,7 @@ ha.subscribe({ type: "subscribe_events", event_type: "resolvia_esquecer" }, (ev)
     try {
       store.setRoom(d.entity_id, name, null);
       store.setEquip(d.entity_id, name, null);
+      store.setExternal(d.entity_id, name, null);
     } catch (e) {
       /* no room or equipment for it */
     }
@@ -502,6 +503,15 @@ class Session {
         store.setRoom(msg.entity_id, String(msg.summary || ""), rooms, msg.previous_summary == null ? null : String(msg.previous_summary));
         publishPresence();
         return this.result(id, roomsState());
+      }
+
+      // ---- Serviço externo: tasks done by someone from outside ({ext: {todo.x: {task key: true | "who"}}})
+      case "resolvia/external/get":
+        return this.result(id, { ext: store.external });
+
+      case "resolvia/external/set": {
+        store.setExternal(msg.entity_id, String(msg.summary || ""), msg.value == null ? null : msg.value, msg.previous_summary == null ? null : String(msg.previous_summary));
+        return this.result(id, { ext: store.external });
       }
 
       case "resolvia/points/get":

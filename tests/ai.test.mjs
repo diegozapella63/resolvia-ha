@@ -193,7 +193,7 @@ describe("cleanItemsWithLists", () => {
 });
 
 describe("cleanSuggestItems", () => {
-  const ok = { key: "todo.casa|u1", lista: "Casa", texto: "Varrer", dias: 3, pontos: 10, repete: 7, compras: false, comodo: "Sala", equipamento: "Aspirador (Sala)" };
+  const ok = { key: "todo.casa|u1", lista: "Casa", texto: "Varrer", dias: 3, pontos: 10, repete: 7, compras: false, comodo: "Sala", equipamento: "Aspirador (Sala)", externo: "Diarista" };
 
   it("keeps the known fields of a valid item", () => {
     assert.deepEqual(cleanSuggestItems([ok]), [ok]);

@@ -19,6 +19,7 @@ import { PointsMixin, stripMark, markOf } from "./points.js";
 import { SuggestMixin } from "./suggest.js";
 import { RoomsMixin } from "./rooms.js";
 import { ChatMixin } from "./chat-panel.js";
+import { ExternalMixin } from "./external.js";
 import { chatStyles } from "./chat.js";
 import { Recorder, micError, VOICE_RATE, VOICE_MAX_S } from "./voice.js";
 import {
@@ -47,7 +48,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.33.1";
+const VERSION = "2.34.0";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -84,7 +85,7 @@ const REPEAT_PICKS = [
 ];
 const keyOf = (item) => item.uid || item.summary;
 
-class ResolviaPanel extends ChatMixin(RoomsMixin(SuggestMixin(PointsMixin(DataMixin(LitElement))))) {
+class ResolviaPanel extends ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(PointsMixin(DataMixin(LitElement)))))) {
   static properties = {
     hass: { attribute: false },
     narrow: { type: Boolean },
@@ -228,6 +229,7 @@ class ResolviaPanel extends ChatMixin(RoomsMixin(SuggestMixin(PointsMixin(DataMi
         this._loadPrefs();
         this._loadPoints();
         this._loadRooms();
+        this._loadExternal();
       }
       if (!this._rulesUnsub && this.isConnected) this._subscribeRules();
       if (!this._voiceAsked && this.hass.resolvia && this.hass.resolvia.voiceStatus) {
@@ -259,6 +261,7 @@ class ResolviaPanel extends ChatMixin(RoomsMixin(SuggestMixin(PointsMixin(DataMi
         this._refreshAi(false);
         this._loadPoints();
         this._loadRooms();
+        this._loadExternal();
         this._loadUsage();
       }
       if (tab === "dados") this._loadBackups();
@@ -842,6 +845,7 @@ class ResolviaPanel extends ChatMixin(RoomsMixin(SuggestMixin(PointsMixin(DataMi
       repeatCustom: false,
       room: null,
       equips: [],
+      ext: null,
     });
     this.updateComplete.then(() => {
       const ta = this.renderRoot.querySelector(".sheet textarea");
@@ -1473,6 +1477,8 @@ class ResolviaPanel extends ChatMixin(RoomsMixin(SuggestMixin(PointsMixin(DataMi
       roomsOrig: this._roomIdsOf(list.id, item.summary),
       equips: this._equipIdsOf(list.id, item.summary),
       equipsOrig: this._equipIdsOf(list.id, item.summary),
+      ext: this._externalOf(list.id, item.summary),
+      extOrig: this._externalOf(list.id, item.summary),
     });
     this._loadPoints();
   }
@@ -1501,6 +1507,7 @@ class ResolviaPanel extends ChatMixin(RoomsMixin(SuggestMixin(PointsMixin(DataMi
       if (ok && f.repeat) await this._setRule(target.id, { summary, days: f.repeat });
       if (ok && f.points) await this._setTaskPoints(target.id, summary, f.points);
       if (ok) await this._saveTaskPlace(target.id, summary, f);
+      if (ok) await this._saveTaskExternal(target.id, summary, f);
       if (ok && this._view().id !== target.id) this._showToast(`Adicionado em ${clip(target.name, 28)}`);
       return;
     }
@@ -1523,6 +1530,8 @@ class ResolviaPanel extends ChatMixin(RoomsMixin(SuggestMixin(PointsMixin(DataMi
         await this._saveTaskPlace(target.id, summary, { ...f, roomsOrig: [], equipsOrig: [] });
         if ((f.roomsOrig || []).length) await this._setTaskRoom(list.id, item.summary, null);
         if ((f.equipsOrig || []).length) await this._setTaskEquip(list.id, item.summary, null);
+        await this._saveTaskExternal(target.id, summary, { ...f, extOrig: null });
+        if (f.extOrig) await this._setTaskExternal(list.id, item.summary, null);
         await this._call("remove_item", { item: [f.key] }, list.id);
         this._showToast(`Movido para ${clip(target.name, 28)}`);
       }
@@ -1544,6 +1553,7 @@ class ResolviaPanel extends ChatMixin(RoomsMixin(SuggestMixin(PointsMixin(DataMi
       await this._setTaskPoints(list.id, summary, f.points || 0, summary !== item.summary ? item.summary : null);
     }
     await this._saveTaskPlace(list.id, summary, f, summary !== item.summary ? item.summary : null);
+    await this._saveTaskExternal(list.id, summary, f, summary !== item.summary ? item.summary : null);
     if ((f.repeat || 0) !== (f.repeatOrig || 0)) {
       await this._setRule(list.id, { uid: item.uid, summary, days: f.repeat });
       if (f.repeat) this._showToast(`Repete ${this._everyLabel(f.repeat)} depois de concluir`);
@@ -2164,6 +2174,11 @@ class ResolviaPanel extends ChatMixin(RoomsMixin(SuggestMixin(PointsMixin(DataMi
       await this._setTaskEquip(target.id, summary, equips);
       await this._setTaskEquip(list.id, summary, null);
     }
+    const ext = this._externalOf(list.id, summary);
+    if (ext) {
+      await this._setTaskExternal(target.id, summary, ext);
+      await this._setTaskExternal(list.id, summary, null);
+    }
     return true;
   }
 
@@ -2224,7 +2239,7 @@ class ResolviaPanel extends ChatMixin(RoomsMixin(SuggestMixin(PointsMixin(DataMi
           <span class="check sel ${on ? "on" : ""}" role="checkbox" aria-checked=${on ? "true" : "false"} aria-label="Selecionar ${item.summary || ""}">${icon("check")}</span>
           <div class="it-body">
             <div class="it-text">${item.summary || ""}</div>
-            ${this._roomIdOf(l.id, item.summary) || this._equipIdOf(l.id, item.summary) ? html`<div class="chips">${this._renderRoomTag(l.id, item)} ${this._renderEquipTag(l.id, item)}</div>` : nothing}
+            ${this._roomIdOf(l.id, item.summary) || this._equipIdOf(l.id, item.summary) || this._externalOf(l.id, item.summary) ? html`<div class="chips">${this._renderExternalTag(l.id, item)} ${this._renderRoomTag(l.id, item)} ${this._renderEquipTag(l.id, item)}</div>` : nothing}
           </div>
         </div>
       `;
@@ -2238,10 +2253,10 @@ class ResolviaPanel extends ChatMixin(RoomsMixin(SuggestMixin(PointsMixin(DataMi
           <div class="it-text">${this._renderText(item.summary || "", opts.query)}</div>
           ${stripMark(item.description) ? html`<div class="it-desc">${this._renderText(stripMark(item.description), opts.query)}</div>` : nothing}
           ${opts.why ? html`<div class="it-why">${icon(opts.whyIcon || "lightbulb")}<span>${opts.why}</span></div>` : nothing}
-          ${due || opts.showList || rule || this._pointsOf(l.id, item.summary, item.uid) || this._roomIdOf(l.id, item.summary) || this._equipIdOf(l.id, item.summary)
+          ${due || opts.showList || rule || this._pointsOf(l.id, item.summary, item.uid) || this._roomIdOf(l.id, item.summary) || this._equipIdOf(l.id, item.summary) || this._externalOf(l.id, item.summary)
             ? html`<div class="chips">
                 ${opts.showList ? html`<span class="tag list">${icon(l.icon)}${clip(l.name, 24)}</span>` : nothing}
-                ${this._renderRoomTag(l.id, item)} ${this._renderEquipTag(l.id, item)}
+                ${this._renderExternalTag(l.id, item)} ${this._renderRoomTag(l.id, item)} ${this._renderEquipTag(l.id, item)}
                 ${due
                   ? l.noDue
                     ? html`<span class="tag info" title=${l.canDue ? "Prazos desligados: a data é só informação" : "Data da integração, não é prazo"}>${icon("clock-fading")}${due.text}</span>`
@@ -2407,7 +2422,7 @@ class ResolviaPanel extends ChatMixin(RoomsMixin(SuggestMixin(PointsMixin(DataMi
       for (const l of this._visible()) {
         const hits = (l.items || []).filter(
           // also by the room or the item of the InventarIA ("cozinha", "fogão")
-          (i) => (this._searchDone || !isDone(i)) && (fold(i.summary).includes(needle) || fold(i.description).includes(needle) || place(l, i)),
+          (i) => (this._searchDone || !isDone(i)) && (fold(i.summary).includes(needle) || fold(i.description).includes(needle) || place(l, i) || fold(this._externalText(l.id, i.summary)).includes(needle)),
         );
         if (hits.length) {
           hits.sort((a, b) => Number(isDone(a)) - Number(isDone(b)));
@@ -2886,6 +2901,7 @@ class ResolviaPanel extends ChatMixin(RoomsMixin(SuggestMixin(PointsMixin(DataMi
         : nothing}
       ${this._renderRoomField(f)}
       ${this._renderEquipField(f)}
+      ${this._renderExternalField(f)}
       ${this._renderPointsField(f)}
       ${targets.length > 1
         ? html`<div class="field">

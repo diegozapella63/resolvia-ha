@@ -649,6 +649,23 @@ export const styles = css`
     background: color-mix(in srgb, var(--rv-muted) 14%, transparent);
     color: var(--rv-text-2);
   }
+  /* Serviço externo: someone from outside does it */
+  .tag.ext {
+    background: color-mix(in srgb, var(--rv-muted) 14%, transparent);
+    color: var(--rv-text-2);
+    border-color: transparent;
+  }
+  .chip-row.ext-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .chip-row.ext-row .pick {
+    justify-content: center;
+  }
+  .ext-who {
+    width: 100%;
+    margin-top: 10px;
+  }
   .tag.list {
     border-color: transparent;
     background: var(--cs);

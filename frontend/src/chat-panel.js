@@ -133,6 +133,7 @@ export const ChatMixin = (Base) =>
                 pontos: this._pointsOf ? this._pointsOf(l.id, i.summary, i.uid) || 0 : 0,
                 comodo: this._roomIdsOf(l.id, i.summary).map((id) => this._roomName(id)).filter(Boolean).join(", "),
                 equipamento: this._equipIdsOf(l.id, i.summary).map((id) => (this._equipOf(id) || {}).nome).filter(Boolean).join(", "),
+                externo: ((e) => (e === true ? "sim" : e || ""))(this._externalOf(l.id, i.summary)),
               };
             }),
           };

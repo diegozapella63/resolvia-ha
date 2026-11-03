@@ -98,6 +98,10 @@ Com o **CronologIA** no mesmo Home Assistant, a integração com o ResolvIA liga
 
 Os pontos ficam pelo nome da tarefa em cada lista, então valem também quando uma tarefa que se repete volta. A mesma tarefa no mesmo dia conta uma vez só, mesmo concluída no CronologIA. Concluir pela Alexa ou pela tela padrão do Home Assistant não dá pontos (o app não sabe quem foi).
 
+## Serviço externo
+
+No item, **Quem faz** diz se é com vocês (**Nós mesmos**) ou um **Serviço externo**: uma pessoa ou empresa de fora vai fazer (eletricista, assistência técnica, diarista). Dá para escrever quem, ou deixar em branco. A tarefa ganha uma etiqueta com o capacete e o nome; o **Buscar** acha por quem faz; mover a tarefa leva junto; e o **Sugerir com IA** e a **Conversa** sabem que o que vocês fazem é chamar, marcar ou cobrar.
+
 ## Cômodos e equipamentos (InventarIA)
 
 Com o **InventarIA** (1.14.0 ou mais novo) no mesmo Home Assistant, ligue **Mais › Integrações › InventarIA › Usar cômodos** (desligado por padrão). A partir daí:

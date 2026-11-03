@@ -193,6 +193,8 @@ export function cleanSuggestItems(raw) {
       compras: i.compras === true,
       comodo: oneLine(i.comodo, 60),
       equipamento: oneLine(i.equipamento, 120),
+      // Serviço externo: someone from outside does it ("Eletricista"; "sim" when not said)
+      externo: oneLine(i.externo, 60),
     });
   }
   return out;
@@ -210,6 +212,7 @@ export function suggestInstructions(items, now = new Date()) {
       i.repete ? `repete a cada ${i.repete} dias` : "",
       i.comodo ? `cômodo: ${i.comodo}` : "",
       i.equipamento ? `equipamento: ${i.equipamento}` : "",
+      i.externo ? `serviço externo: ${i.externo}` : "",
     ]
       .filter((x) => x !== "")
       .join(" | "),
@@ -221,6 +224,7 @@ export function suggestInstructions(items, now = new Date()) {
     "Escolha até 5 itens que valem a pena resolver agora. Dê preferência ao que está parado há muito tempo, ao que é rápido de fazer, ao que fecha uma lista, ao que vale pontos e ao que combina com o dia e a hora.",
     "Itens de listas de compras só entram se a lista estiver cheia ou parada há muito tempo; nesse caso escolha um deles e diga para ir às compras.",
     items.some((i) => i.comodo) ? "Itens do mesmo cômodo podem ser feitos de uma vez: quando fizer sentido, escolha juntos e diga isso no motivo." : "",
+    items.some((i) => i.externo) ? "Um item de serviço externo é feito por outra pessoa (um profissional, uma loja): o que a família faz é chamar, marcar ou cobrar; diga isso no motivo." : "",
     'Responda um elemento por item escolhido, do mais importante para o menos, no formato "número | motivo". O motivo explica por que começar por ele (até 100 caracteres), todo em português do Brasil (sem palavras em inglês), fala com a família e não repete o texto do item.',
     "Não invente itens nem números.",
     `\nItens:\n"""\n${rows.join("\n")}\n"""`,

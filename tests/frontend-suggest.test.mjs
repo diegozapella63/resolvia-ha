@@ -7,6 +7,7 @@ import { html } from "../frontend/vendor/lit-all.min.js";
 import { SuggestMixin, ageText } from "../frontend/src/suggest.js";
 import { PointsMixin } from "../frontend/src/points.js";
 import { RoomsMixin } from "../frontend/src/rooms.js";
+import { ExternalMixin } from "../frontend/src/external.js";
 import { F, colorById } from "../frontend/src/util.js";
 import { local } from "./_helpers.mjs";
 
@@ -20,7 +21,7 @@ const ymd = (d) => {
 const RW = F.CREATE | F.UPDATE | F.DELETE;
 const list = (id, items, over = {}) => ({ id, name: id.replace("todo.", ""), icon: "list", color: colorById("vermelho"), features: RW, canDue: true, items: items.map((x, k) => (typeof x === "string" ? { uid: `${id}-${k}`, summary: x, status: "needs_action" } : { uid: `${id}-${k}`, status: "needs_action", ...x })), ...over });
 
-class Base extends hostOf(PointsMixin, RoomsMixin) {
+class Base extends hostOf(PointsMixin, RoomsMixin, ExternalMixin) {
   constructor(lists, answers = {}) {
     super(fakeHass(answers));
     this.hass.resolvia = {};
@@ -135,12 +136,13 @@ describe("suggest: the AI", () => {
     const p = new Panel(lists(), { "resolvia/ai/suggest": { picks: [{ key: "todo.casa|todo.casa-0", motivo: "Rápido" }] } });
     p._ages = { "todo.casa": { "todo.casa-0": ago(10) } };
     p.rules["todo.casa|todo.casa-0"] = { days: 30 };
+    p._ext = { "todo.casa": { "trocar lampada": "Eletricista" } };
     await p._askAi();
     const m = p.hass.calls[0];
     assert.equal(m.type, "resolvia/ai/suggest");
     assert.deepEqual(m.items, [
-      { key: "todo.casa|todo.casa-0", lista: "casa", texto: "Trocar lâmpada", dias: 10, pontos: 0, repete: 30, compras: false, comodo: "", equipamento: "" },
-      { key: "todo.mercado|todo.mercado-0", lista: "mercado", texto: "leite", dias: null, pontos: 0, repete: 0, compras: true, comodo: "", equipamento: "" },
+      { key: "todo.casa|todo.casa-0", lista: "casa", texto: "Trocar lâmpada", dias: 10, pontos: 0, repete: 30, compras: false, comodo: "", equipamento: "", externo: "Eletricista" },
+      { key: "todo.mercado|todo.mercado-0", lista: "mercado", texto: "leite", dias: null, pontos: 0, repete: 0, compras: true, comodo: "", equipamento: "", externo: "" },
     ]);
     assert.deepEqual([p._aiBusy, p._aiAsking, p.haptics], [false, false, ["light"]]);
     assert.deepEqual(p._aiRows().map((r) => [r.i.summary, r.why, r.ai]), [["Trocar lâmpada", "Rápido", true]]);

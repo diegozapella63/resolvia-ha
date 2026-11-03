@@ -25,7 +25,7 @@ describe("cleanChat", () => {
     const c = cleanChat({ messages: [{ role: "user", text: "oi" }], context: { tela: "x\ny", listas: [{ id: "light.x", itens: [] }, { id: "todo.a", nome: "A", itens: [{ texto: "a|b\nc", prazo: "amanhã", pontos: -2 }, { texto: "" }] }] } });
     assert.equal(c.context.tela, "x y");
     assert.equal(c.context.listas.length, 1);
-    assert.deepEqual(c.context.listas[0].itens, [{ texto: "a b c", prazo: null, atrasado: false, pontos: 0, comodo: "", equipamento: "" }]);
+    assert.deepEqual(c.context.listas[0].itens, [{ texto: "a b c", prazo: null, atrasado: false, pontos: 0, comodo: "", equipamento: "", externo: "" }]);
   });
   it("at most 250 items in all", () => {
     const listas = Array.from({ length: 5 }, (_, n) => ({ id: `todo.l${n}`, nome: `L${n}`, itens: Array.from({ length: 80 }, (_, i) => ({ texto: `i${i}` })) }));

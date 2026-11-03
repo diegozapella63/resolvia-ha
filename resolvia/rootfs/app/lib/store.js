@@ -138,9 +138,33 @@ function cleanLinks(raw) {
   return out;
 }
 
+/** Serviço externo: who will do a task that is not for the house ("Eletricista"), true when not said; null when it is not one. */
+export function externalValue(v) {
+  if (v === true) return true;
+  if (typeof v !== "string") return null;
+  const s = v.replace(/\s+/g, " ").trim().slice(0, 60);
+  return s || null;
+}
+
+/** {todo.x: {task key: true | "who"}}: the tasks done by someone from outside (a professional, a store). */
+function cleanExternal(raw) {
+  const out = {};
+  if (!isObj(raw)) return out;
+  for (const [id, map] of Object.entries(raw)) {
+    if (!/^todo\.[a-z0-9_]+$/.test(id) || !isObj(map)) continue;
+    for (const [k, v] of Object.entries(map)) {
+      const key = taskKey(k);
+      const val = externalValue(v);
+      if (!key || val == null) continue;
+      (out[id] || (out[id] = {}))[key] = val;
+    }
+  }
+  return out;
+}
+
 /** The file contents, checked. Strict (imports) also validates every preference. */
 export function normalize(raw, strict = false) {
-  const data = { version: 1, prefs: { lists: {}, app: {} }, rules: {}, points: {}, rooms: {}, equips: {} };
+  const data = { version: 1, prefs: { lists: {}, app: {} }, rules: {}, points: {}, rooms: {}, equips: {}, ext: {} };
   if (!isObj(raw)) return data;
   if (isObj(raw.prefs)) {
     if (isObj(raw.prefs.lists)) {
@@ -185,6 +209,7 @@ export function normalize(raw, strict = false) {
   }
   data.points = cleanPoints(raw.points);
   data.rooms = cleanLinks(raw.rooms); // {todo.x: {task key: room id | [room ids]}}
+  data.ext = cleanExternal(raw.ext); // {todo.x: {task key: true | "who"}}: Serviço externo
   data.equips = cleanLinks(raw.equips); // {todo.x: {task key: item id | [item ids] of the InventarIA}}
   return data;
 }
@@ -260,6 +285,35 @@ export class Store {
 
   get points() {
     return this.data.points;
+  }
+
+  get external() {
+    return this.data.ext || {};
+  }
+
+  /** Serviço externo of a task: true, the name of who does it, or null. */
+  externalFor(entityId, summary) {
+    const map = this.external[entityId];
+    return (map && map[taskKey(summary)]) || null;
+  }
+
+  /** Sets (true or "who") or clears (null/false) the Serviço externo of a task; `previous` is the old name after a rename. */
+  setExternal(entityId, summary, value, previous = null) {
+    if (typeof entityId !== "string" || !/^todo\.[a-z0-9_]+$/.test(entityId)) throw new Error("Not a to-do entity");
+    const key = taskKey(summary);
+    if (!key) throw new Error("Task name required");
+    const val = value === false ? null : externalValue(value);
+    const cur = this.data.ext || {};
+    const map = { ...(cur[entityId] || {}) };
+    if (previous != null && taskKey(previous) !== key) delete map[taskKey(previous)];
+    if (val != null) map[key] = val;
+    else delete map[key];
+    const all = { ...cur };
+    if (Object.keys(map).length) all[entityId] = map;
+    else delete all[entityId];
+    this.data.ext = all;
+    this.save();
+    return all;
   }
 
   get rooms() {
