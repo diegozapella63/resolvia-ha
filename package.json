@@ -6,6 +6,6 @@
     "test": "TZ=America/Sao_Paulo node --test 'tests/*.test.mjs' 'tests/integration/*.test.mjs'",
     "test:unit": "TZ=America/Sao_Paulo node --test 'tests/*.test.mjs'",
     "test:integration": "TZ=America/Sao_Paulo node --test 'tests/integration/*.test.mjs'",
-    "test:coverage": "TZ=America/Sao_Paulo node --test --experimental-test-coverage 'tests/*.test.mjs' 'tests/integration/*.test.mjs'"
+    "test:coverage": "TZ=America/Sao_Paulo node --test --experimental-test-coverage --test-coverage-include='resolvia/rootfs/app/**' --test-coverage-include='frontend/src/**' --test-coverage-lines=98 --test-coverage-branches=94 --test-coverage-functions=93 'tests/*.test.mjs' 'tests/integration/*.test.mjs'"
   }
 }
