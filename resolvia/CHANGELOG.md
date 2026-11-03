@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.33.1
+
+- Conversa: um prazo que não existe no calendário (como 30/02) não vai mais para o item; ele é adicionado sem prazo.
+
 ## 2.33.0
 
 - **Conversa com a IA**: ao lado do microfone, um botão abre uma conversa. Pergunte sobre a tela, as listas ou qualquer outro assunto, escrevendo ou falando. Pedindo para adicionar ou concluir itens, a IA mostra cada ação num cartão e só faz quando você toca em **Fazer**. A conversa continua ao fechar e abrir; **Nova** começa outra. Conta em Uso da IA como Conversa.

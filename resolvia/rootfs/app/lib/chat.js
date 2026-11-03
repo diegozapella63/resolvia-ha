@@ -19,7 +19,13 @@ const fold = (s) =>
     .trim();
 const oneLine = (v, max) => String(v == null ? "" : v).replace(/[\r\n|]+/g, " ").replace(/\s+/g, " ").trim().slice(0, max);
 const text = (v, max) => String(v == null ? "" : v).replace(/\r/g, "").trim().slice(0, max);
-const isDate = (s) => typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(Date.parse(`${s}T12:00:00`));
+// a real day of the calendar (2026-02-30 is not)
+const isDate = (s) => {
+  if (typeof s !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+  const [y, m, d] = s.split("-").map(Number);
+  const t = new Date(y, m - 1, d);
+  return t.getFullYear() === y && t.getMonth() === m - 1 && t.getDate() === d;
+};
 
 export const CHAT_STRUCTURE = {
   resposta: {

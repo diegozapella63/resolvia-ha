@@ -62,6 +62,10 @@ describe("chatInstructions", () => {
 
 describe("parseChatActions", () => {
   const c = cleanChat({ messages: [], context: ctx() }).context;
+  it("adicionar: a day that does not exist (30/02) goes without a date", () => {
+    const a = parseChatActions(["adicionar | Casa | pilhas | 2026-02-30", "adicionar | Casa | lâmpada | 2026-02-28"], cleanChat({ context: ctx() }).context);
+    assert.deepEqual(a.map((x) => x.prazo), [null, "2026-02-28"]);
+  });
   it("adicionar: the list by name (accents and case ignored), the item capitalized, a date only where the list takes dates", () => {
     assert.deepEqual(parseChatActions(["adicionar | casa | comprar pilhas | 2026-11-05", "Adicionar | LISTA DE COMPRAS | leite | 2026-11-05"], c), [
       { tipo: "adicionar", lista: "todo.casa", nome: "Casa", item: "Comprar pilhas", prazo: "2026-11-05" },

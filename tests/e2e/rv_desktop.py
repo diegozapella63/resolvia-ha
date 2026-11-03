@@ -66,7 +66,7 @@ async def main():
         g = await a.locator(".groups").evaluate("e => getComputedStyle(e).gridTemplateColumns")
         check(len(g.split()) == 2, f"two groups side by side ({g})")
         acts = [t.strip() for t in await a.locator(".top-acts .btn").all_inner_texts()]
-        check(acts[-1] == "Adicionar item" and await a.locator(".top-acts .mic-top").count() == 1, f"top right: Falar and the actions ({acts})")
+        check(acts[-1] == "Adicionar item" and await a.locator(".top-acts .mic-top:not(.chat-top)").count() == 1, f"top right: Falar and the actions ({acts})")
         await pg.screenshot(path=f"{SP}/shots/rvdk-home.png")
         # sections
         await side.locator(".side-link", has_text="Buscar").click(); await pg.wait_for_timeout(500)
@@ -80,7 +80,7 @@ async def main():
         check((await a.locator("main").bounding_box())["x"] == 0, "390 px: the page uses the whole width")
         await a.locator(".tab", has_text="Listas").click(); await pg.wait_for_timeout(600)
         check(not await a.locator(".facts").is_visible() and not await a.locator(".top-acts").is_visible(), "390 px: no numbers beside, no top actions")
-        check(await a.locator(".head-row > .mic-top").is_visible(), "390 px: Falar by the title, as before")
+        check(await a.locator(".head-row > .mic-top:not(.chat-top)").is_visible(), "390 px: Falar by the title, as before")
         bg = await a.locator(".panel").first.evaluate("e => getComputedStyle(e).backgroundColor")
         check(bg not in ("rgba(0, 0, 0, 0)", "transparent"), f"390 px: the cards, as before ({bg})")
         check(not errs, f"no page errors {errs}")

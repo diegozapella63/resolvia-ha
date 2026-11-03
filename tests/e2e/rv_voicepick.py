@@ -34,7 +34,7 @@ async def wait_for(fn, label, tries=40):
     check(False, label)
 def prefs(): return json.load(open(f"{DATA}/resolvia.json"))["prefs"]["app"]
 async def speak(pg, a, sheet):
-    await a.locator(".mic-top:visible").click(); await pg.wait_for_timeout(2200)
+    await a.locator(".mic-top:not(.chat-top):visible").click(); await pg.wait_for_timeout(2200)
     await sheet.locator(".btn.primary", has_text="Pronto").click()
     for _ in range(40):
         if "Revisar itens" in await sheet.inner_text(): return True
