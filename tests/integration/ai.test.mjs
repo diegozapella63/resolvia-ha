@@ -230,7 +230,40 @@ describe("with the fake AI", () => {
     });
   });
 
+  describe("Conversa (resolvia/ai/chat)", () => {
+    const context = {
+      tela: 'a lista "Casa"',
+      listas: [{ id: "todo.casa", nome: "Casa", adicionar: true, prazos: true, pendentes: 2, itens: [{ texto: "Passar pano na casa" }, { texto: "Pagar conta de luz", prazo: "2026-11-01", atrasado: true }] }],
+    };
+    it("answers the last thing the person said, knowing the screen and the lists", async () => {
+      const out = await c.call("resolvia/ai/chat", { messages: [{ role: "user", text: "O que está atrasado?" }], context });
+      assert.equal(out.reply, "Atrasados: Pagar conta de luz.");
+      assert.deepEqual(out.actions, []);
+      assert.ok(out.provider);
+      const other = await c.call("resolvia/ai/chat", { messages: [{ role: "user", text: "oi" }, { role: "ia", text: "Olá" }, { role: "user", text: "tudo bem?" }], context });
+      assert.match(other.reply, /tudo bem\?.*tela: a lista "Casa"/);
+    });
+    it("actions come checked against the lists (unknown items to complete are left out)", async () => {
+      const add = await c.call("resolvia/ai/chat", { messages: [{ role: "user", text: "adiciona pilhas e lâmpada na lista Casa" }], context });
+      assert.deepEqual(add.actions.map((x) => [x.tipo, x.lista, x.item]), [["adicionar", "todo.casa", "Pilhas"], ["adicionar", "todo.casa", "Lâmpada"]]);
+      const done = await c.call("resolvia/ai/chat", { messages: [{ role: "user", text: "conclui passar pano na casa em Casa" }], context });
+      assert.deepEqual(done.actions, [{ tipo: "concluir", lista: "todo.casa", nome: "Casa", item: "Passar pano na casa" }]);
+      const none = await c.call("resolvia/ai/chat", { messages: [{ role: "user", text: "conclui lavar o carro em Casa" }], context });
+      assert.deepEqual(none.actions, []);
+    });
+    it("needs something from the person; counted in Uso da IA as conversa", async () => {
+      await assert.rejects(c.call("resolvia/ai/chat", { messages: [], context }), { code: "invalid_format" });
+      const usage = await c.call("resolvia/ai/usage");
+      assert.ok(JSON.stringify(usage).includes("conversa"));
+    });
+  });
+
   describe("'Usar IA' off", () => {
+    it("refuses the chat", async () => {
+      await c.call("resolvia/prefs/set_app", { prefs: { ai_off: true } });
+      await assert.rejects(c.call("resolvia/ai/chat", { messages: [{ role: "user", text: "oi" }], context: {} }), { code: "ai_off" });
+      await c.call("resolvia/prefs/set_app", { prefs: { ai_off: false } });
+    });
     it("refuses reading and suggestions", async () => {
       await c.call("resolvia/prefs/set_app", { prefs: { ai_off: true } });
       assert.deepEqual(await extract(stack, { text: "leite" }), { status: 409, body: { error: "A IA está desligada em Mais › Integrações", code: "ai_off" } });

@@ -18,6 +18,8 @@ import { DataMixin } from "./datapanel.js";
 import { PointsMixin, stripMark, markOf } from "./points.js";
 import { SuggestMixin } from "./suggest.js";
 import { RoomsMixin } from "./rooms.js";
+import { ChatMixin } from "./chat-panel.js";
+import { chatStyles } from "./chat.js";
 import { Recorder, micError, VOICE_RATE, VOICE_MAX_S } from "./voice.js";
 import {
   F,
@@ -45,7 +47,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.32.0";
+const VERSION = "2.33.0";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -82,7 +84,7 @@ const REPEAT_PICKS = [
 ];
 const keyOf = (item) => item.uid || item.summary;
 
-class ResolviaPanel extends RoomsMixin(SuggestMixin(PointsMixin(DataMixin(LitElement)))) {
+class ResolviaPanel extends ChatMixin(RoomsMixin(SuggestMixin(PointsMixin(DataMixin(LitElement))))) {
   static properties = {
     hass: { attribute: false },
     narrow: { type: Boolean },
@@ -111,7 +113,7 @@ class ResolviaPanel extends RoomsMixin(SuggestMixin(PointsMixin(DataMixin(LitEle
     env: { attribute: false },
   };
 
-  static styles = [styles, unsafeCSS(usageStyles), unsafeCSS(lookStyles), unsafeCSS(equipPickerStyles)];
+  static styles = [styles, unsafeCSS(usageStyles), unsafeCSS(lookStyles), unsafeCSS(equipPickerStyles), unsafeCSS(chatStyles)];
 
   constructor() {
     super();
@@ -241,6 +243,7 @@ class ResolviaPanel extends RoomsMixin(SuggestMixin(PointsMixin(DataMixin(LitEle
 
   updated(changed) {
     this.toggleAttribute("dark", this._dark);
+    this._chatAfterRender();
     if (changed.has("_path") && this._view().name === "more") {
       // the tab bar scrolls sideways on narrow screens: keep the chosen tab in sight
       const bar = this.renderRoot.querySelector(".more-tabs");
@@ -602,6 +605,7 @@ class ResolviaPanel extends RoomsMixin(SuggestMixin(PointsMixin(DataMixin(LitEle
   _closeSheet(silent = false) {
     if (!this._sheet) return;
     this._stopVoice();
+    this._chatStop();
     this._sheet = null;
     this._form = null;
     if (history.state && history.state.rvSheet) {
@@ -1825,7 +1829,7 @@ class ResolviaPanel extends RoomsMixin(SuggestMixin(PointsMixin(DataMixin(LitEle
   /** Computador: the actions at the top right, like the InventarIA (Ler com IA, Adicionar item). */
   _renderTopActs() {
     return html`<div class="top-acts">
-      ${this._renderMicBtn()}
+      ${this._renderChatBtn()}${this._renderMicBtn()}
       ${this._canImport() ? html`<button class="btn outline sm" @click=${() => this._openImport(null)}>${icon("scan-text")}Ler com IA</button>` : nothing}
       <button class="btn primary sm" @click=${() => this._openAdd(null)}>${icon("plus")}Adicionar item</button>
     </div>`;
@@ -1836,7 +1840,7 @@ class ResolviaPanel extends RoomsMixin(SuggestMixin(PointsMixin(DataMixin(LitEle
     const offline = this.hass.connected === false;
     const st = offline ? { text: "Reconectando ao Home Assistant…", tone: "off" } : status;
     return html`<header class="brand-head">
-      <div class="head-row"><p class="eyebrow"><span class="brand">${appIcon()}Resolv<span>IA</span></span>${name ? html`<span class="sep"> · </span>Olá, ${name}` : ""}</p>${this._renderMicBtn()}${this._renderTopActs()}</div>
+      <div class="head-row"><p class="eyebrow"><span class="brand">${appIcon()}Resolv<span>IA</span></span>${name ? html`<span class="sep"> · </span>Olá, ${name}` : ""}</p>${this._renderChatBtn()}${this._renderMicBtn()}${this._renderTopActs()}</div>
       <h1 class="page-title">${title}</h1>
       ${st ? html`<p class="status"><span class="dot ${st.tone || ""}" aria-hidden="true"></span><span>${st.text}</span></p>` : nothing}
     </header>`;
@@ -2009,7 +2013,7 @@ class ResolviaPanel extends RoomsMixin(SuggestMixin(PointsMixin(DataMixin(LitEle
             ${l.group ? html`<div class="overline">${l.group}</div>` : nothing}
             <h1 class="display">${l.name}</h1>
           </div>
-          ${this._renderMicBtn(l.id)}
+          ${this._renderChatBtn()}${this._renderMicBtn(l.id)}
           <button class="icon-btn" @click=${() => this._openSheet("listmenu", { listId: l.id })} aria-label="Opções da lista">${icon("ellipsis")}</button>
         </div>
 
@@ -2740,6 +2744,7 @@ class ResolviaPanel extends RoomsMixin(SuggestMixin(PointsMixin(DataMixin(LitEle
     else if (this._sheet === "versions") body = this._renderVersions();
     else if (this._sheet === "who") body = this._renderWhoSheet();
     else if (this._sheet === "move") body = this._renderMoveSheet();
+    else if (this._sheet === "chat") body = this._renderChatSheet();
     return html`
       <div class="scrim" @click=${() => this._closeSheet()}></div>
       <div class="sheet" role="dialog" aria-modal="true" style=${this._sheetStyle()} @keydown=${(e) => e.key === "Escape" && this._closeSheet()}>

@@ -24,6 +24,12 @@ No início, logo abaixo do resumo, fica o campo **Buscar entre N itens**, como n
 
 O **microfone** no alto da tela, à direita (no início, nas outras telas e dentro de cada lista): toque, fale os itens ("Comprar pilhas, trocar a lâmpada da sala e ligar para o encanador") e toque de novo. O Home Assistant transcreve com a **fala para texto do Assist** (Configurações › Assistentes de voz; com o Home Assistant Cloud já vem pronta, em português), e a IA separa os itens (sem IA, o app separa por vírgulas e "e"). Para usar outro motor de fala (Whisper, Google…) sem mexer no assistente de voz do Home Assistant, escolha em Mais › Integrações › **Falar**. Você confere e adiciona: a IA sugere a lista de cada item (dentro de uma lista, na dúvida, fica nela) e dá para trocar item por item. Até 2 minutos por vez. O microfone só aparece quando o Home Assistant tem fala para texto; o navegador ou o app do celular pede permissão na primeira vez.
 
+### Conversa com a IA
+
+O botão de balão, ao lado do microfone, abre uma conversa com a IA. Pergunte sobre a tela em que está ("o que é mais urgente aqui?"), sobre as listas ("o que está atrasado?") ou sobre qualquer outro assunto; dá para escrever ou tocar no microfone e falar. Ela conhece as listas visíveis e os itens pendentes, com prazo, pontos, cômodo e equipamento.
+
+Pedindo para mexer nas listas ("adiciona pilhas e lâmpada na lista Casa", "conclui passar pano"), ela mostra cada ação num cartão e só faz quando você toca em **Fazer** (ou **Fazer todas**). **Nova** começa outra conversa. Com **Usar IA** desligado, o botão não aparece. Cada mensagem conta em **Uso da IA** como Conversa.
+
 ## Importar de mensagem ou foto
 
 No botão **Adicionar** (ou no ícone ao lado do campo de adicionar de uma lista) há três quadros, no alto do formulário:

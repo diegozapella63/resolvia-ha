@@ -172,6 +172,30 @@ function fakeAI(msg) {
   if (!WITH_AI) fail("not_found", "Service not found");
   if (!msg.return_response) fail("service_validation_error", "return_response required");
   const d = msg.service_data || {};
+  // Conversa: answers the last thing the person said; "adiciona X na lista Y" and "conclui X em Y" become actions
+  if (/: conversa$/.test(d.task_name || "") && d.structure && d.structure.resposta) {
+    aiCalls.push({ entity_id: d.entity_id, files: [], chat: d.instructions });
+    console.log("fake AI chat", JSON.stringify({ entity_id: d.entity_id, last: ((d.instructions || "").match(/Pessoa: (.*)$/) || [])[1] }));
+    if (process.env.FAKE_AI_CHAT_FAIL) fail("home_assistant_error", "IA fora do ar");
+    const last = ((d.instructions || "").match(/Pessoa: (.*)$/) || [])[1] || "";
+    let m;
+    const acoes = [];
+    let resposta;
+    if ((m = /adiciona (.+?) na lista (.+?)$/i.exec(last))) {
+      for (const it of m[1].split(/,| e /).map((x) => x.trim()).filter(Boolean)) acoes.push(`adicionar | ${m[2]} | ${it} |`);
+      resposta = `Posso adicionar ${m[1]} em ${m[2]}.`;
+    } else if ((m = /conclu[ia] (.+?) em (.+?)$/i.exec(last))) {
+      acoes.push(`concluir | ${m[2]} | ${m[1]}`);
+      resposta = `Posso concluir ${m[1]}.`;
+    } else if (/atrasad/i.test(last)) {
+      const late = (d.instructions || "").split("\n").filter((r) => /\(.*atrasado/.test(r)).map((r) => r.replace(/^\s*-\s*/, "").replace(/\s*\(.*$/, ""));
+      resposta = late.length ? `Atrasados: ${late.join(", ")}.` : "Nada atrasado.";
+    } else {
+      const tela = ((d.instructions || "").match(/A pessoa está na tela: (.*)\./) || [])[1] || "?";
+      resposta = `Resposta de teste para "${last}" (tela: ${tela}).`;
+    }
+    return { context: { id: "ctx" }, response: { conversation_id: "c1", data: { resposta, acoes } } };
+  }
   if (!d.structure || !d.structure.items) fail("service_validation_error", "structure missing");
   const files = (d.attachments || []).map((a) => {
     const prefix = "media-source://media_source/local/";

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.33.0
+
+- **Conversa com a IA**: ao lado do microfone, um botão abre uma conversa. Pergunte sobre a tela, as listas ou qualquer outro assunto, escrevendo ou falando. Pedindo para adicionar ou concluir itens, a IA mostra cada ação num cartão e só faz quando você toca em **Fazer**. A conversa continua ao fechar e abrir; **Nova** começa outra. Conta em Uso da IA como Conversa.
+
 ## 2.32.0
 
 - **Mover vários itens de lista**: segure um item, ou use **⋯ › Selecionar itens**, para selecionar vários (ou **Todos**) e tocar em **Mover para outra lista**. Cada um vai com o prazo, a repetição, os pontos, o cômodo e os equipamentos.

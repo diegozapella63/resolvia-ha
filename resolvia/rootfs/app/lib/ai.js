@@ -6,6 +6,7 @@ import { resultOf } from "./usage.js";
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
+import { CHAT_STRUCTURE, cleanChat, chatInstructions, parseChatActions, replyOf } from "./chat.js";
 
 const GEN_DATA = 1;
 const ATTACHMENTS = 2;
@@ -444,6 +445,52 @@ export class AI {
           /* not serializable */
         }
         this.usage.record({ kind: "sugestao", entity: entity.id, input: prompt.length, output, images: 0, seconds: (Date.now() - started) / 1000, result: resultOf(failure) });
+      }
+    }
+  }
+
+  /**
+   * Conversa: one turn of the chat beside the microphone. {messages, context} as the screen sends them
+   * -> {reply, actions, provider}. Counted in Uso da IA as "conversa".
+   */
+  async chat(raw, now = new Date()) {
+    const payload = cleanChat(raw);
+    const last = payload.messages[payload.messages.length - 1];
+    if (!last || last.role !== "user") throw coded("invalid_format", "Escreva alguma coisa.");
+    if (!this.ha.ready) throw coded("no_ai", "Sem conexão com o Home Assistant.");
+    const entity = await this.resolve(false);
+    const prompt = chatInstructions(payload, now);
+    const started = Date.now();
+    let out = null;
+    let failure = null;
+    try {
+      const res = await this.ha.send(
+        {
+          type: "call_service",
+          domain: "ai_task",
+          service: "generate_data",
+          service_data: { task_name: "ResolvIA: conversa", instructions: prompt, structure: CHAT_STRUCTURE, entity_id: entity.id },
+          return_response: true,
+        },
+        120000,
+      );
+      out = res && res.response ? res.response.data : null;
+      const reply = replyOf(out);
+      const actions = parseChatActions(out && typeof out === "object" ? out.acoes : null, payload.context);
+      if (!reply && !actions.length) throw coded("formato", "A IA não respondeu. Tente de novo.");
+      return { reply, actions, provider: entity.name };
+    } catch (err) {
+      failure = err;
+      throw err;
+    } finally {
+      if (this.usage) {
+        let output = 0;
+        try {
+          output = out == null ? 0 : JSON.stringify(out).length;
+        } catch (e) {
+          /* not serializable */
+        }
+        this.usage.record({ kind: "conversa", entity: entity.id, input: prompt.length, output, images: 0, seconds: (Date.now() - started) / 1000, result: resultOf(failure) });
       }
     }
   }

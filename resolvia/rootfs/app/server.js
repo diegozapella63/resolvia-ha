@@ -21,7 +21,7 @@ import { Inventario } from "./lib/inventario.js";
 import { Voice, readRaw, MAX_VOICE_BYTES } from "./lib/voice.js";
 import { snapshot, toCSV, backupZip, parseImport, Backups, listVersions, readVersion, fileStamp } from "./lib/data.js";
 
-const VERSION = "2.32.0";
+const VERSION = "2.33.0";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const WWW = path.join(HERE, "www");
 const DEV = process.env.RESOLVIA_DEV === "1";
@@ -420,6 +420,12 @@ class Session {
             });
         }
         return this.result(id, await suggestRun);
+      }
+
+      // Conversa (the chat beside the microphone): one turn -> {reply, actions, provider}
+      case "resolvia/ai/chat": {
+        if (store.prefs.app.ai_off) return this.error(id, "ai_off", "A IA está desligada em Mais › Integrações");
+        return this.result(id, await ai.chat({ messages: msg.messages, context: msg.context }));
       }
 
       // Comece por aqui › Voltar ao automático
