@@ -40,7 +40,7 @@ async def main():
         await a.locator(".list-card", has_text="Casa").first.click(); await pg.wait_for_timeout(500)
         await a.get_by_label("Opções da lista").click(); await pg.wait_for_timeout(350)
         rows = [t.split("\n")[0].strip() for t in await sheet.locator(".menu-row").all_inner_texts()]
-        check(rows[:2] == ["Personalizar", "Ocultar do início"], f"the menu: Personalizar and Ocultar do início ({rows})")
+        check(rows[:3] == ["Selecionar itens", "Personalizar", "Ocultar do início"], f"the menu: Selecionar itens (2.32), Personalizar and Ocultar do início ({rows})")
         check(not any("Limpar concluídos" in r for r in rows), "nothing done yet: no Limpar concluídos")
         await sheet.screenshot(path=f"{SP}/shots/rvm-menu.png")
 
