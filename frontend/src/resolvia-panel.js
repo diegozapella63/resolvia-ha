@@ -45,7 +45,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.31.0";
+const VERSION = "2.32.0";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -100,6 +100,8 @@ class ResolviaPanel extends RoomsMixin(SuggestMixin(PointsMixin(DataMixin(LitEle
     _searchEquips: { state: true },
     _theme: { state: true },
     _doneOpen: { state: true },
+    // Selecionar: several items of one list at once {listId, keys: Set}, or null
+    _sel: { state: true },
     _rules: { state: true },
     _cam: { state: true },
     _rooms: { state: true },
@@ -1996,6 +1998,8 @@ class ResolviaPanel extends RoomsMixin(SuggestMixin(PointsMixin(DataMixin(LitEle
     const done = items ? items.filter((i) => isDone(i) && !this._recent.has(keyOf(i))) : [];
     const total = items ? items.length : 0;
     const doneOpen = this._doneOpen[id] !== undefined ? this._doneOpen[id] : this._app("show_done", false);
+    const sel = this._selOn(id);
+    if (sel) return this._renderSelecting(l, pending.filter((i) => !isDone(i)));
 
     return html`
       <section class="page" style=${colorVars(l.color, this._dark)}>
@@ -2032,7 +2036,7 @@ class ResolviaPanel extends RoomsMixin(SuggestMixin(PointsMixin(DataMixin(LitEle
             ? html`<div class="panel">${[70, 52, 84].map((w) => html`<div class="skeleton" style="width:${w}%"></div>`)}</div>`
             : pending.length
               ? html`<div class="panel items">
-                  ${repeat(pending, keyOf, (i) => this._renderItem(l, i, { draggable: canMove && canUpdate && !isDone(i) }))}
+                  ${repeat(pending, keyOf, (i) => this._renderItem(l, i, { draggable: canMove && canUpdate && !isDone(i), selectable: canDelete && !isDone(i) }))}
                 </div>`
               : html`<div class="panel">
                   <div class="empty">
@@ -2061,6 +2065,117 @@ class ResolviaPanel extends RoomsMixin(SuggestMixin(PointsMixin(DataMixin(LitEle
           : nothing}
       </section>
     `;
+  }
+
+  // ---------- Selecionar: several items of a list, moved to another list at once
+
+  /** Selecting in this list (leaving it ends it: another page has another path). */
+  _selOn(listId) {
+    return !!(this._sel && this._sel.listId === listId && this._sel.path === this._path);
+  }
+
+  /** Starts selecting in a list (from its menu, or holding an item: that one comes selected). */
+  _startSelect(l, item = null) {
+    this._sel = { listId: l.id, path: this._path, keys: new Set(item ? [keyOf(item)] : []) };
+    this._haptic("light");
+  }
+
+  _toggleSel(item) {
+    const keys = new Set(this._sel.keys);
+    const k = keyOf(item);
+    if (keys.has(k)) keys.delete(k);
+    else keys.add(k);
+    this._sel = { ...this._sel, keys };
+  }
+
+  _endSelect() {
+    this._sel = null;
+  }
+
+  /** The list while selecting: a head with how many and Todos, the pending items, and Mover para… */
+  _renderSelecting(l, rows) {
+    const n = rows.filter((i) => this._sel.keys.has(keyOf(i))).length;
+    const all = n === rows.length && rows.length > 0;
+    return html`
+      <section class="page selecting-page" style=${colorVars(l.color, this._dark)}>
+        <div class="detail-head sel-head">
+          <button class="icon-btn" @click=${() => this._endSelect()} aria-label="Cancelar seleção">${icon("x")}</button>
+          <div class="dh-text">
+            <div class="overline">${l.name}</div>
+            <h1 class="display">${n ? `${n} ${n === 1 ? "selecionado" : "selecionados"}` : "Selecionar"}</h1>
+          </div>
+          <button class="text-btn" @click=${() => (this._sel = { ...this._sel, keys: all ? new Set() : new Set(rows.map(keyOf)) })}>${all ? "Nenhum" : "Todos"}</button>
+        </div>
+        <div class="panel items">${repeat(rows, keyOf, (i) => this._renderItem(l, i, { selecting: true, selected: this._sel.keys.has(keyOf(i)) }))}</div>
+        <div class="sel-bar">
+          <button class="btn primary" ?disabled=${!n} @click=${() => this._openSheet("move", { listId: l.id })}>${icon("arrow-right-left")}Mover para outra lista</button>
+        </div>
+      </section>
+    `;
+  }
+
+  /** Mover N itens para: the other lists that take new items. */
+  _renderMoveSheet() {
+    const l = this._list(this._form.listId);
+    if (!l || !this._sel) return nothing;
+    const n = this._sel.keys.size;
+    const targets = this._L.filter((t) => t.id !== l.id && has(t.features, F.CREATE) && !t.unavailable && !t.hidden);
+    return html`
+      <div class="sheet-head">
+        <h3 class="display">Mover ${n} ${n === 1 ? "item" : "itens"} para</h3>
+        <button class="icon-btn" @click=${() => this._closeSheet()} aria-label="Fechar">${icon("x")}</button>
+      </div>
+      ${targets.length
+        ? html`<div class="chip-row grid">${targets.map((t) => html`<button class="pick list" style=${colorVars(t.color, this._dark)} @click=${() => this._moveSelected(t.id)}><span class="dot"></span><span>${clip(t.name, 26)}</span></button>`)}</div>`
+        : html`<p class="page-sub">Nenhuma outra lista aceita itens novos.</p>`}
+    `;
+  }
+
+  /**
+   * One item to another list, as the item sheet's Mover does: added there with its date, and its
+   * repetition, points, rooms and equipment go along. It is removed from here by the caller.
+   */
+  async _moveItem(list, item, target) {
+    const summary = item.summary || "";
+    const due = parseDue(item.due);
+    const ok = await this._addFull(target, { summary, description: stripMark(item.description), date: due ? due.date : null, time: due ? due.time : null });
+    if (!ok) return false;
+    const rule = this._ruleFor(list.id, item);
+    if (rule && rule.days) {
+      await this._setRule(target.id, { summary, days: rule.days });
+      await this._setRule(list.id, { uid: item.uid, summary, days: null });
+    }
+    const pts = this._rawPoints(list.id, summary);
+    if (pts) {
+      await this._setTaskPoints(target.id, summary, pts);
+      await this._setTaskPoints(list.id, summary, 0);
+    }
+    const rooms = this._roomIdsOf(list.id, summary);
+    const equips = this._equipIdsOf(list.id, summary);
+    if (rooms.length) {
+      await this._setTaskRoom(target.id, summary, rooms);
+      await this._setTaskRoom(list.id, summary, null);
+    }
+    if (equips.length) {
+      await this._setTaskEquip(target.id, summary, equips);
+      await this._setTaskEquip(list.id, summary, null);
+    }
+    return true;
+  }
+
+  /** Mover: every selected item to the list chosen, then out of this one (in one go). */
+  async _moveSelected(targetId) {
+    const list = this._list(this._sel.listId);
+    const target = this._list(targetId);
+    if (!list || !target) return;
+    const items = (list.items || []).filter((i) => this._sel.keys.has(keyOf(i)));
+    this._closeSheet();
+    this._endSelect();
+    const moved = [];
+    for (const it of items) if (await this._moveItem(list, it, target)) moved.push(it);
+    if (moved.length) await this._call("remove_item", { item: moved.map(keyOf) }, list.id);
+    this._haptic("light");
+    this._showToast(moved.length === items.length ? `${moved.length} ${moved.length === 1 ? "item movido" : "itens movidos"} para ${clip(target.name, 28)}` : `Movidos ${moved.length} de ${items.length} para ${clip(target.name, 28)}`);
   }
 
   _renderText(text, query) {
@@ -2098,8 +2213,20 @@ class ResolviaPanel extends RoomsMixin(SuggestMixin(PointsMixin(DataMixin(LitEle
         ? html`<span class="tag rep">${icon("repeat")}volta ${this._returnLabel(rule.reopen_at)}</span>`
         : html`<span class="tag rep">${icon("repeat")}${this._everyLabel(rule.days)}</span>`
       : nothing;
+    if (opts.selecting) {
+      const on = !!opts.selected;
+      return html`
+        <div class="item selecting ${on ? "picked" : ""}" data-key=${keyOf(item)} @click=${() => this._toggleSel(item)}>
+          <span class="check sel ${on ? "on" : ""}" role="checkbox" aria-checked=${on ? "true" : "false"} aria-label="Selecionar ${item.summary || ""}">${icon("check")}</span>
+          <div class="it-body">
+            <div class="it-text">${item.summary || ""}</div>
+            ${this._roomIdOf(l.id, item.summary) || this._equipIdOf(l.id, item.summary) ? html`<div class="chips">${this._renderRoomTag(l.id, item)} ${this._renderEquipTag(l.id, item)}</div>` : nothing}
+          </div>
+        </div>
+      `;
+    }
     return html`
-      <div class="item ${done ? "done" : ""}" data-key=${keyOf(item)} ?data-drag=${opts.draggable} style=${opts.showList ? colorVars(l.color, this._dark) : ""}>
+      <div class="item ${done ? "done" : ""}" data-key=${keyOf(item)} ?data-drag=${opts.draggable} style=${opts.showList ? colorVars(l.color, this._dark) : ""} @contextmenu=${opts.selectable ? (e) => (e.preventDefault(), this._startSelect(l, item)) : null}>
         <button class="check ${done ? "on" : ""}" role="checkbox" aria-checked=${done ? "true" : "false"} aria-label=${done ? "Marcar como pendente" : "Marcar como resolvido"} ?disabled=${!canUpdate} @click=${() => this._toggle(l, item)}>
           ${icon("check")}
         </button>
@@ -2612,6 +2739,7 @@ class ResolviaPanel extends RoomsMixin(SuggestMixin(PointsMixin(DataMixin(LitEle
     else if (this._sheet === "import") body = this._renderImportSheet();
     else if (this._sheet === "versions") body = this._renderVersions();
     else if (this._sheet === "who") body = this._renderWhoSheet();
+    else if (this._sheet === "move") body = this._renderMoveSheet();
     return html`
       <div class="scrim" @click=${() => this._closeSheet()}></div>
       <div class="sheet" role="dialog" aria-modal="true" style=${this._sheetStyle()} @keydown=${(e) => e.key === "Escape" && this._closeSheet()}>
@@ -2967,6 +3095,9 @@ class ResolviaPanel extends RoomsMixin(SuggestMixin(PointsMixin(DataMixin(LitEle
         <h3 class="display">${l.name}</h3>
         <button class="icon-btn" @click=${() => this._closeSheet()} aria-label="Fechar">${icon("x")}</button>
       </div>
+      ${has(l.features, F.DELETE) && (l.items || []).some((i) => !isDone(i))
+        ? html`<button class="menu-row" @click=${() => (this._closeSheet(), this._startSelect(l))}>${icon("square-check-big")}Selecionar itens<span class="sub">para mover de lista</span></button>`
+        : nothing}
       <button class="menu-row" @click=${() => this._openCustomize(l)}>${icon("palette")}Personalizar<span class="sub">${l.canDue && this._dueOn() ? "nome, cor, ícone, prazos" : "nome, cor, ícone"}</span></button>
       <button class="menu-row" @click=${() => (this._closeSheet(), this._saveListPrefs(l.id, { hidden: l.hidden ? null : true }))}>${icon(l.hidden ? "eye" : "eye-off")}${l.hidden ? "Mostrar no início" : "Ocultar do início"}</button>
       ${this.hass.user && this.hass.user.is_admin

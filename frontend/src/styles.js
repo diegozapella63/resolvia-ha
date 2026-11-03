@@ -885,6 +885,31 @@ export const styles = css`
       transform: scale(1.18);
     }
   }
+  /* Selecionar: round marks, the row tinted when picked, Mover at the bottom */
+  .check.sel {
+    border-radius: 50%;
+  }
+  .item.selecting {
+    cursor: pointer;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .item.selecting.picked {
+    background: color-mix(in srgb, var(--c, var(--rv-accent)) 10%, transparent);
+  }
+  .sel-head .text-btn {
+    align-self: center;
+  }
+  .sel-bar {
+    position: sticky;
+    bottom: calc(var(--rv-nav-h) + 12px + env(safe-area-inset-bottom, 0px));
+    z-index: 5;
+    padding-top: 12px;
+  }
+  .sel-bar .btn {
+    width: 100%;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+  }
   .it-body {
     flex: 1;
     min-width: 0;

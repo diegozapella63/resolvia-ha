@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.32.0
+
+- **Mover vários itens de lista**: segure um item, ou use **⋯ › Selecionar itens**, para selecionar vários (ou **Todos**) e tocar em **Mover para outra lista**. Cada um vai com o prazo, a repetição, os pontos, o cômodo e os equipamentos.
+
 ## 2.31.0
 
 - **Vários equipamentos**: uma tarefa pode ter mais de um equipamento. Depois do primeiro, **Outro equipamento** abre a busca de novo; cada um vira um cartão com × para tirar. A tarefa mostra todos (dois e "+N").

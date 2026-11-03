@@ -59,6 +59,10 @@ Na hora da leitura, o app copia a foto por alguns segundos para `media/resolvia/
 
 Sem IA configurada, a mensagem colada é separada por linhas, vírgulas e "e"; só a leitura de fotos fica desligada.
 
+### Mover vários itens de lista
+
+Segure um item (ou use **⋯ › Selecionar itens**) para selecionar: toque nos outros que vão junto, ou em **Todos**, e depois em **Mover para outra lista**. Cada item vai com o prazo, a repetição, os pontos, o cômodo e os equipamentos. O **×** sai da seleção.
+
 ## Tarefas que voltam sozinhas
 
 Ligue em **Mais → Repetições → Repetir depois de concluir** (numa instalação nova começa desligado; quem já tinha repetições continua com ela ligada). Depois, abra um item e escolha **Repetir depois de concluir** (todo dia, 2 ou 3 dias, 1 ou 2 semanas, 1 mês ou outro número de dias).
