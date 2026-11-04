@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.40.0
+
+- **Mais › Sobre**, a última linha do menu: quem faz o app (**CorrerIA Code**, desenvolvimento de softwares, e por que esse nome), os apps da família (CronologIA, ResolvIA, GerencIA, InventarIA, EconomIA e MemorIA), cada um com uma linha e o link para o GitHub, e o botão **Meu GitHub**.
+- **Todos** nos cômodos: no **Editar item**, o botão **Todos** (ao lado de **Nenhum**) marca a casa inteira; tocar de novo desmarca. Na revisão da leitura por IA, o cômodo de cada item também pode ser **Todos os cômodos**. A etiqueta vira uma só, **Todos os cômodos**, e a busca de equipamento procura na casa toda.
+
 ## 2.39.2
 
 - **Vários cômodos numa tarefa**: sem equipamento, o campo **Cômodo** deixa marcar mais de um (cada cômodo liga e desliga; **Nenhum** limpa). Com equipamentos, os cômodos continuam vindo deles. As tarefas que vêm do CronologIA (manutenção e Novo › Tarefa) também chegam com todos os cômodos.

@@ -86,6 +86,22 @@ async def main():
         rooms = stored().get("rooms", {}).get("todo.casa", {})
         check(rooms.get("arrumar a torneira da pia") == "banheiro" and "arrumar a torneira" not in rooms, f"renamed and moved to Banheiro ({rooms})")
         await pg.screenshot(path=f"{T}/list.png")
+        # Todos (2.40): right after Nenhum, every room of the house; the list shows one tag
+        await a.evaluate("(el) => el._openAdd('todo.casa')"); await pg.wait_for_timeout(400)
+        await sheet.locator("textarea").first.fill("Passar pano")
+        picks = [t.strip() for t in await sheet.locator(".field:has(.flabel:text-matches('^Cômodos?$')) .pick").all_inner_texts()]
+        check(picks[:2] == ["Nenhum", "Todos"], f"Todos right after Nenhum ({picks})")
+        await sheet.locator(".pick.all-rooms").click(); await pg.wait_for_timeout(150)
+        check(await sheet.locator(".pick.room.on").count() == 4 and await sheet.locator(".pick.all-rooms").get_attribute("aria-pressed") == "true", "Todos: every room lit (and Todos)")
+        await sheet.locator(".pick.all-rooms").click(); await pg.wait_for_timeout(150)
+        check(await sheet.locator(".pick.room.on").count() == 0, "Todos again: none")
+        await sheet.locator(".pick.all-rooms").click(); await pg.wait_for_timeout(150)
+        await sheet.locator(".btn.primary").last.click(); await pg.wait_for_timeout(1200)
+        pano = stored().get("rooms", {}).get("todo.casa", {}).get("passar pano")
+        check(sorted(pano or []) == ["banheiro", "cozinha", "sala"], f"saved with every room ({pano})")
+        await a.evaluate("(el) => el._go('/lista/todo.casa')"); await pg.wait_for_timeout(700)
+        tags = [t.strip() for t in await a.locator(".item", has_text="Passar pano").locator(".tag.room").all_inner_texts()]
+        check(tags == ["Todos os cômodos"], f"the list: one tag, Todos os cômodos ({tags})")
         # reading with AI: the AI says the room of each item
         await a.evaluate("(el) => el._openImport('todo.casa', 'text')"); await pg.wait_for_timeout(400)
         await sheet.locator("textarea").fill("Trocar a lâmpada da sala, consertar a pia, comprar leite")
@@ -99,11 +115,14 @@ async def main():
         check(get("lâmpada") == "Sala" and get("pia") == "Cozinha" and get("leite") == "Cômodo", f"the AI picks the room (none for the milk) ({rr})")
         await sheet.screenshot(path=f"{T}/review.png")
         k = next(i for i, (t, _) in enumerate(rr) if "leite" in t.lower())
-        await sheet.locator(".imp-row").nth(k).locator(".imp-room select").select_option("cozinha"); await pg.wait_for_timeout(200)
+        opts = await sheet.locator(".imp-row").nth(k).locator(".imp-room select option").all_inner_texts()
+        check(opts[:2] == ["Nenhum", "Todos os cômodos"], f"the review: Todos os cômodos too ({opts[:3]})")
+        await sheet.locator(".imp-row").nth(k).locator(".imp-room select").select_option("*"); await pg.wait_for_timeout(200)
+        check((await sheet.locator(".imp-row").nth(k).locator(".imp-room .dname").inner_text()).strip() == "Todos os cômodos", "the review: the milk in every room")
         await sheet.locator(".btn.primary").last.click(); await pg.wait_for_timeout(2000)
         allr = stored().get("rooms", {})
         flat = {k: v for m in allr.values() for k, v in m.items()}
-        check(flat.get("trocar a lampada da sala") == "sala" and flat.get("consertar a pia") == "cozinha" and flat.get("comprar leite") == "cozinha", f"the rooms saved with the items ({flat})")
+        check(flat.get("trocar a lampada da sala") == "sala" and flat.get("consertar a pia") == "cozinha" and sorted(flat.get("comprar leite") or []) == ["banheiro", "cozinha", "sala"], f"the rooms saved with the items; Todos os cômodos: every room ({flat})")
         # the CronologIA sees them
         pr = presence()
         check(pr.get("comodos", {}).get("lista", [{}])[0].get("nome") == "Cozinha" and pr["comodos"]["tarefas"]["todo.casa"]["consertar a pia"] == "cozinha", "share/resolvia/integracao.json has the rooms for the CronologIA")

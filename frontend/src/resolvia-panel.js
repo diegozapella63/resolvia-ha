@@ -1,3 +1,4 @@
+import { aboutPage, aboutStyles } from "./about.js";
 import {
   LitElement,
   html,
@@ -49,7 +50,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.39.2";
+const VERSION = "2.40.0";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -86,7 +87,7 @@ const REPEAT_PICKS = [
 ];
 const keyOf = (item) => item.uid || item.summary;
 // the screens opened from the menu Mais: the bar keeps Mais lit, and "‹ Mais" goes back to the menu
-const IN_MORE = ["listas", "graficos", "config"];
+const IN_MORE = ["listas", "graficos", "config", "sobre"];
 
 class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(PointsMixin(DataMixin(LitElement))))))) {
   static properties = {
@@ -118,7 +119,7 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
     env: { attribute: false },
   };
 
-  static styles = [styles, unsafeCSS(usageStyles), unsafeCSS(lookStyles), unsafeCSS(equipPickerStyles), unsafeCSS(chatStyles), unsafeCSS(chartStyles)];
+  static styles = [styles, aboutStyles, unsafeCSS(usageStyles), unsafeCSS(lookStyles), unsafeCSS(equipPickerStyles), unsafeCSS(chatStyles), unsafeCSS(chartStyles)];
 
   constructor() {
     super();
@@ -538,10 +539,11 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
     if (p === "/prazos" && this._dueOn()) return { name: "due" };
     if (p === "/sugestoes" && !this._dueOn()) return { name: "suggest" };
     if (p === "/buscar") return { name: "search" };
-    // Mais is a menu (/mais): Listas (/listas), Gráficos (/graficos) and Configurações (/config/<aba>); Repetições is in Opções
+    // Mais is a menu (/mais): Listas (/listas), Gráficos (/graficos), Configurações (/config/<aba>) and Sobre (/sobre); Repetições is in Opções
     if (p === "/mais") return { name: "more" };
     if (p === "/listas") return { name: "listas" };
     if (p === "/graficos") return { name: "graficos" };
+    if (p === "/sobre") return { name: "sobre" };
     if ((m = p.match(/^\/config(?:\/(integracoes|dados|aparencia|opcoes))?$/))) return { name: "config", tab: m[1] || "integracoes" };
     // the addresses of the tabs of Mais up to 2.36 and of Repetições in 2.37: the same screen, and updated()
     // puts the new address in their place
@@ -1528,7 +1530,7 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
       if (await this._call("add_item", { item: it.text.trim() }, it.dest)) {
         n++;
         used.add(it.dest);
-        if (it.room && this._roomsOn()) await this._setTaskRoom(it.dest, it.text.trim(), it.room);
+        if (it.room && this._roomsOn()) await this._setTaskRoom(it.dest, it.text.trim(), it.room === "*" ? this._roomList().map((c) => c.id) : it.room);
         if (it.equip && this._equipsOn()) await this._setTaskEquip(it.dest, it.text.trim(), it.equip);
       } else break;
     }
@@ -1841,6 +1843,7 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
     else if (view.name === "more") page = this._renderMore();
     else if (view.name === "listas") page = this._renderMoreScreen("Listas", this._listsStatus(), this._renderListsTab());
     else if (view.name === "graficos") page = this._renderCharts();
+    else if (view.name === "sobre") page = this._renderMoreScreen("Sobre", null, aboutPage({ app: "ResolvIA", version: VERSION }));
     else if (view.name === "config") page = this._renderConfig();
     else page = this._renderHome();
 
@@ -2581,7 +2584,7 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
     return tabs.some((t) => t[0] === want) ? want : tabs[0][0];
   }
 
-  /** The rows of the menu Mais, in order: Listas, Gráficos and, last, Configurações. */
+  /** The rows of the menu Mais, in order: Listas, Gráficos, Configurações and, last, Sobre. */
   _moreRows() {
     const words = this._configTabs().map((t) => t[3]);
     const cfg = `${words.slice(0, -1).join(", ")} e ${words[words.length - 1]}.`;
@@ -2589,6 +2592,7 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
       ["/listas", "list-checks", "Listas", "Nome, cor, ícone e quais aparecem."],
       ["/graficos", "chart-bar", "Gráficos", this._chartsLine()],
       ["/config", "sliders-horizontal", "Configurações", cfg[0].toUpperCase() + cfg.slice(1)],
+      ["/sobre", "info", "Sobre", "CorrerIA Code, os apps e o GitHub."],
     ];
   }
 
@@ -3176,9 +3180,10 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
                 : nothing}
               ${this._roomsOn()
                 ? html`<label class="imp-dest imp-room ${it.room ? "" : "none"}">
-                    ${icon("door-open")}<span class="dname">${it.room ? clip(this._roomName(it.room) || "", 30) : "Cômodo"}</span>${icon("chevron-down")}
+                    ${icon(it.room === "*" ? "house" : "door-open")}<span class="dname">${it.room === "*" ? "Todos os cômodos" : it.room ? clip(this._roomName(it.room) || "", 30) : "Cômodo"}</span>${icon("chevron-down")}
                     <select aria-label="Cômodo de ${it.text}" @change=${(e) => this._setImportItem(i, { room: e.target.value || null })}>
                       <option value="" ?selected=${!it.room}>Nenhum</option>
+                      ${this._roomList().length > 1 ? html`<option value="*" ?selected=${it.room === "*"}>Todos os cômodos</option>` : nothing}
                       ${this._roomList().map((c) => html`<option value=${c.id} ?selected=${c.id === it.room}>${c.nome}</option>`)}
                     </select>
                   </label>`
@@ -3195,8 +3200,8 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
                     lit: { html, nothing },
                     icon,
                     items: this._equipItems(),
-                    room: this._roomsOn() ? it.room : null,
-                    roomName: this._roomsOn() && it.room ? this._roomName(it.room) || "" : "",
+                    room: this._roomsOn() && it.room !== "*" ? it.room : null,
+                    roomName: this._roomsOn() && it.room && it.room !== "*" ? this._roomName(it.room) || "" : "",
                     value: null,
                     query: f.eqQ || "",
                     more: !!f.eqMore,

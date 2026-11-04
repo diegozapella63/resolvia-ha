@@ -110,7 +110,8 @@ export const RoomsMixin = (Base) =>
     _renderEquipField(f) {
       if (!this._equipsOn()) return nothing;
       const ids = f.equips || [];
-      const room = this._roomsOn() ? (ids.length ? this._roomsOfEquips(ids)[0] || null : f.room) : null;
+      // with every room (Todos), the search is the whole house
+      const room = this._roomsOn() ? (ids.length ? this._roomsOfEquips(ids)[0] || null : this._allRooms(this._pickedRooms(f)) ? null : f.room) : null;
       return html`<div class="field">
         <span class="flabel">${ids.length > 1 ? "Equipamentos" : "Equipamento"}</span>
         ${renderEquipPicker({
@@ -183,6 +184,12 @@ export const RoomsMixin = (Base) =>
       return c ? c.nome : null;
     }
 
+    /** Every room of the house (2 or more) is in ids? (Todos: a task of the whole house.) */
+    _allRooms(ids) {
+      const list = this._roomList();
+      return list.length > 1 && list.every((c) => (ids || []).includes(c.id));
+    }
+
     /** Sets the room(s) of a task (an id or a list; null or [] removes it); `previous` is the old name after a rename. */
     async _setTaskRoom(listId, summary, room, previous = null) {
       if (!this._roomsOn()) return;
@@ -198,6 +205,8 @@ export const RoomsMixin = (Base) =>
       // several items: no rooms (the first item and +N say enough)
       if (this._equipIdsOf(listId, item.summary).length > 1) return nothing;
       const ids = this._roomIdsOf(listId, item.summary);
+      // every room of the house: one tag
+      if (this._allRooms(ids)) return html`<span class="tag room" title=${ids.map((id) => this._roomName(id)).join(", ")}>${icon("house")}Todos os cômodos</span>`;
       return ids.length ? html`${ids.map((id) => html`<span class="tag room">${icon("door-open")}${clip(this._roomName(id), 22)}</span>`)}` : nothing;
     }
 
@@ -211,10 +220,16 @@ export const RoomsMixin = (Base) =>
         const next = rooms.includes(id) ? rooms.filter((x) => x !== id) : [...rooms, id];
         this._setForm({ rooms: next, room: next[0] || null });
       };
+      // Todos: every room of the house (a task of the whole house); tapped again, none
+      const allIds = this._roomList().map((c) => c.id);
+      const all = !locked && this._allRooms(rooms);
       return html`<div class="field">
         <span class="flabel">${rooms.length > 1 ? "Cômodos" : "Cômodo"}</span>
         <div class="chip-row grid ${locked ? "locked" : ""}">
           <button class="pick ${!rooms.length ? "on" : ""}" ?disabled=${locked} @click=${() => this._setForm({ room: null, rooms: [] })}>Nenhum</button>
+          ${allIds.length > 1
+            ? html`<button class="pick room all-rooms ${all ? "on" : ""}" aria-pressed=${all ? "true" : "false"} ?disabled=${locked} @click=${() => this._setForm(all ? { room: null, rooms: [] } : { rooms: allIds, room: allIds[0] })}>${icon("house")}<span>Todos</span></button>`
+            : nothing}
           ${this._roomList().map((c) => html`<button class="pick room ${rooms.includes(c.id) ? "on" : ""}" aria-pressed=${rooms.includes(c.id) ? "true" : "false"} ?disabled=${locked} @click=${() => toggle(c.id)}>${icon("door-open")}<span>${clip(c.nome, 22)}</span></button>`)}
         </div>
         ${locked ? html`<span class="field-hint">${icon("lock")}<span>Vem ${f.equips.length > 1 ? "dos equipamentos" : "do equipamento"}.</span></span>` : nothing}

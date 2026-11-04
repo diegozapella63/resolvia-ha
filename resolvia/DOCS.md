@@ -15,6 +15,7 @@ O **Mais** (os três pontos na barra) é um menu, como no InventarIA. Cada linha
 - **Listas**: nome, cor, ícone, mostrar/ocultar e criar lista; as desligadas ficam por último, recolhidas em **Inativas**.
 - **Gráficos**: onde estão as pendências das listas que aparecem (as ocultas e os concluídos ficam fora), em barras: **Por lista** (as 6 com mais; "+N listas" mostra as outras), **Por cômodo** e **Por equipamento** (só com **Usar cômodos** e **Usar equipamentos** ligados; uma tarefa com dois equipamentos conta nos dois e nos cômodos deles), **Por prazo** (atrasados, hoje, próximos 7 dias, mais adiante e sem prazo, nas listas com prazo e com **Controlar prazos** ligado) e **Quem faz** (nós mesmos × serviço externo, quando alguma tarefa é de fora). Tocar numa lista abre a lista; num cômodo, num equipamento ou em Serviço externo, abre o **Buscar** com ele; num prazo, abre **Prazos**.
 - **Configurações**, em abas: **Integrações** (recompensas do CronologIA, InventarIA, leitura por IA, Falar, uso da IA e sensores), **Dados** (exportar, backup, importar, versões), **Aparência** (tema e cor; com **Cor do dia**, ligada no começo, a cor muda todo dia sozinha, e escolher uma cor deixa fixa nela) e **Opções** (**Prazos**: controlar prazos; **Exibição**: agrupar por dispositivo, concluídos abertos; **Repetição**: ligar ou desligar e as tarefas que voltam sozinhas).
+- **Sobre**, por último: quem faz o app (**CorrerIA Code**), os outros apps da família, cada um com uma linha e o link para o GitHub, e **Meu GitHub**.
 
 A barra de baixo tem **Listas**, **Buscar**, **Adicionar**, **Prazos** (ou **Sugestões**) e **Mais**. No celular, arrastar para o lado troca de aba.
 
@@ -124,8 +125,8 @@ No item, **Quem faz** diz se é com vocês (**Nós mesmos**) ou um **Serviço ex
 
 Com o **InventarIA** (1.14.0 ou mais novo) no mesmo Home Assistant, ligue **Mais › Configurações › Integrações › InventarIA › Usar cômodos** (desligado por padrão). A partir daí:
 
-- cada tarefa pode ter um **cômodo** (Cozinha, Sala…), escolhido no item, ou vários (passar pano na sala e na cozinha): cada cômodo liga e desliga, e **Nenhum** limpa. Eles aparecem como etiquetas embaixo da tarefa;
-- ao ler com IA (mensagem, foto ou Falar), a IA sugere o cômodo de cada item na revisão, e dá para trocar;
+- cada tarefa pode ter um **cômodo** (Cozinha, Sala…), escolhido no item, ou vários (passar pano na sala e na cozinha): cada cômodo liga e desliga, **Todos** marca a casa inteira (tocado de novo, desmarca) e **Nenhum** limpa. Eles aparecem como etiquetas embaixo da tarefa; com todos marcados, uma só: **Todos os cômodos**;
+- ao ler com IA (mensagem, foto ou Falar), a IA sugere o cômodo de cada item na revisão, e dá para trocar (também por **Todos os cômodos**);
 - o **Sugerir com IA** considera os cômodos e junta o que dá para fazer no mesmo lugar;
 - o **CronologIA** mostra o cômodo das tarefas e pede o cômodo em **Novo › Tarefa**.
 

@@ -101,7 +101,8 @@ export const ChatMixin = (Base) =>
       if (v.name === "search") return this._query ? `Buscar, procurando "${this._query}"` : "Buscar";
       if (v.name === "due") return "Prazos (o que vence e o que está atrasado)";
       if (v.name === "suggest") return "Sugestões (por onde começar)";
-      if (v.name === "more") return "Mais (o menu: Listas, Gráficos e Configurações)";
+      if (v.name === "more") return "Mais (o menu: Listas, Gráficos, Configurações e Sobre)";
+      if (v.name === "sobre") return "Mais › Sobre (CorrerIA Code, quem faz o app, os outros apps da família e o GitHub)";
       if (v.name === "listas") return "Mais › Listas (nome, cor, ícone e quais listas aparecem)";
       if (v.name === "graficos") return `Mais › Gráficos (gráficos das ${this._chartsLine().replace(/\.$/, "").toLowerCase()})`;
       if (v.name === "config") return "Mais › Configurações (integrações, dados, aparência e opções do app: prazos, exibição e repetição)";

@@ -68,13 +68,13 @@ async def main():
         check(await view() == "more" and await path() == "/mais", f"Mais opens the menu ({await path()})")
         check((await title()).strip() == "Mais" and (await lit()).strip() == "Mais", "title Mais, Mais lit in the bar")
         titles = [t.strip() for t in await rows.locator("b").all_inner_texts()]
-        check(titles == ["Listas", "Gráficos", "Configurações"], f"the rows: Listas, Gráficos and, last, Configurações (Repetição is in Opções) ({titles})")
+        check(titles == ["Listas", "Gráficos", "Configurações", "Sobre"], f"the rows: Listas, Gráficos, Configurações and, last, Sobre (Repetição is in Opções) ({titles})")
         lines = [t.strip() for t in await rows.locator(".mb > span").all_inner_texts()]
-        check(lines == ["Nome, cor, ícone e quais aparecem.", "Pendências por lista e prazo.", "Integrações, dados e backup, aparência e opções."], f"one short line each ({lines})")
-        check(await rows.locator(".mais-ic svg").count() == 3 and await rows.locator("svg.chev").count() == 3, "each row: the icon in the soft square and the arrow")
+        check(lines == ["Nome, cor, ícone e quais aparecem.", "Pendências por lista e prazo.", "Integrações, dados e backup, aparência e opções.", "CorrerIA Code, os apps e o GitHub."], f"one short line each ({lines})")
+        check(await rows.locator(".mais-ic svg").count() == 4 and await rows.locator("svg.chev").count() == 4, "each row: the icon in the soft square and the arrow")
         check(await a.locator(".more-tabs").count() == 0 and await a.locator(".uplink").count() == 0 and await a.locator(".mais-head").count() == 0, "the menu: no tabs, no settings, no ‹ Mais")
-        xs = {round((await rows.nth(i).locator(".mb").bounding_box())["x"]) for i in range(3)}
-        ws = {round((await rows.nth(i).bounding_box())["width"]) for i in range(3)}
+        xs = {round((await rows.nth(i).locator(".mb").bounding_box())["x"]) for i in range(4)}
+        ws = {round((await rows.nth(i).bounding_box())["width"]) for i in range(4)}
         check(len(xs) == 1 and len(ws) == 1, f"the rows lined up, the same width ({xs}, {ws})")
         check("v2." in await a.locator(".foot").inner_text(), "the version at the bottom")
         await pg.screenshot(path=f"{SP}/shots/rvmn-menu-dark.png")
@@ -158,12 +158,12 @@ async def main():
             a = pg.locator("resolvia-panel")
             for w in (320, 390, 1200):
                 await pg.set_viewport_size({"width": w, "height": 844 if w < 1000 else 820}); await pg.wait_for_timeout(300)
-                for p in ("/mais", "/listas", "/graficos", "/config", "/config/dados", "/config/aparencia", "/config/opcoes"):
+                for p in ("/mais", "/listas", "/graficos", "/config", "/config/dados", "/config/aparencia", "/config/opcoes", "/sobre"):
                     await a.evaluate("(el, p) => el._go(p)", p); await pg.wait_for_timeout(350)
                     over = await a.evaluate(OVER)
                     check(not over, f"{scheme} {w} px {p}: nothing past the edge {over}")
                     if p == "/mais":
-                        check(await a.locator(".more-row:visible").count() == 3, f"{scheme} {w} px: the three rows of the menu on screen")
+                        check(await a.locator(".more-row:visible").count() == 4, f"{scheme} {w} px: the four rows of the menu on screen")
                     if p.startswith("/config"):
                         check(await a.locator(".more-tabs button:visible").count() == 4 and await a.locator(".uplink:visible").count() == 1, f"{scheme} {w} px {p}: ‹ Mais and the four tabs on screen")
                     if w >= 1000:

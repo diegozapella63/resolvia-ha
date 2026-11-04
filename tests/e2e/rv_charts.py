@@ -107,7 +107,7 @@ async def main():
         # ---- the menu: Listas, Gráficos and, last, Configurações
         await menu()
         titles = [t.strip() for t in await a.locator(".more-row b").all_inner_texts()]
-        check(titles == ["Listas", "Gráficos", "Configurações"], f"the menu: Listas, Gráficos and, last, Configurações ({titles})")
+        check(titles == ["Listas", "Gráficos", "Configurações", "Sobre"], f"the menu: Listas, Gráficos, Configurações and, last, Sobre ({titles})")
         line = (await a.locator(".more-row", has_text="Gráficos").locator(".mb > span").inner_text()).strip()
         check(line == "Pendências por lista, cômodo, equipamento e prazo.", f"Gráficos: one line, with what is on ({line})")
         check(await a.locator(".more-row", has_text="Gráficos").locator(".mais-ic svg path").count() == 4, "Gráficos: the icon of bars")

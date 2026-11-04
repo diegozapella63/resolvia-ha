@@ -121,7 +121,7 @@ describe("rooms: on the screen", () => {
     const p = panel();
     p._form = { room: null, equip: null };
     let f = p._renderRoomField(p._form);
-    assert.deepEqual(labels(f), ["Nenhum", "Cozinha", "Quarto de hóspedes co…"]);
+    assert.deepEqual(labels(f), ["Nenhum", "Todos", "Cozinha", "Quarto de hóspedes co…"]);
     click(f, "Cozinha");
     assert.equal(p._form.room, "cozinha");
     click(p._renderRoomField(p._form), "Cozinha");
@@ -139,6 +139,31 @@ describe("rooms: on the screen", () => {
     assert.deepEqual([p._form.rooms, p._form.room], [["quarto"], "quarto"]);
     click(p._renderRoomField(p._form), "Nenhum");
     assert.deepEqual([p._form.rooms, p._form.room, p._formRooms(p._form)], [[], null, []]);
+  });
+  // the class of the button Todos ("on" when lit), found in the template
+  const todosOn = (v) => {
+    const find = (x) => {
+      if (!x || typeof x !== "object") return null;
+      if (Array.isArray(x)) return x.map(find).find((y) => y != null) ?? null;
+      if (x.strings && x.strings[0].includes("all-rooms")) return x.values[0];
+      return find(x.values);
+    };
+    return find(v) === "on";
+  };
+  it("Todos (2.40): every room of the house; again, none; the tag is one, Todos os cômodos", () => {
+    const p = panel({ ...ROOMS(), map: { "todo.casa": { a: ["cozinha", "quarto"], b: ["quarto"] } } });
+    p._form = { room: null, equips: [] };
+    click(p._renderRoomField(p._form), "Todos");
+    assert.deepEqual([p._form.rooms, p._form.room], [["cozinha", "quarto"], "cozinha"]);
+    assert.equal(p._allRooms(p._form.rooms), true);
+    assert.equal(todosOn(p._renderRoomField(p._form)), true, "Todos lit");
+    assert.match(JSON.stringify(p._renderEquipField(p._form)), /Buscar equipamento…/, "the equipment search is the whole house");
+    click(p._renderRoomField(p._form), "Todos");
+    assert.deepEqual([p._form.rooms, p._form.room], [[], null]);
+    assert.equal(text(p._renderRoomTag("todo.casa", { summary: "A" })), "Todos os cômodos");
+    assert.equal(text(p._renderRoomTag("todo.casa", { summary: "B" })), "Quarto de hóspedes co…");
+    p._form = { room: null, equips: ["geladeira", "ar"] };
+    assert.equal(todosOn(p._renderRoomField(p._form)), false, "locked by the equipments: Todos stays off");
   });
   it("with equipment the room is locked: the rooms of the items, marked, and the chips do nothing", () => {
     const p = panel();
