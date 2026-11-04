@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.39.2
+
+- **Vários cômodos numa tarefa**: sem equipamento, o campo **Cômodo** deixa marcar mais de um (cada cômodo liga e desliga; **Nenhum** limpa). Com equipamentos, os cômodos continuam vindo deles. As tarefas que vêm do CronologIA (manutenção e Novo › Tarefa) também chegam com todos os cômodos.
+
 ## 2.39.1
 
 - **Etiquetas de equipamento** na lista: com vários equipamentos, aparece só o primeiro e "+N", sem os cômodos, numa linha só. Com um equipamento, continuam o cômodo e o equipamento. O Buscar continua achando por todos.

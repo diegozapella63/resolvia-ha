@@ -78,7 +78,10 @@ async def main():
         await row.locator(".it-text").click(); await pg.wait_for_timeout(400)
         check(await sheet.locator(".pick.room.on", has_text="Cozinha").count() == 1, "the sheet shows the room")
         await sheet.locator("textarea").first.fill("Arrumar a torneira da pia")
+        # several rooms (2.39.2): each chip turns on and off; Cozinha off, Banheiro on
         await sheet.locator(".pick.room", has_text="Banheiro").click(); await pg.wait_for_timeout(150)
+        check(await sheet.locator(".pick.room.on").count() == 2, "a second room adds to the first")
+        await sheet.locator(".pick.room", has_text="Cozinha").click(); await pg.wait_for_timeout(150)
         await sheet.locator(".btn.primary").last.click(); await pg.wait_for_timeout(1200)
         rooms = stored().get("rooms", {}).get("todo.casa", {})
         check(rooms.get("arrumar a torneira da pia") == "banheiro" and "arrumar a torneira" not in rooms, f"renamed and moved to Banheiro ({rooms})")

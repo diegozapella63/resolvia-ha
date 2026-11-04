@@ -49,7 +49,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.39.1";
+const VERSION = "2.39.2";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -1558,6 +1558,7 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
       points: this._rawPoints(list.id, item.summary),
       pointsOrig: this._rawPoints(list.id, item.summary),
       room: this._roomIdOf(list.id, item.summary),
+      rooms: this._roomIdsOf(list.id, item.summary),
       roomsOrig: this._roomIdsOf(list.id, item.summary),
       equips: this._equipIdsOf(list.id, item.summary),
       equipsOrig: this._equipIdsOf(list.id, item.summary),

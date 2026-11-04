@@ -127,6 +127,19 @@ describe("rooms: on the screen", () => {
     click(p._renderRoomField(p._form), "Cozinha");
     assert.equal(p._form.room, null);
   });
+  it("without equipment, several rooms (2.39.2): each chip turns on and off, Nenhum clears", () => {
+    const p = panel();
+    p._form = { room: null, equips: [] };
+    click(p._renderRoomField(p._form), "Cozinha");
+    click(p._renderRoomField(p._form), /Quarto/);
+    assert.deepEqual([p._form.rooms, p._form.room], [["cozinha", "quarto"], "cozinha"]);
+    assert.deepEqual(p._formRooms(p._form), ["cozinha", "quarto"]);
+    assert.match(text(p._renderRoomField(p._form)), /Cômodos/);
+    click(p._renderRoomField(p._form), "Cozinha");
+    assert.deepEqual([p._form.rooms, p._form.room], [["quarto"], "quarto"]);
+    click(p._renderRoomField(p._form), "Nenhum");
+    assert.deepEqual([p._form.rooms, p._form.room, p._formRooms(p._form)], [[], null, []]);
+  });
   it("with equipment the room is locked: the rooms of the items, marked, and the chips do nothing", () => {
     const p = panel();
     p._form = { room: null, equips: ["geladeira", "ar"] };

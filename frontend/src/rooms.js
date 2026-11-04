@@ -131,7 +131,8 @@ export const RoomsMixin = (Base) =>
           onRemove: (id) => {
             const next = ids.filter((x) => x !== id);
             // the last one out: the room is free again, starting from the one it had
-            this._setForm({ equips: next, ...(!next.length && this._roomsOn() ? { room: this._roomsOfEquips(ids)[0] || f.room || null } : {}) });
+            const back = this._roomsOfEquips(ids);
+            this._setForm({ equips: next, ...(!next.length && this._roomsOn() ? { room: back[0] || f.room || null, rooms: back.length ? back : f.room ? [f.room] : [] } : {}) });
           },
         })}
       </div>`;
@@ -141,7 +142,13 @@ export const RoomsMixin = (Base) =>
     _formRooms(f) {
       if (!this._roomsOn()) return [];
       const ids = this._equipsOn() ? f.equips || [] : [];
-      return ids.length ? this._roomsOfEquips(ids) : f.room ? [f.room] : [];
+      return ids.length ? this._roomsOfEquips(ids) : this._pickedRooms(f);
+    }
+
+    /** The rooms chosen in a form without items: several (f.rooms), or the one of before (f.room). */
+    _pickedRooms(f) {
+      const list = Array.isArray(f.rooms) ? f.rooms : f.room ? [f.room] : [];
+      return list.filter((id) => this._roomList().some((c) => c.id === id));
     }
 
     /** Saves the room and the items of a task when they changed (or the task was renamed). */
@@ -198,12 +205,17 @@ export const RoomsMixin = (Base) =>
     _renderRoomField(f) {
       if (!this._roomsOn()) return nothing;
       const locked = this._equipsOn() && (f.equips || []).length > 0;
-      const rooms = locked ? this._roomsOfEquips(f.equips) : f.room ? [f.room] : [];
+      const rooms = locked ? this._roomsOfEquips(f.equips) : this._pickedRooms(f);
+      // without items, several rooms (a task of the whole house floor, say): each one turns on and off
+      const toggle = (id) => {
+        const next = rooms.includes(id) ? rooms.filter((x) => x !== id) : [...rooms, id];
+        this._setForm({ rooms: next, room: next[0] || null });
+      };
       return html`<div class="field">
         <span class="flabel">${rooms.length > 1 ? "Cômodos" : "Cômodo"}</span>
         <div class="chip-row grid ${locked ? "locked" : ""}">
-          <button class="pick ${!rooms.length ? "on" : ""}" ?disabled=${locked} @click=${() => this._setForm({ room: null })}>Nenhum</button>
-          ${this._roomList().map((c) => html`<button class="pick room ${rooms.includes(c.id) ? "on" : ""}" ?disabled=${locked} @click=${() => this._setForm({ room: f.room === c.id ? null : c.id })}>${icon("door-open")}<span>${clip(c.nome, 22)}</span></button>`)}
+          <button class="pick ${!rooms.length ? "on" : ""}" ?disabled=${locked} @click=${() => this._setForm({ room: null, rooms: [] })}>Nenhum</button>
+          ${this._roomList().map((c) => html`<button class="pick room ${rooms.includes(c.id) ? "on" : ""}" aria-pressed=${rooms.includes(c.id) ? "true" : "false"} ?disabled=${locked} @click=${() => toggle(c.id)}>${icon("door-open")}<span>${clip(c.nome, 22)}</span></button>`)}
         </div>
         ${locked ? html`<span class="field-hint">${icon("lock")}<span>Vem ${f.equips.length > 1 ? "dos equipamentos" : "do equipamento"}.</span></span>` : nothing}
       </div>`;

@@ -21,7 +21,7 @@ import { Inventario } from "./lib/inventario.js";
 import { Voice, readRaw, MAX_VOICE_BYTES } from "./lib/voice.js";
 import { snapshot, toCSV, backupZip, parseImport, Backups, listVersions, readVersion, fileStamp } from "./lib/data.js";
 
-const VERSION = "2.39.1";
+const VERSION = "2.39.2";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const WWW = path.join(HERE, "www");
 const DEV = process.env.RESOLVIA_DEV === "1";
@@ -196,7 +196,8 @@ ha.subscribe({ type: "subscribe_events", event_type: "resolvia_comodo" }, (ev) =
   const d = (ev && ev.data) || {};
   if (!isTodo(d.entity_id) || !d.tarefa) return;
   try {
-    if (roomsOn() && "comodo" in d) store.setRoom(d.entity_id, String(d.tarefa), d.comodo ? String(d.comodo) : null);
+    // comodo: an id or, with several rooms, a list (CronologIA 1.49)
+    if (roomsOn() && "comodo" in d) store.setRoom(d.entity_id, String(d.tarefa), Array.isArray(d.comodo) ? d.comodo.map(String) : d.comodo ? String(d.comodo) : null);
     // one item ("pia_1") or several (["pia_1", "fogao_1"]); "" or [] removes
     if (equipsOn() && "equipamento" in d) {
       store.setEquip(d.entity_id, String(d.tarefa), Array.isArray(d.equipamento) ? d.equipamento.map(String) : d.equipamento ? String(d.equipamento) : null);

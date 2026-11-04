@@ -156,6 +156,15 @@ describe("the CronologIA creates a task with a room and an equipment (resolvia_c
     assert.equal(r.emap[CASA]["desentupir a pia"], "pia_1");
   });
 
+  it("several rooms come as a list (CronologIA 1.49) and are kept as a list", async () => {
+    await stack.fire("resolvia_comodo", { entity_id: CASA, tarefa: "Encerar o chão", comodo: ["cozinha", "quarto"], origem: "CronologIA" });
+    const r = await waitFor(async () => {
+      const x = await rooms();
+      return x.map[CASA]["encerar o chao"] ? x : null;
+    }, { what: "rooms from the event" });
+    assert.deepEqual(r.map[CASA]["encerar o chao"], ["cozinha", "quarto"]);
+  });
+
   it("an empty room or equipment removes the link; a missing field leaves it", async () => {
     await stack.fire("resolvia_comodo", { entity_id: CASA, tarefa: "Desentupir a pia", comodo: "" });
     const r = await waitFor(async () => {
