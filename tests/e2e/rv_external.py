@@ -55,6 +55,8 @@ async def main():
         await wait_for(lambda: stored().get("ext", {}).get("todo.casa", {}).get("passar pano na casa") == "Diarista", "saved: Diarista")
         tag = a.locator(".page .item", has_text="Passar pano na casa").first.locator(".tag.ext")
         check(await tag.count() == 1 and (await tag.inner_text()).strip() == "Diarista", "the task shows who does it")
+        col = await tag.evaluate("(e) => [getComputedStyle(e).color, getComputedStyle(e).backgroundColor]")
+        check(col[0] == "rgb(165, 180, 252)" and col[1] != "rgba(0, 0, 0, 0)", f"Serviço externo stands out: its own color, not the gray of the room ({col})")
         await pg.screenshot(path=f"{SP}/shots/rvx-list.png")
         # a new task, from outside without a name
         await a.evaluate("(el) => el._openAdd('todo.casa')"); await pg.wait_for_timeout(400)

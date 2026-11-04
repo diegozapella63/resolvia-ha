@@ -22,6 +22,9 @@ export const styles = css`
     --rv-late-soft: rgba(217, 45, 32, 0.1);
     --rv-today: #b45309;
     --rv-today-soft: rgba(245, 158, 11, 0.14);
+    /* Serviço externo: a color of its own (not the late red, the today amber, the points gold) */
+    --rv-ext: #4f46e5;
+    --rv-ext-soft: rgba(79, 70, 229, 0.12);
     --rv-skeleton: #efe5e3;
     --rv-header-bg: var(--app-header-background-color, #fbf6f4);
     --rv-header-fg: var(--app-header-text-color, #231a1b);
@@ -54,6 +57,8 @@ export const styles = css`
     --rv-late-soft: rgba(255, 107, 94, 0.14);
     --rv-today: #ffb547;
     --rv-today-soft: rgba(255, 181, 71, 0.14);
+    --rv-ext: #a5b4fc;
+    --rv-ext-soft: rgba(129, 140, 248, 0.18);
     --rv-skeleton: #2a2223;
     --rv-header-bg: var(--app-header-background-color, #130f10);
     --rv-header-fg: var(--app-header-text-color, #f5eeee);
@@ -718,11 +723,11 @@ export const styles = css`
     background: color-mix(in srgb, var(--rv-muted) 14%, transparent);
     color: var(--rv-text-2);
   }
-  /* Serviço externo: someone from outside does it */
+  /* Serviço externo: someone from outside does it; its own color, so it stands out from the room and the items */
   .tag.ext {
-    background: color-mix(in srgb, var(--rv-muted) 14%, transparent);
-    color: var(--rv-text-2);
-    border-color: transparent;
+    background: var(--rv-ext-soft);
+    color: var(--rv-ext);
+    border-color: color-mix(in srgb, var(--rv-ext) 35%, transparent);
   }
   .chip-row.ext-row {
     display: grid;

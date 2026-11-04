@@ -498,6 +498,12 @@ describe("AI.extract: what is asked", () => {
   });
 });
 
+// the photos go in the background (fs.rm): wait until the folder is empty (up to 2 s, the tests run in parallel)
+async function emptied(dir) {
+  for (let i = 0; i < 100 && fs.readdirSync(dir).length; i++) await new Promise((r) => setTimeout(r, 20));
+  return fs.readdirSync(dir);
+}
+
 describe("AI.extract: photos", () => {
   it("writes the photos where Home Assistant reads them, sends them as attachments and removes them after", async () => {
     let seen = [];
@@ -528,8 +534,7 @@ describe("AI.extract: photos", () => {
     assert.deepEqual(seen[0].bytes, png);
     assert.match(serviceCall(ha).service_data.instructions, /Você recebe fotos/);
     await flushPromises();
-    await new Promise((r) => setTimeout(r, 20));
-    assert.deepEqual(fs.readdirSync(path.join(mediaDir, "resolvia", "ia-temp")), [], "the photos are gone");
+    assert.deepEqual(await emptied(path.join(mediaDir, "resolvia", "ia-temp")), [], "the photos are gone");
   });
 
   it("sends at most 6 photos and says 'uma foto' for one", async () => {
@@ -555,8 +560,7 @@ describe("AI.extract: photos", () => {
       },
     });
     await assert.rejects(ai.extract({ images: [{ data: "AA==" }] }), /model overloaded/);
-    await new Promise((r) => setTimeout(r, 20));
-    assert.deepEqual(fs.readdirSync(path.join(mediaDir, "resolvia", "ia-temp")), []);
+    assert.deepEqual(await emptied(path.join(mediaDir, "resolvia", "ia-temp")), []);
   });
 });
 

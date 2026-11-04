@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.38.1
+
+- A etiqueta de **Serviço externo** ganha uma cor própria (anil), para se destacar do cômodo e dos equipamentos, sem confundir com atrasado, hoje ou pontos.
+
 ## 2.38.0
 
 - **Repetição** sai do menu Mais e fica em **Mais › Configurações › Opções**, junto com **Prazos** e **Exibição**: o interruptor Repetir depois de concluir e as tarefas que se repetem. O Mais fica com **Listas** e **Configurações**.
