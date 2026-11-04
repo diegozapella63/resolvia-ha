@@ -45,7 +45,7 @@ const APP_FIELDS = {
   voice_engine: ["string", 80],
   // Mais > Configurações > Integrações > Recompensas: tasks can be worth points in the CronologIA scoreboard.
   points_on: ["boolean"],
-  // Mais > Repetições: "Repetir depois de concluir" on (true) or off (false); unset = on when there are rules
+  // Mais > Configurações > Opções > Repetição: "Repetir depois de concluir" on (true) or off (false); unset = on when there are rules
   repeat_on: ["boolean"],
   // Mais > Configurações > Integrações > Usar IA: true = off (no import from messages and photos)
   ai_off: ["boolean"],

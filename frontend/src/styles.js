@@ -425,7 +425,7 @@ export const styles = css`
   .mais-head + .panel-lead {
     margin-top: 0;
   }
-  /* Mais: the menu (Listas, Repetições, Configurações), like the InventarIA */
+  /* Mais: the menu (Listas, Configurações), like the InventarIA */
   .more-menu ul {
     list-style: none;
     margin: 0;

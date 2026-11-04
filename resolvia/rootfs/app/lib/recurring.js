@@ -14,7 +14,7 @@ const RETRY_MS = 5 * 60 * 1000;
 export class Recurring extends EventEmitter {
   constructor({ ha, store, log, states, dayMs = 0, now = () => Date.now(), enabled = () => true }) {
     super();
-    this.enabled = enabled; // Mais > Repetições: off = rules kept but paused (nothing comes back)
+    this.enabled = enabled; // Mais > Configurações > Opções > Repetição: off = rules kept but paused (nothing comes back)
     this.ha = ha;
     this.store = store;
     this.log = log;
@@ -101,7 +101,7 @@ export class Recurring extends EventEmitter {
     this.tick();
   }
 
-  /** Mais › Repetições: turning the repetition off deletes every rule (the items stay in their lists). */
+  /** Mais › Configurações › Opções › Repetição: turning the repetition off deletes every rule (the items stay in their lists). */
   clearAll() {
     const n = Object.keys(this.rules).length;
     for (const id of Object.keys(this.rules)) delete this.rules[id];

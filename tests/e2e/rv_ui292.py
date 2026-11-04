@@ -53,9 +53,9 @@ async def main():
         await pg.locator(".tab", has_text="Buscar").click(); await pg.wait_for_timeout(500)
         focused = await pg.evaluate("() => { const r = document.querySelector('resolvia-panel') || document.querySelector('*'); const deep = (d) => d.activeElement && d.activeElement.shadowRoot ? deep(d.activeElement.shadowRoot) : d.activeElement; const a = deep(document); return a ? a.tagName + ':' + (a.type || '') : ''; }")
         check("search" not in focused.lower(), f"Buscar opens without focusing the search box ({focused})")
-        # Mais › Repetições: off by default without rules
+        # Mais › Configurações › Opções › Repetição: off by default without rules
         await pg.locator(".tab", has_text="Mais").click(); await pg.wait_for_timeout(300)
-        await pg.locator(".more-row", has_text="Repetições").click(); await pg.wait_for_timeout(400)
+        await pg.locator(".more-row", has_text="Configurações").click(); await pg.wait_for_timeout(300); await pg.get_by_role("tab", name="Opções", exact=True).click(); await pg.wait_for_timeout(400)
         sw = pg.locator("input[aria-label='Repetir depois de concluir']")
         check(not await sw.is_checked(), "no rules yet: repetition starts off")
         await pg.screenshot(path=f"{SP}/shots/rvu-rules-off.png")
@@ -67,7 +67,7 @@ async def main():
         await pg.locator(".sheet .icon-btn[aria-label='Fechar']").click(); await pg.wait_for_timeout(300)
         # on
         await pg.locator(".tab", has_text="Mais").click(); await pg.wait_for_timeout(300)
-        await pg.locator(".more-row", has_text="Repetições").click(); await pg.wait_for_timeout(300)
+        await pg.locator(".more-row", has_text="Configurações").click(); await pg.wait_for_timeout(300); await pg.get_by_role("tab", name="Opções", exact=True).click(); await pg.wait_for_timeout(300)
         await sw.check(); await pg.wait_for_timeout(500)
         await wait_for(lambda: stored()["prefs"]["app"].get("repeat_on") is True, "switch saved on")
         await open_casa(pg)
@@ -80,7 +80,7 @@ async def main():
         check(await row.locator(".tag.rep").count() == 1, "row shows the repetition")
         # off again: with repetitions, it asks and deletes them (ResolvIA 2.13.0)
         await pg.locator(".tab", has_text="Mais").click(); await pg.wait_for_timeout(300)
-        await pg.locator(".more-row", has_text="Repetições").click(); await pg.wait_for_timeout(300)
+        await pg.locator(".more-row", has_text="Configurações").click(); await pg.wait_for_timeout(300); await pg.get_by_role("tab", name="Opções", exact=True).click(); await pg.wait_for_timeout(300)
         await sw.click(); await pg.wait_for_timeout(500)
         sheet = await pg.locator(".sheet").inner_text()
         check("Desligar a repetição?" in sheet and "1 tarefa se repete" in sheet and "excluídas" in sheet, "turning off warns that the repetitions will be deleted")
@@ -98,7 +98,7 @@ async def main():
         check(await row.locator(".tag.rep").count() == 0, "off: no repetition chip on the row")
         # leftovers from 2.9–2.12 (switched off with rules): a button deletes them
         await pg.locator(".tab", has_text="Mais").click(); await pg.wait_for_timeout(300)
-        await pg.locator(".more-row", has_text="Repetições").click(); await pg.wait_for_timeout(300)
+        await pg.locator(".more-row", has_text="Configurações").click(); await pg.wait_for_timeout(300); await pg.get_by_role("tab", name="Opções", exact=True).click(); await pg.wait_for_timeout(300)
         await sw.check(); await pg.wait_for_timeout(500)
         # Novo item: InventarIA-like tiles
         await pg.locator(".tab", has_text="Adicionar").click(); await pg.wait_for_timeout(500)

@@ -38,7 +38,7 @@ A primeira instalação leva alguns minutos, porque o app é montado no próprio
 - **Personalizar cada lista** (nome, cor, ícone, ocultar, prazos), sincronizado entre aparelhos.
 - **Recompensas**: cada tarefa pode valer pontos no placar do CronologIA para quem concluir (ligue em **Mais → Configurações → Integrações**).
 - **Manutenções e rotinas do CronologIA** como tarefas: concluir aqui vale como feito lá, com os pontos, e a tarefa volta com a próxima data.
-- **Mais é um menu**, como no InventarIA: Listas, Repetições e Configurações (em abas: Integrações, Dados, Aparência e Opções).
+- **Mais é um menu**, como no InventarIA: Listas e Configurações (em abas: Integrações, Dados, Aparência e Opções, onde ficam Prazos, Exibição e Repetição).
 - **Dados**: exportar em ZIP, CSV ou JSON, backup em `share/resolvia`, importar (repõe os itens que faltarem, sem duplicar) e versões anteriores automáticas.
 - **Tema claro e escuro** seguindo o Home Assistant.
 

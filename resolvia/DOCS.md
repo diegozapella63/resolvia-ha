@@ -13,8 +13,7 @@ Nada é copiado: o ResolvIA mostra e edita as mesmas listas que o HA já tem.
 O **Mais** (os três pontos na barra) é um menu, como no InventarIA. Cada linha abre a sua tela, com **‹ Mais** no alto para voltar (o Voltar do celular e arrastar para a direita também voltam):
 
 - **Listas**: nome, cor, ícone, mostrar/ocultar e criar lista.
-- **Repetições**: ligar ou desligar a repetição e as tarefas que voltam sozinhas.
-- **Configurações**, em abas: **Integrações** (recompensas do CronologIA, InventarIA, leitura por IA, Falar, uso da IA e sensores), **Dados** (exportar, backup, importar, versões), **Aparência** (tema e cor; com **Cor do dia**, ligada no começo, a cor muda todo dia sozinha, e escolher uma cor deixa fixa nela) e **Opções** (controlar prazos e como as listas aparecem: agrupar por dispositivo, concluídos abertos).
+- **Configurações**, em abas: **Integrações** (recompensas do CronologIA, InventarIA, leitura por IA, Falar, uso da IA e sensores), **Dados** (exportar, backup, importar, versões), **Aparência** (tema e cor; com **Cor do dia**, ligada no começo, a cor muda todo dia sozinha, e escolher uma cor deixa fixa nela) e **Opções** (**Prazos**: controlar prazos; **Exibição**: agrupar por dispositivo, concluídos abertos; **Repetição**: ligar ou desligar e as tarefas que voltam sozinhas).
 
 ### No computador
 
@@ -75,9 +74,9 @@ Segure um item (ou use **⋯ › Selecionar itens**) para selecionar: toque nos 
 
 ## Tarefas que voltam sozinhas
 
-Ligue em **Mais › Repetições › Repetir depois de concluir** (numa instalação nova começa desligado; quem já tinha repetições continua com ela ligada). Depois, abra um item e escolha **Repetir depois de concluir** (todo dia, 2 ou 3 dias, 1 ou 2 semanas, 1 mês ou outro número de dias).
+Ligue em **Mais › Configurações › Opções › Repetição › Repetir depois de concluir** (numa instalação nova começa desligado; quem já tinha repetições continua com ela ligada). Depois, abra um item e escolha **Repetir depois de concluir** (todo dia, 2 ou 3 dias, 1 ou 2 semanas, 1 mês ou outro número de dias).
 
-Para desligar com repetições já criadas, o app avisa quantas são e que **serão excluídas**; confirmando, ele apaga todas e desliga (os itens continuam nas listas, só não voltam mais sozinhos). Repetições que ficaram "pausadas" de versões anteriores aparecem em Mais › Repetições com o botão **Excluir**. Para o que se repete com dia certo, ou N dias depois de feito com pontos, dá para usar a **Rotina da casa** do CronologIA (1.11.0 ou mais novo, frequência **Depois de feita**).
+Para desligar com repetições já criadas, o app avisa quantas são e que **serão excluídas**; confirmando, ele apaga todas e desliga (os itens continuam nas listas, só não voltam mais sozinhos). Repetições que ficaram "pausadas" de versões anteriores aparecem em Mais › Configurações › Opções › Repetição com o botão **Excluir**. Para o que se repete com dia certo, ou N dias depois de feito com pontos, dá para usar a **Rotina da casa** do CronologIA (1.11.0 ou mais novo, frequência **Depois de feita**).
 
 Exemplo: "Passar pano" com **3 dias**. Você marca como feito no domingo e ele volta como pendente na quarta, logo no começo do dia. Se a lista aceita datas, ele volta com prazo **Hoje**.
 
@@ -85,7 +84,7 @@ Exemplo: "Passar pano" com **3 dias**. Você marca como feito no domingo e ele v
 - Se os concluídos forem apagados antes da hora, o item é criado de novo.
 - Desmarcar o item antes da hora cancela a volta daquela vez.
 - Apagar um item pendente remove a repetição dele.
-- Todas as repetições aparecem em **Mais › Repetições**, e as próximas voltas em **Prazos → Voltam sozinhas** (com Controlar prazos ligado).
+- Todas as repetições aparecem em **Mais › Configurações › Opções**, e as próximas voltas em **Prazos → Voltam sozinhas** (com Controlar prazos ligado).
 - No card **Tarefas** do CronologIA (1.10.1 ou mais novo), as tarefas aparecem nessa ordem de frequência: primeiro as de todo dia, depois as de 2 dias, e assim por diante; as que não se repetem ficam por último.
 
 ## O que dá para fazer em cada lista

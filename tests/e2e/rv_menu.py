@@ -1,5 +1,5 @@
-# ResolvIA 2.37.0: Mais is a menu, like the InventarIA: Listas, Repetições and, last, Configurações (with the tabs
-# Integrações, Dados, Aparência, Opções). Each row opens its screen with "‹ Mais"; ‹ Mais, the phone's Back, Mais in
+# ResolvIA 2.37.0: Mais is a menu, like the InventarIA: Listas and, last, Configurações (with the tabs
+# Integrações, Dados, Aparência, Opções; since 2.38 Repetição is in Opções, with Prazos and Exibição). Each row opens its screen with "‹ Mais"; ‹ Mais, the phone's Back, Mais in
 # the bar and the swipe to the right go back to the menu; the bar keeps Mais lit; the addresses of the old tabs
 # (/mais/dados...) land on the new place; Mais has the three dots; nothing wider than the screen, 320 px to the
 # computer, light and dark.
@@ -68,19 +68,19 @@ async def main():
         check(await view() == "more" and await path() == "/mais", f"Mais opens the menu ({await path()})")
         check((await title()).strip() == "Mais" and (await lit()).strip() == "Mais", "title Mais, Mais lit in the bar")
         titles = [t.strip() for t in await rows.locator("b").all_inner_texts()]
-        check(titles == ["Listas", "Repetições", "Configurações"], f"the rows: Listas, Repetições and, last, Configurações ({titles})")
+        check(titles == ["Listas", "Configurações"], f"the rows: Listas and, last, Configurações (Repetição is in Opções) ({titles})")
         lines = [t.strip() for t in await rows.locator(".mb > span").all_inner_texts()]
-        check(lines == ["Nome, cor, ícone e quais aparecem.", "Tarefas que voltam sozinhas.", "Integrações, dados e backup, aparência e opções."], f"one short line each ({lines})")
-        check(await rows.locator(".mais-ic svg").count() == 3 and await rows.locator("svg.chev").count() == 3, "each row: the icon in the soft square and the arrow")
+        check(lines == ["Nome, cor, ícone e quais aparecem.", "Integrações, dados e backup, aparência e opções."], f"one short line each ({lines})")
+        check(await rows.locator(".mais-ic svg").count() == 2 and await rows.locator("svg.chev").count() == 2, "each row: the icon in the soft square and the arrow")
         check(await a.locator(".more-tabs").count() == 0 and await a.locator(".uplink").count() == 0 and await a.locator(".mais-head").count() == 0, "the menu: no tabs, no settings, no ‹ Mais")
-        xs = {round((await rows.nth(i).locator(".mb").bounding_box())["x"]) for i in range(3)}
-        ws = {round((await rows.nth(i).bounding_box())["width"]) for i in range(3)}
+        xs = {round((await rows.nth(i).locator(".mb").bounding_box())["x"]) for i in range(2)}
+        ws = {round((await rows.nth(i).bounding_box())["width"]) for i in range(2)}
         check(len(xs) == 1 and len(ws) == 1, f"the rows lined up, the same width ({xs}, {ws})")
         check("v2." in await a.locator(".foot").inner_text(), "the version at the bottom")
         await pg.screenshot(path=f"{SP}/shots/rvmn-menu-dark.png")
 
         # ---- each row opens its screen: ‹ Mais and Back return to the menu
-        for i, (name, ttl, want) in enumerate([("listas", "Listas", "/listas"), ("repeticoes", "Repetições", "/repeticoes"), ("config", "Configurações", "/config")]):
+        for i, (name, ttl, want) in enumerate([("listas", "Listas", "/listas"), ("config", "Configurações", "/config")]):
             await rows.nth(i).click(); await pg.wait_for_timeout(500)
             check(await view() == name and await path() == want and (await title()).strip() == ttl, f"{ttl}: its own screen and title ({await path()})")
             up = a.locator(".brand-head .uplink")
@@ -93,19 +93,25 @@ async def main():
         await pg.go_back(); await pg.wait_for_timeout(450)
         check(await view() == "home", "Back from the menu: the lists")
 
-        # ---- Listas and Repetições: what was in their tabs
+        # ---- Listas: what was in its tab
         await tab("Mais"); await rows.nth(0).click(); await pg.wait_for_timeout(450)
         txt = await a.locator("main .page").inner_text()
         check("Toque numa lista para personalizar." in txt and await a.locator(".lists-panel .row input[role=switch]").count() == 4, "Listas: every list with its switch")
         check("4 listas" in await a.locator(".brand-head .status").inner_text(), "Listas: '4 listas' under the title")
         await pg.screenshot(path=f"{SP}/shots/rvmn-listas-dark.png")
         await a.locator(".uplink").click(); await pg.wait_for_timeout(400)
+
+        # ---- Configurações › Opções: Prazos, Exibição and Repetição together
         await rows.nth(1).click(); await pg.wait_for_timeout(450)
-        check(await a.locator("input[aria-label='Repetir depois de concluir']").count() == 1, "Repetições: the switch")
-        await a.locator(".uplink").click(); await pg.wait_for_timeout(400)
+        await a.get_by_role("tab", name="Opções", exact=True).click(); await pg.wait_for_timeout(400)
+        heads = [h.strip() for h in await a.locator("[role=tabpanel] .mais-head h2").all_inner_texts()]
+        check(heads == ["Prazos", "Exibição", "Repetição"], f"Opções: Prazos, Exibição and Repetição ({heads})")
+        check(await a.locator("#repeticao input[aria-label='Repetir depois de concluir']").count() == 1, "Repetição: the switch")
+        await pg.screenshot(path=f"{SP}/shots/rvmn-opcoes-dark.png")
+        await pg.go_back(); await pg.wait_for_timeout(400)
 
         # ---- Configurações: the tabs that are settings
-        await rows.nth(2).click(); await pg.wait_for_timeout(500)
+        await rows.nth(1).click(); await pg.wait_for_timeout(500)
         tabs = [t.strip() for t in await a.locator(".more-tabs button").all_inner_texts()]
         check(tabs == ["Integrações", "Dados", "Aparência", "Opções"], f"Configurações in tabs ({tabs})")
         check((await a.locator(".more-tabs button.on").inner_text()).strip() == "Integrações" and await a.locator("#leitura-ia").count() == 1, "it opens on Integrações")
@@ -123,7 +129,7 @@ async def main():
         await rows.nth(0).click(); await pg.wait_for_timeout(450)
         await tab("Mais")
         check(await view() == "more" and await depth() == 1, "Mais in the bar on a screen of Mais: back to the menu")
-        await rows.nth(2).click(); await pg.wait_for_timeout(450)
+        await rows.nth(1).click(); await pg.wait_for_timeout(450)
         await tab("Listas")
         check(await view() == "home" and await depth() == 0, "Listas in the bar on a screen of Mais: the lists, the menu goes too")
         await tab("Mais"); await rows.nth(1).click(); await pg.wait_for_timeout(450)
@@ -134,7 +140,8 @@ async def main():
 
         # ---- the addresses of the old tabs land on the new place
         for old, new, name in [("/mais/integracoes", "/config", "config"), ("/mais/ia", "/config", "config"), ("/mais/dados", "/config/dados", "config"),
-                               ("/mais/aparencia", "/config/aparencia", "config"), ("/mais/opcoes", "/config/opcoes", "config"), ("/mais/repeticoes", "/repeticoes", "repeticoes")]:
+                               ("/mais/aparencia", "/config/aparencia", "config"), ("/mais/opcoes", "/config/opcoes", "config"),
+                               ("/mais/repeticoes", "/config/opcoes", "config"), ("/repeticoes", "/config/opcoes", "config")]:
             before = await depth()
             await go(old)
             on = (await a.locator(".more-tabs button.on").inner_text()).strip() if name == "config" else ""
@@ -151,12 +158,12 @@ async def main():
             a = pg.locator("resolvia-panel")
             for w in (320, 390, 1200):
                 await pg.set_viewport_size({"width": w, "height": 844 if w < 1000 else 820}); await pg.wait_for_timeout(300)
-                for p in ("/mais", "/listas", "/repeticoes", "/config", "/config/dados", "/config/aparencia", "/config/opcoes"):
+                for p in ("/mais", "/listas", "/config", "/config/dados", "/config/aparencia", "/config/opcoes"):
                     await a.evaluate("(el, p) => el._go(p)", p); await pg.wait_for_timeout(350)
                     over = await a.evaluate(OVER)
                     check(not over, f"{scheme} {w} px {p}: nothing past the edge {over}")
                     if p == "/mais":
-                        check(await a.locator(".more-row:visible").count() == 3, f"{scheme} {w} px: the three rows of the menu on screen")
+                        check(await a.locator(".more-row:visible").count() == 2, f"{scheme} {w} px: the two rows of the menu on screen")
                     if p.startswith("/config"):
                         check(await a.locator(".more-tabs button:visible").count() == 4 and await a.locator(".uplink:visible").count() == 1, f"{scheme} {w} px {p}: ‹ Mais and the four tabs on screen")
                     if w >= 1000:

@@ -21,7 +21,7 @@ import { Inventario } from "./lib/inventario.js";
 import { Voice, readRaw, MAX_VOICE_BYTES } from "./lib/voice.js";
 import { snapshot, toCSV, backupZip, parseImport, Backups, listVersions, readVersion, fileStamp } from "./lib/data.js";
 
-const VERSION = "2.37.0";
+const VERSION = "2.38.0";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const WWW = path.join(HERE, "www");
 const DEV = process.env.RESOLVIA_DEV === "1";
@@ -51,7 +51,7 @@ const store = new Store(DATA_DIR, log);
 store.trimVersions(); // Versões anteriores: only the 3 newest (older installs kept up to 60)
 const ha = new HAClient(HA_URL, TOKEN, log);
 const todoStates = new Map();
-/** Mais > Repetições: the automatic repetition is on (unset: on when there are rules, so nothing stops after an update). */
+/** Mais > Configurações > Opções > Repetição: the automatic repetition is on (unset: on when there are rules, so nothing stops after an update). */
 const repeatOn = () => {
   const v = store.prefs.app.repeat_on;
   return v === undefined ? Object.keys(store.rules || {}).length > 0 : v === true;

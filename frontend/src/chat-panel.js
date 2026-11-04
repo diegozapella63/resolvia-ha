@@ -101,10 +101,9 @@ export const ChatMixin = (Base) =>
       if (v.name === "search") return this._query ? `Buscar, procurando "${this._query}"` : "Buscar";
       if (v.name === "due") return "Prazos (o que vence e o que está atrasado)";
       if (v.name === "suggest") return "Sugestões (por onde começar)";
-      if (v.name === "more") return "Mais (o menu: Listas, Repetições e Configurações)";
+      if (v.name === "more") return "Mais (o menu: Listas e Configurações)";
       if (v.name === "listas") return "Mais › Listas (nome, cor, ícone e quais listas aparecem)";
-      if (v.name === "repeticoes") return "Mais › Repetições (as tarefas que voltam sozinhas)";
-      if (v.name === "config") return "Mais › Configurações (integrações, dados, aparência e opções do app)";
+      if (v.name === "config") return "Mais › Configurações (integrações, dados, aparência e opções do app: prazos, exibição e repetição)";
       return "o início, com todas as listas";
     }
 

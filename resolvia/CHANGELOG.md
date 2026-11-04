@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.38.0
+
+- **Repetição** sai do menu Mais e fica em **Mais › Configurações › Opções**, junto com **Prazos** e **Exibição**: o interruptor Repetir depois de concluir e as tarefas que se repetem. O Mais fica com **Listas** e **Configurações**.
+
 ## 2.37.0
 
 - **Mais vira um menu**, como no InventarIA: **Listas**, **Repetições** e, por último, **Configurações**. Cada um abre a sua tela, com **‹ Mais** no alto para voltar; o Voltar do celular e arrastar para a direita também voltam ao menu.
