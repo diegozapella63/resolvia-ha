@@ -20,6 +20,7 @@ import { SuggestMixin } from "./suggest.js";
 import { RoomsMixin } from "./rooms.js";
 import { ChatMixin } from "./chat-panel.js";
 import { ExternalMixin } from "./external.js";
+import { ChartsMixin, chartStyles } from "./charts.js";
 import { chatStyles } from "./chat.js";
 import { Recorder, micError, VOICE_RATE, VOICE_MAX_S } from "./voice.js";
 import {
@@ -48,7 +49,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.38.1";
+const VERSION = "2.39.0";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -85,9 +86,9 @@ const REPEAT_PICKS = [
 ];
 const keyOf = (item) => item.uid || item.summary;
 // the screens opened from the menu Mais: the bar keeps Mais lit, and "‹ Mais" goes back to the menu
-const IN_MORE = ["listas", "config"];
+const IN_MORE = ["listas", "graficos", "config"];
 
-class ResolviaPanel extends ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(PointsMixin(DataMixin(LitElement)))))) {
+class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(PointsMixin(DataMixin(LitElement))))))) {
   static properties = {
     hass: { attribute: false },
     narrow: { type: Boolean },
@@ -117,7 +118,7 @@ class ResolviaPanel extends ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(Poin
     env: { attribute: false },
   };
 
-  static styles = [styles, unsafeCSS(usageStyles), unsafeCSS(lookStyles), unsafeCSS(equipPickerStyles), unsafeCSS(chatStyles)];
+  static styles = [styles, unsafeCSS(usageStyles), unsafeCSS(lookStyles), unsafeCSS(equipPickerStyles), unsafeCSS(chatStyles), unsafeCSS(chartStyles)];
 
   constructor() {
     super();
@@ -537,9 +538,10 @@ class ResolviaPanel extends ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(Poin
     if (p === "/prazos" && this._dueOn()) return { name: "due" };
     if (p === "/sugestoes" && !this._dueOn()) return { name: "suggest" };
     if (p === "/buscar") return { name: "search" };
-    // Mais is a menu (/mais): Listas (/listas) and Configurações (/config/<aba>); Repetições is in Opções
+    // Mais is a menu (/mais): Listas (/listas), Gráficos (/graficos) and Configurações (/config/<aba>); Repetições is in Opções
     if (p === "/mais") return { name: "more" };
     if (p === "/listas") return { name: "listas" };
+    if (p === "/graficos") return { name: "graficos" };
     if ((m = p.match(/^\/config(?:\/(integracoes|dados|aparencia|opcoes))?$/))) return { name: "config", tab: m[1] || "integracoes" };
     // the addresses of the tabs of Mais up to 2.36 and of Repetições in 2.37: the same screen, and updated()
     // puts the new address in their place
@@ -598,7 +600,7 @@ class ResolviaPanel extends ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(Poin
   }
 
   // Arrastar para o lado: Listas ⇄ Buscar ⇄ Prazos (ou Sugestões) ⇄ Mais; dentro de uma lista, para a direita volta,
-  // e numa tela do Mais (Listas, Configurações), para a direita volta ao menu
+  // e numa tela do Mais (Listas, Gráficos, Configurações), para a direita volta ao menu
   _onSwipeStart(e) {
     this._sw = this._sheet || this._cam ? null : swipeStart(e);
   }
@@ -1837,6 +1839,7 @@ class ResolviaPanel extends ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(Poin
     else if (view.name === "search") page = this._renderSearch();
     else if (view.name === "more") page = this._renderMore();
     else if (view.name === "listas") page = this._renderMoreScreen("Listas", this._listsStatus(), this._renderListsTab());
+    else if (view.name === "graficos") page = this._renderCharts();
     else if (view.name === "config") page = this._renderConfig();
     else page = this._renderHome();
 
@@ -2558,7 +2561,7 @@ class ResolviaPanel extends ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(Poin
     `;
   }
 
-  // ---------- Mais: a menu; Listas and Configurações are screens of their own (Repetição is in Opções)
+  // ---------- Mais: a menu; Listas, Gráficos and Configurações are screens of their own (Repetição is in Opções)
 
   /** The tabs of Mais › Configurações, like the CronologIA: [key, label, icon, how the menu says it]. */
   _configTabs() {
@@ -2577,12 +2580,13 @@ class ResolviaPanel extends ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(Poin
     return tabs.some((t) => t[0] === want) ? want : tabs[0][0];
   }
 
-  /** The rows of the menu Mais, in order: Listas and, last, Configurações. */
+  /** The rows of the menu Mais, in order: Listas, Gráficos and, last, Configurações. */
   _moreRows() {
     const words = this._configTabs().map((t) => t[3]);
     const cfg = `${words.slice(0, -1).join(", ")} e ${words[words.length - 1]}.`;
     return [
       ["/listas", "list-checks", "Listas", "Nome, cor, ícone e quais aparecem."],
+      ["/graficos", "chart-bar", "Gráficos", this._chartsLine()],
       ["/config", "sliders-horizontal", "Configurações", cfg[0].toUpperCase() + cfg.slice(1)],
     ];
   }

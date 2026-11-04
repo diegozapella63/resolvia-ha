@@ -109,11 +109,11 @@ async def main():
         check("- [ ] Pagar conta de luz (prazo" in md and "      Levar exames" in md, "list file is a checklist with due and notes")
         open(f"{SP}/rv_export.zip", "wb").write(body)
 
-        # ---- UI: Mais is a menu (ResolvIA 2.37, Repetição in Opções since 2.38); Dados is a tab of Configurações
+        # ---- UI: Mais is a menu (ResolvIA 2.37, Repetição in Opções since 2.38, Gráficos since 2.39); Dados is a tab of Configurações
         await pg.locator(".tab", has_text="Mais").click()
         await pg.wait_for_timeout(600)
         rows = [t.strip() for t in await pg.locator(".more-row b").all_inner_texts()]
-        check(rows == ["Listas", "Configurações"], f"Mais is a menu ({rows})")
+        check(rows == ["Listas", "Gráficos", "Configurações"], f"Mais is a menu ({rows})")
         check(await pg.locator(".more-tabs").count() == 0 and await pg.locator("#dados").count() == 0, "the menu has no tabs and no panels")
         await pg.locator(".more-row", has_text="Configurações").click(); await pg.wait_for_timeout(400)
         tabs = [t.strip() for t in await pg.locator(".more-tabs button").all_inner_texts()]
@@ -122,7 +122,7 @@ async def main():
         await pg.get_by_role("tab", name="Opções", exact=True).click(); await pg.wait_for_timeout(300)
         check(await pg.locator(".panel .mais-head", has_text="Exibição").count() == 1, "Opções has Exibição")
         await pg.go_back(); await pg.wait_for_timeout(400)
-        check(await pg.locator(".more-tabs").count() == 0 and await pg.locator(".more-row").count() == 2, "Back goes to the menu instead of walking the tabs")
+        check(await pg.locator(".more-tabs").count() == 0 and await pg.locator(".more-row").count() == 3, "Back goes to the menu instead of walking the tabs")
         await pg.locator(".more-row", has_text="Configurações").click(); await pg.wait_for_timeout(400)
         await pg.get_by_role("tab", name="Dados", exact=True).click(); await pg.wait_for_timeout(600)
         panel = pg.locator("#dados")

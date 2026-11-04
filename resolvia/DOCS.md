@@ -13,6 +13,7 @@ Nada é copiado: o ResolvIA mostra e edita as mesmas listas que o HA já tem.
 O **Mais** (os três pontos na barra) é um menu, como no InventarIA. Cada linha abre a sua tela, com **‹ Mais** no alto para voltar (o Voltar do celular e arrastar para a direita também voltam):
 
 - **Listas**: nome, cor, ícone, mostrar/ocultar e criar lista.
+- **Gráficos**: onde estão as pendências das listas que aparecem (as ocultas e os concluídos ficam fora), em barras: **Por lista** (as 6 com mais; "+N listas" mostra as outras), **Por cômodo** e **Por equipamento** (só com **Usar cômodos** e **Usar equipamentos** ligados; uma tarefa com dois equipamentos conta nos dois e nos cômodos deles), **Por prazo** (atrasados, hoje, próximos 7 dias, mais adiante e sem prazo, nas listas com prazo e com **Controlar prazos** ligado) e **Quem faz** (nós mesmos × serviço externo, quando alguma tarefa é de fora). Tocar numa lista abre a lista; num cômodo, num equipamento ou em Serviço externo, abre o **Buscar** com ele; num prazo, abre **Prazos**.
 - **Configurações**, em abas: **Integrações** (recompensas do CronologIA, InventarIA, leitura por IA, Falar, uso da IA e sensores), **Dados** (exportar, backup, importar, versões), **Aparência** (tema e cor; com **Cor do dia**, ligada no começo, a cor muda todo dia sozinha, e escolher uma cor deixa fixa nela) e **Opções** (**Prazos**: controlar prazos; **Exibição**: agrupar por dispositivo, concluídos abertos; **Repetição**: ligar ou desligar e as tarefas que voltam sozinhas).
 
 ### No computador

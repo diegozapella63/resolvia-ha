@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.39.0
+
+- **Mais › Gráficos**: onde estão as pendências, em barras. **Por lista** (as 6 com mais e "+N listas" para ver as outras), **Por cômodo** e **Por equipamento** (só com **Usar cômodos** e **Usar equipamentos** ligados; uma tarefa com dois equipamentos conta nos dois), **Por prazo** (atrasados, hoje, próximos 7 dias, mais adiante e sem prazo, com **Controlar prazos** ligado) e **Quem faz** (nós mesmos × serviço externo). Tocar numa lista abre a lista; num cômodo, equipamento ou serviço externo, abre o Buscar com ele; num prazo, abre Prazos.
+
 ## 2.38.1
 
 - A etiqueta de **Serviço externo** ganha uma cor própria (anil), para se destacar do cômodo e dos equipamentos, sem confundir com atrasado, hoje ou pontos.
