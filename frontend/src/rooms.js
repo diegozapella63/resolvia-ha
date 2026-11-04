@@ -91,10 +91,11 @@ export const RoomsMixin = (Base) =>
       }
     }
 
+    /** The items of a task as tags: one (its name cut short); several, the first one and "+N" (one line). */
     _renderEquipTag(listId, item) {
       const es = this._equipIdsOf(listId, item.summary).map((id) => this._equipOf(id));
       if (!es.length) return nothing;
-      return html`${es.slice(0, 2).map((e) => html`<span class="tag room">${icon("package")}${clip(e.nome, 26)}</span>`)}${es.length > 2 ? html`<span class="tag room">+${es.length - 2}</span>` : nothing}`;
+      return html`<span class="tag room" title=${es[0].nome}>${icon("package")}${clip(es[0].nome, 26)}</span>${es.length > 1 ? html`<span class="tag room" title=${es.slice(1).map((e) => e.nome).join(", ")}>+${es.length - 1}</span>` : nothing}`;
     }
 
     /** The items for the picker: with the name of their room. */
@@ -187,6 +188,8 @@ export const RoomsMixin = (Base) =>
     }
 
     _renderRoomTag(listId, item) {
+      // several items: no rooms (the first item and +N say enough)
+      if (this._equipIdsOf(listId, item.summary).length > 1) return nothing;
       const ids = this._roomIdsOf(listId, item.summary);
       return ids.length ? html`${ids.map((id) => html`<span class="tag room">${icon("door-open")}${clip(this._roomName(id), 22)}</span>`)}` : nothing;
     }
