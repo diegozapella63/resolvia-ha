@@ -100,7 +100,7 @@ Os pontos ficam pelo nome da tarefa em cada lista, então valem também quando u
 
 ## Serviço externo
 
-No item, **Quem faz** diz se é com vocês (**Nós mesmos**) ou um **Serviço externo**: uma pessoa ou empresa de fora vai fazer (eletricista, assistência técnica, diarista). Dá para escrever quem, ou deixar em branco. A tarefa ganha uma etiqueta com o capacete e o nome; o **Buscar** acha por quem faz; mover a tarefa leva junto; e o **Sugerir com IA** e a **Conversa** sabem que o que vocês fazem é chamar, marcar ou cobrar.
+No item, **Quem faz** diz se é com vocês (**Nós mesmos**) ou um **Serviço externo**: uma pessoa ou empresa de fora vai fazer (eletricista, assistência técnica, diarista). Dá para escrever quem, ou deixar em branco. A tarefa ganha uma etiqueta com o capacete e o nome; o **Buscar** acha por quem faz (ou por "serviço externo"), com **Incluir › Serviços externos** ligado (vem ligado); mover a tarefa leva junto; e o **Sugerir com IA** e a **Conversa** sabem que o que vocês fazem é chamar, marcar ou cobrar.
 
 ## Cômodos e equipamentos (InventarIA)
 
@@ -113,7 +113,7 @@ Com o **InventarIA** (1.14.0 ou mais novo) no mesmo Home Assistant, ligue **Mais
 
 Com **Usar equipamentos** ligado (InventarIA 1.15.0 ou mais novo), cada tarefa pode apontar também para itens do InventarIA (equipamentos, móveis), um ou vários (**Outro equipamento**), buscados entre os do cômodo e os dos outros. Com equipamento, o cômodo fica bloqueado: é o dos equipamentos, um ou vários. A IA sugere o equipamento na leitura e o considera no Sugerir com IA, e o CronologIA mostra e pede o equipamento no Novo › Tarefa.
 
-No **Buscar**, digitar o cômodo ou o equipamento (o nome ou a zona) traz as tarefas ligadas a eles; os botões **Incluir cômodos** e **Incluir equipamentos** ligam e desligam isso (inativos quando a opção está desligada).
+No **Buscar**, digitar o cômodo ou o equipamento (o nome ou a zona) traz as tarefas ligadas a eles; em **Incluir**, os botões **Cômodos** e **Equipamentos** ligam e desligam isso (inativos quando a opção está desligada).
 
 Os cômodos e os itens vêm do InventarIA (só leitura, pela rede interna dos apps, com a chave que ele grava em `share/inventario`). O ResolvIA guarda o cômodo de cada tarefa pelo nome, junto com os pontos, e ele entra no exportar e no backup.
 

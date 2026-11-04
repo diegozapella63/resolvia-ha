@@ -72,7 +72,7 @@ async def main():
         await search("arroz")
         txt = await pg.locator(".page").inner_text()
         check("Nada encontrado" in txt and "Nenhum item com “arroz”." in txt, "a done item is not found by default")
-        inc = pg.locator(".filters .pick", has_text="Incluir concluídos")
+        inc = pg.locator(".filters .pick", has_text="Concluídos")
         await inc.click(); await pg.wait_for_timeout(250)
         check("on" in await inc.get_attribute("class") and await hits() == ["Arroz"] and await pg.locator(".page .item.done").count() == 1, "Incluir concluídos: found, shown as done")
         await search("a")

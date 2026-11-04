@@ -1154,11 +1154,26 @@ export const styles = css`
       display: none;
     }
   }
+  /* Buscar › Incluir: buttons of the same width, two by row */
+  .filters-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--rv-text-2);
+    margin: 0 0 8px;
+  }
   .filters {
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 8px;
     margin: 0 0 18px;
-    flex-wrap: wrap;
+  }
+  .filters .pick {
+    justify-content: center;
+    min-width: 0;
+    min-height: 42px;
+    white-space: normal;
+    text-align: center;
+    line-height: 1.2;
   }
   /* Buscar: Incluir cômodos/equipamentos with Usar cômodos/equipamentos off */
   .filters .pick:disabled {

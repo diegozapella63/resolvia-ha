@@ -48,7 +48,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.35.0";
+const VERSION = "2.36.0";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -101,6 +101,7 @@ class ResolviaPanel extends ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(Poin
     _searchDone: { state: true },
     _searchRooms: { state: true },
     _searchEquips: { state: true },
+    _searchExt: { state: true },
     _theme: { state: true },
     _doneOpen: { state: true },
     // Selecionar: several items of one list at once {listId, keys: Set}, or null
@@ -134,6 +135,8 @@ class ResolviaPanel extends ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(Poin
     // Buscar also by the room and by the item of the InventarIA (when they are on)
     this._searchRooms = true;
     this._searchEquips = true;
+    // ... and by who does it (Serviço externo: "eletricista")
+    this._searchExt = true;
     this._theme = store.get(THEME_KEY, "auto");
     this._doneOpen = {};
     this._lastTodoStates = null;
@@ -2425,6 +2428,11 @@ class ResolviaPanel extends ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(Poin
 
   // ---------- search
 
+  /** A Buscar › Incluir button, on or off; with `off` (why it can't be used), inactive. */
+  _searchToggle(ic, label, on, toggle, off = "") {
+    return html`<button class="pick ${on ? "on" : ""}" aria-pressed=${on ? "true" : "false"} ?disabled=${!!off} title=${off} @click=${toggle}>${icon(ic)}<span>${label}</span></button>`;
+  }
+
   _renderSearch() {
     const q = this._query.trim();
     const needle = fold(q);
@@ -2438,7 +2446,7 @@ class ResolviaPanel extends ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(Poin
       for (const l of this._visible()) {
         const hits = (l.items || []).filter(
           // also by the room or the item of the InventarIA ("cozinha", "fogão")
-          (i) => (this._searchDone || !isDone(i)) && (fold(i.summary).includes(needle) || fold(i.description).includes(needle) || place(l, i) || fold(this._externalText(l.id, i.summary)).includes(needle)),
+          (i) => (this._searchDone || !isDone(i)) && (fold(i.summary).includes(needle) || fold(i.description).includes(needle) || place(l, i) || (this._searchExt && fold(this._externalText(l.id, i.summary)).includes(needle))),
         );
         if (hits.length) {
           hits.sort((a, b) => Number(isDone(a)) - Number(isDone(b)));
@@ -2455,11 +2463,13 @@ class ResolviaPanel extends ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(Poin
           <input type="search" data-q="buscar" placeholder="Buscar em todas as listas" .value=${this._query} @input=${(e) => (this._query = e.target.value)} enterkeyhint="search" aria-label="Buscar" />
           ${this._query ? html`<button class="icon-btn" style="width:40px;height:40px" @click=${() => (this._query = "")} aria-label="Limpar">${icon("x")}</button>` : nothing}
         </label>
-        <div class="filters">
-          <button class="pick ${this._searchDone ? "on" : ""}" @click=${() => (this._searchDone = !this._searchDone)}>${icon("circle-check")}<span>Incluir concluídos</span></button>
+        <div class="filters-label" id="incluir">Incluir</div>
+        <div class="filters" role="group" aria-labelledby="incluir">
+          ${this._searchToggle("circle-check", "Concluídos", this._searchDone, () => (this._searchDone = !this._searchDone))}
+          ${this._searchToggle("hard-hat", "Serviços externos", this._searchExt, () => (this._searchExt = !this._searchExt))}
           ${this._rooms && this._rooms.encontrado
-            ? html`<button class="pick ${this._roomsOn() && this._searchRooms ? "on" : ""}" ?disabled=${!this._roomsOn()} title=${this._roomsOn() ? "" : "Ligue Usar cômodos em Mais › Integrações"} @click=${() => (this._searchRooms = !this._searchRooms)}>${icon("door-open")}<span>Incluir cômodos</span></button>
-                <button class="pick ${this._equipsOn() && this._searchEquips ? "on" : ""}" ?disabled=${!this._equipsOn()} title=${this._equipsOn() ? "" : "Ligue Usar equipamentos em Mais › Integrações"} @click=${() => (this._searchEquips = !this._searchEquips)}>${icon("package")}<span>Incluir equipamentos</span></button>`
+            ? html`${this._searchToggle("door-open", "Cômodos", this._roomsOn() && this._searchRooms, () => (this._searchRooms = !this._searchRooms), this._roomsOn() ? "" : "Ligue Usar cômodos em Mais › Integrações")}
+              ${this._searchToggle("package", "Equipamentos", this._equipsOn() && this._searchEquips, () => (this._searchEquips = !this._searchEquips), this._equipsOn() ? "" : "Ligue Usar equipamentos em Mais › Integrações")}`
             : nothing}
         </div>
         ${!needle

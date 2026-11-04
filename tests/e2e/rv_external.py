@@ -1,5 +1,5 @@
 # ResolvIA 2.34.0: Serviço externo. In the item (Quem faz): Nós mesmos or Serviço externo, with who
-# when said; the tag on the task, found by Buscar; back to Nós mesmos takes it out.
+# when said; the tag on the task, found by Buscar (Incluir › Serviços externos, on by default); back to Nós mesmos takes it out.
 import os as _os
 CRONOLOGIA = _os.environ.get("E2E_CRONOLOGIA", "")
 RESOLVIA = _os.environ.get("E2E_RESOLVIA", "")
@@ -70,6 +70,16 @@ async def main():
         await a.locator("input[data-q='buscar']").fill("diarista"); await pg.wait_for_timeout(300)
         found = [t.split("\n")[0] for t in await a.locator(".panel.items .item").all_inner_texts()]
         check(any("Passar pano na casa" in t for t in found), f"Buscar finds it by who ({found})")
+        ext_btn = a.locator(".filters .pick", has_text="Serviços externos")
+        check(await ext_btn.get_attribute("aria-pressed") == "true" and "on" in await ext_btn.get_attribute("class"), "Buscar › Incluir: Serviços externos on by default")
+        await a.locator(".filters").screenshot(path=f"{SP}/shots/rvext-search-filters.png")
+        await ext_btn.click(); await pg.wait_for_timeout(300)
+        found = [t.split("\n")[0] for t in await a.locator(".panel.items .item").all_inner_texts()]
+        check(await ext_btn.get_attribute("aria-pressed") == "false" and not any("Passar pano na casa" in t for t in found), f"Serviços externos off: not by who ({found})")
+        await ext_btn.click(); await pg.wait_for_timeout(300)
+        await a.locator("input[data-q='buscar']").fill("servico externo"); await pg.wait_for_timeout(300)
+        found = [t.split("\n")[0] for t in await a.locator(".panel.items .item").all_inner_texts()]
+        check(any("Passar pano na casa" in t for t in found) and any("Consertar o portão" in t for t in found), f"'servico externo': all the tasks done from outside ({found})")
         # back to Nós mesmos
         await a.evaluate("(el) => el._go('/lista/todo.casa')"); await pg.wait_for_timeout(700)
         await a.locator(".page .item", has_text="Passar pano na casa").first.locator(".it-body").click(); await pg.wait_for_timeout(500)

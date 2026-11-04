@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.36.0
+
+- **Buscar › Incluir › Serviços externos**: ligado, o Buscar acha as tarefas por quem faz ("eletricista") ou por "serviço externo"; desligado, não. Vem ligado.
+- Os botões do Buscar ficam sob **Incluir**, dois por linha, todos do mesmo tamanho: **Concluídos**, **Serviços externos**, **Cômodos** e **Equipamentos**.
+
 ## 2.35.0
 
 - **Cor do dia**: a cor do app muda todo dia, sozinha (a mesma em todos os aparelhos, e troca à meia-noite mesmo com o app aberto). Vem ligada; em Mais › Aparência, desligue em **Cor do dia** ou escolha uma cor para ficar sempre nela. As listas com cor própria continuam com a delas.
