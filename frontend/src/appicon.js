@@ -1,7 +1,7 @@
 import { html } from "../vendor/lit-all.min.js";
 
 // O ícone do app ao lado do nome (o mesmo desenho do ícone do add-on: o bloco com o visto),
-// na cor escolhida em Mais › Aparência. As argolas ficam na cor do texto, para aparecer no tema escuro.
+// na cor escolhida em Mais › Configurações › Aparência. As argolas ficam na cor do texto, para aparecer no tema escuro.
 export const appIcon = () => html`<svg class="app-ic" viewBox="0 0 32 32" aria-hidden="true">
   <path d="M8 6h16a5 5 0 0 1 5 5v12.5L22.5 30H8a5 5 0 0 1-5-5V11a5 5 0 0 1 5-5z" fill="var(--rv-accent)" />
   <path d="M3 14.2h26M3 19h26M3 23.8h19" stroke="#000" stroke-opacity=".13" stroke-width="1" />

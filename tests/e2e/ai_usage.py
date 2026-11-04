@@ -56,6 +56,8 @@ async def run(app):
             await pg.goto("http://127.0.0.1:8099/"); await pg.wait_for_timeout(1500)
             root = pg.locator("cronologia-app") if app == "cronologia" else pg
             await root.locator(".tab", has_text="Mais").click(); await pg.wait_for_timeout(400)
+            if app == "resolvia":  # ResolvIA 2.37: Mais is a menu; Integrações is in Configurações
+                await root.locator(".more-row", has_text="Configurações").click(); await pg.wait_for_timeout(400)
             await root.locator(".more-tabs button", has_text="Integrações").click(); await pg.wait_for_timeout(900)
             panel = root.locator("#uso-ia")
             await panel.wait_for(timeout=8000)

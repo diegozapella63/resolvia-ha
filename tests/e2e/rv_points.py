@@ -57,8 +57,9 @@ async def main():
         await A.goto(URL); await A.wait_for_timeout(1500)
         # Mais › Integrações
         await A.locator(".tab", has_text="Mais").click(); await A.wait_for_timeout(400)
+        await A.locator(".more-row", has_text="Configurações").click(); await A.wait_for_timeout(400)
         tabs = [t.strip() for t in await A.locator(".more-tabs button").all_inner_texts()]
-        check(tabs == ["Listas", "Repetições", "Integrações", "Dados", "Aparência", "Opções"], f"Integrações tab in place of IA ({tabs})")
+        check(tabs == ["Integrações", "Dados", "Aparência", "Opções"], f"Integrações tab in place of IA, in Configurações ({tabs})")
         await A.get_by_role("tab", name="Integrações", exact=True).click(); await A.wait_for_timeout(600)
         rp = await A.locator("#recompensas").inner_text()
         check("Usar recompensas" in rp and "Conectado" not in rp and "Desligado" in rp, "Recompensas starts off: only the switch (ResolvIA 2.13.0)")
@@ -78,6 +79,7 @@ async def main():
         await A.locator(".sheet .icon-btn[aria-label=Fechar]").click(); await A.wait_for_timeout(300)
         # turn on
         await A.locator(".tab", has_text="Mais").click(); await A.wait_for_timeout(300)
+        await A.locator(".more-row", has_text="Configurações").click(); await A.wait_for_timeout(400)
         await A.get_by_role("tab", name="Integrações", exact=True).click(); await A.wait_for_timeout(400)
         await A.locator("#recompensas .switch input").check(); await A.wait_for_timeout(700)
         check(stored()["prefs"]["app"].get("points_on") is True, "switch saved")
@@ -141,6 +143,7 @@ async def main():
         check(snap.get("points", {}).get("todo.casa", {}).get("lavar a louca") == 5, "points in the JSON export")
         # off again: nothing sent
         await A.locator(".tab", has_text="Mais").click(); await A.wait_for_timeout(300)
+        await A.locator(".more-row", has_text="Configurações").click(); await A.wait_for_timeout(400)
         await A.get_by_role("tab", name="Integrações", exact=True).click(); await A.wait_for_timeout(400)
         await A.locator("#recompensas .switch input").uncheck(); await A.wait_for_timeout(700)
         check(presence()["pontos"] == {}, "off: nothing published")

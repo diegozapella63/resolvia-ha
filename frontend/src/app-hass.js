@@ -226,7 +226,7 @@ export async function createAppHass(onChange) {
         }
         return body;
       },
-      // Mais › Dados
+      // Mais › Configurações › Dados
       data: {
         url: (fmt) => new URL(`api/export/${fmt}`, location.href).href,
         async import(file) {

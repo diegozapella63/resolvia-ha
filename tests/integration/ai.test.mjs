@@ -266,7 +266,7 @@ describe("with the fake AI", () => {
     });
     it("refuses reading and suggestions", async () => {
       await c.call("resolvia/prefs/set_app", { prefs: { ai_off: true } });
-      assert.deepEqual(await extract(stack, { text: "leite" }), { status: 409, body: { error: "A IA está desligada em Mais › Integrações", code: "ai_off" } });
+      assert.deepEqual(await extract(stack, { text: "leite" }), { status: 409, body: { error: "A IA está desligada em Mais › Configurações › Integrações", code: "ai_off" } });
       await assert.rejects(c.call("resolvia/ai/suggest", { items: SUGGEST_ITEMS }), { code: "ai_off" });
       await c.call("resolvia/prefs/set_app", { prefs: { ai_off: false } });
       assert.equal((await extract(stack, { text: "leite" })).status, 200);

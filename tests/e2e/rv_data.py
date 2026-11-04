@@ -109,17 +109,21 @@ async def main():
         check("- [ ] Pagar conta de luz (prazo" in md and "      Levar exames" in md, "list file is a checklist with due and notes")
         open(f"{SP}/rv_export.zip", "wb").write(body)
 
-        # ---- UI: Dados panel, backup
+        # ---- UI: Mais is a menu (ResolvIA 2.37); Dados is a tab of Configurações
         await pg.locator(".tab", has_text="Mais").click()
         await pg.wait_for_timeout(600)
+        rows = [t.strip() for t in await pg.locator(".more-row b").all_inner_texts()]
+        check(rows == ["Listas", "Repetições", "Configurações"], f"Mais is a menu ({rows})")
+        check(await pg.locator(".more-tabs").count() == 0 and await pg.locator("#dados").count() == 0, "the menu has no tabs and no panels")
+        await pg.locator(".more-row", has_text="Configurações").click(); await pg.wait_for_timeout(400)
         tabs = [t.strip() for t in await pg.locator(".more-tabs button").all_inner_texts()]
-        check(tabs == ["Listas", "Repetições", "Integrações", "Dados", "Aparência", "Opções"], f"Mais in tabs ({tabs})")
-        check(await pg.locator(".more-tabs button.on").inner_text() == "Listas" and await pg.locator(".panel .mais-head", has_text="Listas").count() == 1 and await pg.locator("#dados").count() == 0, "Mais opens on Listas, only its panels")
+        check(tabs == ["Integrações", "Dados", "Aparência", "Opções"], f"Configurações in tabs ({tabs})")
+        check(await pg.locator(".more-tabs button.on").inner_text() == "Integrações" and await pg.locator("#dados").count() == 0, "Configurações opens on Integrações, only its panels")
         await pg.get_by_role("tab", name="Opções", exact=True).click(); await pg.wait_for_timeout(300)
         check(await pg.locator(".panel .mais-head", has_text="Exibição").count() == 1, "Opções has Exibição")
         await pg.go_back(); await pg.wait_for_timeout(400)
-        check(await pg.locator(".more-tabs").count() == 0, "Back leaves Mais instead of walking the tabs")
-        await pg.locator(".tab", has_text="Mais").click(); await pg.wait_for_timeout(400)
+        check(await pg.locator(".more-tabs").count() == 0 and await pg.locator(".more-row").count() == 3, "Back goes to the menu instead of walking the tabs")
+        await pg.locator(".more-row", has_text="Configurações").click(); await pg.wait_for_timeout(400)
         await pg.get_by_role("tab", name="Dados", exact=True).click(); await pg.wait_for_timeout(600)
         panel = pg.locator("#dados")
         check(await panel.count() == 1, "Dados panel in Mais")
@@ -163,8 +167,11 @@ async def main():
         check(len(rules) == 1 and rules[0]["uid"] == pano2["uid"] and rules[0]["days"] == 3, "repeat rule back and bound to the new item")
         prefs = await ws({"type": "resolvia/prefs/get"})
         check(prefs["lists"]["todo.casa"]["name"] == "Casa da família", "custom name restored")
-        await pg.get_by_role("tab", name="Listas", exact=True).click(); await pg.wait_for_timeout(400)
+        await pg.locator(".uplink", has_text="Mais").click(); await pg.wait_for_timeout(400)
+        await pg.locator(".more-row", has_text="Listas").click(); await pg.wait_for_timeout(400)
         check(await pg.locator(".panel .row .label", has_text="Casa da família").count() >= 1, "screen shows the restored name")
+        await pg.go_back(); await pg.wait_for_timeout(400)
+        await pg.locator(".more-row", has_text="Configurações").click(); await pg.wait_for_timeout(400)
         await pg.get_by_role("tab", name="Dados", exact=True).click(); await pg.wait_for_timeout(500)
 
         # again: nothing duplicated

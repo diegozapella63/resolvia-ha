@@ -32,13 +32,13 @@ A primeira instalação leva alguns minutos, porque o app é montado no próprio
 - **Links bonitos**: `Ver sobre: https://github.com/fulano/projeto` vira um chip `fulano/projeto`.
 - **Editar item**: texto, notas, prazo, horário, **repetição** e **mover para outra lista**.
 - **Tarefas recorrentes**: "Passar pano" com repetição de 3 dias volta como pendente 3 dias depois de você marcar como feito, mesmo se você concluir pela Alexa.
-- **Importar itens**: cole uma mensagem do WhatsApp, escolha fotos ou digitalize com IA uma lista em papel; a IA configurada no Home Assistant (Claude, OpenAI, Gemini ou Ollama) separa os itens e você revisa antes de adicionar. Escolha qual em **Mais → Integrações**.
+- **Importar itens**: cole uma mensagem do WhatsApp, escolha fotos ou digitalize com IA uma lista em papel; a IA configurada no Home Assistant (Claude, OpenAI, Gemini ou Ollama) separa os itens e você revisa antes de adicionar. Escolha qual em **Mais → Configurações → Integrações**.
 - **Prazos** de todas as listas, incluindo o que vai voltar sozinho.
 - **Buscar** em todas as listas, sem se importar com acentos.
 - **Personalizar cada lista** (nome, cor, ícone, ocultar, prazos), sincronizado entre aparelhos.
-- **Recompensas**: cada tarefa pode valer pontos no placar do CronologIA para quem concluir (ligue em **Mais → Integrações**).
+- **Recompensas**: cada tarefa pode valer pontos no placar do CronologIA para quem concluir (ligue em **Mais → Configurações → Integrações**).
 - **Manutenções e rotinas do CronologIA** como tarefas: concluir aqui vale como feito lá, com os pontos, e a tarefa volta com a próxima data.
-- **Mais em abas**, como no CronologIA: Listas, Repetições, Integrações, Dados e Aparência.
+- **Mais é um menu**, como no InventarIA: Listas, Repetições e Configurações (em abas: Integrações, Dados, Aparência e Opções).
 - **Dados**: exportar em ZIP, CSV ou JSON, backup em `share/resolvia`, importar (repõe os itens que faltarem, sem duplicar) e versões anteriores automáticas.
 - **Tema claro e escuro** seguindo o Home Assistant.
 

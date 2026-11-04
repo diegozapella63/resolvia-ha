@@ -1,5 +1,5 @@
 // Recompensas: tasks worth points in the CronologIA scoreboard. Turned on in
-// Mais › Integrações; each task's points are set in its sheet; completing a task
+// Mais › Configurações › Integrações; each task's points are set in its sheet; completing a task
 // here gives them to whoever did it (asks when this user isn't in the scoreboard).
 // Mixed into <resolvia-panel>.
 import { html, nothing, unsafeSVG } from "../vendor/lit-all.min.js";
@@ -174,7 +174,7 @@ export const PointsMixin = (Base) =>
       `;
     }
 
-    /** Mais › Integrações › Recompensas. */
+    /** Mais › Configurações › Integrações › Recompensas. */
     _renderRewardsPanel() {
       const p = this._pts;
       if (!p) return nothing;

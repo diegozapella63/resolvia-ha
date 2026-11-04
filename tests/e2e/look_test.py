@@ -46,6 +46,8 @@ async def run(app):
                 await pg.goto("http://127.0.0.1:8099/"); await pg.wait_for_timeout(1500)
                 root = pg.locator("cronologia-app") if app == "cronologia" else pg
                 await root.locator(".tab", has_text="Mais").click(); await pg.wait_for_timeout(400)
+                if app == "resolvia":  # ResolvIA 2.37: Mais is a menu; Aparência is in Configurações
+                    await root.locator(".more-row", has_text="Configurações").click(); await pg.wait_for_timeout(400)
                 await root.locator(".more-tabs button", has_text="Aparência").click(); await pg.wait_for_timeout(500)
                 heads = [h.strip() for h in await root.locator(".mais-head h2").all_inner_texts()]
                 if scheme == "dark":
@@ -90,6 +92,8 @@ async def run(app):
             await pg.goto("http://127.0.0.1:8099/"); await pg.wait_for_timeout(1500)
             root = pg.locator("cronologia-app") if app == "cronologia" else pg
             await root.locator(".tab", has_text="Mais").click(); await pg.wait_for_timeout(400)
+            if app == "resolvia":  # ResolvIA 2.37: Mais is a menu; Aparência is in Configurações
+                await root.locator(".more-row", has_text="Configurações").click(); await pg.wait_for_timeout(400)
             await root.locator(".more-tabs button", has_text="Aparência").click(); await pg.wait_for_timeout(500)
             order = [t.strip() for t in await root.locator(".tag-swatches .tsw").all_inner_texts() if t.strip() != "Grafite"]
             before = (await root.locator(".tsw.on").inner_text()).strip()

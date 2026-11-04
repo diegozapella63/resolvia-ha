@@ -1,4 +1,4 @@
-// Mais › Dados: exports (ZIP, CSV, JSON), backups in share/resolvia, imports
+// Mais › Configurações › Dados: exports (ZIP, CSV, JSON), backups in share/resolvia, imports
 // and automatic versions, like the other apps. Mixed into <resolvia-panel>.
 // Only in the app (hass.resolvia.data); the preview fakes it.
 import { html, nothing, unsafeSVG } from "../vendor/lit-all.min.js";
@@ -212,7 +212,7 @@ export const DataMixin = (Base) =>
           <div class="btn-row sec-actions"><button class="btn outline sm" @click=${() => this._pickDataImport()}>${icon("upload")}Escolher arquivo</button></div>
         </div>
         <div class="panel">
-          ${this._secHead("archive-restore", "Versões anteriores", "As 3 últimas cópias dos ajustes e das repetições, guardadas sozinhas.")}
+          ${this._secHead("archive-restore", "Versões anteriores", "Uma cópia dos ajustes e das repetições a cada 10 minutos de uso e antes de importar ou restaurar. Ficam as 3 mais recentes.")}
           <div class="btn-row sec-actions"><button class="btn outline sm" @click=${() => this._openVersions()}>${icon("archive-restore")}Ver versões</button></div>
         </div>
         <div class="panel">

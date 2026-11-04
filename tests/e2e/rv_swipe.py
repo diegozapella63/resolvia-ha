@@ -1,4 +1,4 @@
-# ResolvIA 2.21.0: a swipe to the side changes the tab (Listas, Buscar, Prazos, Mais); in a list, to the right goes back; the app icon by the name.
+# ResolvIA 2.21.0: a swipe to the side changes the tab (Listas, Buscar, Prazos, Mais); in a list, to the right goes back (2.37: on a screen of Mais, back to the menu); the app icon by the name.
 import os as _os
 CRONOLOGIA = _os.environ.get("E2E_CRONOLOGIA", "")
 RESOLVIA = _os.environ.get("E2E_RESOLVIA", "")
@@ -58,8 +58,18 @@ async def main():
         check(await view() in ("due", "suggest"), f"again: Prazos ({await view()})")
         await swipe(pg, H, "main .page", 300, 300, 110, 300)
         check(await view() == "more", "again: Mais")
-        await swipe(pg, H, ".more-tabs, .seg", 110, 200, 300, 200)
-        check(await view() == "more", "on the row of the Mais tabs: no change")
+        await swipe(pg, H, "main .page", 300, 300, 110, 300)
+        check(await view() == "more", "Mais is the last tab: to the left, nothing")
+        # a screen of Mais (ResolvIA 2.37): to the right goes back to the menu; to the left nothing
+        await pg.locator(".more-row", has_text="Configurações").click(); await pg.wait_for_timeout(500)
+        check(await view() == "config", "Mais › Configurações")
+        await swipe(pg, H, "main .page", 300, 520, 110, 520)
+        check(await view() == "config", "in Configurações, to the left: stays")
+        await swipe(pg, H, "main .page", 110, 520, 300, 520)
+        check(await view() == "more", "in Configurações, to the right: back to the menu")
+        await pg.locator(".more-row", has_text="Listas").click(); await pg.wait_for_timeout(500)
+        await swipe(pg, H, "main .page", 110, 520, 300, 520)
+        check(await view() == "more", "in Mais › Listas, to the right: back to the menu")
         await swipe(pg, H, "main .page", 110, 420, 300, 420)
         check(await view() in ("due", "suggest"), "finger to the right: back")
         for _ in range(3): await swipe(pg, H, "main .page", 110, 420, 300, 420)

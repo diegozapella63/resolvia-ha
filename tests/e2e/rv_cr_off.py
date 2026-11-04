@@ -43,6 +43,7 @@ async def main():
         check(st["placar"]["desligado"] is True and st["placar"]["ativo"] is False and st["espelho"] == {}, "placar: desligado, inactive, nothing mirrored")
         await pg.reload(); await pg.wait_for_timeout(1300)
         await pg.locator("nav .tab", has_text="Mais").click(); await pg.wait_for_timeout(300)
+        await pg.locator(".more-row", has_text="Configurações").click(); await pg.wait_for_timeout(400)
         await pg.get_by_role("tab", name="Integrações", exact=True).click(); await pg.wait_for_timeout(600)
         rp = await pg.locator("#recompensas").inner_text()
         check("Integração desligada no CronologIA" in rp and "Usar a integração" in rp, "Recompensas says the integration is off in the CronologIA")

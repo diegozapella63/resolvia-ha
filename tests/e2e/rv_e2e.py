@@ -134,7 +134,7 @@ async def main():
 
         # Mais › Repetições
         await pg.locator(".tab", has_text="Mais").click(); await pg.wait_for_timeout(400)
-        await pg.get_by_role("tab", name="Repetições", exact=True).click(); await pg.wait_for_timeout(300)
+        await pg.locator(".more-row", has_text="Repetições").click(); await pg.wait_for_timeout(300)
         labels = await pg.locator(".panel", has_text="Tarefas que se repetem").locator(".row .label").all_inner_texts()
         check(sorted(labels) == ["Passar pano na casa", "Trocar roupa de cama"], f"rules in Mais ({labels})")
         hints = await pg.locator(".panel", has_text="Tarefas que se repetem").locator(".row .hint").all_inner_texts()

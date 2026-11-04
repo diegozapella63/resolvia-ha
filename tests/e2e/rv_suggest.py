@@ -54,6 +54,7 @@ async def main():
 
         # Mais › Opções › Controlar prazos off
         await pg.locator("nav .tab", has_text="Mais").click(); await pg.wait_for_timeout(300)
+        await pg.locator(".more-row", has_text="Configurações").click(); await pg.wait_for_timeout(400)
         await pg.get_by_role("tab", name="Opções", exact=True).click(); await pg.wait_for_timeout(400)
         sw = pg.locator("input[aria-label='Controlar prazos']")
         check(await sw.is_checked(), "Opções › Prazos: Controlar prazos on")
@@ -147,6 +148,7 @@ async def main():
 
         # back on: Prazos returns
         await pg.locator("nav .tab", has_text="Mais").click(); await pg.wait_for_timeout(300)
+        await pg.locator(".more-row", has_text="Configurações").click(); await pg.wait_for_timeout(400)
         await pg.get_by_role("tab", name="Opções", exact=True).click(); await pg.wait_for_timeout(300)
         await pg.locator("input[aria-label='Controlar prazos']").check(); await pg.wait_for_timeout(600)
         t = " ".join(await nav())

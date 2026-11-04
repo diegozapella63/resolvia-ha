@@ -425,6 +425,75 @@ export const styles = css`
   .mais-head + .panel-lead {
     margin-top: 0;
   }
+  /* Mais: the menu (Listas, Repetições, Configurações), like the InventarIA */
+  .more-menu ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .more-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    min-height: 76px;
+    padding: 12px 0;
+    border-top: 1px solid var(--rv-line);
+    text-align: left;
+  }
+  .more-menu li:first-child .more-row {
+    border-top: 0;
+  }
+  .more-row .mb {
+    flex: 1;
+    min-width: 0;
+    display: grid;
+    gap: 2px;
+  }
+  .more-row b {
+    font-size: 17px;
+    font-weight: 600;
+    line-height: 1.25;
+  }
+  .more-row .mb span {
+    color: var(--rv-muted);
+    font-size: 14px;
+    line-height: 1.35;
+  }
+  .more-row .chev {
+    width: 20px;
+    height: 20px;
+    color: var(--rv-muted);
+  }
+  /* a screen of Mais: "‹ Mais" above the title, back to the menu */
+  .uplink {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 36px;
+    margin: 12px 0 0 -6px;
+    padding: 6px 10px 6px 4px;
+    border-radius: 10px;
+    color: var(--rv-text-2);
+    font-weight: 500;
+  }
+  .uplink .i {
+    width: 18px;
+    height: 18px;
+  }
+  .uplink:active {
+    background: var(--rv-surface-2);
+  }
+  @media (hover: hover) {
+    .uplink:hover {
+      background: var(--rv-surface-2);
+      color: var(--rv-text);
+    }
+  }
+  /* Mais › Listas: the line about tapping goes above the lists */
+  .lists-panel > .panel-lead:first-child {
+    margin: 14px 0 4px;
+  }
   .sec-actions {
     padding-bottom: 16px;
   }
@@ -2780,7 +2849,7 @@ export const styles = css`
     background: var(--rv-line);
   }
 
-  /* ---------- Mais: tabs at the top (same as the CronologIA) ---------- */
+  /* ---------- Mais › Configurações: tabs at the top (same as the CronologIA) ---------- */
   .seg.compact button {
     font-size: 14px;
     gap: 5px;
@@ -2796,7 +2865,7 @@ export const styles = css`
     margin: 0 0 14px;
     box-shadow: 0 0 0 6px var(--rv-bg);
   }
-  /* six tabs: they keep their width and the bar scrolls sideways when the screen is narrow */
+  /* the tabs keep their width and the bar scrolls sideways when the screen is too narrow */
   .more-tabs {
     overflow-x: auto;
     scrollbar-width: none;
@@ -2817,7 +2886,7 @@ export const styles = css`
       display: none;
     }
   }
-  /* phones: smaller so the six fit (below ~400 px the bar scrolls sideways) */
+  /* phones: smaller so the four fit (below ~340 px the bar scrolls sideways) */
   @media (max-width: 440px) {
     .more-tabs {
       gap: 1px;
@@ -3069,6 +3138,20 @@ export const styles = css`
       border-radius: 0;
       padding: 0;
       margin: 0 0 36px;
+    }
+    /* the menu Mais: a line above and between the rows, like the InventarIA */
+    .more-menu ul {
+      border-top: 1px solid var(--rv-line);
+    }
+    .more-row,
+    .more-menu li:first-child .more-row {
+      border-top: 0;
+      border-bottom: 1px solid var(--rv-line);
+      padding: 12px 8px;
+      transition: background 0.15s;
+    }
+    .more-row:hover {
+      background: var(--rv-surface-2);
     }
     /* the small headings of the sections become titles, like the InventarIA */
     .page .panel > .overline {

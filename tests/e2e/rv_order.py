@@ -59,6 +59,7 @@ async def main():
         # Buscar: hide Problem List in Mais › Listas
         total_before = await pg.locator(".home-search input").get_attribute("placeholder")
         await pg.locator(".tab", has_text="Mais").click(); await pg.wait_for_timeout(400)
+        await pg.locator(".more-row", has_text="Listas").click(); await pg.wait_for_timeout(400)
         await pg.locator("input[aria-label='Mostrar Problem List']").click(); await pg.wait_for_timeout(800)
         await pg.locator(".tab", has_text="Listas").click(); await pg.wait_for_timeout(600)
         total_after = await pg.locator(".home-search input").get_attribute("placeholder")

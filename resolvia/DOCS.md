@@ -10,7 +10,11 @@ Nada é copiado: o ResolvIA mostra e edita as mesmas listas que o HA já tem.
 2. Ative **Mostrar na barra lateral** (e, se quiser, **Watchdog**).
 3. Abra o **ResolvIA** pela barra lateral.
 
-O **Mais** fica em abas no alto: **Listas** (nome, cor, ícone, mostrar/ocultar e criar lista), **Repetições** (ligar ou desligar a repetição e as tarefas que voltam sozinhas), **Integrações** (recompensas do CronologIA e leitura por IA), **Dados** (exportar, backup, importar, versões), **Aparência** (tema e cor; com **Cor do dia**, ligada no começo, a cor muda todo dia sozinha, e escolher uma cor deixa fixa nela) e **Opções** (controlar prazos e como as listas aparecem: agrupar por dispositivo, concluídos abertos).
+O **Mais** (os três pontos na barra) é um menu, como no InventarIA. Cada linha abre a sua tela, com **‹ Mais** no alto para voltar (o Voltar do celular e arrastar para a direita também voltam):
+
+- **Listas**: nome, cor, ícone, mostrar/ocultar e criar lista.
+- **Repetições**: ligar ou desligar a repetição e as tarefas que voltam sozinhas.
+- **Configurações**, em abas: **Integrações** (recompensas do CronologIA, InventarIA, leitura por IA, Falar, uso da IA e sensores), **Dados** (exportar, backup, importar, versões), **Aparência** (tema e cor; com **Cor do dia**, ligada no começo, a cor muda todo dia sozinha, e escolher uma cor deixa fixa nela) e **Opções** (controlar prazos e como as listas aparecem: agrupar por dispositivo, concluídos abertos).
 
 ### No computador
 
@@ -22,7 +26,7 @@ No início, logo abaixo do resumo, fica o campo **Buscar entre N itens**, como n
 
 ### Falar
 
-O **microfone** no alto da tela, à direita (no início, nas outras telas e dentro de cada lista): toque, fale os itens ("Comprar pilhas, trocar a lâmpada da sala e ligar para o encanador") e toque de novo. O Home Assistant transcreve com a **fala para texto do Assist** (Configurações › Assistentes de voz; com o Home Assistant Cloud já vem pronta, em português), e a IA separa os itens (sem IA, o app separa por vírgulas e "e"). Para usar outro motor de fala (Whisper, Google…) sem mexer no assistente de voz do Home Assistant, escolha em Mais › Integrações › **Falar**. Você confere e adiciona: a IA sugere a lista de cada item (dentro de uma lista, na dúvida, fica nela) e dá para trocar item por item. Até 2 minutos por vez. O microfone só aparece quando o Home Assistant tem fala para texto; o navegador ou o app do celular pede permissão na primeira vez.
+O **microfone** no alto da tela, à direita (no início, nas outras telas e dentro de cada lista): toque, fale os itens ("Comprar pilhas, trocar a lâmpada da sala e ligar para o encanador") e toque de novo. O Home Assistant transcreve com a **fala para texto do Assist** (Configurações › Assistentes de voz; com o Home Assistant Cloud já vem pronta, em português), e a IA separa os itens (sem IA, o app separa por vírgulas e "e"). Para usar outro motor de fala (Whisper, Google…) sem mexer no assistente de voz do Home Assistant, escolha em Mais › Configurações › Integrações › **Falar**. Você confere e adiciona: a IA sugere a lista de cada item (dentro de uma lista, na dúvida, fica nela) e dá para trocar item por item. Até 2 minutos por vez. O microfone só aparece quando o Home Assistant tem fala para texto; o navegador ou o app do celular pede permissão na primeira vez.
 
 ### Conversa com a IA
 
@@ -42,9 +46,9 @@ Você revisa os itens (dá para corrigir, desmarcar ou incluir linhas) e escolhe
 
 ### Leitura por IA
 
-**Usar IA** (em **Mais › Integrações › Leitura por IA**) liga ou desliga tudo o que usa IA. Desligada, somem o **Colar mensagem**, o **Escolher fotos** e o **Digitalizar com IA** (no Adicionar e no botão ao lado do campo de cada lista), e o app não chama a IA. Colar várias linhas no campo de adicionar continua criando um item por linha. Começa ligada.
+**Usar IA** (em **Mais › Configurações › Integrações › Leitura por IA**) liga ou desliga tudo o que usa IA. Desligada, somem o **Colar mensagem**, o **Escolher fotos** e o **Digitalizar com IA** (no Adicionar e no botão ao lado do campo de cada lista), e o app não chama a IA. Colar várias linhas no campo de adicionar continua criando um item por linha. Começa ligada.
 
-**Uso da IA** (logo abaixo, em Mais › Integrações): cada mensagem ou foto lida é uma chamada para a IA do Home Assistant. Como o Home Assistant não informa tokens nem custo, o ResolvIA conta as chamadas e estima os tokens pelo tamanho do texto (uns 4 caracteres por token). Mostra hoje, os últimos 7 dias e o mês, um gráfico por dia (toque numa barra para ver o dia), os tipos de chamada e as últimas chamadas, com o link para o consumo exato no painel do provedor (Google, OpenAI ou Anthropic). O sensor `sensor.resolvia_ia_hoje` traz as chamadas de hoje, com erros, cota e tokens estimados, para um painel ou uma automação. Os números ficam em `/data/uso_ia.json` (120 dias).
+**Uso da IA** (logo abaixo, em Mais › Configurações › Integrações): cada mensagem ou foto lida é uma chamada para a IA do Home Assistant. Como o Home Assistant não informa tokens nem custo, o ResolvIA conta as chamadas e estima os tokens pelo tamanho do texto (uns 4 caracteres por token). Mostra hoje, os últimos 7 dias e o mês, um gráfico por dia (toque numa barra para ver o dia), os tipos de chamada e as últimas chamadas, com o link para o consumo exato no painel do provedor (Google, OpenAI ou Anthropic). O sensor `sensor.resolvia_ia_hoje` traz as chamadas de hoje, com erros, cota e tokens estimados, para um painel ou uma automação. Os números ficam em `/data/uso_ia.json` (120 dias).
 
 O ResolvIA não tem IA própria e não guarda chave de API. Ele usa a ação `ai_task.generate_data` do Home Assistant, então funciona com a integração de IA que você configurar lá, e dá para trocar quando quiser:
 
@@ -59,7 +63,7 @@ Para configurar:
 
 1. Em **Configurações > Dispositivos e serviços > Adicionar integração**, escolha a integração e siga os passos.
 2. Na página da integração, adicione uma **tarefa de IA** (AI Task). Para ler fotos, escolha um modelo que entenda imagens.
-3. No ResolvIA, abra **Mais > Integrações > Leitura por IA** e escolha essa IA. "Padrão do Home Assistant" usa a IA preferida definida em **Configurações > Sistema > Geral**. Toque em **Verificar de novo** para conferir se ela está pronta.
+3. No ResolvIA, abra **Mais › Configurações › Integrações › Leitura por IA** e escolha essa IA. "Padrão do Home Assistant" usa a IA preferida definida em **Configurações > Sistema > Geral**. Toque em **Verificar de novo** para conferir se ela está pronta.
 
 Na hora da leitura, o app copia a foto por alguns segundos para `media/resolvia/ia-temp`, chama a IA pelo Home Assistant e apaga a cópia em seguida.
 
@@ -71,9 +75,9 @@ Segure um item (ou use **⋯ › Selecionar itens**) para selecionar: toque nos 
 
 ## Tarefas que voltam sozinhas
 
-Ligue em **Mais → Repetições → Repetir depois de concluir** (numa instalação nova começa desligado; quem já tinha repetições continua com ela ligada). Depois, abra um item e escolha **Repetir depois de concluir** (todo dia, 2 ou 3 dias, 1 ou 2 semanas, 1 mês ou outro número de dias).
+Ligue em **Mais › Repetições › Repetir depois de concluir** (numa instalação nova começa desligado; quem já tinha repetições continua com ela ligada). Depois, abra um item e escolha **Repetir depois de concluir** (todo dia, 2 ou 3 dias, 1 ou 2 semanas, 1 mês ou outro número de dias).
 
-Para desligar com repetições já criadas, o app avisa quantas são e que **serão excluídas**; confirmando, ele apaga todas e desliga (os itens continuam nas listas, só não voltam mais sozinhos). Repetições que ficaram "pausadas" de versões anteriores aparecem em Mais → Repetições com o botão **Excluir**. Para o que se repete com dia certo, ou N dias depois de feito com pontos, dá para usar a **Rotina da casa** do CronologIA (1.11.0 ou mais novo, frequência **Depois de feita**).
+Para desligar com repetições já criadas, o app avisa quantas são e que **serão excluídas**; confirmando, ele apaga todas e desliga (os itens continuam nas listas, só não voltam mais sozinhos). Repetições que ficaram "pausadas" de versões anteriores aparecem em Mais › Repetições com o botão **Excluir**. Para o que se repete com dia certo, ou N dias depois de feito com pontos, dá para usar a **Rotina da casa** do CronologIA (1.11.0 ou mais novo, frequência **Depois de feita**).
 
 Exemplo: "Passar pano" com **3 dias**. Você marca como feito no domingo e ele volta como pendente na quarta, logo no começo do dia. Se a lista aceita datas, ele volta com prazo **Hoje**.
 
@@ -81,7 +85,7 @@ Exemplo: "Passar pano" com **3 dias**. Você marca como feito no domingo e ele v
 - Se os concluídos forem apagados antes da hora, o item é criado de novo.
 - Desmarcar o item antes da hora cancela a volta daquela vez.
 - Apagar um item pendente remove a repetição dele.
-- Todas as repetições aparecem em **Mais → Repetições**, e as próximas voltas em **Prazos → Voltam sozinhas** (com Controlar prazos ligado).
+- Todas as repetições aparecem em **Mais › Repetições**, e as próximas voltas em **Prazos → Voltam sozinhas** (com Controlar prazos ligado).
 - No card **Tarefas** do CronologIA (1.10.1 ou mais novo), as tarefas aparecem nessa ordem de frequência: primeiro as de todo dia, depois as de 2 dias, e assim por diante; as que não se repetem ficam por último.
 
 ## O que dá para fazer em cada lista
@@ -92,7 +96,7 @@ Depende da integração da lista. A Lista de tarefas local aceita tudo (prazo, h
 
 Com o **CronologIA** no mesmo Home Assistant, a integração com o ResolvIA ligada lá (CronologIA › Mais › Integrações › Tarefas do ResolvIA › Usar a integração, desligada por padrão desde a 1.16.0) e o placar ligado (CronologIA › Recompensas), as tarefas daqui podem valer pontos:
 
-1. Em **Mais › Integrações › Recompensas**, ligue **Usar recompensas** (começa desligado; desligado, o card mostra só a chave e nada vai para o placar). Ligado, aparece se o placar do CronologIA foi encontrado, quem participa e para quem vão os pontos neste usuário.
+1. Em **Mais › Configurações › Integrações › Recompensas**, ligue **Usar recompensas** (começa desligado; desligado, o card mostra só a chave e nada vai para o placar). Ligado, aparece se o placar do CronologIA foi encontrado, quem participa e para quem vão os pontos neste usuário.
 2. Abra uma tarefa e escolha **Pontos para quem concluir** (+5, +10, +20, +30, +50 ou outro valor). A tarefa passa a mostrar o troféu com os pontos.
 3. Ao concluir, os pontos vão para o placar: para a pessoa ligada ao seu usuário do Home Assistant, ou para quem você escolher em **Quem fez?**. O aviso de baixo tem **Foi Andressa** para trocar; desmarcar a tarefa tira os pontos do dia.
 
@@ -104,7 +108,7 @@ No item, **Quem faz** diz se é com vocês (**Nós mesmos**) ou um **Serviço ex
 
 ## Cômodos e equipamentos (InventarIA)
 
-Com o **InventarIA** (1.14.0 ou mais novo) no mesmo Home Assistant, ligue **Mais › Integrações › InventarIA › Usar cômodos** (desligado por padrão). A partir daí:
+Com o **InventarIA** (1.14.0 ou mais novo) no mesmo Home Assistant, ligue **Mais › Configurações › Integrações › InventarIA › Usar cômodos** (desligado por padrão). A partir daí:
 
 - cada tarefa pode ter um **cômodo** (Cozinha, Sala…), escolhido no item; ele aparece como etiqueta embaixo da tarefa;
 - ao ler com IA (mensagem, foto ou Falar), a IA sugere o cômodo de cada item na revisão, e dá para trocar;
@@ -136,7 +140,7 @@ Prazo é só o que você define. Algumas integrações preenchem sozinhas a data
 
 Nas listas em que você define prazo, dá para desligar os prazos em **⋯ › Personalizar › Prazos**.
 
-Para não usar prazo em nada (deixando as datas para o CronologIA), desligue **Mais › Opções › Prazos › Controlar prazos**. Somem a aba Prazos, o campo Prazo do item e a opção de prazos em Personalizar. As datas que os itens já têm (inclusive as que o CronologIA põe) continuam guardadas e aparecem só como informação, em cinza. No CronologIA (1.16.0 ou mais novo), o **Novo › Tarefa** também deixa de oferecer prazo; o resto continua igual por lá.
+Para não usar prazo em nada (deixando as datas para o CronologIA), desligue **Mais › Configurações › Opções › Prazos › Controlar prazos**. Somem a aba Prazos, o campo Prazo do item e a opção de prazos em Personalizar. As datas que os itens já têm (inclusive as que o CronologIA põe) continuam guardadas e aparecem só como informação, em cinza. No CronologIA (1.16.0 ou mais novo), o **Novo › Tarefa** também deixa de oferecer prazo; o resto continua igual por lá.
 
 ## Sugestões
 
@@ -157,7 +161,7 @@ O Home Assistant não guarda quando um item foi criado, então o ResolvIA anota 
 
 ## Dados: exportar, backup e importar
 
-Em **Mais > Dados**:
+Em **Mais › Configurações › Dados**:
 
 - **Exportar**
   - **Tudo (ZIP)**: `resolvia.json` com todas as listas e itens (prazo, notas, concluídos) e os ajustes do app, `resolvia.csv` para o Excel, uma pasta `listas` com um arquivo de texto por lista (marcado `[x]` quando concluído) e um `LEIA-ME.txt`.
@@ -169,7 +173,7 @@ Em **Mais > Dados**:
   - Os itens **pendentes** que não estiverem nas listas voltam, com prazo e notas, sem duplicar o que já existe (compara pelo nome). Os concluídos ficam só no arquivo.
   - Num Home Assistant novo, as listas são encontradas pelo nome. Lista que não existir aparece no aviso ("Lista não encontrada"); crie a lista e importe de novo.
   - Lista que não aceita itens novos (ou só aceita prazo sem horário) recebe o que for possível.
-- **Versões anteriores**: o app guarda sozinho uma cópia dos ajustes a cada 10 minutos de uso e sempre antes de importar ou restaurar, e mantém só as 3 mais recentes. **Restaurar** volta os ajustes e as repetições; os itens das listas não mudam.
+- **Versões anteriores**: uma cópia dos ajustes e das repetições a cada 10 minutos de uso e antes de importar ou restaurar. Ficam as 3 mais recentes. **Restaurar** volta os ajustes e as repetições; os itens das listas não mudam.
 
 ## Segurança
 

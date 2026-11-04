@@ -19,7 +19,7 @@ export function createMockHass(onChange) {
       selected: sel,
       using: { id: using.id, name: using.name },
       entities: aiEntities,
-      reason: using.images ? null : `${using.name} não lê fotos. Escolha outra IA em Mais › Leitura por IA.`,
+      reason: using.images ? null : `${using.name} não lê fotos. Escolha outra IA em Mais › Configurações › Integrações.`,
     };
   };
   const now = new Date();
@@ -227,7 +227,7 @@ export function createMockHass(onChange) {
         }
         return { provider: "Google AI Task", items: parseListText(text) };
       },
-      // Mais › Dados (files aren't downloaded in the preview).
+      // Mais › Configurações › Dados (files aren't downloaded in the preview).
       data: {
         url: () => null,
         async import() {

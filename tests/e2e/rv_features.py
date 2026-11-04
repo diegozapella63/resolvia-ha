@@ -199,6 +199,7 @@ async def main():
         open(f"{SP}/rvf-outro.json", "w").write(json.dumps(backup))
         await pg.reload(); await pg.wait_for_timeout(1300)
         await pg.locator(".tab", has_text="Mais").click(); await pg.wait_for_timeout(300)
+        await pg.locator(".more-row", has_text="Configurações").click(); await pg.wait_for_timeout(400)
         await pg.get_by_role("tab", name="Dados", exact=True).click(); await pg.wait_for_timeout(500)
         await pg.locator("#rv-data-import").set_input_files(f"{SP}/rvf-outro.json"); await pg.wait_for_timeout(300)
         await pg.locator(".sheet .btn.primary", has_text="Importar").click(); await pg.wait_for_timeout(1500)

@@ -1,6 +1,6 @@
 // Persistent state in /data/resolvia.json: list customization + recurring rules.
 // A copy of the file goes to /data/versoes at most every 10 minutes of use
-// (Mais > Dados > Versões anteriores), and before every import or restore.
+// (Mais > Configurações > Dados > Versões anteriores), and before every import or restore.
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
@@ -34,28 +34,28 @@ export function datesInfo(prefs, features) {
 }
 const APP_FIELDS = {
   accent: ["string", 24],
-  // Mais › Aparência › Cor do dia: on unless false
+  // Mais › Configurações › Aparência › Cor do dia: on unless false
   accent_daily: ["boolean"],
   group_by_device: ["boolean"],
   show_done: ["boolean"],
   list_order: ["list", 200],
-  // "" / null = the AI Home Assistant prefers (Mais > Leitura por IA).
+  // "" / null = the AI Home Assistant prefers (Mais > Configurações > Integrações > Leitura por IA).
   ai_entity: ["string", 80],
-  // Mais > Integrações > Falar: the speech-to-text (stt.* or an engine of a voice assistant); null = the voice assistant's
+  // Mais > Configurações > Integrações > Falar: the speech-to-text (stt.* or an engine of a voice assistant); null = the voice assistant's
   voice_engine: ["string", 80],
-  // Mais > Integrações > Recompensas: tasks can be worth points in the CronologIA scoreboard.
+  // Mais > Configurações > Integrações > Recompensas: tasks can be worth points in the CronologIA scoreboard.
   points_on: ["boolean"],
   // Mais > Repetições: "Repetir depois de concluir" on (true) or off (false); unset = on when there are rules
   repeat_on: ["boolean"],
-  // Mais > Integrações > Usar IA: true = off (no import from messages and photos)
+  // Mais > Configurações > Integrações > Usar IA: true = off (no import from messages and photos)
   ai_off: ["boolean"],
-  // Mais > Opções > Controlar prazos: true = off (no Prazos tab, no deadline field; Sugestões instead)
+  // Mais > Configurações > Opções > Controlar prazos: true = off (no Prazos tab, no deadline field; Sugestões instead)
   due_off: ["boolean"],
-  // Mais > Integrações > Sensores no Home Assistant: true = on (off unless turned on)
+  // Mais > Configurações > Integrações > Sensores no Home Assistant: true = on (off unless turned on)
   sensors_on: ["boolean"],
-  // Mais > Integrações > Cômodos do InventarIA: true = each task can have a room (off unless turned on)
+  // Mais > Configurações > Integrações > Cômodos do InventarIA: true = each task can have a room (off unless turned on)
   rooms_on: ["boolean"],
-  // Mais > Integrações > InventarIA › Usar equipamentos: each task can point to an item of the InventarIA
+  // Mais > Configurações > Integrações > InventarIA › Usar equipamentos: each task can point to an item of the InventarIA
   equips_on: ["boolean"],
 };
 

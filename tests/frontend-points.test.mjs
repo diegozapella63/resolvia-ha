@@ -200,7 +200,7 @@ describe("points: on the screen", () => {
   });
 });
 
-describe("points: Mais › Integrações › Recompensas", () => {
+describe("points: Mais › Configurações › Integrações › Recompensas", () => {
   it("nothing loaded: nothing", () => assert.equal(text(panel(null)._renderRewardsPanel()), ""));
   it("off: Desligado, and the switch turns it on", async () => {
     const p = panel(pts({ on: false }), { "resolvia/points/get": pts() });

@@ -1,5 +1,5 @@
 // frontend/src: usage-panel.js (Uso da IA), look.js (Aparência), swipe.js (arrastar para trocar de aba)
-// and datapanel.js (Mais › Dados).
+// and datapanel.js (Mais › Configurações › Dados).
 import "./_lit.mjs";
 import { describe, it, beforeEach, afterEach, mock } from "node:test";
 import assert from "node:assert/strict";
@@ -218,7 +218,7 @@ describe("swipe", () => {
 
 // ------------------------------------------------------------------ datapanel.js
 
-describe("data panel: Mais › Dados", () => {
+describe("data panel: Mais › Configurações › Dados", () => {
   class Base extends hostOf(DataMixin) {
     constructor(api) {
       super(fakeHass());

@@ -21,7 +21,7 @@ import { Inventario } from "./lib/inventario.js";
 import { Voice, readRaw, MAX_VOICE_BYTES } from "./lib/voice.js";
 import { snapshot, toCSV, backupZip, parseImport, Backups, listVersions, readVersion, fileStamp } from "./lib/data.js";
 
-const VERSION = "2.36.0";
+const VERSION = "2.37.0";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const WWW = path.join(HERE, "www");
 const DEV = process.env.RESOLVIA_DEV === "1";
@@ -60,9 +60,9 @@ const recurring = new Recurring({ ha, store, log, states: todoStates, dayMs: DAY
 const restore = new Restore({ ha, store, recurring, states: todoStates, log });
 const backups = new Backups({ dir: path.join(SHARE_DIR, "resolvia") });
 const placar = new Placar({ shareDir: SHARE_DIR });
-// Cômodos do InventarIA (Mais › Integrações; off by default): a room for each task
+// Cômodos do InventarIA (Mais › Configurações › Integrações; off by default): a room for each task
 const roomsOn = () => store.prefs.app.rooms_on === true;
-// … and the equipment (Mais › Integrações › InventarIA › Usar equipamentos; off by default): an item for each task
+// … and the equipment (Mais › Configurações › Integrações › InventarIA › Usar equipamentos; off by default): an item for each task
 const equipsOn = () => store.prefs.app.equips_on === true;
 const inventario = new Inventario({ shareDir: SHARE_DIR, log, enabled: roomsOn, items: equipsOn, onChange: () => publishPresence() });
 /** What the screens need: what is on, the rooms and items of the InventarIA, and the room and item of each task. */
@@ -93,7 +93,7 @@ async function sendPoints(data) {
   await ha.send({ type: "fire_event", event_type: "cronologia_pontos", event_data: { ...data, origem: "ResolvIA" } });
 }
 
-/** Mais > Integrações > Recompensas, and the points of each task. */
+/** Mais > Configurações > Integrações > Recompensas, and the points of each task. */
 function pointsState(userId) {
   const p = placar.read();
   return { on: !!store.prefs.app.points_on, points: store.points, placar: placar.view(userId), espelho: (p && p.espelho) || {} };
@@ -398,16 +398,16 @@ class Session {
       case "resolvia/ai/status":
         return this.result(id, await ai.status());
 
-      // Mais › Integrações › Uso da IA
+      // Mais › Configurações › Integrações › Uso da IA
       case "resolvia/ai/usage":
         return this.result(id, usage.summary());
 
-      // Sugestões (when Mais › Opções › Controlar prazos is off)
+      // Sugestões (when Mais › Configurações › Opções › Controlar prazos is off)
       case "resolvia/suggest/get":
         return this.result(id, { ages: ages.all(), ai: lastSuggest, busy: !!suggestRun });
 
       case "resolvia/ai/suggest": {
-        if (store.prefs.app.ai_off) return this.error(id, "ai_off", "A IA está desligada em Mais › Integrações");
+        if (store.prefs.app.ai_off) return this.error(id, "ai_off", "A IA está desligada em Mais › Configurações › Integrações");
         if (!suggestRun) {
           suggestRun = ai
             .suggest(msg.items)
@@ -425,7 +425,7 @@ class Session {
 
       // Conversa (the chat beside the microphone): one turn -> {reply, actions, provider}
       case "resolvia/ai/chat": {
-        if (store.prefs.app.ai_off) return this.error(id, "ai_off", "A IA está desligada em Mais › Integrações");
+        if (store.prefs.app.ai_off) return this.error(id, "ai_off", "A IA está desligada em Mais › Configurações › Integrações");
         return this.result(id, await ai.chat({ messages: msg.messages, context: msg.context }));
       }
 
@@ -487,7 +487,7 @@ class Session {
         return this.result(id, roomsState());
 
       case "resolvia/equips/set": {
-        if (!equipsOn()) return this.error(id, "equips_off", "Os equipamentos estão desligados em Mais › Integrações.");
+        if (!equipsOn()) return this.error(id, "equips_off", "Os equipamentos estão desligados em Mais › Configurações › Integrações.");
         // equips: the list of items of the task ([] removes); equip: one item (older screens)
         const value = Array.isArray(msg.equips) ? msg.equips.map(String) : msg.equip ? String(msg.equip) : null;
         store.setEquip(msg.entity_id, String(msg.summary || ""), value, msg.previous_summary == null ? null : String(msg.previous_summary));
@@ -497,7 +497,7 @@ class Session {
       }
 
       case "resolvia/rooms/set": {
-        if (!roomsOn()) return this.error(id, "rooms_off", "Os cômodos estão desligados em Mais › Integrações.");
+        if (!roomsOn()) return this.error(id, "rooms_off", "Os cômodos estão desligados em Mais › Configurações › Integrações.");
         // rooms: the list (several when the items of the task are in several rooms); room: one (older screens)
         const rooms = Array.isArray(msg.rooms) ? msg.rooms.map(String) : msg.room ? String(msg.room) : null;
         store.setRoom(msg.entity_id, String(msg.summary || ""), rooms, msg.previous_summary == null ? null : String(msg.previous_summary));
@@ -756,7 +756,7 @@ function handleExtract(req, res) {
     } catch (e) {
       return sendJson(res, 400, { error: "JSON inválido" });
     }
-    if (store.prefs.app.ai_off) return sendJson(res, 409, { error: "A IA está desligada em Mais › Integrações", code: "ai_off" });
+    if (store.prefs.app.ai_off) return sendJson(res, 409, { error: "A IA está desligada em Mais › Configurações › Integrações", code: "ai_off" });
     const started = Date.now();
     try {
       const rooms = roomsOn() ? inventario.state.comodos.map((c) => ({ id: c.id, name: c.nome })) : [];
@@ -854,7 +854,7 @@ function publishPresence() {
     const pontos = store.prefs.app.points_on ? store.points : {};
     const repete = repeatMap();
     lastRepeat = JSON.stringify(repete);
-    // prazos: Mais › Opções › Controlar prazos (false: the CronologIA doesn't offer a deadline for new tasks either)
+    // prazos: Mais › Configurações › Opções › Controlar prazos (false: the CronologIA doesn't offer a deadline for new tasks either)
     const prazos = !store.prefs.app.due_off;
     // comodos: the rooms of the InventarIA and the room of each task, so the CronologIA shows and asks for them too
     const comodos = roomsOn() && inventario.state.comodos.length ? { lista: inventario.state.comodos.map((c) => ({ id: c.id, nome: c.nome })), tarefas: store.rooms } : null;

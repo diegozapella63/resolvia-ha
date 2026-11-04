@@ -174,7 +174,7 @@ describe("rooms: on the screen", () => {
   });
 });
 
-describe("rooms: Mais › Integrações › InventarIA", () => {
+describe("rooms: Mais › Configurações › Integrações › InventarIA", () => {
   it("outside the app: nothing", () => {
     const p = panel();
     p.hass.resolvia = null;

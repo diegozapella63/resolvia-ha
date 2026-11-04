@@ -9,7 +9,7 @@ const coded = (code, message) => Object.assign(new Error(message), { code });
 const EVERY_MS = 10 * 60 * 1000;
 
 export class Inventario {
-  /** enabled(): Mais › Integrações › InventarIA › cômodos on; items(): equipamentos on (both off by default). */
+  /** enabled(): Mais › Configurações › Integrações › InventarIA › cômodos on; items(): equipamentos on (both off by default). */
   constructor({ shareDir, log, enabled = () => false, items = () => false, onChange = () => {} }) {
     this.file = path.join(shareDir, "inventario", "integracao.json");
     this.log = log;

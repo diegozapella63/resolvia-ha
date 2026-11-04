@@ -74,7 +74,7 @@ describe("Pontos para quem concluir", () => {
 });
 
 describe("appIcon", () => {
-  it("the add-on's icon in the color of Mais › Aparência, with the rings in the text color", () => {
+  it("the add-on's icon in the color of Mais › Configurações › Aparência, with the rings in the text color", () => {
     const svg = appIcon().strings.join("");
     assert.match(svg, /^<svg class="app-ic" viewBox="0 0 32 32" aria-hidden="true">/);
     assert.match(svg, /fill="var\(--rv-accent\)"/);

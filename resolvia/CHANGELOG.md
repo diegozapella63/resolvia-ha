@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.37.0
+
+- **Mais vira um menu**, como no InventarIA: **Listas**, **Repetições** e, por último, **Configurações**. Cada um abre a sua tela, com **‹ Mais** no alto para voltar; o Voltar do celular e arrastar para a direita também voltam ao menu.
+- **Configurações** reúne as abas **Integrações**, **Dados**, **Aparência** e **Opções**.
+- O **Mais** da barra tem o ícone de três pontos.
+- **Versões anteriores**: o texto diz como funciona: uma cópia dos ajustes e das repetições a cada 10 minutos de uso e antes de importar ou restaurar; ficam as 3 mais recentes.
+
 ## 2.36.0
 
 - **Buscar › Incluir › Serviços externos**: ligado, o Buscar acha as tarefas por quem faz ("eletricista") ou por "serviço externo"; desligado, não. Vem ligado.

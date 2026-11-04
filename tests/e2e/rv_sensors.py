@@ -49,6 +49,7 @@ async def main():
         extract(); await asyncio.sleep(1.5)
         check(not has("sensor.resolvia_ia_hoje"), "an AI call does not create it")
         await pg.locator(".tab", has_text="Mais").click(); await pg.wait_for_timeout(300)
+        await pg.locator(".more-row", has_text="Configurações").click(); await pg.wait_for_timeout(400)
         await pg.get_by_role("tab", name="Integrações", exact=True).click(); await pg.wait_for_timeout(500)
         panel = pg.locator("#sensores")
         check(await panel.count() == 1, "Integrações: Sensores no Home Assistant")

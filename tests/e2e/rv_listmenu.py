@@ -74,7 +74,7 @@ async def main():
         await go("")
         got = await cards()
         check("Casa" not in got and "Shopping list" in got, f"hidden from the start screen, the others still there ({got})")
-        await go("/mais")
+        await go("/listas")
         mais = await a.locator(".page").first.inner_text()
         check("1 oculta" in mais, "Mais › Listas counts it as hidden")
         await go("/lista/todo.casa")

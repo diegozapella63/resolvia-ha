@@ -48,7 +48,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.36.0";
+const VERSION = "2.37.0";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -84,6 +84,8 @@ const REPEAT_PICKS = [
   { days: 30, label: "1 mês" },
 ];
 const keyOf = (item) => item.uid || item.summary;
+// the screens opened from the menu Mais: the bar keeps Mais lit, and "‹ Mais" goes back to the menu
+const IN_MORE = ["listas", "repeticoes", "config"];
 
 class ResolviaPanel extends ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(PointsMixin(DataMixin(LitElement)))))) {
   static properties = {
@@ -259,7 +261,13 @@ class ResolviaPanel extends ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(Poin
   updated(changed) {
     this.toggleAttribute("dark", this._dark);
     this._chatAfterRender();
-    if (changed.has("_path") && this._view().name === "more") {
+    const view = this._view();
+    // an address of Mais before 2.37 (/mais/dados): the new one in its place (/config/dados)
+    if (view.old && changed.has("_path")) {
+      this._go(view.old, true, history.state && history.state.rvUp ? { rvUp: true } : null);
+      return;
+    }
+    if (changed.has("_path") && view.name === "config") {
       // the tab bar scrolls sideways on narrow screens: keep the chosen tab in sight
       const bar = this.renderRoot.querySelector(".more-tabs");
       const on = bar && bar.querySelector("button.on");
@@ -269,7 +277,7 @@ class ResolviaPanel extends ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(Poin
         if (l < bar.scrollLeft) bar.scrollLeft = l - 8;
         else if (r > bar.scrollLeft + bar.clientWidth) bar.scrollLeft = r - bar.clientWidth + 8;
       }
-      const tab = this._view().tab;
+      const tab = this._configTab();
       if (tab === "integracoes") {
         this._refreshAi(false);
         this._loadPoints();
@@ -409,7 +417,7 @@ class ResolviaPanel extends ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(Poin
       // its dates from the integration ("unavailable since…"), shown as information.
       // Lists that do accept deadlines can turn them off (Personalizar).
       const datesInfo = !canDue || p.dates_info === true;
-      // Mais › Opções › Controlar prazos off: every date is only information
+      // Mais › Configurações › Opções › Controlar prazos off: every date is only information
       const noDue = datesInfo || dueOff;
       const dues = pendingItems && !noDue ? pendingItems.map((i) => dueInfo(i.due)).filter(Boolean) : [];
       return {
@@ -450,7 +458,7 @@ class ResolviaPanel extends ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(Poin
     return v === undefined ? fallback : v;
   }
 
-  /** Mais › Aparência › Cor do dia: on unless turned off. */
+  /** Mais › Configurações › Aparência › Cor do dia: on unless turned off. */
   _accentDaily() {
     return this._app("accent_daily", true) !== false;
   }
@@ -529,21 +537,39 @@ class ResolviaPanel extends ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(Poin
     if (p === "/prazos" && this._dueOn()) return { name: "due" };
     if (p === "/sugestoes" && !this._dueOn()) return { name: "suggest" };
     if (p === "/buscar") return { name: "search" };
-    if ((m = p.match(/^\/mais(?:\/(repeticoes|integracoes|ia|dados|aparencia|opcoes))?$/))) return { name: "more", tab: m[1] === "ia" ? "integracoes" : m[1] || "listas" };
+    // Mais is a menu (/mais): Listas (/listas), Repetições (/repeticoes) and, last, Configurações (/config/<aba>)
+    if (p === "/mais") return { name: "more" };
+    if (p === "/listas") return { name: "listas" };
+    // Repetições only once the server answers for them (until then, the menu)
+    if (p === "/repeticoes") return { name: this._rulesOk ? "repeticoes" : "more" };
+    if ((m = p.match(/^\/config(?:\/(integracoes|dados|aparencia|opcoes))?$/))) return { name: "config", tab: m[1] || "integracoes" };
+    // the addresses of the tabs of Mais up to 2.36: the same screen, and updated() puts the new address in their place
+    if ((m = p.match(/^\/mais\/(repeticoes|integracoes|ia|dados|aparencia|opcoes)$/))) {
+      if (m[1] === "repeticoes") return { name: this._rulesOk ? "repeticoes" : "more", old: "/repeticoes" };
+      const tab = m[1] === "ia" ? "integracoes" : m[1];
+      return { name: "config", tab, old: this._configPath(tab) };
+    }
     return { name: "home" };
   }
 
-  _go(path, replace = false) {
+  /** The address of a tab of Configurações (Integrações, the first one, is /config). */
+  _configPath(tab) {
+    return tab === "integracoes" ? "/config" : `/config/${tab}`;
+  }
+
+  _go(path, replace = false, extra = null) {
     if (this._sheet) this._closeSheet(true);
     const depth = ((history.state && history.state.rvDepth) || 0) + (replace ? 0 : 1);
+    const state = { ...(extra || {}), rvDepth: depth };
     if (this._inHA()) {
       const url = `/${(this.panel && this.panel.url_path) || "resolvia"}${path}`;
-      if (replace) history.replaceState({ rvDepth: depth }, "", url);
-      else history.pushState({ rvDepth: depth }, "", url);
+      if (replace) history.replaceState(state, "", url);
+      else history.pushState(state, "", url);
       window.dispatchEvent(new CustomEvent("location-changed", { detail: { replace } }));
     } else {
-      if (replace) history.replaceState({ rvDepth: depth, rvPath: path }, "");
-      else history.pushState({ rvDepth: depth, rvPath: path }, "");
+      state.rvPath = path;
+      if (replace) history.replaceState(state, "");
+      else history.pushState(state, "");
       this._path = path;
     }
     const main = this.renderRoot && this.renderRoot.querySelector("main");
@@ -555,7 +581,25 @@ class ResolviaPanel extends ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(Poin
     else this._go("", true);
   }
 
-  // Arrastar para o lado: Listas ⇄ Buscar ⇄ Prazos (ou Sugestões) ⇄ Mais; dentro de uma lista, para a direita volta
+  /** A screen of Mais opened from its menu (Back returns to the menu). */
+  _fromMenu() {
+    return IN_MORE.includes(this._view().name) && !!(history.state && history.state.rvUp);
+  }
+
+  /** ‹ Mais, Mais in the bar and the swipe to the right on a screen of Mais: back to the menu. */
+  _toMenu() {
+    if (this._fromMenu()) history.back();
+    else this._go("/mais", true);
+  }
+
+  /** A row of the menu Mais: its screen goes over the menu, so Back returns to it. */
+  _openFromMenu(path) {
+    this._haptic("light");
+    this._go(path, false, { rvUp: true });
+  }
+
+  // Arrastar para o lado: Listas ⇄ Buscar ⇄ Prazos (ou Sugestões) ⇄ Mais; dentro de uma lista, para a direita volta,
+  // e numa tela do Mais (Listas, Repetições, Configurações), para a direita volta ao menu
   _onSwipeStart(e) {
     this._sw = this._sheet || this._cam ? null : swipeStart(e);
   }
@@ -579,6 +623,13 @@ class ResolviaPanel extends ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(Poin
       slideIn(this, "home", d);
       return;
     }
+    if (IN_MORE.includes(name)) {
+      if (d > 0) return;
+      this._haptic("light");
+      this._toMenu();
+      slideIn(this, "more", d);
+      return;
+    }
     const i = order.findIndex(([n]) => n === name);
     const j = i + d;
     if (i < 0 || j < 0 || j >= order.length) return;
@@ -589,6 +640,15 @@ class ResolviaPanel extends ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(Poin
 
   _goTab(path) {
     const view = this._view().name;
+    if (IN_MORE.includes(view)) {
+      if (path === "/mais") return this._toMenu();
+      if (this._fromMenu()) {
+        // the menu under this screen goes too: as if the tab were tapped on the menu
+        if (path === "") return history.go(-2);
+        this._afterPop = path;
+        return history.back();
+      }
+    }
     if (path === "") {
       if (view === "home") {
         const main = this.renderRoot.querySelector("main");
@@ -609,6 +669,10 @@ class ResolviaPanel extends ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(Poin
       this._form = null;
     }
     if (!this._inHA()) this._path = (history.state && history.state.rvPath) || "";
+    // a tab of the bar tapped on a screen of Mais: once back on the menu, the tab in its place
+    const to = this._afterPop;
+    this._afterPop = null;
+    if (to != null) this._go(to, true);
   }
 
   _openSheet(sheet, form = null) {
@@ -638,7 +702,7 @@ class ResolviaPanel extends ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(Poin
 
   _goAiSettings() {
     this._closeSheet(true);
-    this._go("/mais/integracoes");
+    this._go("/config");
     this.updateComplete.then(() => {
       const el = this.renderRoot.querySelector("#leitura-ia");
       if (el) el.scrollIntoView({ block: "start", behavior: "smooth" });
@@ -878,7 +942,7 @@ class ResolviaPanel extends ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(Poin
     return this._aiState || (this.hass && this.hass.resolvia && this.hass.resolvia.ai) || { ready: false, images: false, entities: [] };
   }
 
-  /** Mais › Leitura por IA: which AI Home Assistant gives the app, and if it is ready. */
+  /** Mais › Configurações › Integrações › Leitura por IA: which AI Home Assistant gives the app, and if it is ready. */
   async _refreshAi(force = true) {
     const r = this.hass && this.hass.resolvia;
     if (!r || !r.aiStatus) return;
@@ -901,7 +965,7 @@ class ResolviaPanel extends ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(Poin
     this._showToast("IA do app atualizada");
   }
 
-  /** Mais › Integrações › Uso da IA: the calls counted by the server (uso_ia.json). */
+  /** Mais › Configurações › Integrações › Uso da IA: the calls counted by the server (uso_ia.json). */
   async _loadUsage() {
     if (!this.hass || !this.hass.resolvia) return;
     try {
@@ -925,12 +989,12 @@ class ResolviaPanel extends ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(Poin
     });
   }
 
-  /** Mais › Opções › Controlar prazos: off hides the Prazos tab and the deadline field (Sugestões instead). */
+  /** Mais › Configurações › Opções › Controlar prazos: off hides the Prazos tab and the deadline field (Sugestões instead). */
   _dueOn() {
     return !this._app("due_off", false);
   }
 
-  /** Mais › Integrações › Usar IA: off hides the import from messages and photos. */
+  /** Mais › Configurações › Integrações › Usar IA: off hides the import from messages and photos. */
   _aiOn() {
     return !this._app("ai_off", false);
   }
@@ -986,7 +1050,7 @@ class ResolviaPanel extends ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(Poin
     this.requestUpdate();
   }
 
-  /** Mais › Integrações › Falar: the speech-to-text the app uses ("" = the voice assistant's). */
+  /** Mais › Configurações › Integrações › Falar: the speech-to-text the app uses ("" = the voice assistant's). */
   async _chooseVoice(id) {
     await this._saveAppPrefs({ voice_engine: id || null });
     await this._loadVoice(true);
@@ -1040,7 +1104,7 @@ class ResolviaPanel extends ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(Poin
   }
 
   /** Falar, at the top right of the screens: speak the items, they are separated, you check and add.
-   *  Mais › Integrações › Usar IA off: no Falar. */
+   *  Mais › Configurações › Integrações › Usar IA off: no Falar. */
   _renderMicBtn(listId = null) {
     if (!this._aiOn() || !this._voice || !this._voice.ready) return nothing;
     return html`<button class="mic-top" aria-label="Falar: adicionar itens falando" title="Falar" @click=${() => this._openImport(listId, "voice")}>${icon("mic")}</button>`;
@@ -1773,6 +1837,9 @@ class ResolviaPanel extends ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(Poin
     else if (view.name === "suggest") page = this._renderSuggest();
     else if (view.name === "search") page = this._renderSearch();
     else if (view.name === "more") page = this._renderMore();
+    else if (view.name === "listas") page = this._renderMoreScreen("Listas", this._listsStatus(), this._renderListsTab());
+    else if (view.name === "repeticoes") page = this._renderMoreScreen("Repetições", null, this._renderRulesTab());
+    else if (view.name === "config") page = this._renderConfig();
     else page = this._renderHome();
 
     return html`
@@ -1802,8 +1869,9 @@ class ResolviaPanel extends ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(Poin
 
   _renderNav(view) {
     const lateCount = this._visible().reduce((n, l) => n + l.late + l.today, 0);
+    const cur = view.name === "list" ? "home" : IN_MORE.includes(view.name) ? "more" : view.name;
     const tab = (name, path, label, ic, badge = 0) => html`
-      <button class="tab ${view.name === name || (name === "home" && view.name === "list") ? "on" : ""}" @click=${() => this._goTab(path)} aria-label=${label}>
+      <button class="tab ${cur === name ? "on" : ""}" @click=${() => this._goTab(path)} aria-label=${label}>
         ${icon(ic)}<span>${label}</span>
         ${badge ? html`<span class="badge">${badge > 99 ? "99+" : badge}</span>` : nothing}
       </button>
@@ -1816,7 +1884,7 @@ class ResolviaPanel extends ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(Poin
             <span class="pill">${icon("plus")}</span><span>Adicionar</span>
           </button>
           ${this._dueOn() ? tab("due", "/prazos", "Prazos", "calendar-clock", lateCount) : tab("suggest", "/sugestoes", "Sugestões", "lightbulb")}
-          ${tab("more", "/mais", "Mais", "sliders-horizontal")}
+          ${tab("more", "/mais", "Mais", "ellipsis")}
         </div>
       </nav>
     `;
@@ -1829,7 +1897,8 @@ class ResolviaPanel extends ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(Poin
   _renderSide(view) {
     const lists = this._byPending(this._visible());
     const lateCount = lists.reduce((n, l) => n + l.late + l.today, 0);
-    const item = (name, path, label, ic, badge = 0, key = "") => html`<button class="side-link" aria-current=${view.name === name ? "page" : "false"} @click=${() => this._goTab(path)}>
+    const cur = IN_MORE.includes(view.name) ? "more" : view.name;
+    const item = (name, path, label, ic, badge = 0, key = "") => html`<button class="side-link" aria-current=${cur === name ? "page" : "false"} @click=${() => this._goTab(path)}>
       ${icon(ic)}<span>${label}</span>${badge ? html`<span class="side-badge">${badge > 99 ? "99+" : badge}</span>` : nothing}${key ? html`<kbd>${key}</kbd>` : nothing}
     </button>`;
     return html`<aside class="side" aria-label="Navegação">
@@ -1837,7 +1906,7 @@ class ResolviaPanel extends ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(Poin
       <div class="side-nav">
         ${item("home", "", "Listas", "list-checks")} ${item("search", "/buscar", "Buscar", "search", 0, "/")}
         ${this._dueOn() ? item("due", "/prazos", "Prazos", "calendar-clock", lateCount) : item("suggest", "/sugestoes", "Sugestões", "lightbulb")}
-        ${item("more", "/mais", "Mais", "sliders-horizontal")}
+        ${item("more", "/mais", "Mais", "ellipsis")}
       </div>
       ${lists.length
         ? html`<div class="side-h"><span>Listas</span><small>${lists.length}</small></div>
@@ -1864,12 +1933,14 @@ class ResolviaPanel extends ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(Poin
     </div>`;
   }
 
-  _renderPageHead(title, status) {
+  /** up: a screen of Mais, with "‹ Mais" above the title, like the InventarIA. */
+  _renderPageHead(title, status, up = false) {
     const name = ((this.hass.user && this.hass.user.name) || "").trim().split(/\s+/)[0];
     const offline = this.hass.connected === false;
     const st = offline ? { text: "Reconectando ao Home Assistant…", tone: "off" } : status;
     return html`<header class="brand-head">
       <div class="head-row"><p class="eyebrow"><span class="brand">${appIcon()}Resolv<span>IA</span></span>${name ? html`<span class="sep"> · </span>Olá, ${name}` : ""}</p>${this._renderChatBtn()}${this._renderMicBtn()}${this._renderTopActs()}</div>
+      ${up ? html`<button class="uplink" @click=${() => this._toMenu()}>${icon("chevron-left")}Mais</button>` : nothing}
       <h1 class="page-title">${title}</h1>
       ${st ? html`<p class="status"><span class="dot ${st.tone || ""}" aria-hidden="true"></span><span>${st.text}</span></p>` : nothing}
     </header>`;
@@ -2468,8 +2539,8 @@ class ResolviaPanel extends ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(Poin
           ${this._searchToggle("circle-check", "Concluídos", this._searchDone, () => (this._searchDone = !this._searchDone))}
           ${this._searchToggle("hard-hat", "Serviços externos", this._searchExt, () => (this._searchExt = !this._searchExt))}
           ${this._rooms && this._rooms.encontrado
-            ? html`${this._searchToggle("door-open", "Cômodos", this._roomsOn() && this._searchRooms, () => (this._searchRooms = !this._searchRooms), this._roomsOn() ? "" : "Ligue Usar cômodos em Mais › Integrações")}
-              ${this._searchToggle("package", "Equipamentos", this._equipsOn() && this._searchEquips, () => (this._searchEquips = !this._searchEquips), this._equipsOn() ? "" : "Ligue Usar equipamentos em Mais › Integrações")}`
+            ? html`${this._searchToggle("door-open", "Cômodos", this._roomsOn() && this._searchRooms, () => (this._searchRooms = !this._searchRooms), this._roomsOn() ? "" : "Ligue Usar cômodos em Mais › Configurações › Integrações")}
+              ${this._searchToggle("package", "Equipamentos", this._equipsOn() && this._searchEquips, () => (this._searchEquips = !this._searchEquips), this._equipsOn() ? "" : "Ligue Usar equipamentos em Mais › Configurações › Integrações")}`
             : nothing}
         </div>
         ${!needle
@@ -2489,21 +2560,33 @@ class ResolviaPanel extends ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(Poin
     `;
   }
 
-  // ---------- more / settings
+  // ---------- Mais: a menu; Listas, Repetições and Configurações are screens of their own
 
-  /**
-   * Mais is split in tabs at the top, like the CronologIA: /mais (Listas),
-   * /mais/repeticoes, /mais/integracoes (Recompensas, IA), /mais/dados, /mais/aparencia. Switching tabs
-   * replaces the history entry, so Back leaves Mais.
-   */
-  _moreTabs() {
+  /** The tabs of Mais › Configurações, like the CronologIA: [key, label, icon, how the menu says it]. */
+  _configTabs() {
     return [
-      ["listas", "Listas", "list-checks"],
-      ...(this._rulesOk ? [["repeticoes", "Repetições", "repeat"]] : []),
-      ...(this.hass.resolvia ? [["integracoes", "Integrações", "blocks"]] : []),
-      ...(this._data() ? [["dados", "Dados", "archive"]] : []),
-      ["aparencia", "Aparência", "palette"],
-      ["opcoes", "Opções", "toggle-right"],
+      ...(this.hass.resolvia ? [["integracoes", "Integrações", "blocks", "integrações"]] : []),
+      ...(this._data() ? [["dados", "Dados", "archive", "dados e backup"]] : []),
+      ["aparencia", "Aparência", "palette", "aparência"],
+      ["opcoes", "Opções", "toggle-right", "opções"],
+    ];
+  }
+
+  /** The tab of Configurações on screen (the first one when the address asks for one that is not there). */
+  _configTab() {
+    const tabs = this._configTabs();
+    const want = this._view().tab;
+    return tabs.some((t) => t[0] === want) ? want : tabs[0][0];
+  }
+
+  /** The rows of the menu Mais, in order: Listas, Repetições (when the server has them) and, last, Configurações. */
+  _moreRows() {
+    const words = this._configTabs().map((t) => t[3]);
+    const cfg = `${words.slice(0, -1).join(", ")} e ${words[words.length - 1]}.`;
+    return [
+      ["/listas", "list-checks", "Listas", "Nome, cor, ícone e quais aparecem."],
+      ...(this._rulesOk ? [["/repeticoes", "repeat", "Repetições", "Tarefas que voltam sozinhas."]] : []),
+      ["/config", "sliders-horizontal", "Configurações", cfg[0].toUpperCase() + cfg.slice(1)],
     ];
   }
 
@@ -2512,35 +2595,74 @@ class ResolviaPanel extends ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(Poin
     return html`<div class="mais-head"><span class="mais-ic" aria-hidden="true">${icon(ic)}</span><h2>${title}</h2></div>${lead ? html`<p class="panel-lead">${lead}</p>` : nothing}`;
   }
 
+  _renderFoot() {
+    return html`<p class="foot"><b>ResolvIA</b><br />v${VERSION} · usa as listas nativas do Home Assistant.<br />${this._prefsRemote ? "Personalizações sincronizadas entre aparelhos." : "Personalizações salvas neste aparelho."}</p>`;
+  }
+
+  /** Mais: the menu, like the InventarIA (each row opens its screen; Configurações last). */
   _renderMore() {
-    const tabs = this._moreTabs();
-    const want = this._view().tab;
-    const tab = tabs.some((t) => t[0] === want) ? want : "listas";
+    return html`
+      <section class="page">
+        ${this._renderPageHead("Mais", null)}
+        <div class="panel more-menu" role="navigation" aria-label="Mais">
+          <ul>
+            ${this._moreRows().map(
+              ([path, ic, title, text]) => html`<li>
+                <button class="more-row" @click=${() => this._openFromMenu(path)}>
+                  <span class="mais-ic" aria-hidden="true">${icon(ic)}</span>
+                  <span class="mb"><b>${title}</b><span>${text}</span></span>
+                  ${icon("chevron-right", "chev")}
+                </button>
+              </li>`,
+            )}
+          </ul>
+        </div>
+        ${this._renderFoot()}
+      </section>
+    `;
+  }
+
+  /** A screen of Mais (Listas, Repetições): "‹ Mais", its title and what it has. */
+  _renderMoreScreen(title, status, body) {
+    return html`
+      <section class="page">
+        ${this._renderPageHead(title, status, true)}
+        ${body}
+      </section>
+    `;
+  }
+
+  _listsStatus() {
+    const hidden = this._L.filter((l) => l.hidden).length;
+    return { text: this._L.length ? `${plural(this._L.length, "lista", "listas")}${hidden ? ` · ${plural(hidden, "oculta", "ocultas")}` : ""}` : "Nenhuma lista ainda" };
+  }
+
+  /**
+   * Mais › Configurações, in tabs at the top like the CronologIA: /config (Integrações),
+   * /config/dados, /config/aparencia, /config/opcoes. Switching tabs replaces the history entry,
+   * so Back goes back to the menu.
+   */
+  _renderConfig() {
+    const tabs = this._configTabs();
+    const tab = this._configTab();
     const go = (k) => {
       if (k === tab) return;
       this._haptic("light");
-      this._go(k === "listas" ? "/mais" : `/mais/${k}`, true);
+      this._go(this._configPath(k), true, history.state && history.state.rvUp ? { rvUp: true } : null);
     };
     let body;
-    let status = { text: `ResolvIA ${VERSION}${this._prefsRemote ? " · personalizações sincronizadas" : ""}` };
-    if (tab === "repeticoes") body = this._renderRulesTab();
-    else if (tab === "integracoes") body = html`${this._renderRewardsPanel()} ${this._renderRoomsPanel()} ${this._renderAiPanel()} ${this.hass.resolvia && this.hass.resolvia.voiceStatus && this._aiOn() ? this._renderVoicePanel() : nothing} ${this.hass.resolvia && this._aiOn() ? this._renderUsage() : nothing} ${this._renderSensorsPanel()}`;
+    if (tab === "integracoes") body = html`${this._renderRewardsPanel()} ${this._renderRoomsPanel()} ${this._renderAiPanel()} ${this.hass.resolvia && this.hass.resolvia.voiceStatus && this._aiOn() ? this._renderVoicePanel() : nothing} ${this.hass.resolvia && this._aiOn() ? this._renderUsage() : nothing} ${this._renderSensorsPanel()}`;
     else if (tab === "dados") body = this._renderDataPanel();
     else if (tab === "aparencia") body = this._renderAppearanceTab();
-    else if (tab === "opcoes") body = this._renderOptionsTab();
-    else {
-      body = this._renderListsTab();
-      const hidden = this._L.filter((l) => l.hidden).length;
-      status = { text: this._L.length ? `${plural(this._L.length, "lista", "listas")}${hidden ? ` · ${plural(hidden, "oculta", "ocultas")}` : ""}` : "Nenhuma lista ainda" };
-    }
+    else body = this._renderOptionsTab();
     return html`
       <section class="page">
-        ${this._renderPageHead("Mais", status)}
-        <div class="seg compact more-tabs" role="tablist" aria-label="Seções">
+        ${this._renderPageHead("Configurações", null, true)}
+        <div class="seg compact more-tabs" role="tablist" aria-label="Seções de Configurações">
           ${tabs.map(([k, label, ic]) => html`<button class=${tab === k ? "on" : ""} role="tab" aria-selected=${tab === k ? "true" : "false"} @click=${() => go(k)}>${icon(ic)}<span>${label}</span></button>`)}
         </div>
         <div role="tabpanel" aria-label=${tabs.find((t) => t[0] === tab)[1]}>${body}</div>
-        <p class="foot"><b>ResolvIA</b><br />v${VERSION} · usa as listas nativas do Home Assistant.<br />${this._prefsRemote ? "Personalizações sincronizadas entre aparelhos." : "Personalizações salvas neste aparelho."}</p>
+        ${this._renderFoot()}
       </section>
     `;
   }
@@ -2561,8 +2683,8 @@ class ResolviaPanel extends ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(Poin
       </div>
     `;
     return html`
-        <div class="panel">
-          ${this._secHead("list-checks", "Listas", "Toque numa lista para personalizar.")}
+        <div class="panel lists-panel">
+          <p class="panel-lead">Toque numa lista para personalizar.</p>
           ${this._L.length ? repeat(this._L.filter((l) => !l.hidden), (l) => l.id, row) : html`<div class="row"><div class="hint">Nenhuma lista encontrada.</div></div>`}
           ${off.length
             ? html`<button class="row inact-head ${this._inactOpen ? "open" : ""}" aria-expanded=${this._inactOpen ? "true" : "false"} @click=${() => ((this._inactOpen = !this._inactOpen), this.requestUpdate())}>
@@ -2660,7 +2782,7 @@ class ResolviaPanel extends ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(Poin
     });
   }
 
-  /** Mais › Opções: how the lists show, and the deadlines. */
+  /** Mais › Configurações › Opções: how the lists show, and the deadlines. */
   _renderOptionsTab() {
     const sw = (on, label, ev) => html`<label class="switch"><input type="checkbox" role="switch" .checked=${on} @change=${ev} aria-label=${label} /><span class="track"></span></label>`;
     const dueOn = this._dueOn();
@@ -2688,7 +2810,7 @@ class ResolviaPanel extends ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(Poin
     `;
   }
 
-  /** Mais › Aparência: theme and color. */
+  /** Mais › Configurações › Aparência: theme and color. */
   _renderAppearanceTab() {
     const daily = this._accentDaily();
     const accent = daily ? this._accent().id : this._app("accent", "vermelho");
@@ -2708,7 +2830,7 @@ class ResolviaPanel extends ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(Poin
     `;
   }
 
-  /** Mais › Integrações › Sensores no Home Assistant: off unless turned on; off removes it. */
+  /** Mais › Configurações › Integrações › Sensores no Home Assistant: off unless turned on; off removes it. */
   _renderSensorsPanel() {
     if (!this.hass.resolvia) return nothing;
     const on = this._app("sensors_on", false) === true;
@@ -2844,7 +2966,7 @@ class ResolviaPanel extends ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(Poin
     if (f.mirrored && f.mode === "edit") return this._renderMirroredSheet(src);
     const feat = target.features;
     const canDesc = has(feat, F.DESCRIPTION);
-    // Mais › Opções › Controlar prazos off: no deadline field (an item keeps the date it has)
+    // Mais › Configurações › Opções › Controlar prazos off: no deadline field (an item keeps the date it has)
     const canDate = this._dueOn() && (has(feat, F.DUE_DATE) || has(feat, F.DUE_DATETIME));
     const canTime = has(feat, F.DUE_DATETIME);
     const canDelete = f.mode === "edit" && has(src.features, F.DELETE);
@@ -2971,7 +3093,7 @@ class ResolviaPanel extends ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(Poin
             ? html`<p class="imp-help">No app do Home Assistant, a galeria manda uma foto por vez.</p>`
             : nothing}
       </div>
-      ${ai.ready ? nothing : html`<div class="ai-box">${icon("scan-text")}<span>Sem IA configurada, a mensagem é separada por linhas e vírgulas. Para ler fotos, configure a Leitura por IA em Mais.</span></div>`}`;
+      ${ai.ready ? nothing : html`<div class="ai-box">${icon("scan-text")}<span>Sem IA configurada, a mensagem é separada por linhas e vírgulas. Para ler fotos, configure a Leitura por IA em Mais › Configurações › Integrações.</span></div>`}`;
   }
 
   _renderImportSheet() {

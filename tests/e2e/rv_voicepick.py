@@ -50,6 +50,7 @@ async def main():
         await pg.goto("http://127.0.0.1:8099/"); await pg.wait_for_timeout(1800)
         a = pg.locator("resolvia-panel"); sheet = a.locator(".sheet")
         await a.locator(".tab", has_text="Mais").click(); await pg.wait_for_timeout(300)
+        await a.locator(".more-row", has_text="Configurações").click(); await pg.wait_for_timeout(400)
         await pg.get_by_role("tab", name="Integrações", exact=True).click(); await pg.wait_for_timeout(600)
         panel = a.locator("#falar")
         check(await panel.count() == 1, "Integrações: Falar")

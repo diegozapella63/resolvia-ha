@@ -1,6 +1,6 @@
 // Cômodos e equipamentos: each task can say where in the house it is done and
 // which item it is about, with the rooms and items of the InventarIA (the
-// inventory app of the same family). Turned on in Mais › Integrações › InventarIA;
+// inventory app of the same family). Turned on in Mais › Configurações › Integrações › InventarIA;
 // the server reads them and keeps the room and the item of each task (by its name,
 // like the points), and shares them with the CronologIA.
 // Mixed into <resolvia-panel>.
@@ -206,7 +206,7 @@ export const RoomsMixin = (Base) =>
       </div>`;
     }
 
-    /** Mais › Integrações › InventarIA: cômodos and equipamentos. */
+    /** Mais › Configurações › Integrações › InventarIA: cômodos and equipamentos. */
     _renderRoomsPanel() {
       if (!this.hass.resolvia) return nothing;
       const r = this._rooms || {};

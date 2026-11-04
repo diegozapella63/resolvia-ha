@@ -102,7 +102,7 @@ export function backupZip(snap, version) {
       `Backup do ResolvIA ${version} criado em ${dateTime(Date.now())}.\n` +
       "resolvia.json tem tudo: as listas com os itens (prazo, notas, concluídos), os nomes, cores e ícones\n" +
       "das listas e as tarefas que se repetem; resolvia.csv abre no Excel; a pasta listas tem um arquivo de texto por lista.\n" +
-      "Para restaurar: Mais > Dados > Importar backup, e escolha este .zip. Os itens que faltarem voltam para as listas.\n",
+      "Para restaurar: Mais > Configurações > Dados > Importar, e escolha este .zip. Os itens que faltarem voltam para as listas.\n",
   });
   return makeZip(files);
 }

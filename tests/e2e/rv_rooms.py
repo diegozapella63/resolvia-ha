@@ -54,6 +54,7 @@ async def main():
         check(await sheet.locator(".flabel", has_text="Cômodo").count() == 0, "off by default: no Cômodo in the item")
         await a.evaluate("(el) => el._closeSheet()"); await pg.wait_for_timeout(300)
         await a.locator(".tab", has_text="Mais").click(); await pg.wait_for_timeout(300)
+        await a.locator(".more-row", has_text="Configurações").click(); await pg.wait_for_timeout(400)
         await pg.get_by_role("tab", name="Integrações", exact=True).click(); await pg.wait_for_timeout(500)
         panel = a.locator("#comodos")
         check(await panel.count() == 1 and "InventarIA" in await panel.inner_text() and "Usar cômodos" in await panel.inner_text(), "Integrações: InventarIA (cômodos e equipamentos)")
@@ -108,6 +109,7 @@ async def main():
         await wait_for(lambda: stored().get("rooms", {}).get("todo.casa", {}).get("pintar o rodape") == "sala", "a room set by the CronologIA (resolvia_comodo)")
         # Usar equipamentos
         await a.locator(".tab", has_text="Mais").click(); await pg.wait_for_timeout(300)
+        await a.locator(".more-row", has_text="Configurações").click(); await pg.wait_for_timeout(400)
         await pg.get_by_role("tab", name="Integrações", exact=True).click(); await pg.wait_for_timeout(400)
         await a.locator("#comodos input[aria-label='Usar equipamentos']").check(); await pg.wait_for_timeout(1500)
         txt = await a.locator("#comodos").inner_text()
@@ -217,6 +219,7 @@ async def main():
         await a.locator(".filters .pick", has_text="Cômodos").click(); await a.locator(".filters .pick", has_text="Equipamentos").click()
         # off: no room anywhere, and nothing goes to the CronologIA
         await a.locator(".tab", has_text="Mais").click(); await pg.wait_for_timeout(300)
+        await a.locator(".more-row", has_text="Configurações").click(); await pg.wait_for_timeout(400)
         await pg.get_by_role("tab", name="Integrações", exact=True).click(); await pg.wait_for_timeout(400)
         await a.locator("#comodos input[aria-label='Usar cômodos']").uncheck(); await pg.wait_for_timeout(800)
         await a.locator("#comodos input[aria-label='Usar equipamentos']").uncheck(); await pg.wait_for_timeout(1200)

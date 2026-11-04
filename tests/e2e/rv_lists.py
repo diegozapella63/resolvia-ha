@@ -50,10 +50,10 @@ async def main():
         async def home():
             await tab("Listas")
             if await pg.locator(".detail-head").count(): await tab("Listas")
-        async def mais_listas():
+        async def mais_listas():  # ResolvIA 2.37: Mais is a menu; Listas is its first row
             await tab("Mais")
-            await pg.get_by_role("tab", name="Listas", exact=True).click(); await pg.wait_for_timeout(300)
-        panel = pg.locator("[role=tabpanel] .panel").first
+            await pg.locator(".more-row", has_text="Listas").click(); await pg.wait_for_timeout(300)
+        panel = pg.locator("main .page .panel.lists-panel")
         labels = lambda: panel.locator(".row:not(.inact-head) .label").all_inner_texts()
 
         await pg.goto(URL); await pg.wait_for_timeout(1300)
@@ -150,7 +150,7 @@ async def main():
 
         # ---- Criar nova lista and the links to Home Assistant (outside it: the page goes there)
         await mais_listas()
-        rows = [t.split("\n")[0] for t in await pg.locator("[role=tabpanel] .panel").nth(1).locator(".row .label").all_inner_texts()]
+        rows = [t.split("\n")[0] for t in await pg.locator("main .page .panel").nth(1).locator(".row .label").all_inner_texts()]
         check(rows == ["Criar nova lista", "Abrir listas padrão do HA"], f"Criar nova lista and the standard screen ({rows})")
         await pg.locator(".row", has_text="Criar nova lista").click()
         await pg.wait_for_url("**/config/integrations/dashboard/add?domain=local_todo", timeout=5000)
@@ -176,6 +176,7 @@ async def main():
         await pg.wait_for_timeout(1800)
         fr = pg.frames[1]
         await fr.locator(".tab", has_text="Mais").click(); await pg.wait_for_timeout(400)
+        await fr.locator(".more-row", has_text="Listas").click(); await pg.wait_for_timeout(400)
         await fr.locator(".row", has_text="Criar nova lista").click(); await pg.wait_for_timeout(400)
         moves = await pg.evaluate("() => window.__moves")
         check(moves == ["/config/integrations/dashboard/add?domain=local_todo"] and pg.url.endswith("/config/integrations/dashboard/add?domain=local_todo") and len(pg.frames) == 2, f"inside Home Assistant: its own navigation, the app stays ({moves})")
@@ -183,6 +184,7 @@ async def main():
 
         # ---- Opções › Exibição
         await tab("Mais")
+        await pg.locator(".more-row", has_text="Configurações").click(); await pg.wait_for_timeout(400)
         await pg.get_by_role("tab", name="Opções", exact=True).click(); await pg.wait_for_timeout(300)
         await pg.locator("input[aria-label='Agrupar por dispositivo']").uncheck(); await pg.wait_for_timeout(500)
         check(await wait_until(lambda: stored()["prefs"]["app"].get("group_by_device") is False), "Agrupar por dispositivo off: saved")
@@ -192,6 +194,7 @@ async def main():
         check(heads == [] and await pg.locator(".panel.grp").count() == 1 and meta.startswith("Notas e Rotinas do Alexa ·"), f"one group; the device goes on each card ({heads}, {meta})")
         await pg.screenshot(path=f"{SP}/shots/rvl-sem-grupos.png")
         await tab("Mais")
+        await pg.locator(".more-row", has_text="Configurações").click(); await pg.wait_for_timeout(400)
         await pg.get_by_role("tab", name="Opções", exact=True).click(); await pg.wait_for_timeout(300)
         await pg.locator("input[aria-label='Agrupar por dispositivo']").check(); await pg.wait_for_timeout(300)
         await pg.locator("input[aria-label='Concluídos abertos']").check(); await pg.wait_for_timeout(500)

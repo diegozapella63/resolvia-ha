@@ -29,7 +29,7 @@ async def main():
         await pg.goto("http://127.0.0.1:8099/"); await pg.wait_for_timeout(2000)
         a = pg.locator("resolvia-panel")
         await a.locator(".tab", has_text="Mais").click(); await pg.wait_for_timeout(300)
-        await pg.get_by_role("tab", name="Listas", exact=True).click(); await pg.wait_for_timeout(500)
+        await a.locator(".more-row", has_text="Listas").click(); await pg.wait_for_timeout(500)
         panel = a.locator(".panel").first
         async def labels():
             return [t.strip() for t in await panel.locator(".row:not(.inact-head) .label").all_inner_texts()]
@@ -64,7 +64,9 @@ async def main():
         idx_head = await panel.evaluate("(p) => [...p.children].findIndex((k) => k.classList.contains('inact-head'))")
         idx_casa = await panel.evaluate("(p) => [...p.children].findIndex((k) => k.querySelector && k.querySelector(\"input[aria-label='Mostrar Casa']\"))")
         check(idx_casa >= 0 and (idx_head == -1 or idx_casa < idx_head), f"on again: back among the active ones ({idx_casa}, {idx_head})")
-        # Dados: the buttons of the same size, lined up
+        # Dados: the buttons of the same size, lined up (‹ Mais › Configurações › Dados)
+        await a.locator(".uplink", has_text="Mais").click(); await pg.wait_for_timeout(400)
+        await a.locator(".more-row", has_text="Configurações").click(); await pg.wait_for_timeout(400)
         await pg.get_by_role("tab", name="Dados", exact=True).click(); await pg.wait_for_timeout(600)
         boxes = []
         for sel in ["#dados .opts .btn", "#dados .sec-actions .btn"]:

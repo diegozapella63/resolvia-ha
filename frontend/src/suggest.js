@@ -1,4 +1,4 @@
-// Sugestões: the tab in place of Prazos when Mais › Opções › Controlar prazos is
+// Sugestões: the tab in place of Prazos when Mais › Configurações › Opções › Controlar prazos is
 // off. What to resolve now, from the lists: what has been there longest, what
 // closes a list, what is worth points, what came back (repeats), what the
 // CronologIA dated for today. Shopping lists go apart (you resolve them at the

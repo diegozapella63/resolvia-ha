@@ -1,4 +1,4 @@
-// Mais › Integrações › Uso da IA, like the EconomIA: today, 7 days and this month,
+// Mais › Configurações › Integrações › Uso da IA, like the EconomIA: today, 7 days and this month,
 // a bar per day (tap to see that day), the kinds of call and the last calls.
 // Shared by the CronologIA and the ResolvIA (same file in both).
 import { html, nothing } from "../vendor/lit-all.min.js";
