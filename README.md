@@ -2,13 +2,13 @@
 
 ![ResolvIA](resolvia/logo.png)
 
-Um App do Home Assistant que mostra suas **listas de tarefas nativas** (`todo.*`) num visual bem mais caprichado, traz **tarefas que voltam sozinhas** X dias depois de concluídas e **importa itens de mensagens e fotos** com IA.
+Um App do Home Assistant que mostra suas **listas de tarefas nativas** (`todo.*`) num visual bem mais caprichado, traz **tarefas que voltam sozinhas** X dias depois de concluídas, liga as tarefas aos **cômodos e equipamentos** da casa e **lê itens de mensagens, fotos e fala** com IA.
 
 <p align="center">
-  <img src="docs/inicio.png" width="24%" alt="Início com o resumo das listas">
-  <img src="docs/lista.png" width="24%" alt="Lista aberta com prazos e repetição">
-  <img src="docs/repetir.png" width="24%" alt="Repetir depois de concluir">
-  <img src="docs/importar.png" width="24%" alt="Itens lidos de uma foto pela IA">
+  <img src="docs/inicio.png" width="24%" alt="Início com o caderno, o Buscar e as listas">
+  <img src="docs/lista.png" width="24%" alt="Lista aberta com cômodos, equipamentos, prazos, repetição e pontos">
+  <img src="docs/item.png" width="24%" alt="Editar item: repetição, cômodo, equipamento e quem faz">
+  <img src="docs/importar.png" width="24%" alt="Itens lidos pela IA, cada um com a sua lista, cômodo e equipamento">
 </p>
 
 [![Adicionar o repositório ao Home Assistant](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2Fdiegozapella63%2Fresolvia-ha)
@@ -26,21 +26,22 @@ A primeira instalação leva alguns minutos, porque o app é montado no próprio
 
 ## O que tem
 
-- **Início** com um "caderno" mostrando quantos itens estão pendentes, quantos vencem hoje e quantos estão atrasados.
-- **Listas agrupadas por dispositivo**: "Notas e Rotinas do Alexa To-do list" vira **To-do list** dentro do grupo *Notas e Rotinas do Alexa*.
-- **Lista aberta** com campo de adicionar sempre à mão (colar várias linhas cria um item por linha), marcar como resolvido com **Desfazer**, arrastar para reordenar e concluídos recolhidos.
-- **Links bonitos**: `Ver sobre: https://github.com/fulano/projeto` vira um chip `fulano/projeto`.
-- **Editar item**: texto, notas, prazo, horário, **repetição** e **mover para outra lista**.
-- **Tarefas recorrentes**: "Passar pano" com repetição de 3 dias volta como pendente 3 dias depois de você marcar como feito, mesmo se você concluir pela Alexa.
-- **Importar itens**: cole uma mensagem do WhatsApp, escolha fotos ou digitalize com IA uma lista em papel; a IA configurada no Home Assistant (Claude, OpenAI, Gemini ou Ollama) separa os itens e você revisa antes de adicionar. Escolha qual em **Mais → Configurações → Integrações**.
-- **Prazos** de todas as listas, incluindo o que vai voltar sozinho.
-- **Buscar** em todas as listas, sem se importar com acentos.
-- **Personalizar cada lista** (nome, cor, ícone, ocultar, prazos), sincronizado entre aparelhos.
-- **Recompensas**: cada tarefa pode valer pontos no placar do CronologIA para quem concluir (ligue em **Mais → Configurações → Integrações**).
-- **Manutenções e rotinas do CronologIA** como tarefas: concluir aqui vale como feito lá, com os pontos, e a tarefa volta com a próxima data.
-- **Mais é um menu**, como no InventarIA: Listas e Configurações (em abas: Integrações, Dados, Aparência e Opções, onde ficam Prazos, Exibição e Repetição).
+- **Início** com um "caderno" (pendentes, para hoje, atrasados), o Buscar e as listas, as com mais pendências primeiro e **agrupadas por dispositivo**: "Notas e Rotinas do Alexa To-do list" vira **To-do list** no grupo *Notas e Rotinas do Alexa*.
+- **Lista aberta** com o campo de adicionar sempre à mão (colar várias linhas cria um item por linha), concluir com **Desfazer**, arrastar para reordenar, concluídos recolhidos e **Selecionar itens** para mover vários de lista.
+- **Links bonitos**: `Ver sobre: https://github.com/fulano/projeto` vira a etiqueta `fulano/projeto`.
+- **Editar item**: notas, prazo e horário, repetição, cômodos, equipamentos, quem faz, pontos e mover para outra lista.
+- **Tarefas que voltam sozinhas**: "Passar pano" com repetição de 3 dias volta como pendente 3 dias depois de feito, mesmo se você concluir pela Alexa (ligue em **Mais › Configurações › Opções › Repetição**).
+- **Ler com IA**: cole uma mensagem do WhatsApp, escolha fotos ou digitalize uma lista em papel; a IA do Home Assistant (Claude, OpenAI, Gemini ou Ollama) separa os itens e sugere a lista, o cômodo e o equipamento de cada um, e você revisa antes de adicionar.
+- **Falar** e **Conversa com a IA**: fale os itens (o Home Assistant transcreve e a IA separa) ou pergunte sobre as listas ("o que está atrasado?") e peça para adicionar ou concluir; nada é feito sem o seu toque.
+- **Prazos** de todas as listas, incluindo o que vai voltar sozinho. Sem prazos, a aba vira **Sugestões**: por onde começar, com o motivo, ou escolhido pela IA.
+- **Buscar** em todas as listas, sem ligar para acentos, também por cômodo, equipamento e quem faz.
+- **Cômodos e equipamentos** do InventarIA nas tarefas, sugeridos pela IA (ligue em **Mais › Configurações › Integrações**).
+- **Serviço externo**: marque quando alguém de fora vai fazer a tarefa (eletricista, assistência técnica).
+- **Recompensas**: cada tarefa pode valer pontos no placar do CronologIA para quem concluir, e as **manutenções e rotinas** de lá viram tarefas aqui (concluir aqui vale como feito lá, e a tarefa volta com a próxima data).
+- **Mais** é um menu, como no InventarIA: **Listas** (nome, cor, ícone e quais aparecem), **Gráficos** (pendências por lista, cômodo, equipamento, prazo e quem faz) e **Configurações** (Integrações, Dados, Aparência e Opções).
 - **Dados**: exportar em ZIP, CSV ou JSON, backup em `share/resolvia`, importar (repõe os itens que faltarem, sem duplicar) e versões anteriores automáticas.
-- **Tema claro e escuro** seguindo o Home Assistant.
+- **Tema claro e escuro** seguindo o Home Assistant e a **Cor do dia** (a cor do app muda todo dia, ou fica na que você escolher).
+- **No computador**, barra lateral com as listas; no celular, arrastar para o lado troca de aba.
 
 Mais detalhes em [resolvia/DOCS.md](resolvia/DOCS.md).
 
@@ -51,8 +52,10 @@ repository.yaml          repositório de apps
 resolvia/                o app (config, Dockerfile, servidor Node.js)
 frontend/                código-fonte da interface (Lit)
 preview/                 prévia da interface com dados de exemplo
-docs/                    telas de exemplo do README
+docs/                    telas de exemplo do README (tools/prints_readme.py refaz)
 dev/fake-ha.mjs          Home Assistant falso para desenvolver sem o HA
+tests/                   testes unitários, de integração e visuais
+tools/                   prints_readme.py: as telas do README, com uma casa inventada
 ```
 
 ## Desenvolvimento
@@ -67,6 +70,8 @@ RESOLVIA_DEV=1 HA_WS_URL=ws://127.0.0.1:8123/api/websocket HA_TOKEN=dev DATA_DIR
 ```
 
 Com `RESOLVIA_DAY_MS=4000` (só em modo dev) um "dia" de repetição dura 4 segundos, para testar. O HA falso também simula duas IAs (`ai_task.google_ai_task`, que lê fotos, e `ai_task.ollama_ai_task`, só texto); use `MEDIA_DIR` igual a `FAKE_MEDIA_DIR` para testar a leitura de fotos, ou `FAKE_HA_NO_AI=1` para testar sem IA.
+
+As telas do README (`docs/*.png`) saem de `python3 tools/prints_readme.py` (Python com Playwright), que sobe o HA falso, um InventarIA de mentira e o app em portas livres, com uma casa inventada.
 
 ## Créditos
 

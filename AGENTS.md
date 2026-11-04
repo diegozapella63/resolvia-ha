@@ -24,6 +24,7 @@ frontend/src/                   código da interface (Lit): resolvia-panel.js e 
 preview/resolvia-preview.html   prévia gerada pelo build, abre sem servidor
 dev/fake-ha.mjs                 Home Assistant simulado para desenvolver e testar
 tests/                          testes (ver tests/README.md)
+tools/prints_readme.py          refaz as telas do README (docs/*.png), com uma casa inventada
 ```
 
 Os dados de cada tarefa (pontos, cômodo, equipamento) ficam no app, pela chave `taskKey` (nome sem acentos, minúsculo, espaços únicos), não no HA.
