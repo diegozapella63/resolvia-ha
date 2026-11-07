@@ -2,7 +2,8 @@
 // deadlines and what is on, and the page with a header (the app, the report, when, which lists).
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { pendencias, reportHtml, dueText } from "../resolvia/rootfs/app/lib/report.js";
+import { pendencias, reportHtml, dueText, reportPdf, pdfName } from "../resolvia/rootfs/app/lib/report.js";
+import { Pdf, winAnsi, textWidth, wrap, rgb } from "../resolvia/rootfs/app/lib/pdf.js";
 
 const NOW = new Date(2026, 10, 7, 17, 0).getTime();
 const LISTS = [
@@ -57,7 +58,8 @@ describe("Relatório de pendências", () => {
     assert.match(html, /<option value="" selected>Todas as listas marcadas<\/option><option value="todo.casa">Casa<\/option>.*<option value="todo.velha">Velha \(oculta\)<\/option>/);
     assert.match(html, /Pagar &lt;luz&gt;/);
     assert.match(html, /de Ana · 4 pendentes · 1 atrasada/);
-    assert.match(html, /Imprimir ou salvar PDF/);
+    assert.match(html, /<a class="pdf" href="relatorio.pdf\?cor=%23ff5a4f" download="pendencias-2026-11-07.pdf">Baixar PDF<\/a>/, "a PDF to download: the app Home Assistant doesn't print a page");
+    assert.doesNotMatch(html, /window\.print/);
     assert.match(html, /@media print\{[^}]*\} \.barra\{display:none\}/, "on paper: no buttons, always light");
     assert.doesNotMatch(html, /<script/i);
   });
@@ -66,5 +68,50 @@ describe("Relatório de pendências", () => {
     assert.match(html, /O que falta fazer na lista Mercado/);
     assert.match(html, /--a:#ff8a65/);
     assert.match(html, /<option value="todo.mercado" selected>/);
+    assert.match(html, /href="relatorio.pdf\?lista=todo.mercado&amp;cor=%23ff8a65" download="pendencias-mercado-2026-11-07.pdf"/);
+  });
+});
+
+describe("the PDF (2.45.1)", () => {
+  it("text in WinAnsi (the accents of Portuguese), widths and lines that fit", () => {
+    assert.deepEqual([...winAnsi("ação·€—x😀")], [0x61, 0xe7, 0xe3, 0x6f, 0xb7, 0x80, 0x97, 0x78, 0x3f]);
+    assert.equal(textWidth("Olá", 10), 15.56);
+    assert.equal(textWidth("Olá", 10, true) > textWidth("Olá", 10), true);
+    assert.deepEqual(wrap("Estudo completo home assistant", 80, 11), ["Estudo", "completo home", "assistant"]);
+    assert.ok(wrap("x".repeat(80), 50, 11).every((l) => textWidth(l, 11) <= 50), "a long word is cut");
+    assert.equal(rgb("#ff8a65"), "1 0.541 0.396");
+  });
+  it("a valid file: the objects where the table says", () => {
+    const b = new Pdf({ title: "Teste (ação)" }).text(40, 40, "Olá (1) \\ fim", { bold: true }).rect(40, 60, 100, 20, { fill: "#ff8a65", r: 6 }).build();
+    const s = b.toString("latin1");
+    assert.ok(s.startsWith("%PDF-1.4"));
+    assert.ok(s.endsWith("%%EOF\n"));
+    const at = s.indexOf("\nxref\n") + 1;
+    const offs = [...s.slice(at).matchAll(/^(\d{10}) 00000 n $/gm)].map((m) => +m[1]);
+    assert.ok(offs.length >= 5);
+    offs.forEach((o, i) => assert.equal(s.slice(o, o + `${i + 1} 0 obj`.length), `${i + 1} 0 obj`));
+    assert.equal(+/startxref\n(\d+)/.exec(s)[1], at);
+    assert.ok(s.includes("(Ol\\341 \\(1\\) \\\\ fim) Tj"), "escaped, the accents in octal");
+  });
+  it("the report: the header, the counts, the lists; a page after another, numbered", () => {
+    const rep = pendencias({ lists: LISTS, items: ITEMS, now: NOW });
+    const s = reportPdf(rep, { cor: "#ff5a4f", casa: "Casa da Ana" }).toString("latin1");
+    const has = (t) => assert.ok(s.includes(t), t);
+    has("(Relat\\363rio de pend\\352ncias) Tj");
+    has("(\\267 listas de tarefas \\267 Casa da Ana) Tj");
+    has("(O que falta fazer nas 2 listas marcadas \\267 07/11/2026 \\340s 17:00) Tj");
+    has("(Atrasada h\\341 3 dias) Tj");
+    has("(Pagar <luz>) Tj");
+    has("/Count 1 >>");
+    const many = new Map([["todo.casa", Array.from({ length: 80 }, (_, i) => ({ uid: `t${i}`, summary: `Tarefa ${i}`, status: "needs_action" }))]]);
+    const big = reportPdf(pendencias({ lists: LISTS.slice(0, 1), items: many, now: NOW })).toString("latin1");
+    const pages = +/\/Count (\d+) >>/.exec(big)[1];
+    assert.ok(pages >= 3, `pages: ${pages}`);
+    assert.ok(big.includes(`p\\341gina ${pages} de ${pages}`));
+    assert.ok(big.includes("(Casa \\(continua\\347\\343o\\)) Tj"), "the list goes on, saying so");
+  });
+  it("the name of the file", () => {
+    assert.equal(pdfName(pendencias({ lists: LISTS, items: ITEMS, now: NOW })), "pendencias-2026-11-07.pdf");
+    assert.equal(pdfName(pendencias({ lists: LISTS, items: ITEMS, now: NOW, pick: "todo.velha" })), "pendencias-velha-2026-11-07.pdf");
   });
 });

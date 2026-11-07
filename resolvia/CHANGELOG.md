@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.45.1
+
+- **Relatório de pendências**: o botão agora é **Baixar PDF**. O app do Home Assistant no celular não imprimia a página; o PDF baixa e abre no celular, de onde dá para imprimir ou compartilhar. O PDF tem o mesmo cabeçalho (o app, a casa, o que é, quando e quais listas), os números e uma parte por lista, com o número de cada página.
+
 ## 2.45.0
 
 - **Mais › Relatório de pendências**: as tarefas abertas de todas as listas marcadas, pronto para imprimir ou salvar em PDF, com um cabeçalho (o app, a casa, o que é, quando e quais listas), os números e uma parte por lista (atrasadas primeiro, em vermelho). Dá para trocar para uma lista só.

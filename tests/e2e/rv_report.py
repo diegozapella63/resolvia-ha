@@ -1,7 +1,8 @@
 # ResolvIA 2.45.0: Mais › Relatório de pendências. A row of the menu opens a page of the server, in the theme and
 # the color of the app: a header (the icon and the name of the app, what the report is, when, which lists), the
 # counts, a section per marked list with its open tasks (late first, in red) and what is on (points, repeat); the
-# list can be changed there (one list, even a hidden one); Imprimir ou salvar PDF; Voltar returns to the app.
+# list can be changed there (one list, even a hidden one); Voltar returns to the app.
+# 2.45.1: Baixar PDF in place of Imprimir (the app Home Assistant on the phone doesn't print a page): the PDF downloads.
 import os as _os
 RESOLVIA = _os.environ.get("E2E_RESOLVIA", "")
 import asyncio, os, subprocess, time, shutil, re
@@ -28,7 +29,7 @@ async def main():
     async with async_playwright() as p:
         b = await p.chromium.launch(args=["--lang=pt-BR"])
         for scheme in ("light", "dark"):
-            ctx = await b.new_context(viewport={"width": 390, "height": 844}, color_scheme=scheme, locale="pt-BR", timezone_id="America/Sao_Paulo", device_scale_factor=2)
+            ctx = await b.new_context(viewport={"width": 390, "height": 844}, color_scheme=scheme, locale="pt-BR", timezone_id="America/Sao_Paulo", device_scale_factor=2, accept_downloads=True)
             pg = await ctx.new_page(); errs = []
             pg.on("pageerror", lambda e: errs.append(str(e)))
             await pg.goto(URL); await pg.wait_for_timeout(1800)
@@ -50,10 +51,15 @@ async def main():
             check(len(secs) >= 2, f"{scheme}: a section per marked list ({secs})")
             bg = await pg.evaluate("getComputedStyle(document.body).backgroundColor")
             check(bg == ("rgb(15, 19, 24)" if scheme == "dark" else "rgb(246, 247, 249)"), f"{scheme}: the theme of the app ({bg})")
-            bx = [await pg.locator(sel).bounding_box() for sel in (".barra a", ".barra button")]
-            check(abs(bx[0]["width"] - bx[1]["width"]) < 1.5 and abs(bx[0]["height"] - bx[1]["height"]) < 1.5 and abs(bx[0]["y"] - bx[1]["y"]) < 1.5, f"{scheme}: Voltar and Imprimir side by side, the same size ({bx})")
-            lines = await pg.locator(".barra button").evaluate("(el) => Math.round(el.getBoundingClientRect().height / parseFloat(getComputedStyle(el).lineHeight))")
-            check(await pg.locator(".barra button").evaluate("(el) => el.scrollHeight <= el.clientHeight + 1"), f"{scheme}: Imprimir ou salvar PDF fits ({lines})")
+            bx = [await pg.locator(sel).bounding_box() for sel in (".barra a:not(.pdf)", ".barra a.pdf")]
+            check(abs(bx[0]["width"] - bx[1]["width"]) < 1.5 and abs(bx[0]["height"] - bx[1]["height"]) < 1.5 and abs(bx[0]["y"] - bx[1]["y"]) < 1.5, f"{scheme}: Voltar and Baixar PDF side by side, the same size ({bx})")
+            check(await pg.locator(".barra button").count() == 0 and (await pg.locator(".barra a.pdf").inner_text()).strip() == "Baixar PDF", f"{scheme}: Baixar PDF, no Imprimir")
+            async with pg.expect_download() as dl:
+                await pg.locator(".barra a.pdf").click()
+            d = await dl.value
+            path = await d.path()
+            head = open(path, "rb").read(8)
+            check(d.suggested_filename.startswith("pendencias-") and d.suggested_filename.endswith(".pdf") and head.startswith(b"%PDF-"), f"{scheme}: the PDF downloads ({d.suggested_filename}, {head})")
             over = await pg.evaluate("document.documentElement.scrollWidth > innerWidth")
             check(not over, f"{scheme}: nothing past the edge at 390 px")
             await pg.screenshot(path=f"{SP}/shots/rvrp-{scheme}.png", full_page=True)

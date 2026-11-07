@@ -1,6 +1,8 @@
 // Mais › Relatório de pendências: the open tasks of the lists, to see, print or save as PDF (like the report of
 // the GerencIA). All the marked lists (the ones on the start screen) or the one chosen on the page; each task with
 // its deadline (late in red), and what is on in the app: repeat, points, rooms, equipment, Serviço externo.
+// The page has Baixar PDF (2.45.1): the app Home Assistant on the phone doesn't print a page, a PDF it opens.
+import { Pdf, wrap, textWidth } from "./pdf.js";
 
 const DAY = 86400000;
 const pad = (n) => String(n).padStart(2, "0");
@@ -75,10 +77,12 @@ const ICON = (cor) => `<svg class="ic" viewBox="0 0 32 32" aria-hidden="true">
 
 /**
  * The page (HTML): a header with the app, what the report is, when and which lists; the choice of the lists
- * (not on paper); a section per list. tema: "claro" | "escuro" (the one of the app; none: the one of the device);
+ * and Baixar PDF (not on paper); a section per list. tema: "claro" | "escuro" (the one of the app; none: the one of the device);
  * cor: the color of the app (#rrggbb). On paper it is always light.
  */
 export function reportHtml(rep, { tema = null, cor = "#ff8a65", casa = "" } = {}) {
+  // the PDF of what is on screen (the same list), in the color of the app
+  const pdfHref = `relatorio.pdf?${new URLSearchParams({ ...(rep.pick ? { lista: rep.pick } : {}), cor: /^#[0-9a-f]{6}$/i.test(cor || "") ? cor : "#ff8a65" })}`;
   const attr = tema === "claro" ? ' data-theme="light"' : tema === "escuro" ? ' data-theme="dark"' : "";
   const accent = /^#[0-9a-f]{6}$/i.test(cor || "") ? cor : "#ff8a65";
   const d = new Date(rep.at);
@@ -123,9 +127,9 @@ body{font:15px/1.45 Barlow,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
 main{max-width:860px;margin:0 auto}
 .barra{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px}
 .barra a,.barra button,.barra select{font:inherit;font-size:14px;font-weight:600;min-height:44px;padding:8px 10px;border-radius:12px;border:1px solid var(--borda);background:var(--card);color:var(--fg);text-decoration:none;cursor:pointer;text-align:center}
-.barra a,.barra button{display:flex;align-items:center;justify-content:center;line-height:1.2}
+.barra a{display:flex;align-items:center;justify-content:center;line-height:1.2}
 .barra select{grid-column:1/-1;text-align:left;font-size:15px;padding:10px 14px}
-.barra button{background:var(--a);border-color:transparent;color:#1a1210}
+.barra .pdf{background:var(--a);border-color:transparent;color:#1a1210}
 .cab{display:flex;gap:14px;align-items:center;background:var(--card);border:1px solid var(--linha);border-left:6px solid var(--a);border-radius:16px;padding:16px 18px;margin-bottom:14px}
 .cab .ic{width:52px;height:52px;flex:none;color:var(--fg)}
 .cab .app{font:600 13.5px/1.2 Barlow,sans-serif;color:var(--mut)}
@@ -158,11 +162,131 @@ td small{display:block;color:var(--mut);font-size:12.5px}
 </style></head><body><main>
 <div class="barra">
 <select aria-label="Listas" onchange="var u=new window.URL(window.location.href);if(this.value)u.searchParams.set('lista',this.value);else u.searchParams.delete('lista');location.replace(u.href)">${options}</select>
-<a href="./" onclick="if(history.length>1){history.back();return false}">Voltar</a><button type="button" onclick="window.print()">Imprimir ou salvar PDF</button>
+<a href="./" onclick="if(history.length>1){history.back();return false}">Voltar</a><a class="pdf" href="${esc(pdfHref)}" download="${esc(pdfName(rep))}">Baixar PDF</a>
 </div>
 <header class="cab">${ICON(accent)}<div><div class="app"><span class="wm">Resolv<b>IA</b></span> · listas de tarefas${casa ? ` · ${esc(casa)}` : ""}</div><h1>Relatório de pendências</h1><p>O que falta fazer ${esc(which)} · ${when}</p></div></header>
 ${rep.total ? `<div class="resumo">${tiles}</div>` : ""}
 ${rep.sections.length ? rep.sections.map(section).join("") : `<p class="vazio">Nenhuma lista marcada.</p>`}
 <p class="rodape">ResolvIA · relatório gerado em ${when}</p>
 </main></body></html>`;
+}
+
+/** The name of the PDF: pendencias-2026-11-07.pdf (pendencias-casa-2026-11-07.pdf for one list). */
+export function pdfName(rep) {
+  const d = new Date(rep.at);
+  const day = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const list = rep.pick ? String(rep.pick).replace(/^todo\./, "").replace(/[^a-z0-9_]+/gi, "").replace(/_/g, "-").slice(0, 40) : "";
+  return `pendencias-${list ? `${list}-` : ""}${day}.pdf`;
+}
+
+/**
+ * The report as a PDF (A4, always light): the same header (the icon and the name of the app, the house, what it
+ * is, when and which lists), the counts and a part per list, a page after another; at the foot, the page.
+ */
+export function reportPdf(rep, { cor = "#ff8a65", casa = "" } = {}) {
+  const A = /^#[0-9a-f]{6}$/i.test(cor || "") ? cor : "#ff8a65";
+  const C = { fg: "#141a22", mut: "#5b6573", line: "#e3e7ec", line2: "#eef1f4", box: "#d6dbe2", late: "#d92d20", pts: "#b7791f", card: "#f6f7f9" };
+  const pdf = new Pdf({ title: "Relatório de pendências · ResolvIA" });
+  const M = 40;
+  const W = pdf.W - 2 * M;
+  const BOTTOM = pdf.H - 52;
+  const d = new Date(rep.at);
+  const when = `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} às ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  const marked = rep.lists.filter((l) => !l.hidden);
+  const which = rep.pick ? `na lista ${rep.sections[0].name}` : marked.length === rep.lists.length ? "em todas as listas" : marked.length === 1 ? `na lista ${marked[0].name}` : `nas ${marked.length} listas marcadas`;
+  let y = M;
+
+  // the icon of the app: the block with the check and the rings
+  const icon = (x, top, s) => {
+    const u = s / 32;
+    const P = (px, py) => [x + px * u, top + py * u];
+    pdf.path([P(8, 6), P(24, 6), P(29, 11), P(29, 23.5), P(22.5, 30), P(8, 30), P(3, 25), P(3, 11)], { fill: A, close: true });
+    pdf.path([P(22.5, 30), P(22.5, 25.4), P(24.4, 23.5), P(29, 23.5)], { fill: "#c9c9c9", close: true });
+    pdf.path([P(9.6, 18.6), P(13.9, 22.9), P(22.5, 13.9)], { stroke: "#2a1614", width: 2.9 * u, round: true });
+    for (const rx of [9.5, 16, 22.5]) pdf.line(...P(rx, 2.8), ...P(rx, 9.2), { color: C.fg, width: 2.1 * u, cap: 1 });
+  };
+
+  // the header
+  const head = () => {
+    const h = 88;
+    pdf.rect(M, y, W, h, { fill: C.card, stroke: C.line, r: 10 });
+    pdf.rect(M, y, 5, h, { fill: A });
+    icon(M + 18, y + 18, 52);
+    const tx = M + 84;
+    pdf.text(tx, y + 24, "Resolv", { size: 15, bold: true, color: C.fg });
+    const w1 = textWidth("Resolv", 15, true);
+    pdf.text(tx + w1, y + 24, "IA", { size: 15, bold: true, color: A });
+    const w2 = textWidth("IA", 15, true);
+    pdf.text(tx + w1 + w2 + 6, y + 24, `· listas de tarefas${casa ? ` · ${casa}` : ""}`, { size: 10, color: C.mut });
+    pdf.text(tx, y + 52, "Relatório de pendências", { size: 22, bold: true, color: C.fg });
+    pdf.text(tx, y + 72, `O que falta fazer ${which} · ${when}`, { size: 10, color: C.mut });
+    y += h + 14;
+  };
+  head();
+
+  // the counts
+  if (rep.total) {
+    const tiles = [["Pendentes", rep.total, C.fg], ...(rep.dueOn ? [["Atrasadas", rep.late, rep.late ? C.late : C.fg], ["Para hoje", rep.today, C.fg]] : []), ["Sem prazo", rep.undated, C.fg]];
+    const gap = 10;
+    const tw = (W - gap * (tiles.length - 1)) / tiles.length;
+    tiles.forEach(([label, num, color], i) => {
+      const x = M + i * (tw + gap);
+      pdf.rect(x, y, tw, 50, { stroke: C.line, r: 8 });
+      pdf.text(x + 12, y + 18, label, { size: 9, color: C.mut });
+      pdf.text(x + 12, y + 40, String(num), { size: 18, bold: true, color });
+    });
+    y += 64;
+  }
+
+  const newPage = () => {
+    pdf.addPage();
+    y = M;
+    pdf.text(M, y + 10, "Relatório de pendências · ResolvIA", { size: 9, color: C.mut });
+    y += 26;
+  };
+  const sectionHead = (s, cont = false) => {
+    const meta = [s.owner ? `de ${s.owner}` : "", plural(s.rows.length, "pendente", "pendentes"), s.late ? `${s.late} ${s.late === 1 ? "atrasada" : "atrasadas"}` : ""].filter(Boolean).join(" · ");
+    pdf.text(M, y + 14, `${s.name}${cont ? " (continuação)" : ""}`, { size: 14, bold: true, color: C.fg });
+    pdf.text(M + W, y + 14, meta, { size: 9, color: C.mut, align: "right" });
+    pdf.line(M, y + 21, M + W, y + 21, { color: A, width: 1.5 });
+    y += 30;
+  };
+
+  const DUE_W = 120;
+  for (const s of rep.sections) {
+    if (y + 60 > BOTTOM) newPage();
+    sectionHead(s);
+    if (!s.rows.length) {
+      pdf.text(M, y + 10, "Nada pendente nesta lista.", { size: 10, color: C.mut });
+      y += 26;
+      continue;
+    }
+    s.rows.forEach((r, i) => {
+      const lines = wrap(r.title, W - 22 - DUE_W, 11);
+      const tags = r.tags.length ? wrap(r.tags.join(" · "), W - 22 - DUE_W, 8.5) : [];
+      const h = 8 + lines.length * 14 + tags.length * 11 + 6;
+      if (y + h > BOTTOM) {
+        newPage();
+        sectionHead(s, true);
+      }
+      pdf.rect(M + 2, y + 7, 9, 9, { stroke: C.box, width: 1, r: 2 });
+      lines.forEach((t, k) => pdf.text(M + 20, y + 15 + k * 14, t, { size: 11, color: C.fg }));
+      tags.forEach((t, k) => pdf.text(M + 20, y + 15 + lines.length * 14 - 2 + k * 11, t, { size: 8.5, color: C.mut }));
+      if (r.due) pdf.text(M + W, y + 15, r.due.text, { size: 9.5, bold: r.due.late, color: r.due.late ? C.late : C.fg, align: "right" });
+      else pdf.text(M + W, y + 15, "sem prazo", { size: 9.5, color: C.mut, align: "right" });
+      if (r.points) pdf.text(M + W, y + 27, `+${r.points} pontos`, { size: 8.5, bold: true, color: C.pts, align: "right" });
+      y += h;
+      if (i < s.rows.length - 1) pdf.line(M + 20, y, M + W, y, { color: C.line2 });
+    });
+    y += 16;
+  }
+  if (!rep.sections.length) pdf.text(M, y + 10, "Nenhuma lista marcada.", { size: 11, color: C.mut });
+
+  // the foot of each page
+  const total = pdf.pages.length;
+  pdf.pages.forEach((ops, i) => {
+    pdf.ops = ops;
+    pdf.text(pdf.W / 2, pdf.H - 28, `ResolvIA · relatório gerado em ${when}${total > 1 ? ` · página ${i + 1} de ${total}` : ""}`, { size: 8, color: C.mut, align: "center" });
+  });
+  return pdf.build();
 }

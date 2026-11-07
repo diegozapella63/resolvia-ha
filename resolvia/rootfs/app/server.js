@@ -11,7 +11,7 @@ import { fileURLToPath } from "node:url";
 import { acceptUpgrade } from "./lib/ws.js";
 import { HAClient } from "./lib/ha.js";
 import { Store, datesInfo } from "./lib/store.js";
-import { pendencias, reportHtml } from "./lib/report.js";
+import { pendencias, reportHtml, reportPdf, pdfName } from "./lib/report.js";
 import { Recurring } from "./lib/recurring.js";
 import { AI } from "./lib/ai.js";
 import { AiUsage } from "./lib/usage.js";
@@ -23,7 +23,7 @@ import { Voice, readRaw, MAX_VOICE_BYTES } from "./lib/voice.js";
 import { snapshot, toCSV, backupZip, parseImport, Backups, listVersions, readVersion, fileStamp } from "./lib/data.js";
 import { DueAlert } from "./lib/duealert.js";
 
-const VERSION = "2.45.0";
+const VERSION = "2.45.1";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const WWW = path.join(HERE, "www");
 const DEV = process.env.RESOLVIA_DEV === "1";
@@ -838,7 +838,7 @@ async function handleVoice(req, res) {
  * Mais › Relatório de pendências: the open tasks of the marked lists (or of ?lista=), to see, print or save as
  * PDF; tema and cor: the ones of the app. Only what is on: deadlines, repeat, points, rooms, equipment, externo.
  */
-function handleReport(url, res) {
+function handleReport(url, res, pdf = false) {
   const app = store.prefs.app;
   const lists = [...dueLists()]
     .map(([id, l]) => ({ id, name: l.name, owner: l.prefs.owner || "", hidden: !!l.prefs.hidden, due: app.due_off !== true && !datesInfo(l.prefs, l.features) }))
@@ -857,6 +857,12 @@ function handleReport(url, res) {
     };
   };
   const rep = pendencias({ lists, items: recurring.items, pick: url.searchParams.get("lista") || "", now: Date.now(), extra });
+  if (pdf) {
+    // Baixar PDF: the app Home Assistant on the phone downloads it and opens it (to print or share)
+    const file = reportPdf(rep, { cor: url.searchParams.get("cor"), casa: houseName });
+    res.writeHead(200, { "Content-Type": "application/pdf", "Content-Disposition": `attachment; filename="${pdfName(rep)}"`, "Cache-Control": "no-store", "Content-Length": file.length, "X-Content-Type-Options": "nosniff" });
+    return res.end(file);
+  }
   const tema = url.searchParams.get("tema");
   const body = Buffer.from(reportHtml(rep, { tema: tema === "claro" || tema === "escuro" ? tema : null, cor: url.searchParams.get("cor"), casa: houseName }), "utf8");
   res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store", "Content-Length": body.length, "X-Content-Type-Options": "nosniff" });
@@ -875,6 +881,7 @@ const server = http.createServer((req, res) => {
   if (exp && req.method === "GET") return handleData(exp[1], res);
   if (url.pathname === "/api/import" && req.method === "POST") return handleImport(req, res);
   if (url.pathname === "/relatorio" && req.method === "GET") return handleReport(url, res);
+  if (url.pathname === "/relatorio.pdf" && req.method === "GET") return handleReport(url, res, true);
   const font = url.pathname.match(/^\/fonts\/([a-z0-9-]+\.woff2)$/);
   const file = font ? [`fonts/${font[1]}`, "font/woff2", true] : FILES[url.pathname];
   if (!file || (req.method !== "GET" && req.method !== "HEAD")) {

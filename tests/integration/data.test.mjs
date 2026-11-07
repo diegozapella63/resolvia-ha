@@ -275,6 +275,16 @@ describe("Mais › Relatório de pendências (2.45.0)", () => {
     assert.match(html, /\+10 pontos/);
     assert.match(html, /Consertar a porta/);
   });
+  it("Baixar PDF (2.45.1): the same report as a file to download, the app Home Assistant opens it", async () => {
+    const res = await get(`/relatorio.pdf?lista=${CASA}&cor=%23ff5a4f`);
+    assert.equal(res.status, 200);
+    assert.equal(res.headers.get("content-type"), "application/pdf");
+    assert.match(res.headers.get("content-disposition"), /^attachment; filename="pendencias-casa-\d{4}-\d{2}-\d{2}\.pdf"$/);
+    const pdf = Buffer.from(await res.arrayBuffer()).toString("latin1");
+    assert.ok(pdf.startsWith("%PDF-1.4") && pdf.trimEnd().endsWith("%%EOF"));
+    assert.ok(pdf.includes("(Relat\\363rio de pend\\352ncias) Tj") && pdf.includes("(Minha Casa) Tj") && pdf.includes("(Passar pano na casa) Tj"));
+    assert.ok(pdf.includes("1 0.353 0.31 rg"), "the color of the app");
+  });
   it("one list: ?lista=", async () => {
     const html = await (await get(`/relatorio?lista=${CASA}`)).text();
     assert.match(html, /O que falta fazer na lista Minha Casa/);
