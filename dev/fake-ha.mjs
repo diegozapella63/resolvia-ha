@@ -91,6 +91,9 @@ const devices = [
   { id: "dev_alexa", name: "Notas e Rotinas do Alexa", name_by_user: null },
   { id: "dev_other", name: "Lâmpada da sala", name_by_user: null },
   { id: "dev_analise", name: "Análise dos Dispositivos", name_by_user: null },
+  // Ana's phone, as in a real house: the tracker has its own id (celular_ana), the service of the app is named
+  // after the device (Pixel 8)
+  { id: "dev_phone_ana", name: "Pixel 8", name_by_user: "Celular Ana", identifiers: [["mobile_app", "a1b2c3"]] },
 ];
 
 const conns = new Set();
@@ -284,7 +287,7 @@ class Conn {
         case "get_states":
           return ok([
             ...Object.keys(lists).map(stateOf),
-            { entity_id: "person.ana", state: "home", attributes: { friendly_name: "Ana", user_id: "u-ana", device_trackers: ["device_tracker.pixel_8"] } },
+            { entity_id: "person.ana", state: "home", attributes: { friendly_name: "Ana", user_id: "u-ana", device_trackers: ["device_tracker.celular_ana"] } },
             { entity_id: "person.beto", state: "home", attributes: { friendly_name: "Beto", user_id: "u-beto", device_trackers: ["device_tracker.galaxy_s23"] } },
             { entity_id: "light.sala", state: "on", attributes: {} },
             // Falar: the speech-to-text engines (Home Assistant Cloud, and a local Whisper that names Portuguese "pt")
@@ -315,6 +318,7 @@ class Conn {
             entities: [
               ...Object.entries(lists).map(([ei, l]) => ({ ei, pl: "x", ...(l.device ? { di: l.device, hn: true } : {}), en: l.en })),
               { ei: "light.sala", pl: "hue", di: "dev_other" },
+              { ei: "device_tracker.celular_ana", pl: "mobile_app", di: "dev_phone_ana" },
             ],
           });
         case "config/device_registry/list":

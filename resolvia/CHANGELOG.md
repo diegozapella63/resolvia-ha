@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.44.2
+
+- **Avisar o que vence hoje** acha o celular de cada pessoa pelo aparelho do app Home Assistant ligado a ela, mesmo quando o rastreador tem outro nome (como "Celular Diego" sendo `goku_phone`). Um rastreador do roteador não conta como celular.
+
 ## 2.44.1
 
 - **Avisar o que vence hoje** vai para a pessoa, nos celulares ligados a ela no Home Assistant (**Configurações › Pessoas**), e não mais para um celular escolhido nos **Avisos** da CronologIA. **Quem recebe** mostra só as pessoas; quem não tem celular ligado aparece como "sem celular".

@@ -5,6 +5,7 @@
 // to them there (Configurações › Pessoas, the devices of the person). Tapping the alert opens the app on Prazos.
 import os from "node:os";
 import { datesInfo } from "./store.js";
+import { trackerDevices, trackerPhones } from "./phones.js";
 
 const pad = (n) => String(n).padStart(2, "0");
 export const ymd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -101,16 +102,16 @@ export class DueAlert {
 
   /**
    * Who gets the alert: the persons of Home Assistant, each with the phones tied to them there (the mobile
-   * apps among their device trackers): [{name, user_id, phones}], by name.
+   * apps among their device trackers, named after the device, lib/phones.js): [{name, user_id, phones}], by name.
    */
   async recipients() {
-    const [states, services] = await Promise.all([this.ha.send({ type: "get_states" }), this.ha.send({ type: "get_services" })]);
+    const [states, services, devices] = await Promise.all([this.ha.send({ type: "get_states" }), this.ha.send({ type: "get_services" }), trackerDevices(this.ha)]);
     const notify = new Set(Object.keys((services && services.notify) || {}).filter((x) => PHONE_RE.test(x)));
     const out = [];
     for (const st of states || []) {
       if (!/^person\.[a-z0-9_]+$/.test(st.entity_id || "")) continue;
       const a = st.attributes || {};
-      const phones = [...new Set((Array.isArray(a.device_trackers) ? a.device_trackers : []).map((t) => `mobile_app_${String(t).replace(/^device_tracker\./, "")}`).filter((id) => notify.has(id)))];
+      const phones = trackerPhones(a.device_trackers, notify, devices);
       out.push({ name: a.friendly_name || st.entity_id.slice(7), user_id: a.user_id || null, phones });
     }
     return out.sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));

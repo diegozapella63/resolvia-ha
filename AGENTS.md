@@ -50,7 +50,7 @@ Os dados de cada tarefa (pontos, cômodo, equipamento) ficam no app, pela chave 
 Estes arquivos têm cópia igual no `cronologia-ha`. Ao mudar um, mude o outro (e rode os testes dos dois):
 
 - `frontend/src/equip-picker.js`, `frontend/src/chat.js` (a janela da Conversa), `frontend/src/voice.js`, `frontend/src/look.js`, `frontend/src/swipe.js`, `frontend/src/about.js` (Mais › Sobre)
-- `resolvia/rootfs/app/lib/voice.js`, `ws.js`, `zip.js`, `ha.js`, `usage.js` (na CronologIA, em `cronologia/rootfs/app/lib/`)
+- `resolvia/rootfs/app/lib/voice.js`, `ws.js`, `zip.js`, `ha.js`, `usage.js`, `phones.js` (os celulares de cada pessoa) (na CronologIA, em `cronologia/rootfs/app/lib/`)
 
 ## Como os apps conversam
 
