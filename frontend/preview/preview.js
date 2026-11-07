@@ -1,3 +1,4 @@
+import "../src/selectsheet.js";
 import "../src/resolvia-panel.js";
 import { createMockHass } from "./mock-hass.js";
 

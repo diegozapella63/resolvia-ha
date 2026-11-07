@@ -40,10 +40,12 @@ describe("Relatório de pendências", () => {
     assert.deepEqual([rep.total, rep.late, rep.today, rep.undated], [5, 1, 1, 2]);
     assert.equal(rep.sections[0].late, 1);
   });
-  it("the chosen list, even a hidden one; an unknown one: all the marked", () => {
-    assert.deepEqual(pendencias({ lists: LISTS, items: ITEMS, pick: "todo.velha", now: NOW }).sections.map((s) => s.name), ["Velha"]);
-    const rep = pendencias({ lists: LISTS, items: ITEMS, pick: "todo.nada", now: NOW });
-    assert.deepEqual([rep.pick, rep.sections.length], ["", 2]);
+  it("the chosen list; a hidden or unknown one: all the marked", () => {
+    assert.deepEqual(pendencias({ lists: LISTS, items: ITEMS, pick: "todo.casa", now: NOW }).sections.map((s) => s.name), ["Casa"]);
+    for (const pick of ["todo.velha", "todo.nada"]) {
+      const rep = pendencias({ lists: LISTS, items: ITEMS, pick, now: NOW });
+      assert.deepEqual([rep.pick, rep.sections.length], ["", 2], pick);
+    }
   });
   it("what is on: repeat, points, rooms, equipment, serviço externo", () => {
     const extra = (l, i) => (i.uid === "a" ? { repeat: 30, points: 10, rooms: ["Cozinha"], equips: ["Geladeira"], external: "Encanador" } : {});
@@ -55,13 +57,14 @@ describe("Relatório de pendências", () => {
     assert.match(html, /<html lang="pt-BR" data-theme="dark">/);
     assert.match(html, /<span class="wm">Resolv<b>IA<\/b><\/span> · listas de tarefas · Casa da Ana/);
     assert.match(html, /<h1>Relatório de pendências<\/h1><p>O que falta fazer nas 2 listas marcadas · 07\/11\/2026 às 17:00<\/p>/);
-    assert.match(html, /<option value="" selected>Todas as listas marcadas<\/option><option value="todo.casa">Casa<\/option>.*<option value="todo.velha">Velha \(oculta\)<\/option>/);
+    assert.match(html, /<option value="" selected>Todas as listas marcadas<\/option><option value="todo.casa">Casa<\/option>/);
+    assert.doesNotMatch(html, /todo\.velha|Velha/, "a hidden list is not offered");
     assert.match(html, /Pagar &lt;luz&gt;/);
     assert.match(html, /de Ana · 4 pendentes · 1 atrasada/);
     assert.match(html, /<a class="pdf" href="relatorio.pdf\?cor=%23ff5a4f" download="pendencias-2026-11-07.pdf">Baixar PDF<\/a>/, "a PDF to download: the app Home Assistant doesn't print a page");
     assert.doesNotMatch(html, /window\.print/);
     assert.match(html, /@media print\{[^}]*\} \.barra\{display:none\}/, "on paper: no buttons, always light");
-    assert.doesNotMatch(html, /<script/i);
+    assert.deepEqual(html.match(/<script[^>]*>/gi), ['<script src="selectsheet.js">'], "only the box of choice in the look of the app (2.46)");
   });
   it("one list chosen: says which; a bad color: the default", () => {
     const html = reportHtml(pendencias({ lists: LISTS, items: ITEMS, pick: "todo.mercado", now: NOW }), { cor: "red;}" });
@@ -112,6 +115,6 @@ describe("the PDF (2.45.1)", () => {
   });
   it("the name of the file", () => {
     assert.equal(pdfName(pendencias({ lists: LISTS, items: ITEMS, now: NOW })), "pendencias-2026-11-07.pdf");
-    assert.equal(pdfName(pendencias({ lists: LISTS, items: ITEMS, now: NOW, pick: "todo.velha" })), "pendencias-velha-2026-11-07.pdf");
+    assert.equal(pdfName(pendencias({ lists: LISTS, items: ITEMS, now: NOW, pick: "todo.casa" })), "pendencias-casa-2026-11-07.pdf");
   });
 });

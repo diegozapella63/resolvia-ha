@@ -290,4 +290,19 @@ describe("Mais › Relatório de pendências (2.45.0)", () => {
     assert.match(html, /O que falta fazer na lista Minha Casa/);
     assert.equal((html.match(/<section>/g) || []).length, 1);
   });
+  it("2.46.0: a hidden list is not offered nor shown; the box opens in the look of the app", async () => {
+    await c.call("resolvia/prefs/set_list", { entity_id: CASA, prefs: { hidden: true } });
+    try {
+      const html = await (await get(`/relatorio?lista=${CASA}`)).text();
+      assert.doesNotMatch(html, /Minha Casa/, "neither in the box nor as the chosen list");
+      assert.match(html, /<option value="" selected>Todas as listas marcadas<\/option>/);
+      assert.match(html, /<script src="selectsheet.js"><\/script>/);
+    } finally {
+      await c.call("resolvia/prefs/set_list", { entity_id: CASA, prefs: { hidden: null } });
+    }
+    const js = await get("/selectsheet.js");
+    assert.equal(js.status, 200);
+    assert.match(js.headers.get("content-type"), /^text\/javascript/);
+    assert.match(await js.text(), /__selectSheet/);
+  });
 });

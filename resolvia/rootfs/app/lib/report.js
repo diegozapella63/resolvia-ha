@@ -35,11 +35,12 @@ const every = (days) => (days === 1 ? "todo dia" : days === 7 ? "toda semana" : 
 
 /**
  * What is pending. lists: [{id, name, owner, hidden, due}] (due: its dates are deadlines), all of them;
- * items: Map list id -> HA items; pick: a list id, or "" for all the marked ones; extra(listId, item):
+ * items: Map list id -> HA items; pick: a marked list id (a hidden one is not offered), or "" for all the marked ones; extra(listId, item):
  * {repeat, points, rooms, equips, external}, only what is on.
  */
 export function pendencias({ lists = [], items = new Map(), pick = "", now = Date.now(), extra = () => ({}) }) {
-  const chosen = pick && lists.some((l) => l.id === pick) ? lists.filter((l) => l.id === pick) : lists.filter((l) => !l.hidden);
+  const marked = lists.filter((l) => !l.hidden);
+  const chosen = pick && marked.some((l) => l.id === pick) ? marked.filter((l) => l.id === pick) : marked;
   const sections = [];
   let late = 0;
   let today = 0;
@@ -90,7 +91,7 @@ export function reportHtml(rep, { tema = null, cor = "#ff8a65", casa = "" } = {}
   const marked = rep.lists.filter((l) => !l.hidden);
   const which = rep.pick ? `na lista ${rep.sections[0].name}` : marked.length === rep.lists.length ? "em todas as listas" : marked.length === 1 ? `na lista ${marked[0].name}` : `nas ${marked.length} listas marcadas`;
   const options = [`<option value=""${rep.pick ? "" : " selected"}>Todas as listas marcadas</option>`]
-    .concat(rep.lists.map((l) => `<option value="${esc(l.id)}"${rep.pick === l.id ? " selected" : ""}>${esc(l.name)}${l.hidden ? " (oculta)" : ""}</option>`))
+    .concat(marked.map((l) => `<option value="${esc(l.id)}"${rep.pick === l.id ? " selected" : ""}>${esc(l.name)}</option>`))
     .join("");
   const tiles = [
     ["Pendentes", rep.total, ""],
@@ -159,7 +160,7 @@ td small{display:block;color:var(--mut);font-size:12.5px}
 .vazio{margin:10px 0}
 .rodape{color:var(--mut);font-size:12px;margin-top:22px;text-align:center}
 @media print{:root,:root[data-theme],:root:not([data-theme="light"]){${claro};--bg:#fff;color-scheme:light} .barra{display:none} body{padding:0} section{break-inside:avoid-page} .cab,section,.resumo div{border-color:#d6dbe2}}
-</style></head><body><main>
+</style><script src="selectsheet.js"></script></head><body><main>
 <div class="barra">
 <select aria-label="Listas" onchange="var u=new window.URL(window.location.href);if(this.value)u.searchParams.set('lista',this.value);else u.searchParams.delete('lista');location.replace(u.href)">${options}</select>
 <a href="./" onclick="if(history.length>1){history.back();return false}">Voltar</a><a class="pdf" href="${esc(pdfHref)}" download="${esc(pdfName(rep))}">Baixar PDF</a>

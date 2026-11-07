@@ -1,7 +1,7 @@
 # ResolvIA 2.45.0: Mais › Relatório de pendências. A row of the menu opens a page of the server, in the theme and
 # the color of the app: a header (the icon and the name of the app, what the report is, when, which lists), the
 # counts, a section per marked list with its open tasks (late first, in red) and what is on (points, repeat); the
-# list can be changed there (one list, even a hidden one); Voltar returns to the app.
+# list can be changed there (one list; 2.46: never a hidden one); Voltar returns to the app.
 # 2.45.1: Baixar PDF in place of Imprimir (the app Home Assistant on the phone doesn't print a page): the PDF downloads.
 import os as _os
 RESOLVIA = _os.environ.get("E2E_RESOLVIA", "")

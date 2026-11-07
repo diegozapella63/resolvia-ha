@@ -1,4 +1,5 @@
 // Entry point of the UI served by the ResolvIA app.
+import "./selectsheet.js"; // first: its Back comes before the app's
 import "./resolvia-panel.js";
 import { createAppHass, appEnv } from "./app-hass.js";
 

@@ -23,7 +23,7 @@ import { Voice, readRaw, MAX_VOICE_BYTES } from "./lib/voice.js";
 import { snapshot, toCSV, backupZip, parseImport, Backups, listVersions, readVersion, fileStamp } from "./lib/data.js";
 import { DueAlert } from "./lib/duealert.js";
 
-const VERSION = "2.45.1";
+const VERSION = "2.46.0";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const WWW = path.join(HERE, "www");
 const DEV = process.env.RESOLVIA_DEV === "1";
@@ -704,6 +704,7 @@ const FILES = {
   "/": ["index.html", "text/html; charset=utf-8"],
   "/index.html": ["index.html", "text/html; charset=utf-8"],
   "/resolvia.js": ["resolvia.js", "text/javascript; charset=utf-8"],
+  "/selectsheet.js": ["selectsheet.js", "text/javascript; charset=utf-8"],
 };
 
 function allowed(req) {
