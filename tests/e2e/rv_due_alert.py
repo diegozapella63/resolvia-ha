@@ -111,7 +111,10 @@ async def main():
         await prazos.locator(".remind-test").click(); await pg.wait_for_timeout(900)
         got = notes()[n0:]
         check(len(got) == 1 and got[0]["service"] == "mobile_app_pixel_8" and "Nada vence hoje" in got[0]["message"], f"Testar (Ana): the list of Beto isn't hers ({[(n['service'], n['message']) for n in got]})")
+        # the alert off: nothing said about it (it won't come)
+        await a.evaluate("(el) => el._saveAppPrefs({ due_alert: null })"); await pg.wait_for_timeout(600)
         await a.evaluate("(el) => el._openCustomize(el._list('todo.casa'))"); await pg.wait_for_timeout(600)
+        check(await a.locator(".sheet .owner-pick .pick.on").inner_text() == "Beto" and await a.locator(".sheet .field:has(.owner-pick) .field-hint").count() == 0, "the alert off: De quem é says nothing about an alert")
         await a.locator(".sheet .owner-pick .pick", has_text="Todos").click()
         await a.locator(".sheet .btn.primary", has_text="Salvar").click(); await pg.wait_for_timeout(900)
         check("owner" not in json.load(open(f"{DATA}/resolvia.json"))["prefs"]["lists"].get("todo.casa", {}), "Todos: everyone's again")

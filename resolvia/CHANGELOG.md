@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.43.2
+
+- **Personalizar › De quem é** só fala do aviso de prazos quando **Avisar o que vence hoje** está ligado.
+
 ## 2.43.1
 
 - **Buscar › Incluir**: **Cômodos** e **Equipamentos** só aparecem com **Usar cômodos** e **Usar equipamentos** ligados (antes ficavam lá, apagados).

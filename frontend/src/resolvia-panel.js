@@ -51,7 +51,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.43.1";
+const VERSION = "2.43.2";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -3441,7 +3441,7 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
 
   /**
    * Personalizar › De quem é: Todos (the house) or one person. A list of a person: the alert of Prazos
-   * goes only to their phone, and the CronologIA shows it only to them. A name that is no longer a person
+   * goes only to their phone (said only when that alert is on), and the CronologIA shows it only to them. A name that is no longer a person
    * of the house stays as a choice, so it isn't lost.
    */
   _renderOwnerPick(f) {
@@ -3456,7 +3456,9 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
           return html`<button class="pick ${on ? "on" : ""}" role="radio" aria-checked=${on ? "true" : "false"} @click=${() => this._setForm({ owner: n })}>${icon(n ? "user-round" : "users")}<span>${n || "Todos"}</span></button>`;
         })}
       </div>
-      ${f.owner ? html`<span class="field-hint">${icon("info")}<span>O aviso de prazos vai só para o celular de ${f.owner}.</span></span>` : nothing}
+      ${f.owner && this._dueOn() && this._app("due_alert", false) === true
+        ? html`<span class="field-hint">${icon("info")}<span>O aviso de prazos vai só para o celular de ${f.owner}.</span></span>`
+        : nothing}
     </div>`;
   }
 
