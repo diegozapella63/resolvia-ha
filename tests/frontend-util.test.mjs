@@ -315,10 +315,10 @@ describe("deeplink: ?aba= opens a tab once", async () => {
     assert.equal(openTab(w), null);
   });
   it("on the page around the app (the frame of Home Assistant)", () => {
-    const top = win("http://ha.local/hassio/ingress/abc_resolvia?aba=prazos");
+    const top = win("http://ha.local/app/abc_resolvia?aba=prazos");
     const w = win("http://ha.local/api/hassio_ingress/tok/", top);
     assert.equal(openTab(w), "/prazos");
-    assert.equal(top.location.href, "http://ha.local/hassio/ingress/abc_resolvia");
+    assert.equal(top.location.href, "http://ha.local/app/abc_resolvia");
   });
   it("an unknown tab, none, another origin around or no window: nothing", () => {
     assert.equal(openTab(win("http://ha.local/?aba=listas")), null);

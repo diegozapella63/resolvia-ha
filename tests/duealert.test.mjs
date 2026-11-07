@@ -70,7 +70,7 @@ describe("alertSettings", () => {
     assert.equal(alertSettings({ due_alert: true, due_alert_time: "25:00" }).time, "08:00");
   });
   it("the link of the alert: the app on Prazos (only inside Home Assistant)", () => {
-    assert.equal(ingressUrl("a1b2c3d4-resolvia"), "/hassio/ingress/a1b2c3d4_resolvia");
+    assert.equal(ingressUrl("a1b2c3d4-resolvia"), "/app/a1b2c3d4_resolvia", "the app panel since HA 2026.2");
     assert.equal(ingressUrl("my-laptop"), null);
   });
 });

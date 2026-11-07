@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.42.1
+
+- Tocar no aviso do que vence hoje volta a abrir o ResolvIA. No Home Assistant 2026.2 ou mais novo, ele abria o painel inicial.
+
 ## 2.42.0
 
 - **De quem é** cada lista, em **⋯ › Personalizar**: **Todos** ou uma pessoa da casa. O aviso do que vence hoje de uma lista com dono vai só para o celular dessa pessoa, e na CronologIA (1.53.0 ou mais novo) a lista só aparece para ela. Se a CronologIA já tinha o dono de alguma lista, ele vem sozinho para cá.

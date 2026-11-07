@@ -24,9 +24,10 @@ export const fold = (s) =>
 /** The list goes to this person? (no owner: everyone's; whom undefined: anyone's, without looking.) */
 export const listFor = (prefs, whom) => whom === undefined || !(prefs && prefs.owner) || (!!whom && fold(prefs.owner) === fold(whom));
 
-/** Ingress path of this app (hostname a1b2c3d4-resolvia -> /hassio/ingress/a1b2c3d4_resolvia). */
+/** Address of this app in Home Assistant, for the alert's "open": /app/<slug> since HA 2026.2 (the old
+ * /hassio/ingress/<slug> now opens the default dashboard). Hostname a1b2c3d4-resolvia -> /app/a1b2c3d4_resolvia. */
 export function ingressUrl(host = os.hostname()) {
-  return /^[a-z0-9]+-resolvia$/.test(host) ? `/hassio/ingress/${host.replace("-", "_")}` : null;
+  return /^[a-z0-9]+-resolvia$/.test(host) ? `/app/${host.replace("-", "_")}` : null;
 }
 
 /** The local day and time of a due date of Home Assistant ("2026-11-06" or "2026-11-06T15:00:00-03:00"). */
