@@ -1249,10 +1249,9 @@ export const styles = css`
     text-align: center;
     line-height: 1.2;
   }
-  /* Buscar: Incluir cômodos/equipamentos with Usar cômodos/equipamentos off */
-  .filters .pick:disabled {
-    opacity: 0.4;
-    cursor: default;
+  /* an odd one at the end (only Cômodos or only Equipamentos on) takes the whole row */
+  .filters .pick:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
   }
 
   /* Opções › Prazos › Avisar o que vence hoje: the time and Testar side by side, the same height, then the phones */

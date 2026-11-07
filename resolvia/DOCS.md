@@ -38,7 +38,7 @@ Segure um item (ou use **⋯ › Selecionar itens**) para selecionar: toque nos 
 
 ### Buscar
 
-A aba **Buscar** procura em todas as listas que aparecem (as ocultas ficam fora), no texto e nas notas, sem ligar para acentos. Em **Incluir** ficam **Concluídos**, **Serviços externos** (acha por quem faz) e, com o InventarIA, **Cômodos** e **Equipamentos** (acha pelo nome ou pela zona; inativos com a opção desligada).
+A aba **Buscar** procura em todas as listas que aparecem (as ocultas ficam fora), no texto e nas notas, sem ligar para acentos. Em **Incluir** ficam **Concluídos**, **Serviços externos** (acha por quem faz) e, com o InventarIA, **Cômodos** e **Equipamentos** (acha pelo nome ou pela zona; só aparecem com **Usar cômodos** e **Usar equipamentos** ligados).
 
 No início, logo abaixo do resumo, fica o campo **Buscar entre N itens**, como no InventarIA: a primeira letra já abre o **Buscar** com o que você digitou, e dá para continuar digitando lá.
 
@@ -133,7 +133,7 @@ Com o **InventarIA** (1.14.0 ou mais novo) no mesmo Home Assistant, ligue **Mais
 
 Com **Usar equipamentos** ligado (InventarIA 1.15.0 ou mais novo), cada tarefa pode apontar também para itens do InventarIA (equipamentos, móveis), um ou vários (**Outro equipamento**), buscados entre os do cômodo e os dos outros. Com equipamento, o cômodo fica bloqueado: é o dos equipamentos, um ou vários. Na lista, com um equipamento aparecem o cômodo e o equipamento; com vários, só o primeiro e "+N". A IA sugere o equipamento na leitura e o considera no Sugerir com IA, e o CronologIA mostra e pede o equipamento no Novo › Tarefa.
 
-No **Buscar**, digitar o cômodo ou o equipamento (o nome ou a zona) traz as tarefas ligadas a eles; em **Incluir**, os botões **Cômodos** e **Equipamentos** ligam e desligam isso (inativos quando a opção está desligada).
+No **Buscar**, digitar o cômodo ou o equipamento (o nome ou a zona) traz as tarefas ligadas a eles; em **Incluir**, os botões **Cômodos** e **Equipamentos** ligam e desligam isso (só aparecem com a opção ligada).
 
 Os cômodos e os itens vêm do InventarIA (só leitura, pela rede interna dos apps, com a chave que ele grava em `share/inventario`). O ResolvIA guarda os cômodos e os equipamentos de cada tarefa pelo nome dela, junto com os pontos, e eles entram no exportar e no backup.
 

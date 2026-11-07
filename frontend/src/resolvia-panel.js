@@ -51,7 +51,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.43.0";
+const VERSION = "2.43.1";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -2527,9 +2527,9 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
 
   // ---------- search
 
-  /** A Buscar › Incluir button, on or off; with `off` (why it can't be used), inactive. */
-  _searchToggle(ic, label, on, toggle, off = "") {
-    return html`<button class="pick ${on ? "on" : ""}" aria-pressed=${on ? "true" : "false"} ?disabled=${!!off} title=${off} @click=${toggle}>${icon(ic)}<span>${label}</span></button>`;
+  /** A Buscar › Incluir button, on or off. */
+  _searchToggle(ic, label, on, toggle) {
+    return html`<button class="pick ${on ? "on" : ""}" aria-pressed=${on ? "true" : "false"} @click=${toggle}>${icon(ic)}<span>${label}</span></button>`;
   }
 
   _renderSearch() {
@@ -2566,10 +2566,9 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
         <div class="filters" role="group" aria-labelledby="incluir">
           ${this._searchToggle("circle-check", "Concluídos", this._searchDone, () => (this._searchDone = !this._searchDone))}
           ${this._searchToggle("hard-hat", "Serviços externos", this._searchExt, () => (this._searchExt = !this._searchExt))}
-          ${this._rooms && this._rooms.encontrado
-            ? html`${this._searchToggle("door-open", "Cômodos", this._roomsOn() && this._searchRooms, () => (this._searchRooms = !this._searchRooms), this._roomsOn() ? "" : "Ligue Usar cômodos em Mais › Configurações › Integrações")}
-              ${this._searchToggle("package", "Equipamentos", this._equipsOn() && this._searchEquips, () => (this._searchEquips = !this._searchEquips), this._equipsOn() ? "" : "Ligue Usar equipamentos em Mais › Configurações › Integrações")}`
-            : nothing}
+          ${/* Cômodos and Equipamentos only with Usar cômodos / Usar equipamentos on (off: they aren't there) */ ""}
+          ${this._rooms && this._rooms.encontrado && this._roomsOn() ? this._searchToggle("door-open", "Cômodos", this._searchRooms, () => (this._searchRooms = !this._searchRooms)) : nothing}
+          ${this._rooms && this._rooms.encontrado && this._equipsOn() ? this._searchToggle("package", "Equipamentos", this._searchEquips, () => (this._searchEquips = !this._searchEquips)) : nothing}
         </div>
         ${!needle
           ? html`<p class="page-sub" style="margin-top:0">Procure por qualquer palavra, em todas as listas.</p>`

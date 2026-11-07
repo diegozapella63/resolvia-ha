@@ -66,7 +66,7 @@ Pela pasta `/share` do Home Assistant e por eventos do HA. Mudar um formato aqui
 - Tudo em português do Brasil, sem palavras em inglês na tela.
 - **Menos é mais**: textos curtos, sem explicar o porquê quando ele já está logo abaixo, sem avisos repetidos ("Escolhidos pela IA." basta).
 - Botões lado a lado com o mesmo tamanho e alinhados; nada torto.
-- O que depende da IA respeita o interruptor **Usar IA**. O que depende de uma integração (cômodos, equipamentos, CronologIA) só aparece com ela ligada; um botão de algo desligado fica inativo, não some sem explicação.
+- O que depende da IA respeita o interruptor **Usar IA**. O que depende de uma integração (cômodos, equipamentos, CronologIA) só aparece com ela ligada: filtros e opções de cômodos e equipamentos somem quando **Usar cômodos**/**Usar equipamentos** está desligado (o dono pediu: não faz sentido aparecer); um botão de ação que precisa de algo desligado fica inativo, com o porquê.
 - Em http (sem https) não há câmera, microfone nem área de transferência: explicar em vez de abrir a galeria ou mostrar um botão que não funciona.
 - Listas desmarcadas (inativas) ficam por último, recolhidas.
 - Celular primeiro (390 px); com 1000 px ou mais, barra lateral. Tema claro e escuro.
