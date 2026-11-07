@@ -1,8 +1,8 @@
-# ResolvIA 2.41.0: Opções › Prazos › Avisar o que vence hoje. Off by default; on, it picks the phones of the
-# people (Ana and Beto), 08:00; the time and Testar side by side, the same size; Testar sends what is due today
-# to the phones chosen (the simulated Home Assistant keeps it); a phone off and the time are saved; with
-# Controlar prazos off, the alert goes away. 320 px to the computer, light and dark.
+# ResolvIA 2.41.0: Opções › Prazos › Avisar o que vence hoje. Off by default; on: 08:00, the time and Testar
+# side by side, the same size; Testar sends what is due today to my phone (the simulated Home Assistant keeps
+# it); the time is saved; with Controlar prazos off, the alert goes away. 320 px to the computer, light and dark.
 # 2.42.0: Personalizar › De quem é (Todos or a person): the alert of that list goes only to that person's phone.
+# 2.43.0: no phones to pick: Quem recebe shows each person and their phone (only shown).
 import os as _os
 CRONOLOGIA = _os.environ.get("E2E_CRONOLOGIA", "")
 RESOLVIA = _os.environ.get("E2E_RESOLVIA", "")
@@ -24,7 +24,7 @@ def check(c, label):
     else: failed.append(label)
 fake = subprocess.Popen(["node", f"{REPO}/dev/fake-ha.mjs"], env=dict(os.environ, FAKE_HA_TOKEN="test", FAKE_HA_PORT=HA_PORT, TZ="America/Sao_Paulo"), stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
 time.sleep(0.6)
-app = subprocess.Popen(["node", f"{REPO}/resolvia/rootfs/app/server.js"], env=dict(os.environ, TZ="America/Sao_Paulo", RESOLVIA_DEV="1", HA_WS_URL=f"ws://127.0.0.1:{HA_PORT}/api/websocket", HA_TOKEN="test", DATA_DIR=DATA, SHARE_DIR=SHARE, PORT=APP_PORT), stdout=open(f"{SP}/rvda_app.log", "w"), stderr=subprocess.STDOUT)
+app = subprocess.Popen(["node", f"{REPO}/resolvia/rootfs/app/server.js"], env=dict(os.environ, TZ="America/Sao_Paulo", RESOLVIA_DEV="1", RESOLVIA_DEV_USER_ID="u-ana", HA_WS_URL=f"ws://127.0.0.1:{HA_PORT}/api/websocket", HA_TOKEN="test", DATA_DIR=DATA, SHARE_DIR=SHARE, PORT=APP_PORT), stdout=open(f"{SP}/rvda_app.log", "w"), stderr=subprocess.STDOUT)
 time.sleep(1.2)
 
 import json, urllib.request
@@ -52,16 +52,12 @@ async def main():
                 check(await row.count() == 1 and not await sw.is_checked(), f"{tag}: Avisar o que vence hoje, off by default")
                 check("Desligado." in await row.inner_text(), f"{tag}: Desligado.")
                 await sw.evaluate("(x) => x.click()"); await pg.wait_for_timeout(900)
+                check(app_prefs().get("due_alert") is True, f"{tag}: saved")
+                check("Cada pessoa recebe as listas dela e as de todos." in await row.inner_text(), f"{tag}: the line when on")
             check(await sw.is_checked(), f"{tag}: on")
-            phones = prazos.locator(".pick.phone")
-            names = [t.strip() for t in await phones.all_inner_texts()]
-            check(names == ["Beto", "Ana"], f"{tag}: the phones, by whose they are ({names})")
-            if k == 0:
-                on = [t.strip() for t in await prazos.locator(".pick.phone.on").all_inner_texts()]
-                check(sorted(on) == ["Ana", "Beto"], f"{tag}: turned on, every phone of a person picked ({on})")
-                pr = app_prefs()
-                check(pr.get("due_alert") is True and sorted(pr.get("due_alert_to") or []) == ["mobile_app_galaxy_s23", "mobile_app_pixel_8"], f"{tag}: saved ({pr})")
-                check("No celular, uma vez por dia." in await row.inner_text(), f"{tag}: the line when on")
+            check(await prazos.locator(".pick.phone").count() == 0, f"{tag}: no phones to pick")
+            who = [" ".join(t.split()) for t in await prazos.locator(".due-who .dw").all_inner_texts()]
+            check(who == ["Ana Pixel 8", "Beto Galaxy S23"], f"{tag}: Quem recebe, each person and their phone ({who})")
             t = prazos.locator("input.remind-time"); tb = prazos.locator(".remind-test")
             check(await t.input_value() == ("08:00" if k == 0 else "07:30"), f"{tag}: the time ({await t.input_value()})")
             bt, bb = await t.bounding_box(), await tb.bounding_box()
@@ -72,14 +68,9 @@ async def main():
                 n0 = len(notes())
                 await tb.click(); await pg.wait_for_timeout(900)
                 got = notes()[n0:]
-                check(sorted(n["service"] for n in got) == ["mobile_app_galaxy_s23", "mobile_app_pixel_8"] and all("Trocar filtro do ar" in n["message"] for n in got), f"{tag}: Testar: what is due today, to both phones ({[(n['service'], n['message']) for n in got]})")
+                check([n["service"] for n in got] == ["mobile_app_pixel_8"] and "Trocar filtro do ar" in got[0]["message"], f"{tag}: Testar: what is due today, on my phone ({[(n['service'], n['message']) for n in got]})")
                 toast = await a.locator(".toast").inner_text() if await a.locator(".toast").count() else ""
-                check("Toque nele para abrir Prazos" in toast, f"{tag}: the toast ({toast})")
-                await phones.filter(has_text="Beto").click(); await pg.wait_for_timeout(600)
-                check(app_prefs().get("due_alert_to") == ["mobile_app_pixel_8"], f"{tag}: a phone off, saved ({app_prefs().get('due_alert_to')})")
-                await phones.filter(has_text="Ana").click(); await pg.wait_for_timeout(600)
-                check(await tb.is_disabled() and "Escolha ao menos um celular." in await prazos.inner_text(), f"{tag}: no phone: Testar off, and why")
-                await phones.filter(has_text="Ana").click(); await pg.wait_for_timeout(600)
+                check("Pixel 8" in toast and "Toque nele para abrir Prazos" in toast, f"{tag}: the toast ({toast})")
             over = await a.evaluate("""(el) => { const W = window.innerWidth; const bad = []; for (const e of el.renderRoot.querySelectorAll('.due-alert, .due-alert *')) { const r = e.getBoundingClientRect(); if (r.width && r.right > W + 1) bad.push(e.className + ' ' + Math.round(r.right)); } if (document.documentElement.scrollWidth > W) bad.push('page'); return bad.slice(0, 3); }""")
             check(not over, f"{tag}: nothing past the edge {over}")
             await prazos.scroll_into_view_if_needed()
@@ -92,7 +83,7 @@ async def main():
                 check(await prazos.locator(".row", has_text="Avisar o que vence hoje").locator("input[role=switch]").is_checked(), f"{tag}: back on: the alert as it was")
             check(not errs, f"{tag}: no page errors {errs}")
             await ctx.close()
-        # De quem é: the list Casa is Beto's; Testar: Beto gets it, Ana doesn't
+        # De quem é: the list Casa is Beto's; my Testar (Ana) no longer has it
         ctx = await b.new_context(viewport={"width": 390, "height": 844}, device_scale_factor=2, color_scheme="dark", has_touch=True)
         pg = await ctx.new_page(); errs = []
         pg.on("pageerror", lambda e: errs.append(str(e)))
@@ -116,14 +107,10 @@ async def main():
         check(pres.get("donos") == {"todo.casa": "Beto"}, f"the CronologIA gets it ({pres.get('donos')})")
         await a.evaluate("(el) => el._go('/config/opcoes')"); await pg.wait_for_timeout(700)
         prazos = a.locator(".panel").filter(has_text="Controlar prazos")
-        check("Lista com dono vai só para o celular da pessoa." in await prazos.inner_text(), "the alert says it")
-        for name in ("Ana", "Beto"):
-            if not await prazos.locator(".pick.phone.on", has_text=name).count():
-                await prazos.locator(".pick.phone", has_text=name).click(); await pg.wait_for_timeout(500)
         n0 = len(notes())
         await prazos.locator(".remind-test").click(); await pg.wait_for_timeout(900)
-        got = {n["service"]: n["message"] for n in notes()[n0:]}
-        check("Trocar filtro do ar" in got.get("mobile_app_galaxy_s23", "") and "Nada vence hoje" in got.get("mobile_app_pixel_8", ""), f"Testar: Beto gets the list of Beto, Ana doesn't ({got})")
+        got = notes()[n0:]
+        check(len(got) == 1 and got[0]["service"] == "mobile_app_pixel_8" and "Nada vence hoje" in got[0]["message"], f"Testar (Ana): the list of Beto isn't hers ({[(n['service'], n['message']) for n in got]})")
         await a.evaluate("(el) => el._openCustomize(el._list('todo.casa'))"); await pg.wait_for_timeout(600)
         await a.locator(".sheet .owner-pick .pick", has_text="Todos").click()
         await a.locator(".sheet .btn.primary", has_text="Salvar").click(); await pg.wait_for_timeout(900)

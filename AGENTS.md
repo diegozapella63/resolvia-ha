@@ -57,7 +57,7 @@ Estes arquivos têm cópia igual no `cronologia-ha`. Ao mudar um, mude o outro (
 Pela pasta `/share` do Home Assistant e por eventos do HA. Mudar um formato aqui exige mudar o outro app junto.
 
 - **ResolvIA → CronologIA**: este app grava `share/resolvia/integracao.json` (`prazos`, `sem_prazo`, `pontos`, `repete`, `comodos {lista, tarefas}`, `equipamentos {lista [{id, nome, comodo}], tarefas}`, `donos {lista: nome da pessoa}`). Em `tarefas`, o valor é um id ou, com vários equipamentos (e por isso vários cômodos), uma lista de ids; a CronologIA lê (função `publishPresence` no `server.js`).
-- **CronologIA → ResolvIA**: `share/cronologia/integracao.json` (o placar e `donos_listas`, o De quem é antigo de lá, adotado uma vez), lido em `lib/placar.js`.
+- **CronologIA → ResolvIA**: `share/cronologia/integracao.json` (o placar, `donos_listas`, o De quem é antigo de lá, adotado uma vez, e `celulares`, o celular de cada pessoa em Avisos, para onde vai o aviso de prazos), lido em `lib/placar.js`.
 - **Eventos**: `resolvia_comodo` (a CronologIA define o cômodo/equipamento de uma tarefa: `{entity_id, tarefa, comodo?, equipamento?, origem}`, onde comodo e equipamento são um id ou uma lista de ids), `resolvia_esquecer` (a CronologIA assume tarefas daqui: saem repetição, pontos, cômodo e equipamento), `cronologia_pontos` (este app soma, desfaz ou troca pontos no placar da CronologIA).
 - **InventarIA**: `share/inventario/integracao.json` (`url`, `ip_url`, `chave`) e as rotas `/api/integracao/comodos` e `/api/integracao/itens` com `Authorization: Bearer <chave>` (`lib/inventario.js`). Cômodos e equipamentos são opcionais (**Mais › Integrações › InventarIA**), desligados por padrão.
 

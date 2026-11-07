@@ -51,7 +51,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.42.1";
+const VERSION = "2.43.0";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -99,7 +99,7 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
     _items: { state: true },
     _prefs: { state: true },
     _path: { state: true },
-    _phones: { state: true },
+    _alertPeople: { state: true },
     _people: { state: true },
     _sheet: { state: true },
     _form: { state: true },
@@ -2843,22 +2843,23 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
   }
 
   /**
-   * Prazos › Avisar o que vence hoje: once a day, at the time chosen, what is due today goes to the phones
-   * chosen (the app Home Assistant on them). Testar sends it now.
+   * Prazos › Avisar o que vence hoje: once a day, at the time chosen, each person gets on their phone what is
+   * due today on their lists (Personalizar › De quem é) and on everyone's. No phones to pick: who gets it is
+   * shown (the phone of each person: Avisos of the CronologIA, else the one tied to them in Home Assistant).
+   * Testar sends it now to my phone.
    */
   _renderDueAlert(sw) {
     const on = this._app("due_alert", false) === true;
     const time = /^\d{2}:\d{2}$/.test(this._app("due_alert_time", "")) ? this._app("due_alert_time") : "08:00";
-    const to = this._app("due_alert_to", []) || [];
-    const phones = this._phones;
-    if (on && phones === undefined) this._loadPhones();
-    // a person with two phones: "Ana · Pixel 8"
-    const owners = (phones || []).map((p) => p.owner).filter(Boolean);
-    const label = (p) => (p.owner ? (owners.filter((o) => o === p.owner).length > 1 ? `${p.owner} · ${p.name}` : p.owner) : p.name);
-    const toggle = (id) => this._saveAppPrefs({ due_alert_to: to.includes(id) ? to.filter((x) => x !== id) : [...to, id] });
+    const people = this._alertPeople;
+    if (on && people === undefined) this._loadAlertPeople();
+    const me = (people || []).find((p) => p.me);
+    const list = (ns) => (ns.length > 1 ? `${ns.slice(0, -1).join(", ")} e ${ns.at(-1)}` : ns[0]);
+    const without = (people || []).filter((p) => !p.phone).map((p) => p.name);
+    const why = !people ? "" : !me ? "Você não é uma pessoa da casa no Home Assistant." : !me.phone ? "Sem celular para você." : "";
     return html`<div class="row">
-        <div class="grow"><div class="label">Avisar o que vence hoje</div><div class="hint" style="white-space:normal">${on ? "No celular, uma vez por dia." : "Desligado."}</div></div>
-        ${sw(on, "Avisar o que vence hoje", (e) => this._toggleDueAlert(e.target.checked))}
+        <div class="grow"><div class="label">Avisar o que vence hoje</div><div class="hint" style="white-space:normal">${on ? "Cada pessoa recebe as listas dela e as de todos." : "Desligado."}</div></div>
+        ${sw(on, "Avisar o que vence hoje", (e) => this._saveAppPrefs({ due_alert: e.target.checked ? true : null }))}
       </div>
       ${on
         ? html`<div class="due-alert">
@@ -2866,57 +2867,42 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
               <span class="flabel">Horário</span>
               <div class="remind-row">
                 <input type="time" class="remind-time" .value=${time} aria-label="Horário do aviso" @change=${(e) => /^\d{2}:\d{2}$/.test(e.target.value) && this._saveAppPrefs({ due_alert_time: e.target.value })} />
-                <button class="btn outline remind-test" ?disabled=${!to.length} @click=${() => this._testDueAlert(to)}>${icon("send")}Testar</button>
+                <button class="btn outline remind-test" ?disabled=${!me || !me.phone} title=${why} aria-label="Testar no meu celular" @click=${() => this._testDueAlert()}>${icon("send")}Testar</button>
               </div>
             </div>
             <div class="field">
-              <span class="flabel">Celulares</span>
-              ${phones === undefined || phones === null
-                ? html`<p class="field-hint">${phones === null ? "Não consegui ver os celulares." : "Procurando os celulares…"}</p>`
-                : phones.length
-                  ? html`<div class="chip-row grid phones">${phones.map((p) => {
-                      const picked = to.includes(p.id);
-                      return html`<button class="pick phone ${picked ? "on" : ""}" aria-pressed=${picked ? "true" : "false"} title=${p.name} @click=${() => toggle(p.id)}>${icon("smartphone")}<span>${label(p)}</span></button>`;
-                    })}</div>
-                    ${to.length
-                      ? this._L.some((l) => l.owner)
-                        ? html`<p class="field-hint">${icon("info")}<span>Lista com dono vai só para o celular da pessoa.</span></p>`
-                        : nothing
-                      : html`<p class="field-hint">${icon("info")}<span>Escolha ao menos um celular.</span></p>`}`
-                  : html`<p class="field-hint">${icon("info")}<span>Nenhum celular com o app Home Assistant.</span></p>`}
+              <span class="flabel">Quem recebe</span>
+              ${people === undefined || people === null
+                ? html`<p class="field-hint">${people === null ? "Não consegui ver as pessoas da casa." : "Procurando as pessoas da casa…"}</p>`
+                : people.length
+                  ? html`<div class="due-who">${people.map(
+                      (p) => html`<div class="dw ${p.phone ? "" : "off"}">${icon("user-round")}<b>${p.name}</b><span>${p.phone || "sem celular"}</span></div>`,
+                    )}</div>
+                    ${without.length ? html`<p class="field-hint">${icon("info")}<span>Sem celular para ${list(without)}: escolha em Avisos da CronologIA ou ligue o celular à pessoa no Home Assistant.</span></p>` : nothing}`
+                  : html`<p class="field-hint">${icon("info")}<span>Nenhuma pessoa da casa no Home Assistant.</span></p>`}
             </div>
           </div>`
         : nothing}`;
   }
 
-  /** The phones with the app Home Assistant (notify.mobile_app_*): undefined while looking, null when it failed. */
-  async _loadPhones() {
-    if (this._phonesLoading) return this._phones;
-    this._phonesLoading = true;
+  /** Who gets the alert of Prazos: [{name, phone, me}]; undefined while looking, null when it failed. */
+  async _loadAlertPeople() {
+    if (this._alertPeopleLoading) return this._alertPeople;
+    this._alertPeopleLoading = true;
     try {
-      this._phones = this._prefsRemote ? await this.hass.callWS({ type: "resolvia/phones" }) : [];
+      this._alertPeople = this._prefsRemote ? await this.hass.callWS({ type: "resolvia/due_alert/people" }) : [];
     } catch (e) {
-      this._phones = null;
+      this._alertPeople = null;
     }
-    this._phonesLoading = false;
+    this._alertPeopleLoading = false;
     this.requestUpdate();
-    return this._phones;
+    return this._alertPeople;
   }
 
-  /** On: every phone that belongs to someone is picked (the first time); off: nothing goes. */
-  async _toggleDueAlert(on) {
-    if (!on) return this._saveAppPrefs({ due_alert: null });
-    const had = this._app("due_alert_to", null);
-    if (Array.isArray(had) && had.length) return this._saveAppPrefs({ due_alert: true });
-    const phones = (await this._loadPhones()) || [];
-    const mine = phones.filter((p) => p.owner);
-    return this._saveAppPrefs({ due_alert: true, due_alert_to: (mine.length ? mine : phones).map((p) => p.id) });
-  }
-
-  async _testDueAlert(to) {
+  async _testDueAlert() {
     try {
-      const res = await this.hass.callWS({ type: "resolvia/due_alert/test", targets: to });
-      this._showToast(res && res.today ? "Aviso enviado. Toque nele para abrir Prazos." : "Aviso enviado (nada vence hoje).");
+      const res = await this.hass.callWS({ type: "resolvia/due_alert/test" });
+      this._showToast(res && res.today ? `Aviso enviado para ${res.phone}. Toque nele para abrir Prazos.` : `Aviso enviado para ${(res && res.phone) || "o seu celular"} (nada vence hoje).`);
     } catch (err) {
       this._showToast(`Não foi: ${err.message}`);
     }

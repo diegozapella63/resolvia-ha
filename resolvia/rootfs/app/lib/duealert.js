@@ -1,8 +1,8 @@
-// Mais › Configurações › Opções › Prazos › Avisar o que vence hoje: once a day, at the chosen time, the
-// phones chosen get what is due today (the lists shown, with deadlines on). Nothing due today: no alert.
-// A list with an owner (Personalizar › De quem é) only goes to that person's phone; a phone of nobody
-// (a tablet) gets only the lists of everyone.
-// Tapping it opens the app on Prazos (?aba=prazos on the page around the app).
+// Mais › Configurações › Opções › Prazos › Avisar o que vence hoje: once a day, at the chosen time, each
+// person of the house gets on their phone what is due today on their lists (Personalizar › De quem é) and
+// on the lists of everyone (the lists shown, with deadlines on). Nothing due today: no alert.
+// The phone of each person: the one chosen in the CronologIA (Mais › Avisos), else the phone tied to the
+// person in Home Assistant (its device trackers). Tapping the alert opens the app on Prazos.
 import os from "node:os";
 import { datesInfo } from "./store.js";
 
@@ -21,8 +21,17 @@ export const fold = (s) =>
     .toLowerCase()
     .trim();
 
-/** The list goes to this person? (no owner: everyone's; whom undefined: anyone's, without looking.) */
-export const listFor = (prefs, whom) => whom === undefined || !(prefs && prefs.owner) || (!!whom && fold(prefs.owner) === fold(whom));
+/**
+ * The list goes to whom? whom: a name or several (people sharing a phone); no owner: everyone's;
+ * whom undefined: anyone's, without looking.
+ */
+export function listFor(prefs, whom) {
+  if (whom === undefined || !(prefs && prefs.owner)) return true;
+  const names = (Array.isArray(whom) ? whom : [whom]).filter(Boolean);
+  return names.some((n) => fold(n) === fold(prefs.owner));
+}
+
+const niceName = (id) => id.replace(/^mobile_app_/, "").replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
 /** Address of this app in Home Assistant, for the alert's "open": /app/<slug> since HA 2026.2 (the old
  * /hassio/ingress/<slug> now opens the default dashboard). Hostname a1b2c3d4-resolvia -> /app/a1b2c3d4_resolvia. */
@@ -73,38 +82,52 @@ export function dueText({ today, late }) {
   return { title: n === 1 ? "📅 Vence hoje" : `📅 Vencem hoje: ${n}`, message: lines.join("\n") };
 }
 
-/** The settings as kept in the preferences, checked: on, the time and the phones. */
+/** The settings as kept in the preferences, checked: on and the time. */
 export function alertSettings(app = {}) {
   return {
     on: app.due_alert === true && app.due_off !== true,
     time: TIME_RE.test(app.due_alert_time || "") ? app.due_alert_time : DEFAULT_TIME,
-    to: Array.isArray(app.due_alert_to) ? app.due_alert_to.filter((t) => PHONE_RE.test(t)) : [],
   };
 }
 
 export class DueAlert {
-  /** lists(): Map entity_id -> {name, features, prefs}; items: Map entity_id -> items. */
-  constructor({ ha, store, lists, items, log }) {
+  /**
+   * lists(): Map entity_id -> {name, features, prefs}; items: Map entity_id -> items;
+   * chosen(): the phone of each person chosen in the CronologIA ({"Ana": "mobile_app_x"}) or null.
+   */
+  constructor({ ha, store, lists, items, log, chosen = () => null }) {
     this.ha = ha;
     this.store = store;
     this.lists = lists;
     this.items = items;
     this.log = log;
+    this.chosen = chosen;
   }
 
-  /** The phones with the app Home Assistant (notify.mobile_app_*), with the person whose phone it is. */
-  async phones() {
+  /**
+   * Who gets the alert: the persons of Home Assistant and the people with a phone in the CronologIA,
+   * each with their phone or null ([{name, user_id, phone, phoneName}], by name).
+   */
+  async recipients() {
     const [states, services] = await Promise.all([this.ha.send({ type: "get_states" }), this.ha.send({ type: "get_services" })]);
-    const ids = Object.keys((services && services.notify) || {}).filter((s) => PHONE_RE.test(s));
-    const owners = new Map();
+    const notify = new Set(Object.keys((services && services.notify) || {}).filter((x) => PHONE_RE.test(x)));
+    const chosen = Object.entries(this.chosen() || {}).filter(([n, id]) => n && PHONE_RE.test(id || ""));
+    const chosenOf = (name) => (chosen.find(([n]) => fold(n) === fold(name)) || [])[1] || null;
+    const out = [];
     for (const st of states || []) {
-      if (!/^person\./.test(st.entity_id || "")) continue;
+      if (!/^person\.[a-z0-9_]+$/.test(st.entity_id || "")) continue;
       const a = st.attributes || {};
-      for (const t of Array.isArray(a.device_trackers) ? a.device_trackers : []) owners.set(`mobile_app_${String(t).replace(/^device_tracker\./, "")}`, a.friendly_name || st.entity_id.slice(7));
+      const name = a.friendly_name || st.entity_id.slice(7);
+      const own = (Array.isArray(a.device_trackers) ? a.device_trackers : []).map((t) => `mobile_app_${String(t).replace(/^device_tracker\./, "")}`).find((id) => notify.has(id));
+      const pick = chosenOf(name);
+      const phone = pick && notify.has(pick) ? pick : own || null;
+      out.push({ name, user_id: a.user_id || null, phone });
     }
-    const nice = (id) => id.replace(/^mobile_app_/, "").replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-    return ids.sort().map((id) => ({ id, name: nice(id), owner: owners.get(id) || null }));
+    // people of the CronologIA who aren't persons of Home Assistant, with a phone chosen there
+    for (const [name, id] of chosen) if (!out.some((r) => fold(r.name) === fold(name)) && notify.has(id)) out.push({ name, user_id: null, phone: id });
+    return out.map((r) => ({ ...r, phoneName: r.phone ? niceName(r.phone) : null })).sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
   }
+
 
   noteData(tag) {
     const base = ingressUrl();
@@ -126,22 +149,18 @@ export class DueAlert {
     return sent;
   }
 
-  /** Each phone with what is due today for its person: [{target, due}]. */
-  async perPhone(targets, now) {
-    let owners = new Map();
-    try {
-      owners = new Map((await this.phones()).map((p) => [p.id, p.owner]));
-    } catch (err) {
-      this.log.warn(`Aviso de prazos: não consegui ver de quem é cada celular (${err.message})`);
-    }
+  /** Each phone with the people it belongs to and what is due today for them: [{target, names, due}]. */
+  async perPhone(now) {
+    const byPhone = new Map();
+    for (const r of await this.recipients()) if (r.phone) byPhone.set(r.phone, [...(byPhone.get(r.phone) || []), r.name]);
     const lists = this.lists();
-    return targets.map((target) => ({ target, due: dueToday(lists, this.items, now, owners.get(target) || null) }));
+    return [...byPhone].map(([target, names]) => ({ target, names, due: dueToday(lists, this.items, now, names) }));
   }
 
-  /** Every minute: at the time (up to 2 h after), once a day, to each phone what is due today for its person. */
+  /** Every minute: at the time (up to 2 h after), once a day, to each person what is due today for them. */
   async tick(now = new Date()) {
     const s = alertSettings(this.store.prefs.app);
-    if (!s.on || !s.to.length || !this.ha.ready) return false;
+    if (!s.on || !this.ha.ready) return false;
     const [h, m] = s.time.split(":").map(Number);
     const at = new Date(now);
     at.setHours(h, m, 0, 0);
@@ -152,7 +171,7 @@ export class DueAlert {
     if (!this.items.size) return false;
     this.store.markAlert("prazos", day);
     let sent = false;
-    for (const { target, due } of await this.perPhone(s.to, now)) {
+    for (const { target, due } of await this.perPhone(now)) {
       if (!due.today.length) continue;
       await this.send([target], dueText(due), "resolvia-prazos");
       sent = true;
@@ -160,18 +179,15 @@ export class DueAlert {
     return sent;
   }
 
-  /** Testar: the alert of today now, to the chosen phones (or "nothing due today"). */
-  async test(targets, now = new Date()) {
-    const to = (Array.isArray(targets) ? targets : []).filter((t) => PHONE_RE.test(t));
-    if (!to.length) throw coded("invalid_format", "Escolha um celular");
-    let sent = 0;
-    let today = 0;
-    for (const { target, due } of await this.perPhone(to, now)) {
-      const text = due.today.length ? dueText(due) : { title: "📅 Prazos", message: "Nada vence hoje. Quando vencer, o aviso vem assim." };
-      sent += await this.send([target], text, "resolvia-prazos-teste");
-      today = Math.max(today, due.today.length);
-    }
-    if (!sent) throw coded("send_failed", "O Home Assistant não entregou o aviso");
-    return { sent, today };
+  /** Testar: the alert of today now, on the phone of the person using the app (or "nothing due today"). */
+  async test(userId, now = new Date()) {
+    const all = await this.recipients();
+    const me = userId ? all.find((r) => r.user_id === userId) : null;
+    if (!me) throw coded("not_a_person", "Você não é uma pessoa da casa no Home Assistant");
+    if (!me.phone) throw coded("no_phone", `Sem celular para ${me.name}`);
+    const due = dueToday(this.lists(), this.items, now, all.filter((r) => r.phone === me.phone).map((r) => r.name));
+    const text = due.today.length ? dueText(due) : { title: "📅 Prazos", message: "Nada vence hoje. Quando vencer, o aviso vem assim." };
+    if (!(await this.send([me.phone], text, "resolvia-prazos-teste"))) throw coded("send_failed", "O Home Assistant não entregou o aviso");
+    return { sent: 1, today: due.today.length, phone: me.phoneName };
   }
 }

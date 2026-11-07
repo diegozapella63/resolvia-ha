@@ -63,9 +63,9 @@ describe("dueText", () => {
 });
 
 describe("alertSettings", () => {
-  it("off unless turned on; never with Controlar prazos off; 08:00 by default; only phones", () => {
-    assert.deepEqual(alertSettings({}), { on: false, time: "08:00", to: [] });
-    assert.deepEqual(alertSettings({ due_alert: true, due_alert_time: "19:30", due_alert_to: ["mobile_app_pixel_8", "persistent_notification"] }), { on: true, time: "19:30", to: ["mobile_app_pixel_8"] });
+  it("off unless turned on; never with Controlar prazos off; 08:00 by default", () => {
+    assert.deepEqual(alertSettings({}), { on: false, time: "08:00" });
+    assert.deepEqual(alertSettings({ due_alert: true, due_alert_time: "19:30", due_alert_to: ["mobile_app_pixel_8"] }), { on: true, time: "19:30" });
     assert.equal(alertSettings({ due_alert: true, due_off: true }).on, false);
     assert.equal(alertSettings({ due_alert: true, due_alert_time: "25:00" }).time, "08:00");
   });
@@ -97,73 +97,86 @@ describe("store: the preferences of the alert", () => {
   });
 });
 
-describe("DueAlert", () => {
-  const make = (app, items = new Map([["todo.casa", [item("Trocar filtro", "2026-11-06")]]])) => {
-    const calls = [];
-    const sent = {};
-    const store = { prefs: { app }, alertSent: (k) => sent[k] || null, markAlert: (k, d) => (sent[k] = d) };
-    const ha = {
-      ready: true,
-      send: async (m) => {
-        calls.push(m);
-        if (m.type === "get_states") return [{ entity_id: "person.ana", attributes: { friendly_name: "Ana", device_trackers: ["device_tracker.pixel_8"] } }, { entity_id: "todo.casa" }];
-        if (m.type === "get_services") return { notify: { mobile_app_pixel_8: {}, mobile_app_tablet: {}, persistent_notification: {} } };
-        if (m.service === "mobile_app_quebrado") throw new Error("offline");
-        return {};
-      },
-    };
-    const log = { info() {}, warn() {} };
-    const da = new DueAlert({ ha, store, lists: () => new Map([["todo.casa", L("Casa")]]), items, log });
-    return { da, calls, sent, ha, notes: () => calls.filter((c) => c.domain === "notify") };
+// The house of the tests: Ana (her phone tied to her in Home Assistant), Beto (his phone chosen in the
+// CronologIA's Avisos, not the old one tied to him), Cida (no phone) and Duda (only in the CronologIA, with a phone).
+const HOUSE = [
+  { entity_id: "person.ana", attributes: { friendly_name: "Ana", user_id: "u-ana", device_trackers: ["device_tracker.pixel_8"] } },
+  { entity_id: "person.beto", attributes: { friendly_name: "Beto", user_id: "u-beto", device_trackers: ["device_tracker.velho"] } },
+  { entity_id: "person.cida", attributes: { friendly_name: "Cida", user_id: "u-cida", device_trackers: [] } },
+  { entity_id: "todo.casa" },
+];
+const PHONES = { mobile_app_pixel_8: {}, mobile_app_velho: {}, mobile_app_galaxy: {}, mobile_app_duda: {}, mobile_app_tablet: {}, persistent_notification: {} };
+function house(app, { items = new Map([["todo.casa", [item("Trocar filtro", "2026-11-06")]]]), lists = () => new Map([["todo.casa", L("Casa")]]), chosen = { Beto: "mobile_app_galaxy", Duda: "mobile_app_duda", Ana: "mobile_app_sumiu" }, fail = null } = {}) {
+  const calls = [];
+  const sent = {};
+  const store = { prefs: { app }, alertSent: (k) => sent[k] || null, markAlert: (k, d) => (sent[k] = d) };
+  const ha = {
+    ready: true,
+    send: async (m) => {
+      calls.push(m);
+      if (m.type === "get_states") return HOUSE;
+      if (m.type === "get_services") return { notify: PHONES };
+      if (m.service === fail) throw new Error("offline");
+      return {};
+    },
   };
-  const at = (h, m) => new Date(2026, 10, 6, h, m);
+  const da = new DueAlert({ ha, store, lists, items, log: { info() {}, warn() {} }, chosen: () => chosen });
+  return { da, calls, sent, ha, notes: () => calls.filter((c) => c.domain === "notify") };
+}
+const at = (h, m) => new Date(2026, 10, 6, h, m);
 
-  it("phones: the mobile apps, with whose they are", async () => {
-    const { da } = make({});
-    assert.deepEqual(await da.phones(), [
-      { id: "mobile_app_pixel_8", name: "Pixel 8", owner: "Ana" },
-      { id: "mobile_app_tablet", name: "Tablet", owner: null },
+describe("DueAlert", () => {
+  it("recipients: each person with the phone of Avisos (CronologIA), else the one tied to them; the people only of the CronologIA too", async () => {
+    const { da } = house({});
+    assert.deepEqual(await da.recipients(), [
+      { name: "Ana", user_id: "u-ana", phone: "mobile_app_pixel_8", phoneName: "Pixel 8" },
+      { name: "Beto", user_id: "u-beto", phone: "mobile_app_galaxy", phoneName: "Galaxy" },
+      { name: "Cida", user_id: "u-cida", phone: null, phoneName: null },
+      { name: "Duda", user_id: null, phone: "mobile_app_duda", phoneName: "Duda" },
     ]);
+    const plain = house({}, { chosen: null });
+    assert.deepEqual((await plain.da.recipients()).map((r) => [r.name, r.phone]), [["Ana", "mobile_app_pixel_8"], ["Beto", "mobile_app_velho"], ["Cida", null]], "no CronologIA: the phones tied to the people");
   });
 
-  it("at the time (up to 2 h after), once a day, to each phone chosen", async () => {
-    const { da, notes, sent } = make({ due_alert: true, due_alert_time: "08:00", due_alert_to: ["mobile_app_pixel_8", "mobile_app_tablet"] });
+  it("at the time (up to 2 h after), once a day, to every person with a phone (the list is everyone's)", async () => {
+    const { da, notes, sent } = house({ due_alert: true, due_alert_time: "08:00" });
     assert.equal(await da.tick(at(7, 59)), false, "before the time");
     assert.equal(await da.tick(at(10, 1)), false, "more than 2 h after");
     assert.equal(notes().length, 0);
     assert.equal(await da.tick(at(8, 0)), true);
-    assert.deepEqual(notes().map((n) => n.service), ["mobile_app_pixel_8", "mobile_app_tablet"]);
+    assert.deepEqual(notes().map((n) => n.service).sort(), ["mobile_app_duda", "mobile_app_galaxy", "mobile_app_pixel_8"], "not the tablet nor the old phone of Beto");
     assert.equal(notes()[0].service_data.title, "📅 Vence hoje");
     assert.equal(notes()[0].service_data.message, "• Trocar filtro");
     assert.equal(notes()[0].service_data.data.tag, "resolvia-prazos");
     assert.equal(sent.prazos, ymd(at(8, 0)));
     assert.equal(await da.tick(at(8, 1)), false, "once a day");
-    assert.equal(notes().length, 2);
+    assert.equal(notes().length, 3);
   });
 
-  it("nothing due today, off, no phone or Home Assistant away: nothing goes", async () => {
-    const empty = make({ due_alert: true, due_alert_to: ["mobile_app_pixel_8"] }, new Map());
+  it("nothing due today, off, or Home Assistant away: nothing goes", async () => {
+    const empty = house({ due_alert: true }, { items: new Map() });
     assert.equal(await empty.da.tick(at(8, 5)), false);
     assert.equal(empty.notes().length, 0);
-    const off = make({ due_alert_to: ["mobile_app_pixel_8"] });
+    const off = house({});
     assert.equal(await off.da.tick(at(8, 5)), false);
-    const nobody = make({ due_alert: true, due_alert_to: [] });
-    assert.equal(await nobody.da.tick(at(8, 5)), false);
-    const away = make({ due_alert: true, due_alert_to: ["mobile_app_pixel_8"] });
+    const away = house({ due_alert: true });
     away.ha.ready = false;
     assert.equal(await away.da.tick(at(8, 5)), false);
     assert.equal(away.sent.prazos, undefined, "tried again when it is back");
   });
 
-  it("Testar: now, to the phones given; nothing due: says so; a phone that fails doesn't stop the others", async () => {
-    const { da, notes } = make({});
-    assert.deepEqual(await da.test(["mobile_app_quebrado", "mobile_app_pixel_8"], at(20, 0)), { sent: 1, today: 1 });
+  it("Testar: on the phone of the one using the app; nothing due: says so; not a person or no phone: says why", async () => {
+    const { da, notes } = house({});
+    assert.deepEqual(await da.test("u-beto", at(20, 0)), { sent: 1, today: 1, phone: "Galaxy" });
+    assert.equal(notes().at(-1).service, "mobile_app_galaxy");
     assert.equal(notes().at(-1).service_data.data.tag, "resolvia-prazos-teste");
-    await assert.rejects(da.test([]), /Escolha um celular/);
-    await assert.rejects(da.test(["notify.x"]), /Escolha um celular/);
-    await assert.rejects(da.test(["mobile_app_quebrado"]), /não entregou/);
-    const none = make({}, new Map());
-    await none.da.test(["mobile_app_pixel_8"], at(20, 0));
+    await assert.rejects(da.test(null), /não é uma pessoa da casa/);
+    await assert.rejects(da.test("u-visita"), /não é uma pessoa da casa/);
+    await assert.rejects(da.test("u-cida"), /Sem celular para Cida/);
+    const broken = house({}, { fail: "mobile_app_pixel_8" });
+    await assert.rejects(broken.da.test("u-ana"), /não entregou/);
+    const none = house({}, { items: new Map() });
+    await none.da.test("u-ana", at(20, 0));
     assert.match(none.notes()[0].service_data.message, /Nada vence hoje/);
   });
 });
@@ -189,34 +202,16 @@ describe("De quem é (2.42.0): the alert of a list with an owner goes only to th
     assert.equal(dueToday(lists(), items, NOW, "Beto").late, 0, "the late ones of Ana don't count for Beto");
   });
 
-  it("tick and Testar: each phone with its person's", async () => {
-    const calls = [];
-    const sent = {};
-    const ha = {
-      ready: true,
-      send: async (m) => {
-        calls.push(m);
-        if (m.type === "get_states")
-          return [
-            { entity_id: "person.ana", attributes: { friendly_name: "Ana", device_trackers: ["device_tracker.pixel_8"] } },
-            { entity_id: "person.beto", attributes: { friendly_name: "Beto", device_trackers: ["device_tracker.galaxy"] } },
-          ];
-        if (m.type === "get_services") return { notify: { mobile_app_pixel_8: {}, mobile_app_galaxy: {}, mobile_app_tablet: {} } };
-        return {};
-      },
-    };
-    const store = { prefs: { app: { due_alert: true, due_alert_to: ["mobile_app_pixel_8", "mobile_app_galaxy", "mobile_app_tablet"] } }, alertSent: (k) => sent[k] || null, markAlert: (k, d) => (sent[k] = d) };
-    const da = new DueAlert({ ha, store, lists, items, log: { info() {}, warn() {} } });
+  it("tick and Testar: each person gets their lists and everyone's; a phone of two people gets both", async () => {
+    const { da, notes } = house({ due_alert: true }, { lists, items, chosen: { Beto: "mobile_app_galaxy", Duda: "mobile_app_pixel_8" } });
     assert.equal(await da.tick(new Date(2026, 10, 6, 8, 0)), true);
-    const by = Object.fromEntries(calls.filter((c) => c.domain === "notify").map((c) => [c.service, c.service_data.message]));
+    const by = Object.fromEntries(notes().map((c) => [c.service, c.service_data.message]));
     assert.deepEqual(by, {
       mobile_app_pixel_8: "• Dentista\n• Lixo\nE 1 atrasado.",
       mobile_app_galaxy: "• Lixo\n• Revisão do carro",
-      mobile_app_tablet: "• Lixo",
-    });
-    calls.length = 0;
-    assert.deepEqual(await da.test(["mobile_app_galaxy"], new Date(2026, 10, 6, 20, 0)), { sent: 1, today: 2 });
-    assert.match(calls.find((c) => c.domain === "notify").service_data.message, /Revisão do carro/);
+    }, "Ana and Duda share the Pixel: one alert, with what is theirs");
+    assert.deepEqual(await da.test("u-beto", new Date(2026, 10, 6, 20, 0)), { sent: 1, today: 2, phone: "Galaxy" });
+    assert.match(notes().at(-1).service_data.message, /Revisão do carro/);
   });
 
   it("store: the owners, and the ones of the CronologIA taken once (only where there is none here)", () => {

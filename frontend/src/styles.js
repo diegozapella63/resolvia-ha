@@ -1287,6 +1287,44 @@ export const styles = css`
     margin: 0;
     min-height: 44px;
   }
+  /* Quem recebe: each person and their phone (only shown) */
+  .due-who {
+    display: grid;
+    gap: 6px;
+  }
+  .due-who .dw {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 40px;
+    padding: 6px 12px;
+    border-radius: 12px;
+    background: var(--rv-surface-2, var(--rv-accent-soft));
+    font-size: 15px;
+  }
+  .due-who .dw .i {
+    width: 17px;
+    height: 17px;
+    flex: none;
+    color: var(--rv-accent-ink);
+  }
+  .due-who .dw b {
+    font-weight: 600;
+  }
+  .due-who .dw span {
+    margin-left: auto;
+    color: var(--rv-muted);
+    font-size: 13.5px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .due-who .dw.off {
+    opacity: 0.6;
+  }
+  .due-who .dw.off .i {
+    color: var(--rv-muted);
+  }
 
   /* ---------- chips / pickers ---------- */
   .pick {

@@ -46,7 +46,10 @@ export class Placar {
         const desligado = j.resolvia === false;
         // donos_listas (1.53.0+): whose each list was there (De quem é), taken here once
         const donos = j.donos_listas && typeof j.donos_listas === "object" && !Array.isArray(j.donos_listas) ? j.donos_listas : null;
-        value = { versao: String(j.versao || "").slice(0, 20), ativo: !desligado && !!p.ativo && participantes.length > 0, desligado, periodo: String(p.periodo || "semana"), participantes, usuarios, espelho: desligado ? {} : espelho, donos };
+        // celulares (1.53.1+): the phone of each person as Mais › Avisos sends to it, for the alert of Prazos
+        const celulares = {};
+        for (const [who, id] of Object.entries(j.celulares && typeof j.celulares === "object" && !Array.isArray(j.celulares) ? j.celulares : {})) if (typeof who === "string" && who.trim() && /^mobile_app_[a-z0-9_]+$/.test(id || "")) celulares[who.trim().slice(0, 80)] = id;
+        value = { versao: String(j.versao || "").slice(0, 20), ativo: !desligado && !!p.ativo && participantes.length > 0, desligado, periodo: String(p.periodo || "semana"), participantes, usuarios, espelho: desligado ? {} : espelho, donos, celulares };
       }
     } catch (e) {
       /* no CronologIA here */
@@ -65,7 +68,7 @@ export class Placar {
   view(userId) {
     const p = this.read();
     if (!p) return null;
-    const { usuarios, espelho, donos, ...rest } = p;
+    const { usuarios, espelho, donos, celulares, ...rest } = p;
     return { ...rest, eu: (userId && usuarios[userId]) || null };
   }
 

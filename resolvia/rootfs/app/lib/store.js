@@ -53,7 +53,8 @@ const APP_FIELDS = {
   ai_off: ["boolean"],
   // Mais > Configurações > Opções > Controlar prazos: true = off (no Prazos tab, no deadline field; Sugestões instead)
   due_off: ["boolean"],
-  // … › Avisar o que vence hoje: true = on (off unless turned on), at due_alert_time ("HH:MM"), to the phones in due_alert_to
+  // … › Avisar o que vence hoje: true = on (off unless turned on), at due_alert_time ("HH:MM"); to whom: the owners of the
+  // lists (due_alert_to, the phones picked by hand in 2.41 and 2.42, is no longer used)
   due_alert: ["boolean"],
   due_alert_time: ["string", 5],
   due_alert_to: ["list", 20],

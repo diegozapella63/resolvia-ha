@@ -284,8 +284,8 @@ class Conn {
         case "get_states":
           return ok([
             ...Object.keys(lists).map(stateOf),
-            { entity_id: "person.ana", state: "home", attributes: { friendly_name: "Ana", device_trackers: ["device_tracker.pixel_8"] } },
-            { entity_id: "person.beto", state: "home", attributes: { friendly_name: "Beto", device_trackers: ["device_tracker.galaxy_s23"] } },
+            { entity_id: "person.ana", state: "home", attributes: { friendly_name: "Ana", user_id: "u-ana", device_trackers: ["device_tracker.pixel_8"] } },
+            { entity_id: "person.beto", state: "home", attributes: { friendly_name: "Beto", user_id: "u-beto", device_trackers: ["device_tracker.galaxy_s23"] } },
             { entity_id: "light.sala", state: "on", attributes: {} },
             // Falar: the speech-to-text engines (Home Assistant Cloud, and a local Whisper that names Portuguese "pt")
             ...(process.env.FAKE_NO_STT

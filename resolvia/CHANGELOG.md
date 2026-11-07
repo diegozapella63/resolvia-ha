@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.43.0
+
+- **Avisar o que vence hoje** sem escolher celular: cada pessoa recebe o que vence nas listas dela (**De quem é**) e nas de todos. **Quem recebe** mostra cada pessoa e o celular dela, o mesmo de **Avisos** da CronologIA (ou, sem ela, o celular ligado à pessoa no Home Assistant). **Testar** manda para o seu celular.
+
 ## 2.42.1
 
 - Tocar no aviso do que vence hoje volta a abrir o ResolvIA. No Home Assistant 2026.2 ou mais novo, ele abria o painel inicial.

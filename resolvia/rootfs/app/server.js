@@ -22,7 +22,7 @@ import { Voice, readRaw, MAX_VOICE_BYTES } from "./lib/voice.js";
 import { snapshot, toCSV, backupZip, parseImport, Backups, listVersions, readVersion, fileStamp } from "./lib/data.js";
 import { DueAlert } from "./lib/duealert.js";
 
-const VERSION = "2.42.1";
+const VERSION = "2.43.0";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const WWW = path.join(HERE, "www");
 const DEV = process.env.RESOLVIA_DEV === "1";
@@ -121,7 +121,8 @@ const dueLists = () => {
   }
   return out;
 };
-const dueAlert = new DueAlert({ ha, store, lists: dueLists, items: recurring.items, log });
+// the phone of each person: as chosen in the CronologIA (Mais › Avisos), when it runs here
+const dueAlert = new DueAlert({ ha, store, lists: dueLists, items: recurring.items, log, chosen: () => (placar.read() || {}).celulares || null });
 
 /** The people who can own a list: the persons of Home Assistant and the participants of the scoreboard. */
 async function peopleNames() {
@@ -494,14 +495,14 @@ class Session {
 
       case "resolvia/prefs/get":
         return this.result(id, store.prefs);
-      // Avisar o que vence hoje: the phones that can get it, and Testar
-      case "resolvia/phones":
-        return this.result(id, await dueAlert.phones());
+      // Avisar o que vence hoje: who gets it (each person and their phone; me: the one using the app), and Testar on mine
+      case "resolvia/due_alert/people":
+        return this.result(id, (await dueAlert.recipients()).map((r) => ({ name: r.name, phone: r.phoneName, me: !!(this.user.id && r.user_id === this.user.id) })));
       // De quem é (Personalizar): the people of the house and those of the scoreboard of the CronologIA
       case "resolvia/people":
         return this.result(id, await peopleNames());
       case "resolvia/due_alert/test":
-        return this.result(id, await dueAlert.test(msg.targets));
+        return this.result(id, await dueAlert.test(this.user.id));
       case "resolvia/prefs/set_list": {
         const prefs = store.setListPrefs(msg.entity_id, msg.prefs);
         if ("dates_info" in (msg.prefs || {}) || "owner" in (msg.prefs || {})) publishPresence();
