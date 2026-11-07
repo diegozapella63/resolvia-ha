@@ -2,6 +2,7 @@
 # people (Ana and Beto), 08:00; the time and Testar side by side, the same size; Testar sends what is due today
 # to the phones chosen (the simulated Home Assistant keeps it); a phone off and the time are saved; with
 # Controlar prazos off, the alert goes away. 320 px to the computer, light and dark.
+# 2.42.0: Personalizar › De quem é (Todos or a person): the alert of that list goes only to that person's phone.
 import os as _os
 CRONOLOGIA = _os.environ.get("E2E_CRONOLOGIA", "")
 RESOLVIA = _os.environ.get("E2E_RESOLVIA", "")
@@ -91,6 +92,44 @@ async def main():
                 check(await prazos.locator(".row", has_text="Avisar o que vence hoje").locator("input[role=switch]").is_checked(), f"{tag}: back on: the alert as it was")
             check(not errs, f"{tag}: no page errors {errs}")
             await ctx.close()
+        # De quem é: the list Casa is Beto's; Testar: Beto gets it, Ana doesn't
+        ctx = await b.new_context(viewport={"width": 390, "height": 844}, device_scale_factor=2, color_scheme="dark", has_touch=True)
+        pg = await ctx.new_page(); errs = []
+        pg.on("pageerror", lambda e: errs.append(str(e)))
+        await pg.goto(URL); await pg.wait_for_timeout(1500)
+        a = pg.locator("resolvia-panel")
+        await a.evaluate("(el) => el._openCustomize(el._list('todo.casa'))"); await pg.wait_for_timeout(900)
+        sheet = a.locator(".sheet")
+        picks = [t.strip() for t in await sheet.locator(".owner-pick .pick").all_inner_texts()]
+        check(picks == ["Todos", "Ana", "Beto"], f"Personalizar: De quem é, Todos and the people ({picks})")
+        check(await sheet.locator(".owner-pick .pick.on").inner_text() == "Todos", "a list is everyone's by default")
+        await sheet.locator(".owner-pick .pick", has_text="Beto").click(); await pg.wait_for_timeout(200)
+        hint = await sheet.locator(".field:has(.owner-pick) .field-hint").inner_text()
+        check("só para o celular de Beto" in hint, f"the hint ({hint})")
+        bb = [await x.bounding_box() for x in await sheet.locator(".owner-pick .pick").all()]
+        check(len({round(x["width"]) for x in bb}) == 1 and len({round(x["height"]) for x in bb}) == 1, f"the choices the same size ({[(round(x['width']), round(x['height'])) for x in bb]})")
+        await pg.screenshot(path=f"{SP}/shots/rvda-owner.png")
+        await sheet.locator(".btn.primary", has_text="Salvar").click(); await pg.wait_for_timeout(900)
+        lp = json.load(open(f"{DATA}/resolvia.json"))["prefs"]["lists"].get("todo.casa", {})
+        check(lp.get("owner") == "Beto", f"saved: the list is Beto's ({lp})")
+        pres = json.load(open(f"{SHARE}/resolvia/integracao.json"))
+        check(pres.get("donos") == {"todo.casa": "Beto"}, f"the CronologIA gets it ({pres.get('donos')})")
+        await a.evaluate("(el) => el._go('/config/opcoes')"); await pg.wait_for_timeout(700)
+        prazos = a.locator(".panel").filter(has_text="Controlar prazos")
+        check("Lista com dono vai só para o celular da pessoa." in await prazos.inner_text(), "the alert says it")
+        for name in ("Ana", "Beto"):
+            if not await prazos.locator(".pick.phone.on", has_text=name).count():
+                await prazos.locator(".pick.phone", has_text=name).click(); await pg.wait_for_timeout(500)
+        n0 = len(notes())
+        await prazos.locator(".remind-test").click(); await pg.wait_for_timeout(900)
+        got = {n["service"]: n["message"] for n in notes()[n0:]}
+        check("Trocar filtro do ar" in got.get("mobile_app_galaxy_s23", "") and "Nada vence hoje" in got.get("mobile_app_pixel_8", ""), f"Testar: Beto gets the list of Beto, Ana doesn't ({got})")
+        await a.evaluate("(el) => el._openCustomize(el._list('todo.casa'))"); await pg.wait_for_timeout(600)
+        await a.locator(".sheet .owner-pick .pick", has_text="Todos").click()
+        await a.locator(".sheet .btn.primary", has_text="Salvar").click(); await pg.wait_for_timeout(900)
+        check("owner" not in json.load(open(f"{DATA}/resolvia.json"))["prefs"]["lists"].get("todo.casa", {}), "Todos: everyone's again")
+        check(not errs, f"De quem é: no page errors {errs}")
+        await ctx.close()
         # ?aba=prazos (the tap on the alert): the app opens on Prazos
         ctx = await b.new_context(viewport={"width": 390, "height": 844})
         pg = await ctx.new_page()

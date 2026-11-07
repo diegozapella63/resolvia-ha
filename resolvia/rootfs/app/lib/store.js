@@ -24,7 +24,9 @@ const num = (v) => (Number.isFinite(v) ? v : null);
 // date gets its dates from the integration (e.g. "unavailable since"): they are
 // always information, never deadlines. dates_info: true also turns off the
 // deadlines of a list that does accept them.
-const LIST_FIELDS = { name: ["string", 80], color: ["string", 24], icon: ["string", 40], hidden: ["boolean"], dates_info: ["boolean"] };
+// owner: whose the list is (the name of a person of the house; none: everyone's). The alert of Prazos goes only
+// to that person's phone, and the CronologIA shows the list only to them.
+const LIST_FIELDS = { name: ["string", 80], color: ["string", 24], icon: ["string", 40], hidden: ["boolean"], dates_info: ["boolean"], owner: ["string", 80] };
 
 const F_DUE = 16 | 32; // TodoListEntityFeature.SET_DUE_DATE | SET_DUE_DATETIME
 
@@ -226,6 +228,8 @@ export function normalize(raw, strict = false) {
   data.equips = cleanLinks(raw.equips); // {todo.x: {task key: item id | [item ids] of the InventarIA}}
   // the day each daily alert went out ({prazos: "YYYY-MM-DD"}), so it goes once a day even after a restart
   if (isObj(raw.alerts) && typeof raw.alerts.prazos === "string" && /^\d{4}-\d{2}-\d{2}$/.test(raw.alerts.prazos)) data.alerts = { prazos: raw.alerts.prazos };
+  // the owners of the lists came from the CronologIA once (2.42.0): never again, so a list made everyone's stays so
+  if (raw.owners_adopted === true) data.owners_adopted = true;
   return data;
 }
 
@@ -479,6 +483,31 @@ export class Store {
     this.data.prefs.lists = lists;
     this.save();
     return this.data.prefs;
+  }
+
+  /** De quem é: whose each list is ({todo.x: "Ana"}). */
+  get owners() {
+    const out = {};
+    for (const [id, p] of Object.entries(this.data.prefs.lists || {})) if (p && typeof p.owner === "string" && p.owner.trim()) out[id] = p.owner.trim();
+    return out;
+  }
+
+  /**
+   * The owners the CronologIA had (Tarefas do ResolvIA › De quem é, before 1.53.0), taken once: only for
+   * lists without an owner here. Returns how many were taken.
+   */
+  adoptOwners(fromCronologia) {
+    if (this.data.owners_adopted || !isObj(fromCronologia)) return 0;
+    let n = 0;
+    for (const [id, name] of Object.entries(fromCronologia).slice(0, 100)) {
+      const who = typeof name === "string" ? name.trim().slice(0, 80) : "";
+      if (!/^todo\.[a-z0-9_]+$/.test(id) || !who || this.owners[id]) continue;
+      this.data.prefs.lists = { ...this.data.prefs.lists, [id]: { ...(this.data.prefs.lists[id] || {}), owner: who } };
+      n++;
+    }
+    this.data.owners_adopted = true;
+    this.save();
+    return n;
   }
 
   /** The day a daily alert last went out ("YYYY-MM-DD" or null). */

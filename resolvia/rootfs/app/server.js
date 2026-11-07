@@ -22,7 +22,7 @@ import { Voice, readRaw, MAX_VOICE_BYTES } from "./lib/voice.js";
 import { snapshot, toCSV, backupZip, parseImport, Backups, listVersions, readVersion, fileStamp } from "./lib/data.js";
 import { DueAlert } from "./lib/duealert.js";
 
-const VERSION = "2.41.0";
+const VERSION = "2.42.0";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const WWW = path.join(HERE, "www");
 const DEV = process.env.RESOLVIA_DEV === "1";
@@ -122,6 +122,29 @@ const dueLists = () => {
   return out;
 };
 const dueAlert = new DueAlert({ ha, store, lists: dueLists, items: recurring.items, log });
+
+/** The people who can own a list: the persons of Home Assistant and the participants of the scoreboard. */
+async function peopleNames() {
+  const states = await ha.send({ type: "get_states" });
+  const names = (states || []).filter((st) => /^person\.[a-z0-9_]+$/.test(st.entity_id || "")).map((st) => (st.attributes && st.attributes.friendly_name) || st.entity_id.slice(7));
+  const p = placar.read();
+  const fold = (x) => x.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+  const out = [];
+  for (const n of [...names, ...((p && p.participantes) || [])]) if (n && !out.some((x) => fold(x) === fold(n))) out.push(n);
+  return out.sort((a, b) => a.localeCompare(b, "pt-BR"));
+}
+
+/** The owners the CronologIA had before 1.53.0 (its De quem é), taken once. */
+function adoptOwners() {
+  if (store.data.owners_adopted) return;
+  const p = placar.read();
+  if (!p || !p.donos) return;
+  const n = store.adoptOwners(p.donos);
+  if (n) {
+    log.info(`De quem é: ${n} lista(s) com dono vieram da CronologIA`);
+    publishPresence();
+  }
+}
 // Sugestões: since when each pending item is on its list, and the last suggestion of the AI
 const ages = new Ages({ dir: DATA_DIR, log });
 // the last pick of the AI (Sugestões › Comece por aqui), kept on disk so it survives a restart or an update
@@ -474,11 +497,14 @@ class Session {
       // Avisar o que vence hoje: the phones that can get it, and Testar
       case "resolvia/phones":
         return this.result(id, await dueAlert.phones());
+      // De quem é (Personalizar): the people of the house and those of the scoreboard of the CronologIA
+      case "resolvia/people":
+        return this.result(id, await peopleNames());
       case "resolvia/due_alert/test":
         return this.result(id, await dueAlert.test(msg.targets));
       case "resolvia/prefs/set_list": {
         const prefs = store.setListPrefs(msg.entity_id, msg.prefs);
-        if ("dates_info" in (msg.prefs || {})) publishPresence();
+        if ("dates_info" in (msg.prefs || {}) || "owner" in (msg.prefs || {})) publishPresence();
         return this.result(id, prefs);
       }
       case "resolvia/prefs/set_app": {
@@ -878,7 +904,9 @@ function publishPresence() {
     const comodos = roomsOn() && inventario.state.comodos.length ? { lista: inventario.state.comodos.map((c) => ({ id: c.id, nome: c.nome })), tarefas: store.rooms } : null;
     // equipamentos: the items of the InventarIA (with their room) and the item of each task
     const equipamentos = equipsOn() && inventario.state.itens.length ? { lista: inventario.state.itens.map((i) => ({ id: i.id, nome: i.nome, comodo: inventario.nameOf(i.comodo) || "" })), tarefas: store.equips } : null;
-    fs.writeFileSync(tmp, JSON.stringify({ app: "ResolvIA", versao: VERSION, gravado_em: new Date().toISOString(), prazos, sem_prazo: semPrazo, pontos, repete, ...(comodos ? { comodos } : {}), ...(equipamentos ? { equipamentos } : {}) }, null, 1));
+    // donos: whose each list is (De quem é, 2.42.0+): the CronologIA shows it only to that person
+    const donos = store.owners;
+    fs.writeFileSync(tmp, JSON.stringify({ app: "ResolvIA", versao: VERSION, gravado_em: new Date().toISOString(), prazos, sem_prazo: semPrazo, pontos, repete, donos, ...(comodos ? { comodos } : {}), ...(equipamentos ? { equipamentos } : {}) }, null, 1));
     fs.renameSync(tmp, path.join(dir, "integracao.json"));
     publishWarned = false;
   } catch (err) {
@@ -888,6 +916,10 @@ function publishPresence() {
 }
 publishPresence();
 setInterval(publishPresence, 15 * 60 * 1000);
+// the owners of the lists of the CronologIA (before 1.53.0), taken once it publishes them
+// (every minute until then; afterwards it returns at once)
+setTimeout(adoptOwners, 3000);
+setInterval(adoptOwners, 60 * 1000);
 // Avisar o que vence hoje: checked every minute (it goes once a day, at the chosen time)
 // (RESOLVIA_ALERT_MS, in development only: the tests check sooner)
 const ALERT_EVERY = (DEV && Number(process.env.RESOLVIA_ALERT_MS)) || 60 * 1000;

@@ -51,7 +51,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.41.0";
+const VERSION = "2.42.0";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -100,6 +100,7 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
     _prefs: { state: true },
     _path: { state: true },
     _phones: { state: true },
+    _people: { state: true },
     _sheet: { state: true },
     _form: { state: true },
     _toast: { state: true },
@@ -437,6 +438,7 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
         icon: p.icon || guessIcon(`${meta.name} ${meta.group || ""} ${id}`),
         iconPref: p.icon || null,
         hidden: !!p.hidden,
+        owner: p.owner || null,
         features,
         canDue,
         datesInfo,
@@ -1712,7 +1714,22 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
       icon: list.iconPref,
       hidden: list.hidden,
       deadlines: !list.datesInfo,
+      owner: list.owner || "",
     });
+    if (this._people === undefined) this._loadPeople();
+  }
+
+  /** De quem é: the people of the house (Home Assistant) and of the scoreboard; undefined while looking. */
+  async _loadPeople() {
+    if (this._peopleLoading) return;
+    this._peopleLoading = true;
+    try {
+      this._people = this._prefsRemote ? await this.hass.callWS({ type: "resolvia/people" }) : [];
+    } catch (e) {
+      this._people = [];
+    }
+    this._peopleLoading = false;
+    this.requestUpdate();
   }
 
   async _saveCustomize() {
@@ -1725,6 +1742,7 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
       icon: f.icon || null,
       hidden: f.hidden ? true : null,
       dates_info: l && l.canDue && !f.deadlines ? true : null,
+      owner: (f.owner || "").trim() || null,
     });
   }
 
@@ -2860,7 +2878,11 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
                       const picked = to.includes(p.id);
                       return html`<button class="pick phone ${picked ? "on" : ""}" aria-pressed=${picked ? "true" : "false"} title=${p.name} @click=${() => toggle(p.id)}>${icon("smartphone")}<span>${label(p)}</span></button>`;
                     })}</div>
-                    ${to.length ? nothing : html`<p class="field-hint">${icon("info")}<span>Escolha ao menos um celular.</span></p>`}`
+                    ${to.length
+                      ? this._L.some((l) => l.owner)
+                        ? html`<p class="field-hint">${icon("info")}<span>Lista com dono vai só para o celular da pessoa.</span></p>`
+                        : nothing
+                      : html`<p class="field-hint">${icon("info")}<span>Escolha ao menos um celular.</span></p>`}`
                   : html`<p class="field-hint">${icon("info")}<span>Nenhum celular com o app Home Assistant.</span></p>`}
             </div>
           </div>`
@@ -3407,6 +3429,7 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
           ${LIST_ICONS.map((n) => html`<button class="ig ${ic === n ? "on" : ""}" aria-label=${n} @click=${() => this._setForm({ icon: n })}>${icon(n)}</button>`)}
         </div>
       </div>
+      ${this._renderOwnerPick(f)}
       <div class="row" style="border:0;padding-top:0">
         <div class="grow"><div class="label">Mostrar no início</div></div>
         <label class="switch"><input type="checkbox" role="switch" .checked=${!f.hidden} @change=${(e) => this._setForm({ hidden: !e.target.checked })} aria-label="Mostrar no início" /><span class="track"></span></label>
@@ -3425,10 +3448,31 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
           ? html`<p class="sheet-note with-icon">${icon("info")}<span>Esta lista não aceita prazo: as datas vêm da integração, só como informação.</span></p>`
           : nothing}
       <div class="sheet-actions">
-        <button class="btn outline" @click=${() => this._setForm({ name: "", color: null, icon: null, hidden: false, deadlines: l.canDue })}>${icon("rotate-ccw")}Padrão</button>
+        <button class="btn outline" @click=${() => this._setForm({ name: "", color: null, icon: null, hidden: false, deadlines: l.canDue, owner: "" })}>${icon("rotate-ccw")}Padrão</button>
         <button class="btn primary" @click=${() => this._saveCustomize()}>Salvar</button>
       </div>
     `;
+  }
+
+  /**
+   * Personalizar › De quem é: Todos (the house) or one person. A list of a person: the alert of Prazos
+   * goes only to their phone, and the CronologIA shows it only to them. A name that is no longer a person
+   * of the house stays as a choice, so it isn't lost.
+   */
+  _renderOwnerPick(f) {
+    const people = this._people || [];
+    const names = f.owner && !people.some((n) => fold(n) === fold(f.owner)) ? [...people, f.owner] : people;
+    if (!names.length) return nothing;
+    return html`<div class="field">
+      <span class="flabel">De quem é</span>
+      <div class="chip-row grid owner-pick" role="radiogroup" aria-label="De quem é">
+        ${["", ...names].map((n) => {
+          const on = n ? fold(f.owner || "") === fold(n) : !f.owner;
+          return html`<button class="pick ${on ? "on" : ""}" role="radio" aria-checked=${on ? "true" : "false"} @click=${() => this._setForm({ owner: n })}>${icon(n ? "user-round" : "users")}<span>${n || "Todos"}</span></button>`;
+        })}
+      </div>
+      ${f.owner ? html`<span class="field-hint">${icon("info")}<span>O aviso de prazos vai só para o celular de ${f.owner}.</span></span>` : nothing}
+    </div>`;
   }
 
   _renderConfirm() {

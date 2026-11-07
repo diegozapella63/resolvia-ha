@@ -483,7 +483,7 @@ describe("Store: list and app prefs", () => {
 
   it("ignores unknown fields and rejects wrong types", (t) => {
     const { store } = newStore(t);
-    store.setListPrefs("todo.casa", { name: "Casa", owner: "x" });
+    store.setListPrefs("todo.casa", { name: "Casa", dono: "x" });
     assert.deepEqual(store.prefs.lists["todo.casa"], { name: "Casa" });
     assert.throws(() => store.setListPrefs("todo.casa", { name: 3 }), /name must be text/);
     assert.throws(() => store.setListPrefs("todo.casa", "x"), /prefs must be an object/);

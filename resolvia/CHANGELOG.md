@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.42.0
+
+- **De quem é** cada lista, em **⋯ › Personalizar**: **Todos** ou uma pessoa da casa. O aviso do que vence hoje de uma lista com dono vai só para o celular dessa pessoa, e na CronologIA (1.53.0 ou mais novo) a lista só aparece para ela. Se a CronologIA já tinha o dono de alguma lista, ele vem sozinho para cá.
+
 ## 2.41.0
 
 - **Avisar o que vence hoje**, em **Mais › Configurações › Opções › Prazos** (desligado por padrão): uma vez por dia, no horário que você escolher, o celular recebe o que vence hoje (e quantos estão atrasados). Tocar no aviso abre **Prazos**. Escolha os celulares (já vêm marcados os das pessoas) e use **Testar** para ver como chega.

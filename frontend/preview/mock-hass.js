@@ -316,6 +316,7 @@ export function createMockHass(onChange) {
       if (msg.type === "resolvia/prefs/get") return JSON.parse(JSON.stringify(prefs));
       // Avisar o que vence hoje: two phones with the app Home Assistant; Testar answers as if it went
       if (msg.type === "resolvia/phones") return [{ id: "mobile_app_galaxy_s23", name: "Galaxy S23", owner: "Beto" }, { id: "mobile_app_pixel_8", name: "Pixel 8", owner: "Ana" }];
+      if (msg.type === "resolvia/people") return ["Ana", "Beto"];
       if (msg.type === "resolvia/due_alert/test") {
         if (!(msg.targets || []).length) fail("Escolha um celular");
         return { sent: msg.targets.length, today: 1 };

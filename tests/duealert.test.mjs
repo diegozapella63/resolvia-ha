@@ -167,3 +167,72 @@ describe("DueAlert", () => {
     assert.match(none.notes()[0].service_data.message, /Nada vence hoje/);
   });
 });
+
+describe("De quem é (2.42.0): the alert of a list with an owner goes only to that person's phone", () => {
+  const lists = () =>
+    new Map([
+      ["todo.casa", L("Casa")],
+      ["todo.ana", L("Da Ana", { prefs: { owner: "Ana" } })],
+      ["todo.beto", L("Do Beto", { prefs: { owner: "Beto" } })],
+    ]);
+  const items = new Map([
+    ["todo.casa", [item("Lixo", "2026-11-06")]],
+    ["todo.ana", [item("Dentista", "2026-11-06"), item("Atrasada da Ana", "2026-11-01")]],
+    ["todo.beto", [item("Revisão do carro", "2026-11-06")]],
+  ]);
+  it("dueToday with whom: theirs and everyone's; a phone of nobody: everyone's only; without whom: all", () => {
+    const names = (whom) => dueToday(lists(), items, NOW, whom).today.map((t) => t.summary);
+    assert.deepEqual(names("ana"), ["Dentista", "Lixo"], "the name, without minding case or accents");
+    assert.deepEqual(names("Beto"), ["Lixo", "Revisão do carro"]);
+    assert.deepEqual(names(null), ["Lixo"]);
+    assert.deepEqual(names(undefined), ["Dentista", "Lixo", "Revisão do carro"]);
+    assert.equal(dueToday(lists(), items, NOW, "Beto").late, 0, "the late ones of Ana don't count for Beto");
+  });
+
+  it("tick and Testar: each phone with its person's", async () => {
+    const calls = [];
+    const sent = {};
+    const ha = {
+      ready: true,
+      send: async (m) => {
+        calls.push(m);
+        if (m.type === "get_states")
+          return [
+            { entity_id: "person.ana", attributes: { friendly_name: "Ana", device_trackers: ["device_tracker.pixel_8"] } },
+            { entity_id: "person.beto", attributes: { friendly_name: "Beto", device_trackers: ["device_tracker.galaxy"] } },
+          ];
+        if (m.type === "get_services") return { notify: { mobile_app_pixel_8: {}, mobile_app_galaxy: {}, mobile_app_tablet: {} } };
+        return {};
+      },
+    };
+    const store = { prefs: { app: { due_alert: true, due_alert_to: ["mobile_app_pixel_8", "mobile_app_galaxy", "mobile_app_tablet"] } }, alertSent: (k) => sent[k] || null, markAlert: (k, d) => (sent[k] = d) };
+    const da = new DueAlert({ ha, store, lists, items, log: { info() {}, warn() {} } });
+    assert.equal(await da.tick(new Date(2026, 10, 6, 8, 0)), true);
+    const by = Object.fromEntries(calls.filter((c) => c.domain === "notify").map((c) => [c.service, c.service_data.message]));
+    assert.deepEqual(by, {
+      mobile_app_pixel_8: "• Dentista\n• Lixo\nE 1 atrasado.",
+      mobile_app_galaxy: "• Lixo\n• Revisão do carro",
+      mobile_app_tablet: "• Lixo",
+    });
+    calls.length = 0;
+    assert.deepEqual(await da.test(["mobile_app_galaxy"], new Date(2026, 10, 6, 20, 0)), { sent: 1, today: 2 });
+    assert.match(calls.find((c) => c.domain === "notify").service_data.message, /Revisão do carro/);
+  });
+
+  it("store: the owners, and the ones of the CronologIA taken once (only where there is none here)", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "rv-own-"));
+    const st = new Store(dir, { warn() {}, error() {}, info() {} });
+    st.setListPrefs("todo.ana", { owner: "  Ana " });
+    st.setListPrefs("todo.casa", { color: "azul" });
+    assert.deepEqual(st.owners, { "todo.ana": "Ana" });
+    assert.equal(st.adoptOwners({ "todo.ana": "Beto", "todo.trabalho": "Beto", "light.x": "Ana", "todo.y": "" }), 1);
+    assert.deepEqual(st.owners, { "todo.ana": "Ana", "todo.trabalho": "Beto" });
+    st.setListPrefs("todo.trabalho", { owner: null });
+    assert.equal(st.adoptOwners({ "todo.trabalho": "Beto" }), 0, "once: made everyone's, it stays so");
+    assert.deepEqual(st.owners, { "todo.ana": "Ana" });
+    st.flush({ version: false });
+    assert.equal(new Store(dir, { warn() {}, error() {}, info() {} }).adoptOwners({ "todo.z": "Ana" }), 0, "remembered after a restart");
+    assert.equal(st.adoptOwners(null), 0);
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+});

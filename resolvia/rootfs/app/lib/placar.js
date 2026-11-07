@@ -44,7 +44,9 @@ export class Placar {
           }
         }
         const desligado = j.resolvia === false;
-        value = { versao: String(j.versao || "").slice(0, 20), ativo: !desligado && !!p.ativo && participantes.length > 0, desligado, periodo: String(p.periodo || "semana"), participantes, usuarios, espelho: desligado ? {} : espelho };
+        // donos_listas (1.53.0+): whose each list was there (De quem é), taken here once
+        const donos = j.donos_listas && typeof j.donos_listas === "object" && !Array.isArray(j.donos_listas) ? j.donos_listas : null;
+        value = { versao: String(j.versao || "").slice(0, 20), ativo: !desligado && !!p.ativo && participantes.length > 0, desligado, periodo: String(p.periodo || "semana"), participantes, usuarios, espelho: desligado ? {} : espelho, donos };
       }
     } catch (e) {
       /* no CronologIA here */
@@ -63,7 +65,7 @@ export class Placar {
   view(userId) {
     const p = this.read();
     if (!p) return null;
-    const { usuarios, espelho, ...rest } = p;
+    const { usuarios, espelho, donos, ...rest } = p;
     return { ...rest, eu: (userId && usuarios[userId]) || null };
   }
 

@@ -29,7 +29,8 @@ Com a tela larga (1000 pixels ou mais, como no InventarIA), as abas de baixo vir
 - Numa lista, escreva no campo do alto e toque em **+** (colar várias linhas cria um item por linha). Tocar no quadrado conclui, com **Desfazer** no aviso de baixo; a alça à direita arrasta para reordenar; os concluídos ficam recolhidos no fim, com **Limpar**.
 - Tocar num item abre **Editar item**: texto, notas, **Prazo** (Hoje, Amanhã, Sábado, Próx. semana ou outra data, com horário quando a lista aceita), **Repetir depois de concluir**, **Cômodo** e **Equipamento** (com o InventarIA), **Quem faz**, **Pontos para quem concluir** (com as Recompensas) e **Lista**, para mover. Só aparece o que a lista e as opções ligadas permitem.
 - Um link vira uma etiqueta curta: `Ver sobre: https://github.com/fulano/projeto` mostra `fulano/projeto`.
-- O **⋯** da lista: **Selecionar itens**, **Personalizar** (nome, cor, ícone e prazos), **Ocultar do início**, **Abrir na tela padrão do HA** e **Limpar concluídos**.
+- O **⋯** da lista: **Selecionar itens**, **Personalizar** (nome, cor, ícone, de quem é e prazos), **Ocultar do início**, **Abrir na tela padrão do HA** e **Limpar concluídos**.
+- **De quem é** (em Personalizar): **Todos** (o padrão) ou uma pessoa da casa. O aviso de prazos de uma lista com dono vai só para o celular dessa pessoa, e na CronologIA (1.53.0 ou mais novo) ela só aparece para essa pessoa. Se a CronologIA já tinha o dono de alguma lista, ele vem sozinho, uma vez.
 
 ### Mover vários itens de lista
 
@@ -157,7 +158,7 @@ Prazo é só o que você define. Algumas integrações preenchem sozinhas a data
 
 Nas listas em que você define prazo, dá para desligar os prazos em **⋯ › Personalizar › Prazos**.
 
-**Avisar o que vence hoje** (em **Mais › Configurações › Opções › Prazos**, desligado por padrão): uma vez por dia, no horário escolhido (08:00 de início), o celular recebe o que vence hoje, um por linha, com o horário quando tem, e quantos estão atrasados. Tocar no aviso abre o app em **Prazos**. Ao ligar, já vêm marcados os celulares das pessoas do Home Assistant (os que têm o app Home Assistant); toque num celular para tirar ou pôr. **Testar** manda o aviso de hoje na hora. Se nada vence no dia, não chega aviso. Valem as listas que aparecem e que têm prazo; com **Controlar prazos** desligado, não há aviso.
+**Avisar o que vence hoje** (em **Mais › Configurações › Opções › Prazos**, desligado por padrão): uma vez por dia, no horário escolhido (08:00 de início), o celular recebe o que vence hoje, um por linha, com o horário quando tem, e quantos estão atrasados. Tocar no aviso abre o app em **Prazos**. Ao ligar, já vêm marcados os celulares das pessoas do Home Assistant (os que têm o app Home Assistant); toque num celular para tirar ou pôr. Cada celular recebe as listas da sua pessoa e as de todos (as de **De quem é**: **Todos**); um celular sem pessoa (um tablet) recebe só as de todos. **Testar** manda o aviso de hoje na hora. Se nada vence no dia, não chega aviso. Valem as listas que aparecem e que têm prazo; com **Controlar prazos** desligado, não há aviso.
 
 As tarefas com prazo também aparecem no CronologIA, na **Agora** e no calendário, quando a integração com o ResolvIA está ligada lá (as listas com prazos desligados ficam de fora). O aviso de prazos vem só daqui.
 

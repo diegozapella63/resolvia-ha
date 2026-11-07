@@ -1,5 +1,7 @@
 // Mais › Configurações › Opções › Prazos › Avisar o que vence hoje: once a day, at the chosen time, the
 // phones chosen get what is due today (the lists shown, with deadlines on). Nothing due today: no alert.
+// A list with an owner (Personalizar › De quem é) only goes to that person's phone; a phone of nobody
+// (a tablet) gets only the lists of everyone.
 // Tapping it opens the app on Prazos (?aba=prazos on the page around the app).
 import os from "node:os";
 import { datesInfo } from "./store.js";
@@ -12,6 +14,15 @@ export const DEFAULT_TIME = "08:00";
 const WINDOW_MS = 2 * 3600 * 1000; // sent up to 2 h after the time (the app was off at the time)
 const MAX_LINES = 5;
 const coded = (code, message) => Object.assign(new Error(message), { code });
+export const fold = (s) =>
+  String(s || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+
+/** The list goes to this person? (no owner: everyone's; whom undefined: anyone's, without looking.) */
+export const listFor = (prefs, whom) => whom === undefined || !(prefs && prefs.owner) || (!!whom && fold(prefs.owner) === fold(whom));
 
 /** Ingress path of this app (hostname a1b2c3d4-resolvia -> /hassio/ingress/a1b2c3d4_resolvia). */
 export function ingressUrl(host = os.hostname()) {
@@ -30,14 +41,15 @@ export function dueParts(due) {
 /**
  * What is due today and how many are late, from the items of each list.
  * lists: Map entity_id -> {name, features, prefs}; items: Map entity_id -> items of Home Assistant.
- * Hidden lists and lists whose dates are only information are left out.
+ * Hidden lists and lists whose dates are only information are left out; with whom (the person of a phone,
+ * or null for a phone of nobody), the lists of other people too.
  */
-export function dueToday(lists, items, now = new Date()) {
+export function dueToday(lists, items, now = new Date(), whom = undefined) {
   const today = ymd(now);
   const out = [];
   let late = 0;
   for (const [id, l] of lists) {
-    if (!l || (l.prefs && l.prefs.hidden) || datesInfo(l.prefs, l.features)) continue;
+    if (!l || (l.prefs && l.prefs.hidden) || datesInfo(l.prefs, l.features) || !listFor(l.prefs, whom)) continue;
     for (const i of items.get(id) || []) {
       if (!i || i.status === "completed" || !i.summary) continue;
       const p = dueParts(i.due);
@@ -113,7 +125,19 @@ export class DueAlert {
     return sent;
   }
 
-  /** Every minute: at the time (up to 2 h after), once a day, if something is due today. */
+  /** Each phone with what is due today for its person: [{target, due}]. */
+  async perPhone(targets, now) {
+    let owners = new Map();
+    try {
+      owners = new Map((await this.phones()).map((p) => [p.id, p.owner]));
+    } catch (err) {
+      this.log.warn(`Aviso de prazos: não consegui ver de quem é cada celular (${err.message})`);
+    }
+    const lists = this.lists();
+    return targets.map((target) => ({ target, due: dueToday(lists, this.items, now, owners.get(target) || null) }));
+  }
+
+  /** Every minute: at the time (up to 2 h after), once a day, to each phone what is due today for its person. */
   async tick(now = new Date()) {
     const s = alertSettings(this.store.prefs.app);
     if (!s.on || !s.to.length || !this.ha.ready) return false;
@@ -126,20 +150,27 @@ export class DueAlert {
     // just started: the items of the lists aren't here yet (tried again in a minute)
     if (!this.items.size) return false;
     this.store.markAlert("prazos", day);
-    const due = dueToday(this.lists(), this.items, now);
-    if (!due.today.length) return false;
-    await this.send(s.to, dueText(due), "resolvia-prazos");
-    return true;
+    let sent = false;
+    for (const { target, due } of await this.perPhone(s.to, now)) {
+      if (!due.today.length) continue;
+      await this.send([target], dueText(due), "resolvia-prazos");
+      sent = true;
+    }
+    return sent;
   }
 
   /** Testar: the alert of today now, to the chosen phones (or "nothing due today"). */
   async test(targets, now = new Date()) {
     const to = (Array.isArray(targets) ? targets : []).filter((t) => PHONE_RE.test(t));
     if (!to.length) throw coded("invalid_format", "Escolha um celular");
-    const due = dueToday(this.lists(), this.items, now);
-    const text = due.today.length ? dueText(due) : { title: "📅 Prazos", message: "Nada vence hoje. Quando vencer, o aviso vem assim." };
-    const sent = await this.send(to, text, "resolvia-prazos-teste");
+    let sent = 0;
+    let today = 0;
+    for (const { target, due } of await this.perPhone(to, now)) {
+      const text = due.today.length ? dueText(due) : { title: "📅 Prazos", message: "Nada vence hoje. Quando vencer, o aviso vem assim." };
+      sent += await this.send([target], text, "resolvia-prazos-teste");
+      today = Math.max(today, due.today.length);
+    }
     if (!sent) throw coded("send_failed", "O Home Assistant não entregou o aviso");
-    return { sent, today: due.today.length };
+    return { sent, today };
   }
 }
