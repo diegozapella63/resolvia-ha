@@ -68,19 +68,19 @@ async def main():
         check(await view() == "more" and await path() == "/mais", f"Mais opens the menu ({await path()})")
         check((await title()).strip() == "Mais" and (await lit()).strip() == "Mais", "title Mais, Mais lit in the bar")
         titles = [t.strip() for t in await rows.locator("b").all_inner_texts()]
-        check(titles == ["Listas", "Gráficos", "Configurações", "Sobre"], f"the rows: Listas, Gráficos, Configurações and, last, Sobre (Repetição is in Opções) ({titles})")
+        check(titles == ["Listas", "Gráficos", "Relatório de pendências", "Configurações", "Sobre"], f"the rows: Listas, Gráficos, Relatório de pendências (2.45), Configurações and, last, Sobre ({titles})")
         lines = [t.strip() for t in await rows.locator(".mb > span").all_inner_texts()]
-        check(lines == ["Nome, cor, ícone e quais aparecem.", "Pendências por lista e prazo.", "Integrações, dados e backup, aparência e opções.", "CorrerIA Code, os apps e o GitHub."], f"one short line each ({lines})")
-        check(await rows.locator(".mais-ic svg").count() == 4 and await rows.locator("svg.chev").count() == 4, "each row: the icon in the soft square and the arrow")
+        check(lines == ["Nome, cor, ícone e quais aparecem.", "Pendências por lista e prazo.", "Para imprimir ou salvar em PDF.", "Integrações, dados e backup, aparência e opções.", "CorrerIA Code, os apps e o GitHub."], f"one short line each ({lines})")
+        check(await rows.locator(".mais-ic svg").count() == 5 and await rows.locator("svg.chev").count() == 5, "each row: the icon in the soft square and the arrow")
         check(await a.locator(".more-tabs").count() == 0 and await a.locator(".uplink").count() == 0 and await a.locator(".mais-head").count() == 0, "the menu: no tabs, no settings, no ‹ Mais")
-        xs = {round((await rows.nth(i).locator(".mb").bounding_box())["x"]) for i in range(4)}
-        ws = {round((await rows.nth(i).bounding_box())["width"]) for i in range(4)}
+        xs = {round((await rows.nth(i).locator(".mb").bounding_box())["x"]) for i in range(5)}
+        ws = {round((await rows.nth(i).bounding_box())["width"]) for i in range(5)}
         check(len(xs) == 1 and len(ws) == 1, f"the rows lined up, the same width ({xs}, {ws})")
         check("v2." in await a.locator(".foot").inner_text(), "the version at the bottom")
         await pg.screenshot(path=f"{SP}/shots/rvmn-menu-dark.png")
 
         # ---- each row opens its screen: ‹ Mais and Back return to the menu
-        for i, (name, ttl, want) in enumerate([("listas", "Listas", "/listas"), ("graficos", "Gráficos", "/graficos"), ("config", "Configurações", "/config")]):
+        for i, (name, ttl, want) in [(0, ("listas", "Listas", "/listas")), (1, ("graficos", "Gráficos", "/graficos")), (3, ("config", "Configurações", "/config"))]:
             await rows.nth(i).click(); await pg.wait_for_timeout(500)
             check(await view() == name and await path() == want and (await title()).strip() == ttl, f"{ttl}: its own screen and title ({await path()})")
             up = a.locator(".brand-head .uplink")
@@ -102,7 +102,7 @@ async def main():
         await a.locator(".uplink").click(); await pg.wait_for_timeout(400)
 
         # ---- Configurações › Opções: Prazos, Exibição, Quem faz (2.44.0) and Repetição together
-        await rows.nth(2).click(); await pg.wait_for_timeout(450)
+        await rows.nth(3).click(); await pg.wait_for_timeout(450)
         await a.get_by_role("tab", name="Opções", exact=True).click(); await pg.wait_for_timeout(400)
         heads = [h.strip() for h in await a.locator("[role=tabpanel] .mais-head h2").all_inner_texts()]
         check(heads == ["Prazos", "Exibição", "Quem faz", "Repetição"], f"Opções: Prazos, Exibição, Quem faz and Repetição ({heads})")
@@ -112,7 +112,7 @@ async def main():
         await pg.go_back(); await pg.wait_for_timeout(400)
 
         # ---- Configurações: the tabs that are settings
-        await rows.nth(2).click(); await pg.wait_for_timeout(500)
+        await rows.nth(3).click(); await pg.wait_for_timeout(500)
         tabs = [t.strip() for t in await a.locator(".more-tabs button").all_inner_texts()]
         check(tabs == ["Integrações", "Dados", "Aparência", "Opções"], f"Configurações in tabs ({tabs})")
         check((await a.locator(".more-tabs button.on").inner_text()).strip() == "Integrações" and await a.locator("#leitura-ia").count() == 1, "it opens on Integrações")
@@ -130,10 +130,10 @@ async def main():
         await rows.nth(0).click(); await pg.wait_for_timeout(450)
         await tab("Mais")
         check(await view() == "more" and await depth() == 1, "Mais in the bar on a screen of Mais: back to the menu")
-        await rows.nth(2).click(); await pg.wait_for_timeout(450)
+        await rows.nth(3).click(); await pg.wait_for_timeout(450)
         await tab("Listas")
         check(await view() == "home" and await depth() == 0, "Listas in the bar on a screen of Mais: the lists, the menu goes too")
-        await tab("Mais"); await rows.nth(2).click(); await pg.wait_for_timeout(450)
+        await tab("Mais"); await rows.nth(3).click(); await pg.wait_for_timeout(450)
         await tab("Buscar")
         check(await view() == "search" and await depth() == 1, "Buscar in the bar on a screen of Mais: in the place of Mais")
         await pg.go_back(); await pg.wait_for_timeout(450)
@@ -164,7 +164,7 @@ async def main():
                     over = await a.evaluate(OVER)
                     check(not over, f"{scheme} {w} px {p}: nothing past the edge {over}")
                     if p == "/mais":
-                        check(await a.locator(".more-row:visible").count() == 4, f"{scheme} {w} px: the four rows of the menu on screen")
+                        check(await a.locator(".more-row:visible").count() == 5, f"{scheme} {w} px: the five rows of the menu on screen")
                     if p.startswith("/config"):
                         check(await a.locator(".more-tabs button:visible").count() == 4 and await a.locator(".uplink:visible").count() == 1, f"{scheme} {w} px {p}: ‹ Mais and the four tabs on screen")
                     if w >= 1000:

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.45.0
+
+- **Mais › Relatório de pendências**: as tarefas abertas de todas as listas marcadas, pronto para imprimir ou salvar em PDF, com um cabeçalho (o app, a casa, o que é, quando e quais listas), os números e uma parte por lista (atrasadas primeiro, em vermelho). Dá para trocar para uma lista só.
+
 ## 2.44.2
 
 - **Avisar o que vence hoje** acha o celular de cada pessoa pelo aparelho do app Home Assistant ligado a ela, mesmo quando o rastreador tem outro nome (como "Celular Diego" sendo `goku_phone`). Um rastreador do roteador não conta como celular.

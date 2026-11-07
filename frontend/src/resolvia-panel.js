@@ -51,7 +51,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.44.2";
+const VERSION = "2.45.0";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -605,7 +605,19 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
   /** A row of the menu Mais: its screen goes over the menu, so Back returns to it. */
   _openFromMenu(path) {
     this._haptic("light");
+    if (path === "relatorio") return this._openReport();
     this._go(path, false, { rvUp: true });
+  }
+
+  /**
+   * Mais › Relatório de pendências: the open tasks of the marked lists (the list can be changed there), as a page
+   * of the server, in the theme and the color of the app, ready to print or save as PDF (like the GerencIA).
+   */
+  _openReport() {
+    const r = this.hass && this.hass.resolvia;
+    if (!r || !r.report) return this._showToast("Na prévia o relatório não abre. No app, ele abre pronto para imprimir.");
+    const q = new URLSearchParams({ tema: this._dark ? "escuro" : "claro", cor: this._accent().fill });
+    location.href = r.report(q.toString());
   }
 
   // Arrastar para o lado: Listas ⇄ Buscar ⇄ Prazos (ou Sugestões) ⇄ Mais; dentro de uma lista, para a direita volta,
@@ -2624,6 +2636,7 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
     return [
       ["/listas", "list-checks", "Listas", "Nome, cor, ícone e quais aparecem."],
       ["/graficos", "chart-bar", "Gráficos", this._chartsLine()],
+      ["relatorio", "clipboard-list", "Relatório de pendências", "Para imprimir ou salvar em PDF."],
       ["/config", "sliders-horizontal", "Configurações", cfg[0].toUpperCase() + cfg.slice(1)],
       ["/sobre", "info", "Sobre", "CorrerIA Code, os apps e o GitHub."],
     ];

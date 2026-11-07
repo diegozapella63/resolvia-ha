@@ -11,6 +11,7 @@ import { fileURLToPath } from "node:url";
 import { acceptUpgrade } from "./lib/ws.js";
 import { HAClient } from "./lib/ha.js";
 import { Store, datesInfo } from "./lib/store.js";
+import { pendencias, reportHtml } from "./lib/report.js";
 import { Recurring } from "./lib/recurring.js";
 import { AI } from "./lib/ai.js";
 import { AiUsage } from "./lib/usage.js";
@@ -22,7 +23,7 @@ import { Voice, readRaw, MAX_VOICE_BYTES } from "./lib/voice.js";
 import { snapshot, toCSV, backupZip, parseImport, Backups, listVersions, readVersion, fileStamp } from "./lib/data.js";
 import { DueAlert } from "./lib/duealert.js";
 
-const VERSION = "2.44.2";
+const VERSION = "2.45.0";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const WWW = path.join(HERE, "www");
 const DEV = process.env.RESOLVIA_DEV === "1";
@@ -52,6 +53,7 @@ const store = new Store(DATA_DIR, log);
 store.trimVersions(); // Versões anteriores: only the 3 newest (older installs kept up to 60)
 const ha = new HAClient(HA_URL, TOKEN, log);
 const todoStates = new Map();
+let houseName = ""; // the name of the house in Home Assistant (the header of the report)
 /** Mais > Configurações > Opções > Repetição: the automatic repetition is on (unset: on when there are rules, so nothing stops after an update). */
 const repeatOn = () => {
   const v = store.prefs.app.repeat_on;
@@ -292,6 +294,7 @@ ha.on("ready", async () => {
   }
   try {
     const config = await ha.send({ type: "get_config" });
+    houseName = (config && config.location_name) || "";
     if (config && config.time_zone && process.env.TZ !== config.time_zone) {
       process.env.TZ = config.time_zone;
       log.info(`Fuso horário: ${config.time_zone}`);
@@ -831,6 +834,35 @@ async function handleVoice(req, res) {
   }
 }
 
+/**
+ * Mais › Relatório de pendências: the open tasks of the marked lists (or of ?lista=), to see, print or save as
+ * PDF; tema and cor: the ones of the app. Only what is on: deadlines, repeat, points, rooms, equipment, externo.
+ */
+function handleReport(url, res) {
+  const app = store.prefs.app;
+  const lists = [...dueLists()]
+    .map(([id, l]) => ({ id, name: l.name, owner: l.prefs.owner || "", hidden: !!l.prefs.hidden, due: app.due_off !== true && !datesInfo(l.prefs, l.features) }))
+    .sort((a, b) => Number(a.hidden) - Number(b.hidden) || a.name.localeCompare(b.name, "pt-BR"));
+  const rules = Object.values(store.rules || {});
+  const repeatOn = app.repeat_on === undefined ? rules.length > 0 : app.repeat_on === true;
+  const itemName = (id) => (inventario.state.itens.find((i) => i.id === id) || {}).nome || "";
+  const extra = (listId, i) => {
+    const rule = repeatOn ? rules.find((r) => r.entity_id === listId && ((r.uid && r.uid === i.uid) || (!r.uid && r.match === i.summary))) : null;
+    return {
+      repeat: rule ? rule.days : 0,
+      points: app.points_on ? store.pointsFor(listId, i.summary) : 0,
+      rooms: roomsOn() ? store.roomsFor(listId, i.summary).map((id) => inventario.nameOf(id)).filter(Boolean) : [],
+      equips: equipsOn() ? store.equipsFor(listId, i.summary).map(itemName).filter(Boolean) : [],
+      external: app.ext_off !== true ? store.externalFor(listId, i.summary) : null,
+    };
+  };
+  const rep = pendencias({ lists, items: recurring.items, pick: url.searchParams.get("lista") || "", now: Date.now(), extra });
+  const tema = url.searchParams.get("tema");
+  const body = Buffer.from(reportHtml(rep, { tema: tema === "claro" || tema === "escuro" ? tema : null, cor: url.searchParams.get("cor"), casa: houseName }), "utf8");
+  res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store", "Content-Length": body.length, "X-Content-Type-Options": "nosniff" });
+  res.end(body);
+}
+
 const server = http.createServer((req, res) => {
   if (!allowed(req)) {
     res.writeHead(403).end("Forbidden");
@@ -842,6 +874,7 @@ const server = http.createServer((req, res) => {
   const exp = url.pathname.match(/^\/api\/export\/(json|csv|zip)$/);
   if (exp && req.method === "GET") return handleData(exp[1], res);
   if (url.pathname === "/api/import" && req.method === "POST") return handleImport(req, res);
+  if (url.pathname === "/relatorio" && req.method === "GET") return handleReport(url, res);
   const font = url.pathname.match(/^\/fonts\/([a-z0-9-]+\.woff2)$/);
   const file = font ? [`fonts/${font[1]}`, "font/woff2", true] : FILES[url.pathname];
   if (!file || (req.method !== "GET" && req.method !== "HEAD")) {

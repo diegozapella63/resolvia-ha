@@ -226,6 +226,8 @@ export async function createAppHass(onChange) {
         }
         return body;
       },
+      // Mais › Relatório de pendências: a page of the server, to print or save as PDF
+      report: (query) => new URL(`relatorio?${query}`, location.href).href,
       // Mais › Configurações › Dados
       data: {
         url: (fmt) => new URL(`api/export/${fmt}`, location.href).href,

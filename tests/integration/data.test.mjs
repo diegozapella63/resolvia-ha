@@ -253,3 +253,31 @@ describe("without a usable share folder", () => {
     assert.equal(res.status, 200, "the downloads still work");
   });
 });
+
+describe("Mais › Relatório de pendências (2.45.0)", () => {
+  it("the page of the server: the marked lists, the tasks with what is on, in the theme and color of the app", async () => {
+    // the restore tests above put the data back: set what this one needs
+    await c.call("resolvia/prefs/set_list", { entity_id: CASA, prefs: { name: "Minha Casa" } });
+    await c.call("resolvia/prefs/set_app", { prefs: { points_on: true } });
+    await c.call("resolvia/points/set", { entity_id: CASA, summary: "Passar pano na casa", points: 10 });
+    const task = (await items(c, CASA)).find((i) => i.summary === "Passar pano na casa");
+    await c.call("resolvia/recurring/set", { entity_id: CASA, uid: task.uid, summary: task.summary, days: 7 });
+    const res = await get("/relatorio?tema=claro&cor=%23ff5a4f");
+    assert.equal(res.status, 200);
+    assert.match(res.headers.get("content-type"), /^text\/html/);
+    assert.equal(res.headers.get("cache-control"), "no-store");
+    const html = await res.text();
+    assert.match(html, /<html lang="pt-BR" data-theme="light">/);
+    assert.match(html, /--a:#ff5a4f/);
+    assert.match(html, /<h1>Relatório de pendências<\/h1>/);
+    assert.match(html, /<span>Minha Casa<\/span>/, "the name given in the ResolvIA");
+    assert.match(html, /Passar pano na casa<small>repete toda semana[^<]*<\/small>/);
+    assert.match(html, /\+10 pontos/);
+    assert.match(html, /Consertar a porta/);
+  });
+  it("one list: ?lista=", async () => {
+    const html = await (await get(`/relatorio?lista=${CASA}`)).text();
+    assert.match(html, /O que falta fazer na lista Minha Casa/);
+    assert.equal((html.match(/<section>/g) || []).length, 1);
+  });
+});
