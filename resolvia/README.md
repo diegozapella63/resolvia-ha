@@ -4,7 +4,7 @@ Suas listas de tarefas do Home Assistant num visual caprichado, com tarefas que 
 
 - Início com resumo do que está pendente, vence hoje e está atrasado
 - Listas agrupadas por dispositivo, com nome, cor e ícone personalizados
-- Prazos de todas as listas num lugar só
+- Prazos de todas as listas num lugar só, com aviso no celular do que vence hoje
 - Busca em todas as listas
 - Tarefas recorrentes: "passar pano 3 dias depois de feito"
 - Importar itens de mensagens, fotos e listas em papel, com a IA do Home Assistant (escolha qual em Mais › Configurações)

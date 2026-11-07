@@ -297,3 +297,36 @@ describe("parseListText: a pasted message into items (no AI)", () => {
     },
   );
 });
+
+// ------------------------------------------------------------------ deeplink.js (the alert of Prazos opens Prazos)
+
+describe("deeplink: ?aba= opens a tab once", async () => {
+  const { openTab, TABS_OPEN } = await import("../frontend/src/deeplink.js");
+  const win = (href, parent) => {
+    const w = { location: { href }, history: { state: { a: 1 }, replaceState(s, t, u) { w.location.href = u; w.replaced = s; } } };
+    w.parent = parent || w;
+    return w;
+  };
+  it("on the address of the app: the path, and ?aba= taken out (Voltar and a reload don't open it again)", () => {
+    const w = win("http://ha.local/app/?aba=prazos&x=1");
+    assert.equal(openTab(w), "/prazos");
+    assert.equal(w.location.href, "http://ha.local/app/?x=1");
+    assert.deepEqual(w.replaced, { a: 1 }, "the history state kept");
+    assert.equal(openTab(w), null);
+  });
+  it("on the page around the app (the frame of Home Assistant)", () => {
+    const top = win("http://ha.local/hassio/ingress/abc_resolvia?aba=prazos");
+    const w = win("http://ha.local/api/hassio_ingress/tok/", top);
+    assert.equal(openTab(w), "/prazos");
+    assert.equal(top.location.href, "http://ha.local/hassio/ingress/abc_resolvia");
+  });
+  it("an unknown tab, none, another origin around or no window: nothing", () => {
+    assert.equal(openTab(win("http://ha.local/?aba=listas")), null);
+    assert.equal(openTab(win("http://ha.local/")), null);
+    const locked = win("http://ha.local/");
+    locked.parent = { get location() { throw new Error("cross-origin"); } };
+    assert.equal(openTab(locked), null);
+    assert.equal(openTab(null), null);
+    assert.deepEqual(Object.keys(TABS_OPEN), ["prazos"]);
+  });
+});

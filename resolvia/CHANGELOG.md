@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.41.0
+
+- **Avisar o que vence hoje**, em **Mais › Configurações › Opções › Prazos** (desligado por padrão): uma vez por dia, no horário que você escolher, o celular recebe o que vence hoje (e quantos estão atrasados). Tocar no aviso abre **Prazos**. Escolha os celulares (já vêm marcados os das pessoas) e use **Testar** para ver como chega.
+
 ## 2.40.0
 
 - **Mais › Sobre**, a última linha do menu: quem faz o app (**CorrerIA Code**, desenvolvimento de softwares, e por que esse nome), os apps da família (CronologIA, ResolvIA, GerencIA, InventarIA, EconomIA e MemorIA), cada um com uma linha e o link para o GitHub, e o botão **Meu GitHub**.

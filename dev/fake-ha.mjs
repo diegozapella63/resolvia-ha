@@ -13,6 +13,9 @@ const MEDIA_DIR = process.env.FAKE_MEDIA_DIR || process.env.MEDIA_DIR || "./.dat
 const WITH_AI = process.env.FAKE_HA_NO_AI !== "1";
 const aiCalls = [];
 const firedEvents = [];
+// Avisar o que vence hoje: two people with the app Home Assistant on their phones (FAKE_NO_PHONES=1: none)
+const NOTIFY = process.env.FAKE_NO_PHONES ? ["persistent_notification"] : ["mobile_app_pixel_8", "mobile_app_galaxy_s23", "persistent_notification"];
+const notifications = [];
 const F = { CREATE: 1, DELETE: 2, UPDATE: 4, MOVE: 8, DUE_DATE: 16, DUE_DATETIME: 32, DESCRIPTION: 64 };
 
 let seq = 1;
@@ -281,6 +284,8 @@ class Conn {
         case "get_states":
           return ok([
             ...Object.keys(lists).map(stateOf),
+            { entity_id: "person.ana", state: "home", attributes: { friendly_name: "Ana", device_trackers: ["device_tracker.pixel_8"] } },
+            { entity_id: "person.beto", state: "home", attributes: { friendly_name: "Beto", device_trackers: ["device_tracker.galaxy_s23"] } },
             { entity_id: "light.sala", state: "on", attributes: {} },
             // Falar: the speech-to-text engines (Home Assistant Cloud, and a local Whisper that names Portuguese "pt")
             ...(process.env.FAKE_NO_STT
@@ -338,8 +343,16 @@ class Conn {
           changed(msg.entity_id);
           return ok();
         }
+        case "get_services":
+          return ok({ notify: Object.fromEntries(NOTIFY.map((n) => [n, { fields: {} }])), todo: { add_item: {} } });
         case "call_service":
           if (msg.domain === "ai_task") return ok(fakeAI(msg));
+          if (msg.domain === "notify") {
+            if (!NOTIFY.includes(msg.service)) fail("not_found", `Service notify.${msg.service} not found`);
+            notifications.push({ service: msg.service, ...(msg.service_data || {}), at: new Date().toISOString() });
+            console.log("notify", msg.service, JSON.stringify(msg.service_data));
+            return ok({ context: { id: "ctx" } });
+          }
           return ok(callService(msg));
         case "fire_event":
           if (typeof msg.event_type !== "string" || !msg.event_type) fail("invalid_format", "event_type required");
@@ -356,12 +369,17 @@ class Conn {
   }
 }
 
-// Test helper: GET /dev/events lists the events the app fired (fire_event).
+// Test helpers: GET /dev/events lists the events the app fired (fire_event), /dev/notifications the alerts.
 const restStates = new Map();
 const server = http.createServer((req, res) => {
   if (req.url === "/dev/events") {
     res.writeHead(200, { "content-type": "application/json" });
     return res.end(JSON.stringify(firedEvents));
+  }
+  // GET /dev/notifications: what went to the phones (notify.mobile_app_*)
+  if (req.url === "/dev/notifications") {
+    res.writeHead(200, { "content-type": "application/json" });
+    return res.end(JSON.stringify(notifications));
   }
   // Falar: speech-to-text like Home Assistant's REST API (the transcript is FAKE_STT_TEXT)
   const stt = req.url.match(/^\/api\/stt\/(stt\.[a-z0-9_]+)$/);

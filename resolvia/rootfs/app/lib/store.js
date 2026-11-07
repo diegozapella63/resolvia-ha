@@ -51,6 +51,10 @@ const APP_FIELDS = {
   ai_off: ["boolean"],
   // Mais > Configurações > Opções > Controlar prazos: true = off (no Prazos tab, no deadline field; Sugestões instead)
   due_off: ["boolean"],
+  // … › Avisar o que vence hoje: true = on (off unless turned on), at due_alert_time ("HH:MM"), to the phones in due_alert_to
+  due_alert: ["boolean"],
+  due_alert_time: ["string", 5],
+  due_alert_to: ["list", 20],
   // Mais > Configurações > Integrações > Sensores no Home Assistant: true = on (off unless turned on)
   sensors_on: ["boolean"],
   // Mais > Configurações > Integrações > Cômodos do InventarIA: true = each task can have a room (off unless turned on)
@@ -58,6 +62,12 @@ const APP_FIELDS = {
   // Mais > Configurações > Integrações > InventarIA › Usar equipamentos: each task can point to an item of the InventarIA
   equips_on: ["boolean"],
 };
+
+/** Avisar o que vence hoje: a time "HH:MM" and phones notify.mobile_app_*; anything else is dropped. */
+function checkAlert(p) {
+  if (typeof p.due_alert_time === "string" && !/^([01]\d|2[0-3]):[0-5]\d$/.test(p.due_alert_time)) p.due_alert_time = null;
+  if (Array.isArray(p.due_alert_to)) p.due_alert_to = [...new Set(p.due_alert_to.filter((t) => /^mobile_app_[a-z0-9_]+$/.test(t)))];
+}
 
 /** A repeating task from a file (import, restore): only the known fields, sane values. */
 function cleanRule(r, id) {
@@ -196,6 +206,7 @@ export function normalize(raw, strict = false) {
         }
         if (app.ai_entity && !/^ai_task\.[a-z0-9_]+$/.test(app.ai_entity)) delete app.ai_entity;
         if (app.voice_engine && !/^[a-z0-9_.]+$/.test(app.voice_engine)) delete app.voice_engine;
+        checkAlert(app);
         data.prefs.app = Store.merge({}, app);
       }
     }
@@ -213,6 +224,8 @@ export function normalize(raw, strict = false) {
   data.rooms = cleanLinks(raw.rooms); // {todo.x: {task key: room id | [room ids]}}
   data.ext = cleanExternal(raw.ext); // {todo.x: {task key: true | "who"}}: Serviço externo
   data.equips = cleanLinks(raw.equips); // {todo.x: {task key: item id | [item ids] of the InventarIA}}
+  // the day each daily alert went out ({prazos: "YYYY-MM-DD"}), so it goes once a day even after a restart
+  if (isObj(raw.alerts) && typeof raw.alerts.prazos === "string" && /^\d{4}-\d{2}-\d{2}$/.test(raw.alerts.prazos)) data.alerts = { prazos: raw.alerts.prazos };
   return data;
 }
 
@@ -468,10 +481,21 @@ export class Store {
     return this.data.prefs;
   }
 
+  /** The day a daily alert last went out ("YYYY-MM-DD" or null). */
+  alertSent(key) {
+    return (this.data.alerts && this.data.alerts[key]) || null;
+  }
+
+  markAlert(key, day) {
+    this.data.alerts = { ...(this.data.alerts || {}), [key]: day };
+    this.save();
+  }
+
   setAppPrefs(changes) {
     const clean = Store.clean(changes, APP_FIELDS);
     if ("ai_entity" in clean && clean.ai_entity !== null && !/^ai_task\.[a-z0-9_]+$/.test(clean.ai_entity)) clean.ai_entity = null;
     if ("voice_engine" in clean && clean.voice_engine !== null && !/^[a-z0-9_.]+$/.test(clean.voice_engine)) clean.voice_engine = null;
+    checkAlert(clean);
     this.data.prefs.app = Store.merge(this.data.prefs.app, clean);
     this.save();
     return this.data.prefs;

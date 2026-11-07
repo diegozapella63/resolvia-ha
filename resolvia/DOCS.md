@@ -157,6 +157,10 @@ Prazo é só o que você define. Algumas integrações preenchem sozinhas a data
 
 Nas listas em que você define prazo, dá para desligar os prazos em **⋯ › Personalizar › Prazos**.
 
+**Avisar o que vence hoje** (em **Mais › Configurações › Opções › Prazos**, desligado por padrão): uma vez por dia, no horário escolhido (08:00 de início), o celular recebe o que vence hoje, um por linha, com o horário quando tem, e quantos estão atrasados. Tocar no aviso abre o app em **Prazos**. Ao ligar, já vêm marcados os celulares das pessoas do Home Assistant (os que têm o app Home Assistant); toque num celular para tirar ou pôr. **Testar** manda o aviso de hoje na hora. Se nada vence no dia, não chega aviso. Valem as listas que aparecem e que têm prazo; com **Controlar prazos** desligado, não há aviso.
+
+As tarefas com prazo também aparecem no CronologIA, na **Agora** e no calendário, quando a integração com o ResolvIA está ligada lá (as listas com prazos desligados ficam de fora). O aviso de prazos vem só daqui.
+
 Para não usar prazo em nada (deixando as datas para o CronologIA), desligue **Mais › Configurações › Opções › Prazos › Controlar prazos**. Somem a aba Prazos, o campo Prazo do item e a opção de prazos em Personalizar. As datas que os itens já têm (inclusive as que o CronologIA põe) continuam guardadas e aparecem só como informação, em cinza. No CronologIA (1.16.0 ou mais novo), o **Novo › Tarefa** também deixa de oferecer prazo; o resto continua igual por lá.
 
 ## Sugestões

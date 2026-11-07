@@ -33,7 +33,7 @@ A primeira instalação leva alguns minutos, porque o app é montado no próprio
 - **Tarefas que voltam sozinhas**: "Passar pano" com repetição de 3 dias volta como pendente 3 dias depois de feito, mesmo se você concluir pela Alexa (ligue em **Mais › Configurações › Opções › Repetição**).
 - **Ler com IA**: cole uma mensagem do WhatsApp, escolha fotos ou digitalize uma lista em papel; a IA do Home Assistant (Claude, OpenAI, Gemini ou Ollama) separa os itens e sugere a lista, o cômodo e o equipamento de cada um, e você revisa antes de adicionar.
 - **Falar** e **Conversa com a IA**: fale os itens (o Home Assistant transcreve e a IA separa) ou pergunte sobre as listas ("o que está atrasado?") e peça para adicionar ou concluir; nada é feito sem o seu toque.
-- **Prazos** de todas as listas, incluindo o que vai voltar sozinho. Sem prazos, a aba vira **Sugestões**: por onde começar, com o motivo, ou escolhido pela IA.
+- **Prazos** de todas as listas, incluindo o que vai voltar sozinho, e um **aviso no celular** com o que vence hoje, no horário que você escolher. Sem prazos, a aba vira **Sugestões**: por onde começar, com o motivo, ou escolhido pela IA.
 - **Buscar** em todas as listas, sem ligar para acentos, também por cômodo, equipamento e quem faz.
 - **Cômodos e equipamentos** do InventarIA nas tarefas, sugeridos pela IA (ligue em **Mais › Configurações › Integrações**).
 - **Serviço externo**: marque quando alguém de fora vai fazer a tarefa (eletricista, assistência técnica).

@@ -1,3 +1,4 @@
+import { openTab } from "./deeplink.js";
 import { aboutPage, aboutStyles } from "./about.js";
 import {
   LitElement,
@@ -50,7 +51,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.40.0";
+const VERSION = "2.41.0";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -98,6 +99,7 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
     _items: { state: true },
     _prefs: { state: true },
     _path: { state: true },
+    _phones: { state: true },
     _sheet: { state: true },
     _form: { state: true },
     _toast: { state: true },
@@ -300,6 +302,9 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
 
   firstUpdated() {
     this._checkHeight();
+    // the alert of Prazos (Avisar o que vence hoje) opens the app on Prazos
+    const tab = openTab();
+    if (tab && !this._inHA()) this._go(tab, true);
   }
 
   _checkHeight() {
@@ -2802,6 +2807,7 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
               : "A aba Prazos vira Sugestões."}</div></div>
             ${sw(dueOn, "Controlar prazos", (e) => this._saveAppPrefs({ due_off: e.target.checked ? null : true }))}
           </div>
+          ${dueOn ? this._renderDueAlert(sw) : nothing}
         </div>
         <div class="panel">
           ${this._secHead("layout-list", "Exibição")}
@@ -2816,6 +2822,82 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
         </div>
         ${this._renderRulesPanels()}
     `;
+  }
+
+  /**
+   * Prazos › Avisar o que vence hoje: once a day, at the time chosen, what is due today goes to the phones
+   * chosen (the app Home Assistant on them). Testar sends it now.
+   */
+  _renderDueAlert(sw) {
+    const on = this._app("due_alert", false) === true;
+    const time = /^\d{2}:\d{2}$/.test(this._app("due_alert_time", "")) ? this._app("due_alert_time") : "08:00";
+    const to = this._app("due_alert_to", []) || [];
+    const phones = this._phones;
+    if (on && phones === undefined) this._loadPhones();
+    // a person with two phones: "Ana · Pixel 8"
+    const owners = (phones || []).map((p) => p.owner).filter(Boolean);
+    const label = (p) => (p.owner ? (owners.filter((o) => o === p.owner).length > 1 ? `${p.owner} · ${p.name}` : p.owner) : p.name);
+    const toggle = (id) => this._saveAppPrefs({ due_alert_to: to.includes(id) ? to.filter((x) => x !== id) : [...to, id] });
+    return html`<div class="row">
+        <div class="grow"><div class="label">Avisar o que vence hoje</div><div class="hint" style="white-space:normal">${on ? "No celular, uma vez por dia." : "Desligado."}</div></div>
+        ${sw(on, "Avisar o que vence hoje", (e) => this._toggleDueAlert(e.target.checked))}
+      </div>
+      ${on
+        ? html`<div class="due-alert">
+            <div class="field">
+              <span class="flabel">Horário</span>
+              <div class="remind-row">
+                <input type="time" class="remind-time" .value=${time} aria-label="Horário do aviso" @change=${(e) => /^\d{2}:\d{2}$/.test(e.target.value) && this._saveAppPrefs({ due_alert_time: e.target.value })} />
+                <button class="btn outline remind-test" ?disabled=${!to.length} @click=${() => this._testDueAlert(to)}>${icon("send")}Testar</button>
+              </div>
+            </div>
+            <div class="field">
+              <span class="flabel">Celulares</span>
+              ${phones === undefined || phones === null
+                ? html`<p class="field-hint">${phones === null ? "Não consegui ver os celulares." : "Procurando os celulares…"}</p>`
+                : phones.length
+                  ? html`<div class="chip-row grid phones">${phones.map((p) => {
+                      const picked = to.includes(p.id);
+                      return html`<button class="pick phone ${picked ? "on" : ""}" aria-pressed=${picked ? "true" : "false"} title=${p.name} @click=${() => toggle(p.id)}>${icon("smartphone")}<span>${label(p)}</span></button>`;
+                    })}</div>
+                    ${to.length ? nothing : html`<p class="field-hint">${icon("info")}<span>Escolha ao menos um celular.</span></p>`}`
+                  : html`<p class="field-hint">${icon("info")}<span>Nenhum celular com o app Home Assistant.</span></p>`}
+            </div>
+          </div>`
+        : nothing}`;
+  }
+
+  /** The phones with the app Home Assistant (notify.mobile_app_*): undefined while looking, null when it failed. */
+  async _loadPhones() {
+    if (this._phonesLoading) return this._phones;
+    this._phonesLoading = true;
+    try {
+      this._phones = this._prefsRemote ? await this.hass.callWS({ type: "resolvia/phones" }) : [];
+    } catch (e) {
+      this._phones = null;
+    }
+    this._phonesLoading = false;
+    this.requestUpdate();
+    return this._phones;
+  }
+
+  /** On: every phone that belongs to someone is picked (the first time); off: nothing goes. */
+  async _toggleDueAlert(on) {
+    if (!on) return this._saveAppPrefs({ due_alert: null });
+    const had = this._app("due_alert_to", null);
+    if (Array.isArray(had) && had.length) return this._saveAppPrefs({ due_alert: true });
+    const phones = (await this._loadPhones()) || [];
+    const mine = phones.filter((p) => p.owner);
+    return this._saveAppPrefs({ due_alert: true, due_alert_to: (mine.length ? mine : phones).map((p) => p.id) });
+  }
+
+  async _testDueAlert(to) {
+    try {
+      const res = await this.hass.callWS({ type: "resolvia/due_alert/test", targets: to });
+      this._showToast(res && res.today ? "Aviso enviado. Toque nele para abrir Prazos." : "Aviso enviado (nada vence hoje).");
+    } catch (err) {
+      this._showToast(`Não foi: ${err.message}`);
+    }
   }
 
   /** Mais › Configurações › Aparência: theme and color. */

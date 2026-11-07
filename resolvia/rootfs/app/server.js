@@ -20,8 +20,9 @@ import { Placar } from "./lib/placar.js";
 import { Inventario } from "./lib/inventario.js";
 import { Voice, readRaw, MAX_VOICE_BYTES } from "./lib/voice.js";
 import { snapshot, toCSV, backupZip, parseImport, Backups, listVersions, readVersion, fileStamp } from "./lib/data.js";
+import { DueAlert } from "./lib/duealert.js";
 
-const VERSION = "2.40.0";
+const VERSION = "2.41.0";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const WWW = path.join(HERE, "www");
 const DEV = process.env.RESOLVIA_DEV === "1";
@@ -110,6 +111,17 @@ const voice = new Voice({ ha, rest: HA_REST, token: TOKEN, log, pick: () => stor
 const usage = new AiUsage({ dir: DATA_DIR, sensor: "sensor.resolvia_ia_hoje", label: "ResolvIA", rest: HA_REST, token: TOKEN, log, enabled: () => store.prefs.app.sensors_on === true });
 const ai = new AI({ ha, log, mediaDir: MEDIA_DIR, selected: () => store.prefs.app.ai_entity || "", usage });
 const itemSubs = new Map(); // entity_id -> subscription (for the recurring engine and the ages)
+// Mais › Configurações › Opções › Prazos › Avisar o que vence hoje: the lists as the screens show them (name, deadlines on or not)
+const dueLists = () => {
+  const out = new Map();
+  for (const [id, st] of todoStates) {
+    if (!st || st.state === "unavailable" || st.state === "unknown") continue;
+    const prefs = (store.prefs.lists || {})[id] || {};
+    out.set(id, { name: prefs.name || (st.attributes && st.attributes.friendly_name) || id, features: Number((st.attributes && st.attributes.supported_features) || 0), prefs });
+  }
+  return out;
+};
+const dueAlert = new DueAlert({ ha, store, lists: dueLists, items: recurring.items, log });
 // Sugestões: since when each pending item is on its list, and the last suggestion of the AI
 const ages = new Ages({ dir: DATA_DIR, log });
 // the last pick of the AI (Sugestões › Comece por aqui), kept on disk so it survives a restart or an update
@@ -459,6 +471,11 @@ class Session {
 
       case "resolvia/prefs/get":
         return this.result(id, store.prefs);
+      // Avisar o que vence hoje: the phones that can get it, and Testar
+      case "resolvia/phones":
+        return this.result(id, await dueAlert.phones());
+      case "resolvia/due_alert/test":
+        return this.result(id, await dueAlert.test(msg.targets));
       case "resolvia/prefs/set_list": {
         const prefs = store.setListPrefs(msg.entity_id, msg.prefs);
         if ("dates_info" in (msg.prefs || {})) publishPresence();
@@ -871,6 +888,10 @@ function publishPresence() {
 }
 publishPresence();
 setInterval(publishPresence, 15 * 60 * 1000);
+// Avisar o que vence hoje: checked every minute (it goes once a day, at the chosen time)
+// (RESOLVIA_ALERT_MS, in development only: the tests check sooner)
+const ALERT_EVERY = (DEV && Number(process.env.RESOLVIA_ALERT_MS)) || 60 * 1000;
+setInterval(() => dueAlert.tick().catch((err) => log.warn(`Aviso de prazos: ${err.message}`)), ALERT_EVERY);
 
 server.listen(PORT, () => log.info(`ResolvIA ${VERSION} ouvindo na porta ${PORT}${DEV ? " (modo dev)" : ""}`));
 ha.start();

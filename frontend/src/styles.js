@@ -1255,6 +1255,39 @@ export const styles = css`
     cursor: default;
   }
 
+  /* Opções › Prazos › Avisar o que vence hoje: the time and Testar side by side, the same height, then the phones */
+  .due-alert {
+    padding: 4px 0 6px;
+  }
+  .due-alert .field {
+    margin: 10px 0 0;
+  }
+  .remind-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .remind-row input.remind-time {
+    width: 100%;
+    min-width: 0;
+    height: 100%;
+    min-height: 44px;
+    padding: 0 8px;
+    font: inherit;
+    font-size: 17px;
+    font-weight: 700;
+    text-align: center;
+    border-radius: 12px;
+    border: 1px solid var(--rv-line-strong);
+    background: var(--rv-surface);
+    color: var(--rv-text);
+    color-scheme: inherit;
+  }
+  .remind-row .remind-test {
+    margin: 0;
+    min-height: 44px;
+  }
+
   /* ---------- chips / pickers ---------- */
   .pick {
     display: inline-flex;
