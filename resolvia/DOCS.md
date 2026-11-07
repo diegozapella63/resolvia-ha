@@ -13,8 +13,8 @@ Nada é copiado: o ResolvIA mostra e edita as mesmas listas que o HA já tem.
 O **Mais** (os três pontos na barra) é um menu, como no InventarIA. Cada linha abre a sua tela, com **‹ Mais** no alto para voltar (o Voltar do celular e arrastar para a direita também voltam):
 
 - **Listas**: nome, cor, ícone, mostrar/ocultar e criar lista; as desligadas ficam por último, recolhidas em **Inativas**.
-- **Gráficos**: onde estão as pendências das listas que aparecem (as ocultas e os concluídos ficam fora), em barras: **Por lista** (as 6 com mais; "+N listas" mostra as outras), **Por cômodo** e **Por equipamento** (só com **Usar cômodos** e **Usar equipamentos** ligados; uma tarefa com dois equipamentos conta nos dois e nos cômodos deles), **Por prazo** (atrasados, hoje, próximos 7 dias, mais adiante e sem prazo, nas listas com prazo e com **Controlar prazos** ligado) e **Quem faz** (nós mesmos × serviço externo, quando alguma tarefa é de fora). Tocar numa lista abre a lista; num cômodo, num equipamento ou em Serviço externo, abre o **Buscar** com ele; num prazo, abre **Prazos**.
-- **Configurações**, em abas: **Integrações** (recompensas do CronologIA, InventarIA, leitura por IA, Falar, uso da IA e sensores), **Dados** (exportar, backup, importar, versões), **Aparência** (tema e cor; com **Cor do dia**, ligada no começo, a cor muda todo dia sozinha, e escolher uma cor deixa fixa nela) e **Opções** (**Prazos**: controlar prazos; **Exibição**: agrupar por dispositivo, concluídos abertos; **Repetição**: ligar ou desligar e as tarefas que voltam sozinhas).
+- **Gráficos**: onde estão as pendências das listas que aparecem (as ocultas e os concluídos ficam fora), em barras: **Por lista** (as 6 com mais; "+N listas" mostra as outras), **Por cômodo** e **Por equipamento** (só com **Usar cômodos** e **Usar equipamentos** ligados; uma tarefa com dois equipamentos conta nos dois e nos cômodos deles), **Por prazo** (atrasados, hoje, próximos 7 dias, mais adiante e sem prazo, nas listas com prazo e com **Controlar prazos** ligado) e **Quem faz** (nós mesmos × serviço externo, quando alguma tarefa é de fora e com **Serviços externos** ligado). Tocar numa lista abre a lista; num cômodo, num equipamento ou em Serviço externo, abre o **Buscar** com ele; num prazo, abre **Prazos**.
+- **Configurações**, em abas: **Integrações** (recompensas do CronologIA, InventarIA, leitura por IA, Falar, uso da IA e sensores), **Dados** (exportar, backup, importar, versões), **Aparência** (tema e cor; com **Cor do dia**, ligada no começo, a cor muda todo dia sozinha, e escolher uma cor deixa fixa nela) e **Opções** (**Prazos**: controlar prazos; **Exibição**: agrupar por dispositivo, concluídos abertos, notas; **Quem faz**: serviços externos; **Repetição**: ligar ou desligar e as tarefas que voltam sozinhas).
 - **Sobre**, por último: quem faz o app (**CorrerIA Code**), os outros apps da família, cada um com uma linha e o link para o GitHub, e **Meu GitHub**.
 
 A barra de baixo tem **Listas**, **Buscar**, **Adicionar**, **Prazos** (ou **Sugestões**) e **Mais**. No celular, arrastar para o lado troca de aba.
@@ -27,7 +27,8 @@ Com a tela larga (1000 pixels ou mais, como no InventarIA), as abas de baixo vir
 
 - No início, as listas com mais pendências vêm primeiro, agrupadas pelo dispositivo de onde vêm ("Notas e Rotinas do Alexa To-do list" vira **To-do list** no grupo *Notas e Rotinas do Alexa*); as outras ficam em **Listas locais**.
 - Numa lista, escreva no campo do alto e toque em **+** (colar várias linhas cria um item por linha). Tocar no quadrado conclui, com **Desfazer** no aviso de baixo; a alça à direita arrasta para reordenar; os concluídos ficam recolhidos no fim, com **Limpar**.
-- Tocar num item abre **Editar item**: texto, notas, **Prazo** (Hoje, Amanhã, Sábado, Próx. semana ou outra data, com horário quando a lista aceita), **Repetir depois de concluir**, **Cômodo** e **Equipamento** (com o InventarIA), **Quem faz**, **Pontos para quem concluir** (com as Recompensas) e **Lista**, para mover. Só aparece o que a lista e as opções ligadas permitem.
+- Tocar num item abre **Editar item**: texto, **Notas**, **Prazo** (Hoje, Amanhã, Sábado, Próx. semana ou outra data, com horário quando a lista aceita), **Repetir depois de concluir**, **Cômodo** e **Equipamento** (com o InventarIA), **Quem faz** (com **Serviços externos** ligado), **Pontos para quem concluir** (com as Recompensas) e **Lista**, para mover. Só aparece o que a lista e as opções ligadas permitem.
+- **Notas** pode ser desligado em **Mais › Configurações › Opções › Exibição**: o campo some do **Novo item** e do **Editar item**, a não ser num item que já tem notas (para ver ou apagar). As notas que já existem continuam aparecendo nas listas.
 - Um link vira uma etiqueta curta: `Ver sobre: https://github.com/fulano/projeto` mostra `fulano/projeto`.
 - O **⋯** da lista: **Selecionar itens**, **Personalizar** (nome, cor, ícone, de quem é e prazos), **Ocultar do início**, **Abrir na tela padrão do HA** e **Limpar concluídos**.
 - **De quem é** (em Personalizar): **Todos** (o padrão) ou uma pessoa da casa. O aviso de prazos de uma lista com dono vai só para o celular dessa pessoa, e na CronologIA (1.53.0 ou mais novo) ela só aparece para essa pessoa. Se a CronologIA já tinha o dono de alguma lista, ele vem sozinho, uma vez.
@@ -38,7 +39,7 @@ Segure um item (ou use **⋯ › Selecionar itens**) para selecionar: toque nos 
 
 ### Buscar
 
-A aba **Buscar** procura em todas as listas que aparecem (as ocultas ficam fora), no texto e nas notas, sem ligar para acentos. Em **Incluir** ficam **Concluídos**, **Serviços externos** (acha por quem faz) e, com o InventarIA, **Cômodos** e **Equipamentos** (acha pelo nome ou pela zona; só aparecem com **Usar cômodos** e **Usar equipamentos** ligados).
+A aba **Buscar** procura em todas as listas que aparecem (as ocultas ficam fora), no texto e nas notas, sem ligar para acentos. Em **Incluir** ficam **Concluídos**, **Serviços externos** (acha por quem faz; só com **Serviços externos** ligado em Opções) e, com o InventarIA, **Cômodos** e **Equipamentos** (acha pelo nome ou pela zona; só aparecem com **Usar cômodos** e **Usar equipamentos** ligados).
 
 No início, logo abaixo do resumo, fica o campo **Buscar entre N itens**, como no InventarIA: a primeira letra já abre o **Buscar** com o que você digitou, e dá para continuar digitando lá.
 
@@ -122,6 +123,8 @@ Os pontos ficam pelo nome da tarefa em cada lista, então valem também quando u
 
 No item, **Quem faz** diz se é com vocês (**Nós mesmos**) ou um **Serviço externo**: uma pessoa ou empresa de fora vai fazer (eletricista, assistência técnica, diarista). Dá para escrever quem, ou deixar em branco. Não aparece nas listas sem prazo nem notas (como as de compras). A tarefa ganha uma etiqueta anil com o capacete e o nome; o **Buscar** acha por quem faz (ou por "serviço externo"), com **Incluir › Serviços externos** ligado (vem ligado); mover a tarefa leva junto; e o **Sugerir com IA** e a **Conversa** sabem que o que vocês fazem é chamar, marcar ou cobrar.
 
+Para não usar, desligue **Mais › Configurações › Opções › Quem faz › Serviços externos**: somem o **Quem faz** do item, as etiquetas, o filtro do **Buscar** e o gráfico **Quem faz**, e a IA não fica sabendo quem faz. O que já estava marcado fica guardado (e acompanha a tarefa se ela mudar de nome ou de lista); religando, volta tudo.
+
 ## Cômodos e equipamentos (InventarIA)
 
 Com o **InventarIA** (1.14.0 ou mais novo) no mesmo Home Assistant, ligue **Mais › Configurações › Integrações › InventarIA › Usar cômodos** (desligado por padrão). A partir daí:
@@ -147,7 +150,7 @@ No CronologIA 1.10.0 ou mais novo, **Mais › Integrações › Tarefas do Resol
 
 - **Concluir** aqui vale como Feito no CronologIA: os pontos vão para quem concluiu (ou para quem você escolher em **Quem fez?**), com o **Foi…** do aviso para trocar. Logo depois a tarefa volta pendente com a data seguinte.
 - **Desmarcar** (ou **Desfazer**) desfaz no CronologIA também.
-- Tocar na tarefa mostra o nome, a data, os pontos e as notas, só para ver: o nome, a data, as notas e os pontos se mudam no CronologIA, que reescreve a tarefa. **Excluir** tira da lista até a próxima data.
+- Tocar na tarefa mostra o nome, a data, os pontos (quando valem: **Recompensas** e placar ligados) e as notas, só para ver: o nome, a data, as notas e os pontos se mudam no CronologIA, que reescreve a tarefa. **Excluir** tira da lista até a próxima data.
 - Nas notas vai uma marcação técnica, `[cr:…]`, que liga a tarefa à do CronologIA. O app a esconde.
 
 ## Prazos

@@ -241,6 +241,15 @@ describe("rooms: Mais › Configurações › Integrações › InventarIA", () 
     busy._roomsBusy = true;
     assert.match(text(busy._renderRoomsPanel()), /Verificando…/);
   });
+  it("on: the AI suggests the room and the equipment only with Usar IA on", () => {
+    const p = panel();
+    p._app_ = { rooms_on: true, equips_on: true };
+    assert.match(text(p._renderRoomsPanel()), /Usar cômodos Cada tarefa pode ter um cômodo, e a IA sugere qual\. Usar equipamentos Cada tarefa pode ser de um equipamento ou móvel, e a IA sugere qual\./);
+    p._app_.ai_off = true;
+    const t = text(p._renderRoomsPanel());
+    assert.match(t, /Usar cômodos Cada tarefa pode ter um cômodo\. Usar equipamentos Cada tarefa pode ser de um equipamento ou móvel\./);
+    assert.doesNotMatch(t, /a IA sugere/);
+  });
   it("the switches save the choice (null when off) and check the InventarIA again", async () => {
     const p = panel(ROOMS(), { "resolvia/rooms/refresh": ROOMS() });
     const v = p._renderRoomsPanel();

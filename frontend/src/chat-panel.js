@@ -88,7 +88,8 @@ export const ChatMixin = (Base) =>
         const l = this._list(v.id);
         return l ? [`O que é mais urgente em ${clip(l.name, 24)}?`, "Por onde eu começo hoje?"] : [];
       }
-      return ["O que está atrasado?", "Por onde eu começo hoje?", "Adiciona leite na lista de compras"];
+      // "atrasado" only with Controlar prazos on (off, nothing is late)
+      return [...(this._dueOn() ? ["O que está atrasado?"] : []), "Por onde eu começo hoje?", "Adiciona leite na lista de compras"];
     }
 
     /** Where the person is, in words for the AI. */
@@ -105,7 +106,7 @@ export const ChatMixin = (Base) =>
       if (v.name === "sobre") return "Mais › Sobre (CorrerIA Code, quem faz o app, os outros apps da família e o GitHub)";
       if (v.name === "listas") return "Mais › Listas (nome, cor, ícone e quais listas aparecem)";
       if (v.name === "graficos") return `Mais › Gráficos (gráficos das ${this._chartsLine().replace(/\.$/, "").toLowerCase()})`;
-      if (v.name === "config") return "Mais › Configurações (integrações, dados, aparência e opções do app: prazos, exibição e repetição)";
+      if (v.name === "config") return "Mais › Configurações (integrações, dados, aparência e opções do app: prazos, exibição, quem faz e repetição)";
       return "o início, com todas as listas";
     }
 

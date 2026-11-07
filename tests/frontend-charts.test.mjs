@@ -285,6 +285,8 @@ describe("charts: the screen", () => {
     assert.doesNotMatch(render(p._renderCharts()).html.split('id="g-quem"')[1], /g-split/);
     const q = new Panel([list("todo.casa", [item("a"), item("b")], { noDue: true })], { ext: { "todo.casa": { a: true } } });
     assert.match(text(q._renderCharts()), /Quem faz Nós mesmos 1 50% Serviço externo 1 50%$/, "no name: nothing beside it");
+    q._app_ = { ext_off: true };
+    assert.doesNotMatch(text(q._renderCharts()), /Quem faz|Serviço externo/, "Serviços externos off: no Quem faz");
   });
 
   it("the bars: the biggest full, the others in proportion, a sliver for very little", () => {

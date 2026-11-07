@@ -100,13 +100,24 @@ async def main():
         await row.locator(".it-body").click(); await pg.wait_for_timeout(500)
         check(await pg.locator(".detail-head h1").inner_text() == "Casa", "tapping it opens its list")
 
-        # empty: lists that take deadlines, none set
+        # empty: the only list that takes deadlines has them off (Personalizar › Prazos): a date set there wouldn't come here (2.44.0)
         await ws({"type": "resolvia/recurring/clear"})
         await ws({"type": "resolvia/prefs/set_list", "entity_id": CASA, "prefs": {"dates_info": True}})
         await pg.reload(); await pg.wait_for_timeout(1300)  # (the screen reads the preferences when it opens)
         await prazos()
         txt = await pg.locator(".page").inner_text()
-        check("Nada com prazo" in txt and "Toque num item para definir um prazo" in txt and await status() == "Nada atrasado", "no deadline set: 'Nada com prazo'")
+        check("Nada com prazo" in txt and "Os prazos estão desligados nas listas (⋯ › Personalizar)." in txt and "Toque num item" not in txt and await status() == "Nada atrasado", f"deadlines off in the lists: says so, no 'Toque num item' ({txt[-160:]!r})")
+        check(await badge.count() == 0, "no badge")
+        await pg.screenshot(path=f"{SP}/shots/rvp2-prazos-desligados.png")
+        # empty: deadlines on, none set
+        await ws({"type": "resolvia/prefs/set_list", "entity_id": CASA, "prefs": {"dates_info": None}})
+        for i in (await ws({"type": "todo/item/list", "entity_id": CASA}))["items"]:
+            if i.get("due"):
+                await ws({"type": "call_service", "domain": "todo", "service": "update_item", "service_data": {"item": i["uid"], ("due_datetime" if "T" in i["due"] else "due_date"): None}, "target": {"entity_id": CASA}})
+        await pg.reload(); await pg.wait_for_timeout(1300)
+        await prazos()
+        txt = await pg.locator(".page").inner_text()
+        check("Nada com prazo" in txt and "Quando um item tiver data, ele aparece aqui. Toque num item para definir um prazo." in txt and await status() == "Nada atrasado", "no deadline set: 'Nada com prazo'")
         check(await badge.count() == 0, "no badge")
         # empty: no list shown takes deadlines
         await ws({"type": "resolvia/prefs/set_list", "entity_id": CASA, "prefs": {"dates_info": None, "hidden": True}})

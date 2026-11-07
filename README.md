@@ -36,7 +36,7 @@ A primeira instalação leva alguns minutos, porque o app é montado no próprio
 - **Prazos** de todas as listas, incluindo o que vai voltar sozinho, e um **aviso no celular** com o que vence hoje, no horário que você escolher. Sem prazos, a aba vira **Sugestões**: por onde começar, com o motivo, ou escolhido pela IA.
 - **Buscar** em todas as listas, sem ligar para acentos, também por cômodo, equipamento e quem faz.
 - **Cômodos e equipamentos** do InventarIA nas tarefas, sugeridos pela IA (ligue em **Mais › Configurações › Integrações**).
-- **Serviço externo**: marque quando alguém de fora vai fazer a tarefa (eletricista, assistência técnica).
+- **Serviço externo**: marque quando alguém de fora vai fazer a tarefa (eletricista, assistência técnica). Quem não usa desliga em **Mais › Configurações › Opções**, como as **Notas**.
 - **Recompensas**: cada tarefa pode valer pontos no placar do CronologIA para quem concluir, e as **manutenções e rotinas** de lá viram tarefas aqui (concluir aqui vale como feito lá, e a tarefa volta com a próxima data).
 - **Mais** é um menu, como no InventarIA: **Listas** (nome, cor, ícone e quais aparecem), **Gráficos** (pendências por lista, cômodo, equipamento, prazo e quem faz) e **Configurações** (Integrações, Dados, Aparência e Opções).
 - **Dados**: exportar em ZIP, CSV ou JSON, backup em `share/resolvia`, importar (repõe os itens que faltarem, sem duplicar) e versões anteriores automáticas.

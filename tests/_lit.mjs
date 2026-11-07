@@ -178,6 +178,13 @@ export class Host {
   _app(k, d) {
     return k in this._app_ && this._app_[k] != null ? this._app_[k] : d;
   }
+  // Usar IA and Controlar prazos, as the panel reads them (on unless turned off)
+  _aiOn() {
+    return !this._app("ai_off", false);
+  }
+  _dueOn() {
+    return !this._app("due_off", false);
+  }
   _secHead(ic, title, sub) {
     return html`<div class="sec-head"><h2>${title}</h2>${sub ? html`<p>${sub}</p>` : ""}</div>`;
   }

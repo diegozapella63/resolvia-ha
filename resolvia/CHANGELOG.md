@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.44.0
+
+- **Serviços externos** pode ser desligado, em **Mais › Configurações › Opções › Quem faz**: somem o **Quem faz** do item, a etiqueta nas tarefas, o filtro do **Buscar** e o gráfico **Quem faz**, e a IA não fica sabendo quem faz. O que já estava marcado fica guardado e volta ao religar.
+- **Notas** pode ser desligado, em **Mais › Configurações › Opções › Exibição**: o campo some do **Novo item** e do **Editar item** (num item que já tem notas, ele fica). As notas que já existem continuam nas listas.
+- Os textos só dizem o que vai acontecer:
+  - **Integrações › InventarIA**: "a IA sugere qual" só com **Usar IA** ligado.
+  - Tarefa do CronologIA: só fala em pontos quando eles valem (**Recompensas** e placar ligados).
+  - **Avisar o que vence hoje**: sem CronologIA, não manda escolher o celular nos Avisos dela.
+  - **Prazos** vazio com os prazos desligados nas listas: diz isso, em vez de "toque num item para definir um prazo".
+  - **Conversa**: com **Controlar prazos** desligado, não sugere "O que está atrasado?".
+  - **Recompensas**: o caminho para ligar a integração no CronologIA agora inclui **Configurações**.
+
 ## 2.43.2
 
 - **Personalizar › De quem é** só fala do aviso de prazos quando **Avisar o que vence hoje** está ligado.

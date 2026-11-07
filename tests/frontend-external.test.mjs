@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { text, click, fire, labels, fakeHass, hostOf } from "./_lit.mjs";
 import { ExternalMixin } from "../frontend/src/external.js";
 import { F } from "../frontend/src/util.js";
-import { nothing } from "../frontend/vendor/lit-all.min.js";
+import { nothing, html } from "../frontend/vendor/lit-all.min.js";
 
 const Panel = hostOf(ExternalMixin);
 const panel = (ext = { "todo.casa": { "trocar resistencia": "Eletricista", "consertar portao": true } }, answers = {}) => {
@@ -89,5 +89,44 @@ describe("external: the item sheet (Quem faz)", () => {
     const p = panel({}, { "resolvia/external/set": new Error("") });
     await p._setTaskExternal("todo.casa", "x", true);
     assert.deepEqual(p.toasts, ["Não consegui guardar quem faz"]);
+  });
+});
+
+describe("external: Mais › Configurações › Opções › Quem faz › Serviços externos", () => {
+  const sw = (on, label, ev) => html`<input type="checkbox" .checked=${on} @change=${ev} aria-label=${label} />`;
+  it("on by default: Quem faz in each task", () => {
+    const p = panel();
+    assert.equal(p._extOn(), true);
+    assert.equal(text(p._renderExternalOption(sw)), "Quem faz Serviços externos Quem faz em cada tarefa: vocês ou alguém de fora.");
+  });
+  it("off: no Quem faz, no tag, nothing for Buscar or the AI; what is kept stays (and comes back on)", () => {
+    const p = panel();
+    p._app_ = { ext_off: true };
+    assert.equal(p._extOn(), false);
+    assert.equal(text(p._renderExternalOption(sw)), "Quem faz Serviços externos Desligado.");
+    assert.equal(p._externalOf("todo.casa", "Trocar resistência"), null);
+    assert.equal(p._externalText("todo.casa", "Trocar resistência"), "");
+    assert.equal(text(p._renderExternalTag("todo.casa", { summary: "Trocar resistência" })), "");
+    p._form = { ext: null };
+    assert.equal(p._renderExternalField(p._form, F.CREATE | F.DUE_DATE | F.DESCRIPTION), nothing);
+    p._form = { ext: "Eletricista" };
+    assert.equal(p._renderExternalField(p._form, F.CREATE | F.DUE_DATE | F.DESCRIPTION), nothing, "not even when the task has one");
+    assert.equal(p._externalRaw("todo.casa", "Trocar resistência"), "Eletricista", "kept: a move or a rename takes it along");
+    p._app_ = {};
+    assert.equal(p._externalOf("todo.casa", "Trocar resistência"), "Eletricista", "back on: as it was");
+  });
+  it("off: a task opened and saved without changes doesn't touch what is kept; renamed, it goes along", async () => {
+    const p = panel({}, { "resolvia/external/set": (m) => ({ ext: { [m.entity_id]: { y: m.value } } }) });
+    p._app_ = { ext_off: true };
+    await p._saveTaskExternal("todo.casa", "Trocar", { ext: "Eletricista", extOrig: "Eletricista" });
+    assert.equal(p.hass.calls.length, 0);
+    await p._saveTaskExternal("todo.casa", "Trocar 2", { ext: "Eletricista", extOrig: "Eletricista" }, "Trocar");
+    assert.deepEqual(p.hass.calls[0], { type: "resolvia/external/set", entity_id: "todo.casa", summary: "Trocar 2", value: "Eletricista", previous_summary: "Trocar" });
+  });
+  it("the switch saves ext_off (true when off, null back on)", async () => {
+    const p = panel();
+    await fire(p._renderExternalOption(sw), "Serviços externos", "change", { target: { checked: false } });
+    await fire(p._renderExternalOption(sw), "Serviços externos", "change", { target: { checked: true } });
+    assert.deepEqual(p.prefs, [{ ext_off: true }, { ext_off: null }]);
   });
 });

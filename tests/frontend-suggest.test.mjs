@@ -146,6 +146,10 @@ describe("suggest: the AI", () => {
     ]);
     assert.deepEqual([p._aiBusy, p._aiAsking, p.haptics], [false, false, ["light"]]);
     assert.deepEqual(p._aiRows().map((r) => [r.i.summary, r.why, r.ai]), [["Trocar lâmpada", "Rápido", true]]);
+    // Serviços externos off: the AI isn't told who from outside does it
+    p._app_ = { ext_off: true };
+    await p._askAi();
+    assert.equal(p.hass.calls[1].items[0].externo, "");
   });
   it("at most 150 items; nothing pending, or already thinking: nothing is asked", async () => {
     const many = new Panel([list("todo.a", Array.from({ length: 200 }, (_, k) => `t${k}`))], { "resolvia/ai/suggest": { picks: [] } });

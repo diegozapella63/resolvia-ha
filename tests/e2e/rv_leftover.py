@@ -50,10 +50,10 @@ async def main():
             if not stored()["rules"]: break
             await asyncio.sleep(0.25)
         check(not stored()["rules"] and stored()["prefs"]["app"].get("repeat_on") is False, "deleted, still off")
-        # Opções: Prazos, Exibição and Repetição (nothing repeats: no list of them)
+        # Opções: Prazos, Exibição, Quem faz (2.44.0) and Repetição (nothing repeats: no list of them)
         await pg.wait_for_timeout(500)
         heads = await pg.locator(".mais-head h2").all_inner_texts()
-        check(heads == ["Prazos", "Exibição", "Repetição"], f"Opções has Prazos, Exibição and Repetição ({heads})")
+        check(heads == ["Prazos", "Exibição", "Quem faz", "Repetição"], f"Opções has Prazos, Exibição, Quem faz and Repetição ({heads})")
         await pg.locator("input[aria-label='Concluídos abertos']").check(); await pg.wait_for_timeout(500)
         check(stored()["prefs"]["app"].get("show_done") is True, "the switches there still work")
         await pg.get_by_role("tab", name="Aparência", exact=True).click(); await pg.wait_for_timeout(400)

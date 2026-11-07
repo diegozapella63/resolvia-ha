@@ -99,6 +99,15 @@ async def main():
         await sheet.locator(".chat-head .icon-btn[aria-label='Fechar']").click(); await pg.wait_for_timeout(300)
         # Uso da IA counts it
         check(fake_log().count("fake AI chat") >= 5, "each turn is one call to the AI")
+        # Controlar prazos off: nothing is late, so no example about it (2.44.0)
+        await pg.evaluate(WS, [{"type": "resolvia/prefs/set_app", "prefs": {"due_off": True}}])
+        await pg.reload(); await pg.wait_for_timeout(1800)
+        await a.locator(".chat-top").first.click(); await pg.wait_for_timeout(400)
+        if await chat.locator(".chat-head .text-btn", has_text="Nova").count(): await chat.locator(".chat-head .text-btn", has_text="Nova").click(); await pg.wait_for_timeout(300)
+        ex = [t.strip() for t in await chat.locator(".chat-ex .pick").all_inner_texts()]
+        check(ex == ["Por onde eu começo hoje?", "Adiciona leite na lista de compras"], f"Controlar prazos off: no 'O que está atrasado?' ({ex})")
+        await sheet.locator(".chat-head .icon-btn[aria-label='Fechar']").click(); await pg.wait_for_timeout(300)
+        await pg.evaluate(WS, [{"type": "resolvia/prefs/set_app", "prefs": {"due_off": None}}])
         # Usar IA off: no button
         await pg.evaluate(WS, [{"type": "resolvia/prefs/set_app", "prefs": {"ai_off": True}}])
         await pg.reload(); await pg.wait_for_timeout(1800)

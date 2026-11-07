@@ -101,11 +101,12 @@ async def main():
         await pg.screenshot(path=f"{SP}/shots/rvmn-listas-dark.png")
         await a.locator(".uplink").click(); await pg.wait_for_timeout(400)
 
-        # ---- Configurações › Opções: Prazos, Exibição and Repetição together
+        # ---- Configurações › Opções: Prazos, Exibição, Quem faz (2.44.0) and Repetição together
         await rows.nth(2).click(); await pg.wait_for_timeout(450)
         await a.get_by_role("tab", name="Opções", exact=True).click(); await pg.wait_for_timeout(400)
         heads = [h.strip() for h in await a.locator("[role=tabpanel] .mais-head h2").all_inner_texts()]
-        check(heads == ["Prazos", "Exibição", "Repetição"], f"Opções: Prazos, Exibição and Repetição ({heads})")
+        check(heads == ["Prazos", "Exibição", "Quem faz", "Repetição"], f"Opções: Prazos, Exibição, Quem faz and Repetição ({heads})")
+        check(await a.locator("input[aria-label='Notas']").count() == 1 and await a.locator("#quem-faz input[aria-label='Serviços externos']").count() == 1, "Opções: the switches Notas and Serviços externos")
         check(await a.locator("#repeticao input[aria-label='Repetir depois de concluir']").count() == 1, "Repetição: the switch")
         await pg.screenshot(path=f"{SP}/shots/rvmn-opcoes-dark.png")
         await pg.go_back(); await pg.wait_for_timeout(400)

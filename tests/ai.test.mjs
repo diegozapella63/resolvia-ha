@@ -621,6 +621,27 @@ describe("AI.suggest", () => {
     assert.match(d.instructions, /3 \| Mercado \(compras\) \| Leite \| idade desconhecida/);
   });
 
+  it("Serviços externos off: the AI is not told who from outside does a task (Sugerir com IA and Conversa)", async () => {
+    const ext = [{ key: "todo.casa|u1", lista: "Casa", texto: "Trocar resistência", dias: 3, externo: "Eletricista" }, ...items];
+    let on = false;
+    const fake = fakeHA({ answer: () => ({ items: ["1 | chame já"], resposta: "ok", acoes: [] }) });
+    const ai = new AI({ ha: fake, log: fakeLog(), mediaDir: tmpDir("resolvia-media-"), selected: () => "", external: () => on });
+    await ai.suggest(ext);
+    const context = { tela: "Início", listas: [{ id: "todo.casa", nome: "Casa", itens: [{ texto: "Trocar resistência", externo: "Eletricista" }] }] };
+    await ai.chat({ messages: [{ role: "user", text: "oi" }], context });
+    let prompts = fake.calls.filter((c) => c.type === "call_service").map((c) => c.service_data.instructions);
+    assert.equal(prompts.length, 2);
+    for (const p of prompts) assert.doesNotMatch(p, /Eletricista|serviço externo/i);
+    assert.match(prompts[0], /1 \| Casa \| Trocar resistência \| 3 dias na lista/);
+    on = true;
+    fake.calls.length = 0;
+    await ai.suggest(ext);
+    await ai.chat({ messages: [{ role: "user", text: "oi" }], context });
+    prompts = fake.calls.filter((c) => c.type === "call_service").map((c) => c.service_data.instructions);
+    for (const p of prompts) assert.match(p, /serviço externo: Eletricista/);
+    assert.equal(newAI().ai.external(), true, "on unless said otherwise");
+  });
+
   it("does nothing without items", async () => {
     const { ai, ha } = newAI();
     assert.deepEqual(await ai.suggest([]), { picks: [], provider: null });

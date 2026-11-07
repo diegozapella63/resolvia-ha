@@ -215,7 +215,7 @@ describe("points: Mais › Configurações › Integrações › Recompensas", (
     assert.match(text(panel(pts({ points: {} }))._renderRewardsPanel()), /Abra um item e escolha “Pontos para quem concluir”\./);
     assert.match(text(panel(pts({ points: { a: { x: 1 } }, placar: { ...PLACAR, eu: null, periodo: "?" } }))._renderRewardsPanel()), /1 tarefa vale pontos\..*fecha toda semana\. Este usuário do Home Assistant não está no placar/);
     assert.match(text(panel(pts({ placar: null }))._renderRewardsPanel()), /CronologIA não encontrado/);
-    assert.match(text(panel(pts({ placar: { desligado: true, versao: "1.30" } }))._renderRewardsPanel()), /Integração desligada no CronologIA 1\.30/);
+    assert.match(text(panel(pts({ placar: { desligado: true, versao: "1.30" } }))._renderRewardsPanel()), /Integração desligada no CronologIA 1\.30 Ligue em CronologIA › Mais › Configurações › Integrações › Tarefas do ResolvIA › Usar a integração/);
     assert.match(text(panel(pts({ placar: { ativo: false, versao: "" } }))._renderRewardsPanel()), /Placar desligado no CronologIA Ligue o placar/);
   });
 });

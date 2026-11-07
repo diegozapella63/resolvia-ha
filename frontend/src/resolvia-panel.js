@@ -51,7 +51,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.43.2";
+const VERSION = "2.44.0";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -1004,6 +1004,11 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
     return !this._app("due_off", false);
   }
 
+  /** Mais › Configurações › Opções › Exibição › Notas: off hides the Notas field (unless the item already has notes). */
+  _notesOn() {
+    return !this._app("notes_off", false);
+  }
+
   /** Mais › Configurações › Integrações › Usar IA: off hides the import from messages and photos. */
   _aiOn() {
     return !this._app("ai_off", false);
@@ -1557,6 +1562,8 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
       target: list.id,
       summary: item.summary || "",
       description: stripMark(item.description),
+      // Notas off: the field stays for an item that already has notes (to see or clear them)
+      hadNotes: !!stripMark(item.description).trim(),
       mirrored: this._mirrored(list.id, item.uid),
       due: item.due || null,
       date: due ? due.date : null,
@@ -1571,8 +1578,9 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
       roomsOrig: this._roomIdsOf(list.id, item.summary),
       equips: this._equipIdsOf(list.id, item.summary),
       equipsOrig: this._equipIdsOf(list.id, item.summary),
-      ext: this._externalOf(list.id, item.summary),
-      extOrig: this._externalOf(list.id, item.summary),
+      // what is kept, even with Serviços externos off (no field then): a rename or a move takes it along
+      ext: this._externalRaw(list.id, item.summary),
+      extOrig: this._externalRaw(list.id, item.summary),
     });
     this._loadPoints();
   }
@@ -2292,7 +2300,7 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
       await this._setTaskEquip(target.id, summary, equips);
       await this._setTaskEquip(list.id, summary, null);
     }
-    const ext = this._externalOf(list.id, summary);
+    const ext = this._externalRaw(list.id, summary);
     if (ext) {
       await this._setTaskExternal(target.id, summary, ext);
       await this._setTaskExternal(list.id, summary, null);
@@ -2441,6 +2449,8 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
   _renderDue() {
     const lists = this._visible();
     const supportsDue = lists.some((l) => has(l.features, F.DUE_DATE) || has(l.features, F.DUE_DATETIME));
+    // Personalizar › Prazos off in every list that takes them: a date set is only information, it doesn't come here
+    const anyDue = lists.some((l) => !l.noDue);
     const rows = this._dueRows(lists);
     const buckets = [
       { title: "Atrasados", test: (d) => d.overdue },
@@ -2516,7 +2526,7 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
                 <div class="em-icon">${icon("calendar-days")}</div>
                 ${supportsDue
                   ? html`<h3>Nada com prazo</h3>
-                      <p>Quando um item tiver data, ele aparece aqui. Toque num item para definir um prazo.</p>`
+                      <p>${anyDue ? "Quando um item tiver data, ele aparece aqui. Toque num item para definir um prazo." : "Os prazos estão desligados nas listas (⋯ › Personalizar)."}</p>`
                   : html`<h3>Sem prazos por aqui</h3>
                       <p>Suas listas atuais não aceitam datas. Listas locais (“Lista de tarefas local”), Google Tasks e CalDAV aceitam.</p>`}
               </div>
@@ -2539,13 +2549,14 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
     let count = 0;
     const byRoom = this._roomsOn() && this._searchRooms;
     const byEquip = this._equipsOn() && this._searchEquips;
+    const byExt = this._extOn() && this._searchExt;
     const place = (l, i) => (byRoom || byEquip ? fold(this._placeText(l.id, i.summary, { rooms: byRoom, equips: byEquip })).includes(needle) : false);
     if (needle) {
       // only the lists that are on (Mais › Listas): the hidden ones are not searched
       for (const l of this._visible()) {
         const hits = (l.items || []).filter(
           // also by the room or the item of the InventarIA ("cozinha", "fogão")
-          (i) => (this._searchDone || !isDone(i)) && (fold(i.summary).includes(needle) || fold(i.description).includes(needle) || place(l, i) || (this._searchExt && fold(this._externalText(l.id, i.summary)).includes(needle))),
+          (i) => (this._searchDone || !isDone(i)) && (fold(i.summary).includes(needle) || fold(i.description).includes(needle) || place(l, i) || (byExt && fold(this._externalText(l.id, i.summary)).includes(needle))),
         );
         if (hits.length) {
           hits.sort((a, b) => Number(isDone(a)) - Number(isDone(b)));
@@ -2565,8 +2576,8 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
         <div class="filters-label" id="incluir">Incluir</div>
         <div class="filters" role="group" aria-labelledby="incluir">
           ${this._searchToggle("circle-check", "Concluídos", this._searchDone, () => (this._searchDone = !this._searchDone))}
-          ${this._searchToggle("hard-hat", "Serviços externos", this._searchExt, () => (this._searchExt = !this._searchExt))}
-          ${/* Cômodos and Equipamentos only with Usar cômodos / Usar equipamentos on (off: they aren't there) */ ""}
+          ${/* Serviços externos, Cômodos and Equipamentos only with their option on (off: they aren't there) */ ""}
+          ${this._extOn() ? this._searchToggle("hard-hat", "Serviços externos", this._searchExt, () => (this._searchExt = !this._searchExt)) : nothing}
           ${this._rooms && this._rooms.encontrado && this._roomsOn() ? this._searchToggle("door-open", "Cômodos", this._searchRooms, () => (this._searchRooms = !this._searchRooms)) : nothing}
           ${this._rooms && this._rooms.encontrado && this._equipsOn() ? this._searchToggle("package", "Equipamentos", this._searchEquips, () => (this._searchEquips = !this._searchEquips)) : nothing}
         </div>
@@ -2811,7 +2822,7 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
     });
   }
 
-  /** Mais › Configurações › Opções: the deadlines, how the lists show, and the repetition. */
+  /** Mais › Configurações › Opções: the deadlines, how the lists show (and the Notas field), Quem faz and the repetition. */
   _renderOptionsTab() {
     const sw = (on, label, ev) => html`<label class="switch"><input type="checkbox" role="switch" .checked=${on} @change=${ev} aria-label=${label} /><span class="track"></span></label>`;
     const dueOn = this._dueOn();
@@ -2836,7 +2847,12 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
             <div class="grow"><div class="label">Concluídos abertos</div><div class="hint">Mostra os concluídos sem precisar tocar</div></div>
             ${sw(this._app("show_done", false), "Concluídos abertos", (e) => this._saveAppPrefs({ show_done: e.target.checked }))}
           </div>
+          <div class="row">
+            <div class="grow"><div class="label">Notas</div><div class="hint" style="white-space:normal">${this._notesOn() ? "Campo de notas em cada item." : "Desligado."}</div></div>
+            ${sw(this._notesOn(), "Notas", (e) => this._saveAppPrefs({ notes_off: e.target.checked ? null : true }))}
+          </div>
         </div>
+        ${this._renderExternalOption(sw)}
         ${this._renderRulesPanels()}
     `;
   }
@@ -2856,6 +2872,8 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
     const list = (ns) => (ns.length > 1 ? `${ns.slice(0, -1).join(", ")} e ${ns.at(-1)}` : ns[0]);
     const without = (people || []).filter((p) => !p.phone).map((p) => p.name);
     const why = !people ? "" : !me ? "Você não é uma pessoa da casa no Home Assistant." : !me.phone ? "Sem celular para você." : "";
+    // Avisos of the CronologIA only when there is a CronologIA in this Home Assistant
+    const cr = !!(this._pts && this._pts.placar);
     return html`<div class="row">
         <div class="grow"><div class="label">Avisar o que vence hoje</div><div class="hint" style="white-space:normal">${on ? "Cada pessoa recebe as listas dela e as de todos." : "Desligado."}</div></div>
         ${sw(on, "Avisar o que vence hoje", (e) => this._saveAppPrefs({ due_alert: e.target.checked ? true : null }))}
@@ -2877,7 +2895,7 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
                   ? html`<div class="due-who">${people.map(
                       (p) => html`<div class="dw ${p.phone ? "" : "off"}">${icon("user-round")}<b>${p.name}</b><span>${p.phone || "sem celular"}</span></div>`,
                     )}</div>
-                    ${without.length ? html`<p class="field-hint">${icon("info")}<span>Sem celular para ${list(without)}: escolha em Avisos da CronologIA ou ligue o celular à pessoa no Home Assistant.</span></p>` : nothing}`
+                    ${without.length ? html`<p class="field-hint">${icon("info")}<span>Sem celular para ${list(without)}: ${cr ? "escolha em Avisos da CronologIA ou " : ""}ligue o celular à pessoa no Home Assistant.</span></p>` : nothing}`
                   : html`<p class="field-hint">${icon("info")}<span>Nenhuma pessoa da casa no Home Assistant.</span></p>`}
             </div>
           </div>`
@@ -3027,10 +3045,14 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
     return `--rv-accent:${c.fill};--rv-accent-ink:${this._dark ? c.fill : c.ink};--rv-accent-soft:${hexToRgba(c.fill, this._dark ? 0.18 : 0.14)};${colorVars(c, this._dark)}`;
   }
 
-  /** A maintenance or routine kept by the CronologIA: read only (the CronologIA writes the name, date and notes back). */
+  /**
+   * A maintenance or routine kept by the CronologIA: read only (the CronologIA writes the name, date and notes back).
+   * Its points only when they are given (Recompensas on and the scoreboard of the CronologIA on).
+   */
   _renderMirroredSheet(src) {
     const f = this._form;
     const m = f.mirrored;
+    const pts = this._pointsOf(src.id, f.summary, f.key);
     const due = dueInfo(f.due);
     const canDelete = has(src.features, F.DELETE);
     return html`
@@ -3042,12 +3064,12 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
         <b>${f.summary}</b>
         <div class="ro-tags">
           ${due ? html`<span class="tag ${src.noDue ? "info" : due.tone}">${icon("calendar")}${due.text}</span>` : nothing}
-          ${m.pontos ? html`<span class="tag pts">${icon("trophy")}+${m.pontos}</span>` : nothing}
+          ${pts ? html`<span class="tag pts">${icon("trophy")}+${pts}</span>` : nothing}
           <span class="tag">${clip(src.name, 24)}</span>
         </div>
         ${f.description ? html`<p>${f.description}</p>` : nothing}
       </div>
-      <p class="sheet-note with-icon">${icon("calendar-clock")}<span>Vem do CronologIA: concluir aqui marca como feito lá${m.pontos ? ` (${m.pontos} pontos)` : ""}. Para editar, use o CronologIA.</span></p>
+      <p class="sheet-note with-icon">${icon("calendar-clock")}<span>Vem do CronologIA: concluir aqui marca como feito lá${pts ? ` (${pts} pontos)` : ""}. Para editar, use o CronologIA.</span></p>
       <div class="sheet-actions">
         ${canDelete ? html`<button class="btn danger" @click=${() => this._deleteItem()} aria-label="Excluir">${icon("trash")}</button>` : nothing}
         <button class="btn primary" @click=${() => this._closeSheet()}>Fechar</button>
@@ -3101,7 +3123,7 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
         <span class="flabel">Item</span>
         <textarea rows="2" .value=${f.summary} @input=${(e) => this._setForm({ summary: e.target.value })} @keydown=${(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), this._saveItem())} placeholder="O que precisa ser resolvido?"></textarea>
       </label>
-      ${canDesc
+      ${canDesc && (this._notesOn() || f.hadNotes)
         ? html`<label class="field">
             <span class="flabel">Notas</span>
             <textarea rows="3" .value=${f.description} @input=${(e) => this._setForm({ description: e.target.value })} placeholder="Detalhes, links…"></textarea>

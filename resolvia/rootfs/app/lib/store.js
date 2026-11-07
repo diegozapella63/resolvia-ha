@@ -64,6 +64,11 @@ const APP_FIELDS = {
   rooms_on: ["boolean"],
   // Mais > Configurações > Integrações > InventarIA › Usar equipamentos: each task can point to an item of the InventarIA
   equips_on: ["boolean"],
+  // Mais > Configurações > Opções > Quem faz › Serviços externos: true = off (no Quem faz, no tag, not in Buscar,
+  // Gráficos nor the AI); what is kept (ext) stays, and comes back when turned on
+  ext_off: ["boolean"],
+  // Mais > Configurações > Opções > Exibição › Notas: true = off (no Notas field, unless the item already has notes)
+  notes_off: ["boolean"],
 };
 
 /** Avisar o que vence hoje: a time "HH:MM" and phones notify.mobile_app_*; anything else is dropped. */

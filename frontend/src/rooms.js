@@ -259,10 +259,12 @@ export const RoomsMixin = (Base) =>
         state = html`<div class="ai-state ${tone}"><span class="dot"></span><div><b>${title}</b>${detail ? html`<span>${detail}</span>` : nothing}</div></div>
           <div class="ai-actions"><button class="btn outline" ?disabled=${this._roomsBusy} @click=${() => this._refreshRooms()}>${icon("rotate-ccw")}Verificar de novo</button></div>`;
       }
+      // "a IA sugere qual" only with Usar IA on (off, it suggests nothing)
+      const ai = this._aiOn() ? ", e a IA sugere qual" : "";
       return html`<div class="panel" id="comodos">
         ${this._secHead("house", "InventarIA", "Para ligar uma tarefa a um cômodo ou a um equipamento da casa.")}
-        ${sw("Usar cômodos", on, "Cada tarefa pode ter um cômodo, e a IA sugere qual.", (v) => this._toggleRooms(v))}
-        ${sw("Usar equipamentos", eon, "Cada tarefa pode ser de um equipamento ou móvel, e a IA sugere qual.", (v) => this._toggleEquips(v))}
+        ${sw("Usar cômodos", on, `Cada tarefa pode ter um cômodo${ai}.`, (v) => this._toggleRooms(v))}
+        ${sw("Usar equipamentos", eon, `Cada tarefa pode ser de um equipamento ou móvel${ai}.`, (v) => this._toggleEquips(v))}
         ${state}
       </div>`;
     }

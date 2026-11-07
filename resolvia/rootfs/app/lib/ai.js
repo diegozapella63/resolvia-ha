@@ -263,12 +263,14 @@ export function parseSuggestions(raw, count) {
 
 export class AI {
   /** `selected()` returns the entity chosen in the app ("" = Home Assistant's default). */
-  constructor({ ha, log, mediaDir, selected, usage = null }) {
+  constructor({ ha, log, mediaDir, selected, usage = null, external = null }) {
     this.usage = usage; // Uso da IA: every call to ai_task.generate_data is counted
     this.ha = ha;
     this.log = log;
     this.mediaDir = mediaDir;
     this.selected = selected || (() => "");
+    // Mais › Configurações › Opções › Serviços externos: off, the AI is not told who from outside does a task
+    this.external = external || (() => true);
   }
 
   tmpDir() {
@@ -414,7 +416,8 @@ export class AI {
 
   /** Sugestões › Pedir à IA. Returns [{key, motivo}] for up to 5 of the items. */
   async suggest(rawItems) {
-    const items = cleanSuggestItems(rawItems);
+    const ext = this.external();
+    const items = cleanSuggestItems(rawItems).map((i) => (ext ? i : { ...i, externo: "" }));
     if (!items.length) return { picks: [], provider: null };
     if (!this.ha.ready) throw coded("no_ai", "Sem conexão com o Home Assistant.");
     const entity = await this.resolve(false);
@@ -459,6 +462,7 @@ export class AI {
    */
   async chat(raw, now = new Date()) {
     const payload = cleanChat(raw);
+    if (!this.external()) for (const l of payload.context.listas) for (const i of l.itens) i.externo = "";
     const last = payload.messages[payload.messages.length - 1];
     if (!last || last.role !== "user") throw coded("invalid_format", "Escreva alguma coisa.");
     if (!this.ha.ready) throw coded("no_ai", "Sem conexão com o Home Assistant.");

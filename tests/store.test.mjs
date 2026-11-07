@@ -508,6 +508,18 @@ describe("Store: list and app prefs", () => {
     assert.deepEqual(store.prefs.app, { rooms_on: true, equips_on: false });
   });
 
+  it("app prefs: Serviços externos and Notas (on by default; true turns them off, null back on), the kept tasks stay", (t) => {
+    const { store } = newStore(t);
+    store.setExternal("todo.casa", "Trocar resistência", "Eletricista");
+    store.setAppPrefs({ ext_off: true, notes_off: true });
+    assert.deepEqual(store.prefs.app, { ext_off: true, notes_off: true });
+    assert.equal(store.externalFor("todo.casa", "trocar resistencia"), "Eletricista", "turning it off keeps who does each task");
+    store.setAppPrefs({ ext_off: "sim", notes_off: 1 });
+    assert.deepEqual(store.prefs.app, { ext_off: true, notes_off: true }, "only booleans");
+    store.setAppPrefs({ ext_off: null, notes_off: null });
+    assert.deepEqual(store.prefs.app, {});
+  });
+
   it("app prefs: Cor do dia (on by default; false turns it off, null back on)", (t) => {
     const { store } = newStore(t);
     store.setAppPrefs({ accent: "azul", accent_daily: false });
