@@ -50,11 +50,6 @@ describe("Placar.read: the CronologIA scoreboard", () => {
     assert.equal(placar(file({ donos_listas: ["x"] })).p.read(NOW).donos, null);
   });
 
-  it("celulares (1.53.1+): the phone of each person, only mobile apps", () => {
-    assert.deepEqual(placar(file({ celulares: { Ana: "mobile_app_pixel_8", " Beto ": "mobile_app_galaxy", Cida: "notify.x", "": "mobile_app_y" } })).p.read(NOW).celulares, { Ana: "mobile_app_pixel_8", Beto: "mobile_app_galaxy" });
-    assert.deepEqual(placar(file()).p.read(NOW).celulares, {});
-  });
-
   it("no CronologIA: no file, broken file, another app, or a file older than 2 hours", () => {
     assert.equal(placar(null).p.read(NOW), null);
     assert.equal(placar("{broken").p.read(NOW), null);
@@ -68,7 +63,7 @@ describe("Placar.read: the CronologIA scoreboard", () => {
     assert.equal(placar(file({ placar: { ativo: true, participantes: [] } })).p.read(NOW).ativo, false);
     assert.equal(placar(file({ placar: { ativo: false, participantes: ["Ana"] } })).p.read(NOW).ativo, false);
     const bare = placar(file({ placar: null, espelho: null, versao: undefined })).p.read(NOW);
-    assert.deepEqual(bare, { versao: "", ativo: false, desligado: false, periodo: "semana", participantes: [], usuarios: {}, espelho: {}, donos: null, celulares: {} });
+    assert.deepEqual(bare, { versao: "", ativo: false, desligado: false, periodo: "semana", participantes: [], usuarios: {}, espelho: {}, donos: null });
   });
 
   it("the CronologIA turned the ResolvIA off: no points and nothing mirrored", () => {
@@ -105,7 +100,6 @@ describe("Placar helpers (use the current time)", () => {
     assert.equal("usuarios" in v, false);
     assert.equal("espelho" in v, false);
     assert.equal("donos" in v, false);
-    assert.equal("celulares" in v, false);
     assert.equal(p.view("user-x").eu, null);
     assert.equal(p.view(null).eu, null);
     assert.equal(placar(null).p.view("user-ana"), null);

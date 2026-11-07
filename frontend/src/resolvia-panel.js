@@ -51,7 +51,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.44.0";
+const VERSION = "2.44.1";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -2859,9 +2859,8 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
 
   /**
    * Prazos › Avisar o que vence hoje: once a day, at the time chosen, each person gets on their phone what is
-   * due today on their lists (Personalizar › De quem é) and on everyone's. No phones to pick: who gets it is
-   * shown (the phone of each person: Avisos of the CronologIA, else the one tied to them in Home Assistant).
-   * Testar sends it now to my phone.
+   * due today on their lists (Personalizar › De quem é) and on everyone's. The app looks at the person, never at a
+   * device: the phones are the ones tied to each person in Home Assistant. Testar sends it now to my phones.
    */
   _renderDueAlert(sw) {
     const on = this._app("due_alert", false) === true;
@@ -2871,9 +2870,7 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
     const me = (people || []).find((p) => p.me);
     const list = (ns) => (ns.length > 1 ? `${ns.slice(0, -1).join(", ")} e ${ns.at(-1)}` : ns[0]);
     const without = (people || []).filter((p) => !p.phone).map((p) => p.name);
-    const why = !people ? "" : !me ? "Você não é uma pessoa da casa no Home Assistant." : !me.phone ? "Sem celular para você." : "";
-    // Avisos of the CronologIA only when there is a CronologIA in this Home Assistant
-    const cr = !!(this._pts && this._pts.placar);
+    const why = !people ? "" : !me ? "Você não é uma pessoa da casa no Home Assistant." : !me.phone ? "Sem celular ligado a você no Home Assistant." : "";
     return html`<div class="row">
         <div class="grow"><div class="label">Avisar o que vence hoje</div><div class="hint" style="white-space:normal">${on ? "Cada pessoa recebe as listas dela e as de todos." : "Desligado."}</div></div>
         ${sw(on, "Avisar o que vence hoje", (e) => this._saveAppPrefs({ due_alert: e.target.checked ? true : null }))}
@@ -2893,16 +2890,16 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
                 ? html`<p class="field-hint">${people === null ? "Não consegui ver as pessoas da casa." : "Procurando as pessoas da casa…"}</p>`
                 : people.length
                   ? html`<div class="due-who">${people.map(
-                      (p) => html`<div class="dw ${p.phone ? "" : "off"}">${icon("user-round")}<b>${p.name}</b><span>${p.phone || "sem celular"}</span></div>`,
+                      (p) => html`<div class="dw ${p.phone ? "" : "off"}">${icon("user-round")}<b>${p.name}</b>${p.phone ? nothing : html`<span>sem celular</span>`}</div>`,
                     )}</div>
-                    ${without.length ? html`<p class="field-hint">${icon("info")}<span>Sem celular para ${list(without)}: ${cr ? "escolha em Avisos da CronologIA ou " : ""}ligue o celular à pessoa no Home Assistant.</span></p>` : nothing}`
+                    ${without.length ? html`<p class="field-hint">${icon("info")}<span>Sem celular para ${list(without)}: ligue o celular à pessoa no Home Assistant.</span></p>` : nothing}`
                   : html`<p class="field-hint">${icon("info")}<span>Nenhuma pessoa da casa no Home Assistant.</span></p>`}
             </div>
           </div>`
         : nothing}`;
   }
 
-  /** Who gets the alert of Prazos: [{name, phone, me}]; undefined while looking, null when it failed. */
+  /** Who gets the alert of Prazos: [{name, phone: has a phone, me}]; undefined while looking, null when it failed. */
   async _loadAlertPeople() {
     if (this._alertPeopleLoading) return this._alertPeople;
     this._alertPeopleLoading = true;
@@ -2919,7 +2916,7 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
   async _testDueAlert() {
     try {
       const res = await this.hass.callWS({ type: "resolvia/due_alert/test" });
-      this._showToast(res && res.today ? `Aviso enviado para ${res.phone}. Toque nele para abrir Prazos.` : `Aviso enviado para ${(res && res.phone) || "o seu celular"} (nada vence hoje).`);
+      this._showToast(res && res.today ? "Aviso enviado para o seu celular. Toque nele para abrir Prazos." : "Aviso enviado para o seu celular (nada vence hoje).");
     } catch (err) {
       this._showToast(`Não foi: ${err.message}`);
     }

@@ -1,6 +1,6 @@
 // Opções › Prazos › Avisar o que vence hoje: each person of the house gets, at the time chosen (checked every
-// 200 ms here), once a day, what is due today on their lists and on everyone's (2.43.0: no phones to pick;
-// the phone of each person is the one of Avisos in the CronologIA, else the one tied to them in Home Assistant).
+// 200 ms here), once a day, what is due today on their lists and on everyone's (2.44.1: on the phones tied to
+// each person in Home Assistant; the app looks at the person, never at a device).
 import { describe, it, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { Stack, waitFor } from "./_harness.mjs";
@@ -11,7 +11,7 @@ let visita;
 const notes = async () => (await fetch(`${stack.haUrl}/dev/notifications`)).json();
 before(async () => {
   stack = new Stack({ appEnv: { RESOLVIA_ALERT_MS: "200" } });
-  // the CronologIA: whose each list was there before 1.53.0 (taken here once), and the phone of each person (Avisos)
+  // the CronologIA: whose each list was there before 1.53.0 (taken here once); a phone from there is not looked at
   stack.writeShare("cronologia/integracao.json", {
     app: "CronologIA",
     versao: "1.53.1",
@@ -27,17 +27,16 @@ before(async () => {
 after(() => stack && stack.stop());
 
 describe("Avisar o que vence hoje", () => {
-  it("who gets it: each person and their phone; me marked", async () => {
+  it("who gets it: each person of Home Assistant and whether a phone is tied to them; me marked; no device names", async () => {
     assert.deepEqual(await ana.call("resolvia/due_alert/people"), [
-      { name: "Ana", phone: "Pixel 8", me: true },
-      { name: "Beto", phone: "Galaxy S23", me: false },
-      { name: "Cida", phone: "Galaxy S23", me: false },
+      { name: "Ana", phone: true, me: true },
+      { name: "Beto", phone: true, me: false },
     ]);
   });
 
   it("Testar: what is due today, now, on my phone; someone who isn't a person of the house: why not", async () => {
     const res = await ana.call("resolvia/due_alert/test");
-    assert.deepEqual(res, { sent: 1, today: 1, phone: "Pixel 8" });
+    assert.deepEqual(res, { sent: 1, today: 1 });
     const n = (await notes()).at(-1);
     assert.equal(n.service, "mobile_app_pixel_8");
     assert.equal(n.title, "📅 Vence hoje");
@@ -46,7 +45,7 @@ describe("Avisar o que vence hoje", () => {
     await assert.rejects(visita.call("resolvia/due_alert/test"), /não é uma pessoa da casa/);
   });
 
-  it("on, at the time: once, to each phone (Beto and Cida share one: one alert)", async () => {
+  it("on, at the time: once, to each person on their phone (not to a phone chosen in the CronologIA)", async () => {
     const before = (await notes()).length;
     const d = new Date();
     const hm = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.44.1
+
+- **Avisar o que vence hoje** vai para a pessoa, nos celulares ligados a ela no Home Assistant (**Configurações › Pessoas**), e não mais para um celular escolhido nos **Avisos** da CronologIA. **Quem recebe** mostra só as pessoas; quem não tem celular ligado aparece como "sem celular".
+
 ## 2.44.0
 
 - **Serviços externos** pode ser desligado, em **Mais › Configurações › Opções › Quem faz**: somem o **Quem faz** do item, a etiqueta nas tarefas, o filtro do **Buscar** e o gráfico **Quem faz**, e a IA não fica sabendo quem faz. O que já estava marcado fica guardado e volta ao religar.

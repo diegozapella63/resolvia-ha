@@ -3,6 +3,8 @@
 # it); the time is saved; with Controlar prazos off, the alert goes away. 320 px to the computer, light and dark.
 # 2.42.0: Personalizar › De quem é (Todos or a person): the alert of that list goes only to that person's phone.
 # 2.43.0: no phones to pick: Quem recebe shows each person and their phone (only shown).
+# 2.44.1: the app looks at the person, never at a device: Quem recebe shows only the people (no device names),
+# "sem celular" for one with no phone tied to them in Home Assistant, and never the Avisos of the CronologIA.
 import os as _os
 CRONOLOGIA = _os.environ.get("E2E_CRONOLOGIA", "")
 RESOLVIA = _os.environ.get("E2E_RESOLVIA", "")
@@ -57,7 +59,7 @@ async def main():
             check(await sw.is_checked(), f"{tag}: on")
             check(await prazos.locator(".pick.phone").count() == 0, f"{tag}: no phones to pick")
             who = [" ".join(t.split()) for t in await prazos.locator(".due-who .dw").all_inner_texts()]
-            check(who == ["Ana Pixel 8", "Beto Galaxy S23"], f"{tag}: Quem recebe, each person and their phone ({who})")
+            check(who == ["Ana", "Beto"], f"{tag}: Quem recebe, each person, no device names ({who})")
             t = prazos.locator("input.remind-time"); tb = prazos.locator(".remind-test")
             check(await t.input_value() == ("08:00" if k == 0 else "07:30"), f"{tag}: the time ({await t.input_value()})")
             bt, bb = await t.bounding_box(), await tb.bounding_box()
@@ -70,14 +72,13 @@ async def main():
                 got = notes()[n0:]
                 check([n["service"] for n in got] == ["mobile_app_pixel_8"] and "Trocar filtro do ar" in got[0]["message"], f"{tag}: Testar: what is due today, on my phone ({[(n['service'], n['message']) for n in got]})")
                 toast = await a.locator(".toast").inner_text() if await a.locator(".toast").count() else ""
-                check("Pixel 8" in toast and "Toque nele para abrir Prazos" in toast, f"{tag}: the toast ({toast})")
-                # someone without a phone: where to choose one; Avisos of the CronologIA only when there is a CronologIA (2.44.0)
-                await a.evaluate("(el) => { el._alertPeople = [...el._alertPeople, { name: 'Cida', phone: null, me: false }]; el.requestUpdate(); }"); await pg.wait_for_timeout(300)
+                check(toast.startswith("Aviso enviado para o seu celular.") and "Toque nele para abrir Prazos" in toast and "Pixel" not in toast, f"{tag}: the toast, no device name ({toast})")
+                # someone without a phone: "sem celular", and where to tie one (Home Assistant), even with the CronologIA
+                await a.evaluate("(el) => { el._alertPeople = [...el._alertPeople, { name: 'Cida', phone: false, me: false }]; el._pts = { ...(el._pts || {}), placar: { versao: '1.53.5', ativo: true, participantes: ['Ana'] } }; el.requestUpdate(); }"); await pg.wait_for_timeout(300)
+                who = [" ".join(t.split()) for t in await prazos.locator(".due-who .dw").all_inner_texts()]
+                check(who == ["Ana", "Beto", "Cida sem celular"] and await prazos.locator(".due-who .dw.off").count() == 1, f"{tag}: no phone: sem celular ({who})")
                 hint = (await prazos.locator(".due-alert .field-hint").inner_text()).strip()
-                check(hint == "Sem celular para Cida: ligue o celular à pessoa no Home Assistant.", f"{tag}: no CronologIA here: no Avisos of the CronologIA ({hint})")
-                await a.evaluate("(el) => { el._pts = { ...(el._pts || {}), placar: { versao: '1.53.1', ativo: true, participantes: ['Ana'] } }; el.requestUpdate(); }"); await pg.wait_for_timeout(300)
-                hint = (await prazos.locator(".due-alert .field-hint").inner_text()).strip()
-                check(hint == "Sem celular para Cida: escolha em Avisos da CronologIA ou ligue o celular à pessoa no Home Assistant.", f"{tag}: with the CronologIA: its Avisos too ({hint})")
+                check(hint == "Sem celular para Cida: ligue o celular à pessoa no Home Assistant.", f"{tag}: only Home Assistant, never the Avisos of the CronologIA ({hint})")
                 await a.evaluate("(el) => { el._alertPeople = el._alertPeople.filter((p) => p.name !== 'Cida'); el._pts = { ...el._pts, placar: null }; el.requestUpdate(); }"); await pg.wait_for_timeout(300)
             over = await a.evaluate("""(el) => { const W = window.innerWidth; const bad = []; for (const e of el.renderRoot.querySelectorAll('.due-alert, .due-alert *')) { const r = e.getBoundingClientRect(); if (r.width && r.right > W + 1) bad.push(e.className + ' ' + Math.round(r.right)); } if (document.documentElement.scrollWidth > W) bad.push('page'); return bad.slice(0, 3); }""")
             check(not over, f"{tag}: nothing past the edge {over}")

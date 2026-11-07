@@ -315,9 +315,9 @@ export function createMockHass(onChange) {
       }
       if (msg.type === "resolvia/prefs/get") return JSON.parse(JSON.stringify(prefs));
       // Avisar o que vence hoje: who gets it (each person and their phone); Testar answers as if it went to mine
-      if (msg.type === "resolvia/due_alert/people") return [{ name: "Ana", phone: "Pixel 8", me: true }, { name: "Beto", phone: "Galaxy S23", me: false }];
+      if (msg.type === "resolvia/due_alert/people") return [{ name: "Ana", phone: true, me: true }, { name: "Beto", phone: true, me: false }];
       if (msg.type === "resolvia/people") return ["Ana", "Beto"];
-      if (msg.type === "resolvia/due_alert/test") return { sent: 1, today: 1, phone: "Pixel 8" };
+      if (msg.type === "resolvia/due_alert/test") return { sent: 1, today: 1 };
       if (msg.type === "resolvia/prefs/set_list") {
         const cur = { ...(prefs.lists[msg.entity_id] || {}) };
         for (const [k, v] of Object.entries(msg.prefs)) v == null || v === "" ? delete cur[k] : (cur[k] = v);

@@ -1286,7 +1286,7 @@ export const styles = css`
     margin: 0;
     min-height: 44px;
   }
-  /* Quem recebe: each person and their phone (only shown) */
+  /* Quem recebe: each person of the house (the phones are the ones tied to them in Home Assistant) */
   .due-who {
     display: grid;
     gap: 6px;

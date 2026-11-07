@@ -22,7 +22,7 @@ import { Voice, readRaw, MAX_VOICE_BYTES } from "./lib/voice.js";
 import { snapshot, toCSV, backupZip, parseImport, Backups, listVersions, readVersion, fileStamp } from "./lib/data.js";
 import { DueAlert } from "./lib/duealert.js";
 
-const VERSION = "2.44.0";
+const VERSION = "2.44.1";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const WWW = path.join(HERE, "www");
 const DEV = process.env.RESOLVIA_DEV === "1";
@@ -121,8 +121,8 @@ const dueLists = () => {
   }
   return out;
 };
-// the phone of each person: as chosen in the CronologIA (Mais › Avisos), when it runs here
-const dueAlert = new DueAlert({ ha, store, lists: dueLists, items: recurring.items, log, chosen: () => (placar.read() || {}).celulares || null });
+// it goes to each person of Home Assistant, on the phones tied to them there
+const dueAlert = new DueAlert({ ha, store, lists: dueLists, items: recurring.items, log });
 
 /** The people who can own a list: the persons of Home Assistant and the participants of the scoreboard. */
 async function peopleNames() {
@@ -495,9 +495,9 @@ class Session {
 
       case "resolvia/prefs/get":
         return this.result(id, store.prefs);
-      // Avisar o que vence hoje: who gets it (each person and their phone; me: the one using the app), and Testar on mine
+      // Avisar o que vence hoje: who gets it (each person; phone: has one tied in Home Assistant; me: the one using the app), and Testar on mine
       case "resolvia/due_alert/people":
-        return this.result(id, (await dueAlert.recipients()).map((r) => ({ name: r.name, phone: r.phoneName, me: !!(this.user.id && r.user_id === this.user.id) })));
+        return this.result(id, (await dueAlert.recipients()).map((r) => ({ name: r.name, phone: r.phones.length > 0, me: !!(this.user.id && r.user_id === this.user.id) })));
       // De quem é (Personalizar): the people of the house and those of the scoreboard of the CronologIA
       case "resolvia/people":
         return this.result(id, await peopleNames());
