@@ -290,6 +290,15 @@ describe("Mais › Relatório de pendências (2.45.0)", () => {
     assert.match(html, /O que falta fazer na lista Minha Casa/);
     assert.equal((html.match(/<section>/g) || []).length, 1);
   });
+  it("2.47.0: the lists with the names of the app (without the device in front), the charts and the mark of CorrerIA Code", async () => {
+    const html = await (await get("/relatorio")).text();
+    assert.match(html, /<span>Shopping list<\/span>/, "Notas e Rotinas do Alexa Shopping list, as in the app");
+    assert.doesNotMatch(html, /<span>Notas e Rotinas do Alexa Shopping list<\/span>/);
+    assert.match(html, /<section class="g"><h3>Por lista<\/h3>/);
+    assert.match(html, /<b class="nome">Correr<i>IA<\/i> Code<\/b><small>desenvolvimento de softwares<\/small>/);
+    const pdf = Buffer.from(await (await get("/relatorio.pdf")).arrayBuffer()).toString("latin1");
+    assert.ok(pdf.includes("(Por lista) Tj") && pdf.includes("(DESENVOLVIMENTO DE SOFTWARES) Tj"));
+  });
   it("2.46.0: a hidden list is not offered nor shown; the box opens in the look of the app", async () => {
     await c.call("resolvia/prefs/set_list", { entity_id: CASA, prefs: { hidden: true } });
     try {

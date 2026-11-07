@@ -119,7 +119,7 @@ async def main():
             check(bg == ("rgb(22, 28, 35)" if scheme == "dark" else "rgb(255, 255, 255)"), f"{scheme}: in the colors of the page ({bg})")
             await pg.screenshot(path=f"{SP}/shots/rvss-report-{scheme}.png")
             await tap(pg, sheet.locator(".ss-opt").nth(1)); await pg.wait_for_load_state("load"); await pg.wait_for_timeout(700)
-            check("lista=todo." in pg.url and await pg.locator("section").count() == 1, f"{scheme}: one list ({pg.url})")
+            check("lista=todo." in pg.url and await pg.locator("main > section").count() == 1, f"{scheme}: one list ({pg.url})")
             check(not errs, f"{scheme}: no page errors {errs}")
             await ctx.close()
         # ---- a computer: a card in the middle; the mouse and the keyboard

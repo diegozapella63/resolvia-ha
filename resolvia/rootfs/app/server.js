@@ -11,7 +11,7 @@ import { fileURLToPath } from "node:url";
 import { acceptUpgrade } from "./lib/ws.js";
 import { HAClient } from "./lib/ha.js";
 import { Store, datesInfo } from "./lib/store.js";
-import { pendencias, reportHtml, reportPdf, pdfName } from "./lib/report.js";
+import { pendencias, reportHtml, reportPdf, pdfName, listLooks } from "./lib/report.js";
 import { Recurring } from "./lib/recurring.js";
 import { AI } from "./lib/ai.js";
 import { AiUsage } from "./lib/usage.js";
@@ -23,7 +23,7 @@ import { Voice, readRaw, MAX_VOICE_BYTES } from "./lib/voice.js";
 import { snapshot, toCSV, backupZip, parseImport, Backups, listVersions, readVersion, fileStamp } from "./lib/data.js";
 import { DueAlert } from "./lib/duealert.js";
 
-const VERSION = "2.46.1";
+const VERSION = "2.47.0";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const WWW = path.join(HERE, "www");
 const DEV = process.env.RESOLVIA_DEV === "1";
@@ -53,7 +53,6 @@ const store = new Store(DATA_DIR, log);
 store.trimVersions(); // Versões anteriores: only the 3 newest (older installs kept up to 60)
 const ha = new HAClient(HA_URL, TOKEN, log);
 const todoStates = new Map();
-let houseName = ""; // the name of the house in Home Assistant (the header of the report)
 /** Mais > Configurações > Opções > Repetição: the automatic repetition is on (unset: on when there are rules, so nothing stops after an update). */
 const repeatOn = () => {
   const v = store.prefs.app.repeat_on;
@@ -294,7 +293,6 @@ ha.on("ready", async () => {
   }
   try {
     const config = await ha.send({ type: "get_config" });
-    houseName = (config && config.location_name) || "";
     if (config && config.time_zone && process.env.TZ !== config.time_zone) {
       process.env.TZ = config.time_zone;
       log.info(`Fuso horário: ${config.time_zone}`);
@@ -835,14 +833,30 @@ async function handleVoice(req, res) {
   }
 }
 
+// the devices of the lists (for their names and colors as in the app), read again every 5 minutes
+let registries = { at: 0, entities: [], devices: [] };
+async function lookOfLists() {
+  if (Date.now() - registries.at > 5 * 60000) {
+    try {
+      const [ents, devs] = await Promise.all([ha.send({ type: "config/entity_registry/list_for_display" }), ha.send({ type: "config/device_registry/list" })]);
+      registries = { at: Date.now(), entities: (ents && ents.entities) || [], devices: Array.isArray(devs) ? devs : [] };
+    } catch {
+      registries = { at: Date.now(), entities: [], devices: [] };
+    }
+  }
+  return listLooks({ states: todoStates, entities: registries.entities, devices: registries.devices, prefs: store.prefs.lists || {} });
+}
+
 /**
  * Mais › Relatório de pendências: the open tasks of the marked lists (or of ?lista=), to see, print or save as
  * PDF; tema and cor: the ones of the app. Only what is on: deadlines, repeat, points, rooms, equipment, externo.
+ * The lists with the names and the colors of the app (the charts).
  */
-function handleReport(url, res, pdf = false) {
+async function handleReport(url, res, pdf = false) {
   const app = store.prefs.app;
+  const looks = await lookOfLists();
   const lists = [...dueLists()]
-    .map(([id, l]) => ({ id, name: l.name, owner: l.prefs.owner || "", hidden: !!l.prefs.hidden, due: app.due_off !== true && !datesInfo(l.prefs, l.features) }))
+    .map(([id, l]) => ({ id, name: (looks.get(id) || {}).name || l.name, color: (looks.get(id) || {}).color || "", owner: l.prefs.owner || "", hidden: !!l.prefs.hidden, due: app.due_off !== true && !datesInfo(l.prefs, l.features) }))
     .sort((a, b) => Number(a.hidden) - Number(b.hidden) || a.name.localeCompare(b.name, "pt-BR"));
   const rules = Object.values(store.rules || {});
   const repeatOn = app.repeat_on === undefined ? rules.length > 0 : app.repeat_on === true;
@@ -860,12 +874,12 @@ function handleReport(url, res, pdf = false) {
   const rep = pendencias({ lists, items: recurring.items, pick: url.searchParams.get("lista") || "", now: Date.now(), extra });
   if (pdf) {
     // Baixar PDF: the app Home Assistant on the phone downloads it and opens it (to print or share)
-    const file = reportPdf(rep, { cor: url.searchParams.get("cor"), casa: houseName });
+    const file = reportPdf(rep, { cor: url.searchParams.get("cor") });
     res.writeHead(200, { "Content-Type": "application/pdf", "Content-Disposition": `attachment; filename="${pdfName(rep)}"`, "Cache-Control": "no-store", "Content-Length": file.length, "X-Content-Type-Options": "nosniff" });
     return res.end(file);
   }
   const tema = url.searchParams.get("tema");
-  const body = Buffer.from(reportHtml(rep, { tema: tema === "claro" || tema === "escuro" ? tema : null, cor: url.searchParams.get("cor"), casa: houseName }), "utf8");
+  const body = Buffer.from(reportHtml(rep, { tema: tema === "claro" || tema === "escuro" ? tema : null, cor: url.searchParams.get("cor") }), "utf8");
   res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store", "Content-Length": body.length, "X-Content-Type-Options": "nosniff" });
   res.end(body);
 }
@@ -881,8 +895,12 @@ const server = http.createServer((req, res) => {
   const exp = url.pathname.match(/^\/api\/export\/(json|csv|zip)$/);
   if (exp && req.method === "GET") return handleData(exp[1], res);
   if (url.pathname === "/api/import" && req.method === "POST") return handleImport(req, res);
-  if (url.pathname === "/relatorio" && req.method === "GET") return handleReport(url, res);
-  if (url.pathname === "/relatorio.pdf" && req.method === "GET") return handleReport(url, res, true);
+  if ((url.pathname === "/relatorio" || url.pathname === "/relatorio.pdf") && req.method === "GET") {
+    return handleReport(url, res, url.pathname.endsWith(".pdf")).catch((err) => {
+      log.warn(`Relatório: ${err.message}`);
+      if (!res.headersSent) res.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" }).end("Não deu para montar o relatório.");
+    });
+  }
   const font = url.pathname.match(/^\/fonts\/([a-z0-9-]+\.woff2)$/);
   const file = font ? [`fonts/${font[1]}`, "font/woff2", true] : FILES[url.pathname];
   if (!file || (req.method !== "GET" && req.method !== "HEAD")) {

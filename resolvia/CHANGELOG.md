@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.47.0
+
+- **Relatório de pendências** com os gráficos da aba **Gráficos**: por lista (cada uma na sua cor), por prazo e, quando há, por cômodo, por equipamento e quem faz. Na página e no PDF.
+- No fim, a marca da **CorrerIA Code** (desenvolvimento de softwares), como no **Mais › Sobre**. A hora aparece só no cabeçalho, e o nome da casa saiu (nada repetido).
+- As listas aparecem com o mesmo nome do app (sem o nome do aparelho na frente, como "Shopping list").
+
 ## 2.46.1
 
 - **Caixas de seleção**: tocar num botão que fica por cima de uma caixa (como a barra no fim de uma janela, com a lista rolada por baixo) aciona o botão, e não abre a caixa escondida.

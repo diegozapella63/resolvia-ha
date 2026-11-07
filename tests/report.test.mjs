@@ -2,7 +2,7 @@
 // deadlines and what is on, and the page with a header (the app, the report, when, which lists).
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { pendencias, reportHtml, dueText, reportPdf, pdfName } from "../resolvia/rootfs/app/lib/report.js";
+import { pendencias, reportHtml, dueText, reportPdf, pdfName, graficos, listLooks } from "../resolvia/rootfs/app/lib/report.js";
 import { Pdf, winAnsi, textWidth, wrap, rgb } from "../resolvia/rootfs/app/lib/pdf.js";
 
 const NOW = new Date(2026, 10, 7, 17, 0).getTime();
@@ -53,9 +53,9 @@ describe("Relatório de pendências", () => {
     assert.deepEqual([r.tags, r.points], [["repete todo mês", "serviço externo: Encanador", "Cozinha", "Geladeira"], 10]);
   });
   it("the page: a header with the app, the report, when and which lists; the choice of list; escaped", () => {
-    const html = reportHtml(pendencias({ lists: LISTS, items: ITEMS, now: NOW }), { tema: "escuro", cor: "#ff5a4f", casa: "Casa da Ana" });
+    const html = reportHtml(pendencias({ lists: LISTS, items: ITEMS, now: NOW }), { tema: "escuro", cor: "#ff5a4f" });
     assert.match(html, /<html lang="pt-BR" data-theme="dark">/);
-    assert.match(html, /<span class="wm">Resolv<b>IA<\/b><\/span> · listas de tarefas · Casa da Ana/);
+    assert.match(html, /<span class="wm">Resolv<b>IA<\/b><\/span> · listas de tarefas<\/div>/, "the app and what it is, nothing repeated (2.47: no name of the house)");
     assert.match(html, /<h1>Relatório de pendências<\/h1><p>O que falta fazer nas 2 listas marcadas · 07\/11\/2026 às 17:00<\/p>/);
     assert.match(html, /<option value="" selected>Todas as listas marcadas<\/option><option value="todo.casa">Casa<\/option>/);
     assert.doesNotMatch(html, /todo\.velha|Velha/, "a hidden list is not offered");
@@ -65,6 +65,12 @@ describe("Relatório de pendências", () => {
     assert.doesNotMatch(html, /window\.print/);
     assert.match(html, /@media print\{[^}]*\} \.barra\{display:none\}/, "on paper: no buttons, always light");
     assert.deepEqual(html.match(/<script[^>]*>/gi), ['<script src="selectsheet.js">'], "only the box of choice in the look of the app (2.46)");
+    // 2.47: the charts of Mais › Gráficos, then the lists; at the end the mark of CorrerIA Code (as in Mais › Sobre)
+    assert.match(html, /<div class="graficos"><section class="g"><h3>Por lista<\/h3>.*<section class="g"><h3>Por prazo<\/h3>/s);
+    assert.ok(html.indexOf('class="graficos"') < html.indexOf("<section><h2>"), "the charts before the lists");
+    assert.match(html, /<footer class="marca"><span class="raio" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M13 2L3 14L12 14L11 22L21 10L12 10Z"\/><\/svg><\/span><span><b class="nome">Correr<i>IA<\/i> Code<\/b><small>desenvolvimento de softwares<\/small><\/span><\/footer>/);
+    assert.doesNotMatch(html, /relatório gerado em/, "the time only in the header");
+    assert.ok(html.trimEnd().endsWith("</footer>\n</main></body></html>"), "the mark is the last thing");
   });
   it("one list chosen: says which; a bad color: the default", () => {
     const html = reportHtml(pendencias({ lists: LISTS, items: ITEMS, pick: "todo.mercado", now: NOW }), { cor: "red;}" });
@@ -98,10 +104,19 @@ describe("the PDF (2.45.1)", () => {
   });
   it("the report: the header, the counts, the lists; a page after another, numbered", () => {
     const rep = pendencias({ lists: LISTS, items: ITEMS, now: NOW });
-    const s = reportPdf(rep, { cor: "#ff5a4f", casa: "Casa da Ana" }).toString("latin1");
+    const s = reportPdf(rep, { cor: "#ff5a4f" }).toString("latin1");
     const has = (t) => assert.ok(s.includes(t), t);
     has("(Relat\\363rio de pend\\352ncias) Tj");
-    has("(\\267 listas de tarefas \\267 Casa da Ana) Tj");
+    has("(\\267 listas de tarefas) Tj");
+    // 2.47: the charts and, at the foot, the mark of CorrerIA Code
+    has("(Por lista) Tj");
+    has("(Por prazo) Tj");
+    has("(Correr) Tj");
+    has("(IA) Tj");
+    has("( Code) Tj");
+    has("0.9 Tc");
+    has("(DESENVOLVIMENTO DE SOFTWARES) Tj");
+    assert.ok(!s.includes("relat\\363rio gerado em"), "the time only in the header");
     has("(O que falta fazer nas 2 listas marcadas \\267 07/11/2026 \\340s 17:00) Tj");
     has("(Atrasada h\\341 3 dias) Tj");
     has("(Pagar <luz>) Tj");
@@ -116,5 +131,68 @@ describe("the PDF (2.45.1)", () => {
   it("the name of the file", () => {
     assert.equal(pdfName(pendencias({ lists: LISTS, items: ITEMS, now: NOW })), "pendencias-2026-11-07.pdf");
     assert.equal(pdfName(pendencias({ lists: LISTS, items: ITEMS, now: NOW, pick: "todo.casa" })), "pendencias-casa-2026-11-07.pdf");
+  });
+});
+
+describe("Gráficos no relatório (2.47.0)", () => {
+  const EXTRA = (l, i) =>
+    ({
+      a: { rooms: ["Cozinha", "Área"], equips: ["Geladeira"], external: "Encanador" },
+      b: { rooms: ["Cozinha"], external: true },
+      e: { external: "Dentista" },
+    })[i.uid] || {};
+  it("by list, by deadline (only the lists with deadlines), the shares", () => {
+    const g = graficos(pendencias({ lists: LISTS, items: ITEMS, now: NOW }));
+    assert.deepEqual(g.lists.rows.map((x) => [x.name, x.n]), [["Casa", 4], ["Mercado", 1]]);
+    assert.deepEqual(g.due.rows.map((x) => [x.key, x.name, x.n]), [["late", "Atrasadas", 1], ["today", "Hoje", 1], ["week", "Próximos 7 dias", 1], ["none", "Sem prazo", 2]], "Leite (Mercado: dates are no deadlines) is sem prazo, as in the counts");
+    assert.equal(g.due.pct, true);
+    assert.equal(g.due.total, 5);
+    const off = LISTS.map((l) => ({ ...l, due: false }));
+    assert.equal(graficos(pendencias({ lists: off, items: ITEMS, now: NOW })).due, null, "Controlar prazos off: no Por prazo");
+    assert.deepEqual([g.rooms, g.equips, g.who], [null, null, null], "nothing with rooms, equipment or Serviço externo: no chart");
+  });
+  it("one list: no Por lista; nothing pending: no charts", () => {
+    assert.equal(graficos(pendencias({ lists: LISTS, items: ITEMS, now: NOW, pick: "todo.casa" })).lists, null);
+    assert.deepEqual(Object.values(graficos(pendencias({ lists: LISTS, items: new Map(), now: NOW }))), [null, null, null, null, null]);
+  });
+  it("by room and equipment (a task in two counts in both; the ones without), who does it", () => {
+    const g = graficos(pendencias({ lists: LISTS, items: ITEMS, now: NOW, extra: EXTRA }));
+    assert.deepEqual(g.rooms.rows.map((x) => [x.name, x.n]), [["Cozinha", 2], ["Área", 1]]);
+    assert.deepEqual([g.rooms.none, g.rooms.noneLabel], [3, "Sem cômodo"]);
+    assert.deepEqual(g.equips.rows.map((x) => [x.name, x.n]), [["Geladeira", 1]]);
+    assert.deepEqual(g.who.rows.map((x) => [x.key, x.n, x.sub || ""]), [["house", 2, ""], ["ext", 3, "Encanador +1"]]);
+  });
+  it("many lists: the first six and +N", () => {
+    const lists = Array.from({ length: 9 }, (_, k) => ({ id: `todo.l${k}`, name: `L${k}`, hidden: false, due: false, color: "#62B5FF" }));
+    const items = new Map(lists.map((l, k) => [l.id, Array.from({ length: 9 - k }, (_, j) => ({ uid: `${k}-${j}`, summary: `T${j}`, status: "needs_action" }))]));
+    const rep = pendencias({ lists, items, now: NOW });
+    const html = reportHtml(rep, {});
+    assert.equal((html.match(/<div class="gl">/g) || []).length, 6);
+    assert.match(html, /<p class="gpe">\+3 listas: <b>6<\/b><\/p>/);
+    assert.match(html, /background:#62B5FF/, "the color of the list");
+    assert.ok(reportPdf(rep).toString("latin1").includes("(+3 listas: 6) Tj"));
+  });
+  it("listLooks: the names and colors of the lists as in the app", () => {
+    const st = (n) => ({ attributes: { friendly_name: n } });
+    const states = new Map([
+      ["todo.shopping_list", st("Notas e Rotinas do Alexa Shopping list")],
+      ["todo.to_do_list", st("Notas e Rotinas do Alexa To-do list")],
+      ["todo.casa", st("Casa")],
+      ["todo.mercado", st("mercado")],
+      ["sensor.x", st("x")],
+    ]);
+    const looks = listLooks({
+      states,
+      entities: [{ ei: "todo.shopping_list", di: "d1" }, { ei: "todo.to_do_list", di: "d1" }],
+      devices: [{ id: "d1", name: "Notas e Rotinas do Alexa", name_by_user: null }],
+      prefs: { "todo.mercado": { name: "Feira", color: "menta" } },
+    });
+    // the order of the app: without device first (""), then by device, by name; the colors in turn
+    assert.deepEqual([...looks].map(([id, l]) => [id, l.name, l.color]), [
+      ["todo.casa", "Casa", "#FF5A4F"],
+      ["todo.mercado", "Feira", "#4ED3A6"],
+      ["todo.shopping_list", "Shopping list", "#FF77A9"],
+      ["todo.to_do_list", "To-do list", "#FFA23E"],
+    ]);
   });
 });

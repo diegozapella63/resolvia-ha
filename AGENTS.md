@@ -70,6 +70,7 @@ Pela pasta `/share` do Home Assistant e por eventos do HA. Mudar um formato aqui
 - Em http (sem https) não há câmera, microfone nem área de transferência: explicar em vez de abrir a galeria ou mostrar um botão que não funciona.
 - Listas desmarcadas (inativas) ficam por último, recolhidas.
 - Celular primeiro (390 px); com 1000 px ou mais, barra lateral. Tema claro e escuro.
+- Relatórios (a página e o PDF, iguais em todos os apps): o cabeçalho dos apps (cartão com a faixa na cor do app, o ícone, Resolv**IA** · o que é o app, o título, a contagem e quando; a hora só ali, sem o nome da casa), **Voltar** e **Baixar PDF** lado a lado, os números, os gráficos da aba Gráficos e, no fim, a marca da CorrerIA Code como no **Sobre** (o raio no quadrado inclinado na cor do app, Correr**IA** Code e DESENVOLVIMENTO DE SOFTWARES); no PDF, a marca e o número da página no pé de cada página. O app do Home Assistant no Android não imprime: o PDF é feito pelo servidor e baixado.
 
 ## Conversa com o dono
 

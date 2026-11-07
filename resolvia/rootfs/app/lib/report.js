@@ -2,7 +2,46 @@
 // the GerencIA). All the marked lists (the ones on the start screen) or the one chosen on the page; each task with
 // its deadline (late in red), and what is on in the app: repeat, points, rooms, equipment, Serviço externo.
 // The page has Baixar PDF (2.45.1): the app Home Assistant on the phone doesn't print a page, a PDF it opens.
+// 2.47.0: the charts of Mais › Gráficos (by list, by deadline, by room, by equipment, who does it), on the page and in
+// the PDF, and at the end the mark of CorrerIA Code as in Mais › Sobre; the header without the name of the house.
 import { Pdf, wrap, textWidth } from "./pdf.js";
+
+// The colors of the lists, the same as frontend/src/util.js (PALETTE and AUTO_COLORS): a list without a chosen
+// color takes the warm ones in turn, in the order of the app (by device, then by name).
+const PALETTE = {
+  vermelho: "#FF5A4F", coral: "#FF8A65", rosa: "#FF77A9", framboesa: "#E8508A", laranja: "#FFA23E",
+  ouro: "#F2C14E", lilas: "#B99BFF", azul: "#62B5FF", menta: "#4ED3A6", grafite: "#B9ADAE",
+};
+const AUTO_COLORS = ["vermelho", "coral", "rosa", "laranja", "framboesa", "ouro"];
+
+/**
+ * The name and the color of each list as the app shows them (listMeta and _computeLists in the app): the name without
+ * the device in front ("Notas e Rotinas do Alexa Shopping list" → "Shopping list"), the color chosen or the one of its
+ * turn. states: Map id -> state (all the todo of Home Assistant); entities: [{ei, di}] (list_for_display);
+ * devices: [{id, name, name_by_user}]; prefs: the prefs of the lists. Returns Map id -> {name, color}.
+ */
+export function listLooks({ states = new Map(), entities = [], devices = [], prefs = {} } = {}) {
+  const devById = new Map((devices || []).map((d) => [d.id, d]));
+  const devOf = new Map((entities || []).filter((e) => e && e.di).map((e) => [e.ei, devById.get(e.di)]));
+  const rows = [...states.keys()]
+    .filter((id) => id.startsWith("todo."))
+    .map((id) => {
+      const st = states.get(id) || {};
+      const friendly = (st.attributes && st.attributes.friendly_name) || id.split(".")[1].replace(/_/g, " ");
+      const dev = devOf.get(id);
+      const devName = dev ? dev.name_by_user || dev.name : "";
+      let name = friendly;
+      if (devName && friendly.toLowerCase().startsWith(`${devName.toLowerCase()} `)) name = friendly.slice(devName.length + 1);
+      return { id, name: name.charAt(0).toUpperCase() + name.slice(1), group: devName || "" };
+    })
+    .sort((a, b) => a.group.localeCompare(b.group, "pt-BR") || a.name.localeCompare(b.name, "pt-BR"));
+  return new Map(
+    rows.map((l, k) => {
+      const p = prefs[l.id] || {};
+      return [l.id, { name: p.name || l.name, color: PALETTE[p.color] || PALETTE[AUTO_COLORS[k % AUTO_COLORS.length]] }];
+    }),
+  );
+}
 
 const DAY = 86400000;
 const pad = (n) => String(n).padStart(2, "0");
@@ -34,7 +73,7 @@ export function dueText(due, now) {
 const every = (days) => (days === 1 ? "todo dia" : days === 7 ? "toda semana" : days === 14 ? "a cada 2 semanas" : days === 30 ? "todo mês" : `a cada ${days} dias`);
 
 /**
- * What is pending. lists: [{id, name, owner, hidden, due}] (due: its dates are deadlines), all of them;
+ * What is pending. lists: [{id, name, owner, hidden, due, color}] (due: its dates are deadlines), all of them;
  * items: Map list id -> HA items; pick: a marked list id (a hidden one is not offered), or "" for all the marked ones; extra(listId, item):
  * {repeat, points, rooms, equips, external}, only what is on.
  */
@@ -52,18 +91,102 @@ export function pendencias({ lists = [], items = new Map(), pick = "", now = Dat
       const d = l.due && i.due ? dueText(i.due, now) : null;
       const x = extra(l.id, i) || {};
       const tags = [x.repeat ? `repete ${every(x.repeat)}` : "", x.external ? (x.external === true ? "serviço externo" : `serviço externo: ${x.external}`) : "", ...(x.rooms || []), ...(x.equips || [])].filter(Boolean);
-      rows.push({ title: String(i.summary).trim(), due: d, at: d ? dueMs(i.due) : Infinity, tags, points: x.points || 0 });
+      rows.push({
+        title: String(i.summary).trim(), due: d, at: d ? dueMs(i.due) : Infinity, tags, points: x.points || 0,
+        rooms: x.rooms || [], equips: x.equips || [], external: x.external || null,
+        // its part in Por prazo: the same as the counts above (a list whose dates are no deadlines: sem prazo)
+        part: !d ? "none" : d.late ? "late" : d.days === 0 ? "today" : d.days < 7 ? "week" : "later",
+      });
       if (!d) undated++;
       else if (d.late) late++;
       else if (d.days === 0) today++;
     }
     // late first, then by deadline, the ones without one last (by name)
     rows.sort((a, b) => a.at - b.at || a.title.localeCompare(b.title, "pt-BR", { numeric: true }));
-    sections.push({ id: l.id, name: l.name, owner: l.owner || "", rows, late: rows.filter((r) => r.due && r.due.late).length });
+    sections.push({ id: l.id, name: l.name, owner: l.owner || "", color: l.color || "", due: !!l.due, rows, late: rows.filter((r) => r.due && r.due.late).length });
   }
   const total = sections.reduce((n, s) => n + s.rows.length, 0);
   return { at: now, pick: chosen.length === 1 && pick ? pick : "", lists, sections, total, late, today, undated, dueOn: lists.some((l) => l.due) };
 }
+
+/** The parts of Por prazo, in order (the groups of Prazos and of Mais › Gráficos). */
+export const DUE_PARTS = [
+  ["late", "Atrasadas"],
+  ["today", "Hoje"],
+  ["week", "Próximos 7 dias"],
+  ["later", "Mais adiante"],
+  ["none", "Sem prazo"],
+];
+/** Rows shown before "+N" (as in Mais › Gráficos); it only folds when that hides two or more. */
+const TOP = 6;
+/** Most first; ties keep the order given; the ones at zero go out. */
+const rank = (rows) =>
+  rows
+    .map((r, k) => [r, k])
+    .filter(([r]) => r.n > 0)
+    .sort((a, b) => b[0].n - a[0].n || a[1] - b[1])
+    .map(([r]) => r);
+/** The first rows and, folded, how many more and their pending. */
+export const foldTop = (rows) => (rows.length <= TOP + 1 ? { shown: rows, more: 0, moreN: 0 } : { shown: rows.slice(0, TOP), more: rows.length - TOP, moreN: rows.slice(TOP).reduce((n, r) => n + r.n, 0) });
+/** 0–100, at least 1 when there is something. */
+const share = (n, of) => (n && of ? Math.max(1, Math.round((n / of) * 100)) : 0);
+
+/**
+ * The charts of the report, the same as Mais › Gráficos, of what is in it: by list (two or more lists with something),
+ * by deadline (with Controlar prazos on and two parts or more; the same parts as the counts above: a task of a list
+ * whose dates are no deadlines is sem prazo), by room and by equipment (when some task has one; a task in two
+ * counts in both), who does it (when some task is a Serviço externo). Returns {lists, due, rooms, equips, who}, each
+ * a chart {title, rows: [{name, n, sub?, key?, color?}], max, total, pct, split (the whole split on top, not in the
+ * places, like the app), none?, unit} or null.
+ */
+export function graficos(rep) {
+  const rows = rep.sections.flatMap((s) => s.rows);
+  const total = rows.length;
+  if (!total) return { lists: null, due: null, rooms: null, equips: null, who: null };
+  const lists = rank(rep.sections.map((s) => ({ name: s.name, n: s.rows.length, color: s.color })));
+  const parts = Object.fromEntries(DUE_PARTS.map(([k]) => [k, 0]));
+  for (const r of rows) parts[r.part]++;
+  const due = DUE_PARTS.map(([key, name]) => ({ key, name, n: parts[key] })).filter((p) => p.n);
+  const places = (get) => {
+    const m = new Map();
+    let none = 0;
+    for (const r of rows) {
+      const xs = [...new Set(get(r))];
+      if (!xs.length) none++;
+      for (const x of xs) m.set(x, (m.get(x) || 0) + 1);
+    }
+    return { rows: rank([...m].map(([name, n]) => ({ name, n }))), none };
+  };
+  const chart = (title, rs, extra = {}) => ({ title, rows: rs, max: Math.max(0, ...rs.map((x) => x.n)), total: rs.reduce((n, x) => n + x.n, 0), pct: false, split: true, ...extra });
+  const ext = rows.filter((r) => r.external);
+  const who = rank(ext.filter((r) => typeof r.external === "string").reduce((acc, r) => {
+    const k = r.external.trim().toLowerCase();
+    const w = acc.find((x) => x.k === k);
+    if (w) w.n++;
+    else acc.push({ k, name: r.external.trim(), n: 1 });
+    return acc;
+  }, []));
+  const rooms = rows.some((r) => r.rooms.length) ? places((r) => r.rooms) : null;
+  const equips = rows.some((r) => r.equips.length) ? places((r) => r.equips) : null;
+  return {
+    lists: lists.length > 1 ? chart("Por lista", lists, { unit: ["lista", "listas"] }) : null,
+    due: rep.dueOn && due.length > 1 ? chart("Por prazo", due, { pct: true }) : null,
+    rooms: rooms ? chart("Por cômodo", rooms.rows, { none: rooms.none, noneLabel: "Sem cômodo", unit: ["cômodo", "cômodos"], split: false }) : null,
+    equips: equips ? chart("Por equipamento", equips.rows, { none: equips.none, noneLabel: "Sem equipamento", unit: ["equipamento", "equipamentos"], split: false }) : null,
+    who: ext.length
+      ? chart("Quem faz", [
+          { key: "house", name: "Nós mesmos", n: total - ext.length },
+          { key: "ext", name: "Serviço externo", n: ext.length, sub: who.length ? who[0].name + (who.length > 1 ? ` +${who.length - 1}` : "") : "" },
+        ].filter((p) => p.n), { pct: true })
+      : null,
+  };
+}
+
+/** The charts in order. */
+const chartList = (g) => [g.lists, g.due, g.rooms, g.equips, g.who].filter(Boolean);
+
+/** The lightning of CorrerIA Code (Lucide zap), in a box of 24. */
+const ZAP = [[13, 2], [3, 14], [12, 14], [11, 22], [21, 10], [12, 10]];
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
@@ -76,12 +199,35 @@ const ICON = (cor) => `<svg class="ic" viewBox="0 0 32 32" aria-hidden="true">
 <path d="M9.6 18.6l4.3 4.3 8.6-9" fill="none" stroke="#2a1614" stroke-width="2.9" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M9.5 2.8v6.4M16 2.8v6.4M22.5 2.8v6.4" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/></svg>`;
 
+/** The colors of the parts of the charts (lists bring their own): late red, today amber, then greys going quiet. */
+const PART = { late: "var(--late)", today: "var(--today)", week: "var(--g1)", later: "var(--g2)", none: "var(--g3)", house: "var(--g2)", ext: "var(--ext)", rest: "var(--g2)" };
+const partColor = (x) => x.color || PART[x.key] || "var(--a)";
+
+/** A chart of the page: the whole split in parts, then a row per part (name, number, bar; the share in Por prazo). */
+function chartHtml(c) {
+  const f = foldTop(c.rows);
+  const split = [...f.shown, ...(f.more ? [{ key: "rest", name: `+${plural(f.more, c.unit[0], c.unit[1])}`, n: f.moreN }] : [])];
+  const bar = c.split && split.length > 1 ? `<div class="split" role="img" aria-label="${esc(c.title)}: ${esc(split.map((x) => `${x.name} ${x.n}`).join(", "))}">${split.map((x) => `<i style="flex:${x.n} 1 0;background:${partColor(x)}"></i>`).join("")}</div>` : "";
+  const rows = f.shown
+    .map((x) => `<div class="gl${c.pct ? " pct" : ""}"><span class="nm"><b>${esc(x.name)}</b>${x.sub ? `<small>${esc(x.sub)}</small>` : ""}</span><span class="v">${x.n}</span>` +
+      `<span class="bar"><i style="width:${share(x.n, c.max)}%;background:${partColor(x)}"></i></span>${c.pct ? `<span class="p">${share(x.n, c.total)}%</span>` : ""}</div>`)
+    .join("");
+  const more = f.more ? `<p class="gpe">+${plural(f.more, c.unit[0], c.unit[1])}: <b>${f.moreN}</b></p>` : "";
+  const none = c.none ? `<p class="gpe">${esc(c.noneLabel)}: <b>${c.none}</b></p>` : "";
+  return `<section class="g"><h3>${esc(c.title)}</h3>${bar}${rows}${more}${none}</section>`;
+}
+
+/** The mark of CorrerIA Code (as in Mais › Sobre): the lightning in the tilted square, the name and what it does. */
+const MARCA = `<footer class="marca"><span class="raio" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M${ZAP.map((p) => p.join(" ")).join("L")}Z"/></svg></span>` +
+  `<span><b class="nome">Correr<i>IA</i> Code</b><small>desenvolvimento de softwares</small></span></footer>`;
+
 /**
  * The page (HTML): a header with the app, what the report is, when and which lists; the choice of the lists
- * and Baixar PDF (not on paper); a section per list. tema: "claro" | "escuro" (the one of the app; none: the one of the device);
- * cor: the color of the app (#rrggbb). On paper it is always light.
+ * and Baixar PDF (not on paper); the counts, the charts and a section per list; at the end, the mark of CorrerIA
+ * Code. tema: "claro" | "escuro" (the one of the app; none: the one of the device); cor: the color of the app
+ * (#rrggbb). On paper it is always light.
  */
-export function reportHtml(rep, { tema = null, cor = "#ff8a65", casa = "" } = {}) {
+export function reportHtml(rep, { tema = null, cor = "#ff8a65" } = {}) {
   // the PDF of what is on screen (the same list), in the color of the app
   const pdfHref = `relatorio.pdf?${new URLSearchParams({ ...(rep.pick ? { lista: rep.pick } : {}), cor: /^#[0-9a-f]{6}$/i.test(cor || "") ? cor : "#ff8a65" })}`;
   const attr = tema === "claro" ? ' data-theme="light"' : tema === "escuro" ? ' data-theme="dark"' : "";
@@ -110,8 +256,9 @@ export function reportHtml(rep, { tema = null, cor = "#ff8a65", casa = "" } = {}
     const sub = [s.owner ? `de ${s.owner}` : "", plural(s.rows.length, "pendente", "pendentes"), s.late ? `${s.late} ${s.late === 1 ? "atrasada" : "atrasadas"}` : ""].filter(Boolean).join(" · ");
     return `<section><h2><span>${esc(s.name)}</span><small>${esc(sub)}</small></h2>${s.rows.length ? `<table><tbody>${rows}</tbody></table>` : `<p class="vazio">Nada pendente nesta lista.</p>`}</section>`;
   };
-  const claro = "--bg:#f6f7f9;--card:#fff;--fg:#141a22;--mut:#5b6573;--linha:#e3e7ec;--linha2:#eef1f4;--borda:#d6dbe2;--late:#d92d20;--pts:#b7791f";
-  const escuro = "--bg:#0f1318;--card:#161c23;--fg:#e8edf3;--mut:#9aa6b4;--linha:#2a3340;--linha2:#1f2732;--borda:#334051;--late:#ff6b5e;--pts:#f5c451";
+  const claro = "--bg:#f6f7f9;--card:#fff;--fg:#141a22;--mut:#5b6573;--linha:#e3e7ec;--linha2:#eef1f4;--borda:#d6dbe2;--late:#d92d20;--pts:#b7791f;--today:#f59e0b;--ext:#4f46e5;--g1:#7b8590;--g2:#aab3bd;--g3:#d5dbe2";
+  const escuro = "--bg:#0f1318;--card:#161c23;--fg:#e8edf3;--mut:#9aa6b4;--linha:#2a3340;--linha2:#1f2732;--borda:#334051;--late:#ff6b5e;--pts:#f5c451;--today:#ffb547;--ext:#a5b4fc;--g1:#9aa6b4;--g2:#66727f;--g3:#3a4552";
+  const charts = chartList(graficos(rep));
   return `<!doctype html><html lang="pt-BR"${attr}><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="light dark">
@@ -158,17 +305,41 @@ td small{display:block;color:var(--mut);font-size:12.5px}
 .pts{color:var(--pts)!important;font-weight:600}
 .mut,.vazio{color:var(--mut)}
 .vazio{margin:10px 0}
-.rodape{color:var(--mut);font-size:12px;margin-top:22px;text-align:center}
-@media print{:root,:root[data-theme],:root:not([data-theme="light"]){${claro};--bg:#fff;color-scheme:light} .barra{display:none} body{padding:0} section{break-inside:avoid-page} .cab,section,.resumo div{border-color:#d6dbe2}}
+.graficos{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:14px;margin-top:14px;align-items:start}
+.graficos section{margin:0;padding:12px 16px}
+.g h3{font:700 20px/1.2 "Barlow Condensed",Barlow,sans-serif;margin:2px 0 10px}
+.split{display:flex;gap:2px;height:10px;margin:0 0 8px}
+.split i{display:block;min-width:4px}
+.split i:first-child{border-radius:5px 0 0 5px}
+.split i:last-child{border-radius:0 5px 5px 0}
+.gl{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:12px;row-gap:6px;align-items:center;padding:7px 0}
+.nm{display:flex;align-items:baseline;gap:8px;min-width:0;overflow:hidden}
+.nm b{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nm small{color:var(--mut);font-size:12.5px;white-space:nowrap}
+.v{font:700 19px/1 "Barlow Condensed",Barlow,sans-serif;text-align:right;font-variant-numeric:tabular-nums}
+.bar{grid-column:1/-1;height:7px;border-radius:4px;background:var(--linha2);overflow:hidden}
+.gl.pct .bar{grid-column:1/2}
+.bar i{display:block;height:100%;border-radius:4px}
+.p{font-size:12px;line-height:1;color:var(--mut);text-align:right;font-variant-numeric:tabular-nums}
+.gpe{margin:6px 0 2px;font-size:13px;color:var(--mut)}
+.gpe b{color:var(--fg);font-weight:600}
+.marca{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:28px;padding-top:20px;border-top:1px solid var(--linha)}
+.raio{display:grid;place-items:center;width:34px;height:34px;flex:none;border-radius:11px;background:var(--a);transform:rotate(-8deg);box-shadow:0 8px 18px -10px var(--a)}
+.raio svg{width:19px;height:19px;fill:#1a1210}
+.marca .nome{display:block;font:700 20px/1 "Barlow Condensed",Barlow,sans-serif;color:var(--fg)}
+.marca .nome i{font-style:normal;color:var(--a)}
+.marca small{display:block;margin-top:4px;color:var(--mut);font-size:10.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase}
+@media print{:root,:root[data-theme],:root:not([data-theme="light"]){${claro};--bg:#fff;color-scheme:light} .barra{display:none} body{padding:0} section,.marca{break-inside:avoid-page} .cab,section,.resumo div{border-color:#d6dbe2} .raio{box-shadow:none}}
 </style><script src="selectsheet.js"></script></head><body><main>
 <div class="barra">
 <select aria-label="Listas" onchange="var u=new window.URL(window.location.href);if(this.value)u.searchParams.set('lista',this.value);else u.searchParams.delete('lista');location.replace(u.href)">${options}</select>
 <a href="./" onclick="if(history.length>1){history.back();return false}">Voltar</a><a class="pdf" href="${esc(pdfHref)}" download="${esc(pdfName(rep))}">Baixar PDF</a>
 </div>
-<header class="cab">${ICON(accent)}<div><div class="app"><span class="wm">Resolv<b>IA</b></span> · listas de tarefas${casa ? ` · ${esc(casa)}` : ""}</div><h1>Relatório de pendências</h1><p>O que falta fazer ${esc(which)} · ${when}</p></div></header>
+<header class="cab">${ICON(accent)}<div><div class="app"><span class="wm">Resolv<b>IA</b></span> · listas de tarefas</div><h1>Relatório de pendências</h1><p>O que falta fazer ${esc(which)} · ${when}</p></div></header>
 ${rep.total ? `<div class="resumo">${tiles}</div>` : ""}
+${charts.length ? `<div class="graficos">${charts.map(chartHtml).join("")}</div>` : ""}
 ${rep.sections.length ? rep.sections.map(section).join("") : `<p class="vazio">Nenhuma lista marcada.</p>`}
-<p class="rodape">ResolvIA · relatório gerado em ${when}</p>
+${MARCA}
 </main></body></html>`;
 }
 
@@ -180,17 +351,33 @@ export function pdfName(rep) {
   return `pendencias-${list ? `${list}-` : ""}${day}.pdf`;
 }
 
+/** A square of side s with round corners (r), turned by deg around its center (cx, cy): points for Pdf.path. */
+function tiltedSquare(cx, cy, s, r, deg) {
+  const a = (deg * Math.PI) / 180;
+  const h = s / 2 - r;
+  const pts = [];
+  for (const [ox, oy, start] of [[h, h, 0], [-h, h, 90], [-h, -h, 180], [h, -h, 270]]) {
+    for (let k = 0; k <= 6; k++) {
+      const t = ((start + k * 15) * Math.PI) / 180;
+      pts.push([ox + r * Math.cos(t), oy + r * Math.sin(t)]);
+    }
+  }
+  return pts.map(([x, y]) => [cx + x * Math.cos(a) - y * Math.sin(a), cy + x * Math.sin(a) + y * Math.cos(a)]);
+}
+
 /**
- * The report as a PDF (A4, always light): the same header (the icon and the name of the app, the house, what it
- * is, when and which lists), the counts and a part per list, a page after another; at the foot, the page.
+ * The report as a PDF (A4, always light): the same header (the icon and the name of the app, what it is, when and
+ * which lists), the counts, the charts two by two and a part per list, a page after another; at the foot of each
+ * page, the mark of CorrerIA Code and the page.
  */
-export function reportPdf(rep, { cor = "#ff8a65", casa = "" } = {}) {
+export function reportPdf(rep, { cor = "#ff8a65" } = {}) {
   const A = /^#[0-9a-f]{6}$/i.test(cor || "") ? cor : "#ff8a65";
   const C = { fg: "#141a22", mut: "#5b6573", line: "#e3e7ec", line2: "#eef1f4", box: "#d6dbe2", late: "#d92d20", pts: "#b7791f", card: "#f6f7f9" };
+  const PARTS = { late: C.late, today: "#f59e0b", week: "#7b8590", later: "#aab3bd", none: "#d5dbe2", house: "#aab3bd", ext: "#4f46e5", rest: "#aab3bd" };
   const pdf = new Pdf({ title: "Relatório de pendências · ResolvIA" });
   const M = 40;
   const W = pdf.W - 2 * M;
-  const BOTTOM = pdf.H - 52;
+  const BOTTOM = pdf.H - 64; // the foot: a line and the mark of CorrerIA Code
   const d = new Date(rep.at);
   const when = `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} às ${pad(d.getHours())}:${pad(d.getMinutes())}`;
   const marked = rep.lists.filter((l) => !l.hidden);
@@ -218,7 +405,7 @@ export function reportPdf(rep, { cor = "#ff8a65", casa = "" } = {}) {
     const w1 = textWidth("Resolv", 15, true);
     pdf.text(tx + w1, y + 24, "IA", { size: 15, bold: true, color: A });
     const w2 = textWidth("IA", 15, true);
-    pdf.text(tx + w1 + w2 + 6, y + 24, `· listas de tarefas${casa ? ` · ${casa}` : ""}`, { size: 10, color: C.mut });
+    pdf.text(tx + w1 + w2 + 6, y + 24, "· listas de tarefas", { size: 10, color: C.mut });
     pdf.text(tx, y + 52, "Relatório de pendências", { size: 22, bold: true, color: C.fg });
     pdf.text(tx, y + 72, `O que falta fazer ${which} · ${when}`, { size: 10, color: C.mut });
     y += h + 14;
@@ -245,6 +432,60 @@ export function reportPdf(rep, { cor = "#ff8a65", casa = "" } = {}) {
     pdf.text(M, y + 10, "Relatório de pendências · ResolvIA", { size: 9, color: C.mut });
     y += 26;
   };
+
+  // the charts, two by two, each in a card: the split, then a row per part (name, number, bar; the share in Por prazo)
+  const ROW = 24;
+  const chartH = (c) => {
+    const f = foldTop(c.rows);
+    return 34 + (c.split && f.shown.length + (f.more ? 1 : 0) > 1 ? 16 : 0) + f.shown.length * ROW + (f.more ? 15 : 0) + (c.none ? 15 : 0) + 4;
+  };
+  const drawChart = (c, x, top, w, h) => {
+    const f = foldTop(c.rows);
+    pdf.rect(x, top, w, h, { stroke: C.line, r: 8 });
+    const ix = x + 12;
+    const iw = w - 24;
+    pdf.text(ix, top + 20, c.title, { size: 12.5, bold: true, color: C.fg });
+    let cy = top + 30;
+    const split = [...f.shown, ...(f.more ? [{ key: "rest", n: f.moreN }] : [])];
+    if (c.split && split.length > 1) {
+      const sum = split.reduce((n, p) => n + p.n, 0);
+      const gap = 1.5;
+      const room = iw - gap * (split.length - 1);
+      let sx = ix;
+      split.forEach((p) => {
+        const pw = Math.max(3, (p.n / sum) * room);
+        pdf.rect(sx, cy, pw, 7, { fill: p.color || PARTS[p.key] || A, r: 1.5 });
+        sx += pw + gap;
+      });
+      cy += 16;
+    }
+    for (const p of f.shown) {
+      const pctW = c.pct ? 30 : 0;
+      const label = wrap(p.name, iw - 40, 10)[0] || "";
+      pdf.text(ix, cy + 10, label, { size: 10, color: C.fg });
+      if (p.sub) pdf.text(ix + textWidth(label, 10) + 6, cy + 10, p.sub, { size: 8.5, color: C.mut });
+      pdf.text(ix + iw, cy + 10, String(p.n), { size: 11, bold: true, color: C.fg, align: "right" });
+      pdf.rect(ix, cy + 15, iw - pctW, 4, { fill: C.line2, r: 2 });
+      pdf.rect(ix, cy + 15, Math.max(2, ((iw - pctW) * share(p.n, c.max)) / 100), 4, { fill: p.color || PARTS[p.key] || A, r: 2 });
+      if (c.pct) pdf.text(ix + iw, cy + 19.5, `${share(p.n, c.total)}%`, { size: 7.5, color: C.mut, align: "right" });
+      cy += ROW;
+    }
+    if (f.more) {
+      pdf.text(ix, cy + 9, `+${plural(f.more, c.unit[0], c.unit[1])}: ${f.moreN}`, { size: 9, color: C.mut });
+      cy += 15;
+    }
+    if (c.none) pdf.text(ix, cy + 9, `${c.noneLabel}: ${c.none}`, { size: 9, color: C.mut });
+  };
+  const charts = chartList(graficos(rep));
+  for (let k = 0; k < charts.length; k += 2) {
+    const pair = charts.slice(k, k + 2);
+    const h = Math.max(...pair.map(chartH));
+    if (y + h > BOTTOM) newPage();
+    const cw = (W - 12) / 2;
+    pair.forEach((c, i) => drawChart(c, M + i * (cw + 12), y, cw, h));
+    y += h + 12;
+  }
+  if (charts.length) y += 6;
   const sectionHead = (s, cont = false) => {
     const meta = [s.owner ? `de ${s.owner}` : "", plural(s.rows.length, "pendente", "pendentes"), s.late ? `${s.late} ${s.late === 1 ? "atrasada" : "atrasadas"}` : ""].filter(Boolean).join(" · ");
     pdf.text(M, y + 14, `${s.name}${cont ? " (continuação)" : ""}`, { size: 14, bold: true, color: C.fg });
@@ -283,11 +524,27 @@ export function reportPdf(rep, { cor = "#ff8a65", casa = "" } = {}) {
   }
   if (!rep.sections.length) pdf.text(M, y + 10, "Nenhuma lista marcada.", { size: 11, color: C.mut });
 
-  // the foot of each page
+  // the foot of each page: the mark of CorrerIA Code (as in Mais › Sobre) and, with more than one, the page
   const total = pdf.pages.length;
+  const what = "DESENVOLVIMENTO DE SOFTWARES";
+  const nameW = textWidth("Correr", 10.5, true) + textWidth("IA", 10.5, true) + textWidth(" Code", 10.5, true);
+  const blockW = 16 + 8 + Math.max(nameW, textWidth(what, 6, true, 0.9));
   pdf.pages.forEach((ops, i) => {
     pdf.ops = ops;
-    pdf.text(pdf.W / 2, pdf.H - 28, `ResolvIA · relatório gerado em ${when}${total > 1 ? ` · página ${i + 1} de ${total}` : ""}`, { size: 8, color: C.mut, align: "center" });
+    const fy = pdf.H - 34;
+    pdf.line(M, fy - 16, M + W, fy - 16, { color: C.line });
+    const bx = pdf.W / 2 - blockW / 2;
+    pdf.path(tiltedSquare(bx + 8, fy + 1, 16, 4, -8), { fill: A, close: true });
+    pdf.path(ZAP.map(([zx, zy]) => [(zx - 12) * 0.46, (zy - 12) * 0.46]).map(([zx, zy]) => {
+      const a = (-8 * Math.PI) / 180;
+      return [bx + 8 + zx * Math.cos(a) - zy * Math.sin(a), fy + 1 + zx * Math.sin(a) + zy * Math.cos(a)];
+    }), { fill: "#1a1210", close: true });
+    const tx = bx + 24;
+    pdf.text(tx, fy, "Correr", { size: 10.5, bold: true, color: C.fg });
+    pdf.text(tx + textWidth("Correr", 10.5, true), fy, "IA", { size: 10.5, bold: true, color: A });
+    pdf.text(tx + textWidth("CorrerIA", 10.5, true), fy, " Code", { size: 10.5, bold: true, color: C.fg });
+    pdf.text(tx, fy + 9, what, { size: 6, bold: true, color: C.mut, spacing: 0.9 });
+    if (total > 1) pdf.text(M + W, fy + 4, `página ${i + 1} de ${total}`, { size: 8, color: C.mut, align: "right" });
   });
   return pdf.build();
 }

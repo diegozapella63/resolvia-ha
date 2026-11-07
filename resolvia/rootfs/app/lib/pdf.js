@@ -22,12 +22,13 @@ export function winAnsi(s) {
   return Buffer.from([...String(s ?? "").normalize("NFC")].map(byteOf));
 }
 
-/** The width of a text in points. */
-export function textWidth(s, size, bold = false) {
+/** The width of a text in points (spacing: points between the letters). */
+export function textWidth(s, size, bold = false, spacing = 0) {
   const t = bold ? BOLD : REGULAR;
+  const bytes = winAnsi(s);
   let w = 0;
-  for (const b of winAnsi(s)) w += t[b - 32] || 0;
-  return (w * size) / 1000;
+  for (const b of bytes) w += t[b - 32] || 0;
+  return (w * size) / 1000 + spacing * Math.max(0, bytes.length - 1);
 }
 
 /** A text broken into lines that fit the width (a long word is cut). */
@@ -82,11 +83,14 @@ export class Pdf {
     return this;
   }
 
-  /** Text at x, with its baseline at y (from the top). align: left | right | center (x is that edge). */
-  text(x, y, s, { size = 11, bold = false, color = "#141a22", align = "left" } = {}) {
-    const w = align === "left" ? 0 : textWidth(s, size, bold);
+  /** Text at x, with its baseline at y (from the top). align: left | right | center (x is that edge); spacing: points
+   * between the letters (like letter-spacing). */
+  text(x, y, s, { size = 11, bold = false, color = "#141a22", align = "left", spacing = 0 } = {}) {
+    const w = align === "left" ? 0 : textWidth(s, size, bold, spacing);
     const left = align === "right" ? x - w : align === "center" ? x - w / 2 : x;
-    this.ops.push(`BT /${bold ? "F2" : "F1"} ${size} Tf ${rgb(color)} rg ${n(left)} ${n(this.H - y)} Td ${lit(winAnsi(s))} Tj ET`);
+    // the spacing is kept by the graphics state: q … Q gives it back to the next texts
+    const t = `BT /${bold ? "F2" : "F1"} ${size} Tf ${spacing ? `${n(spacing)} Tc ` : ""}${rgb(color)} rg ${n(left)} ${n(this.H - y)} Td ${lit(winAnsi(s))} Tj ET`;
+    this.ops.push(spacing ? `q ${t} Q` : t);
     return this;
   }
 
