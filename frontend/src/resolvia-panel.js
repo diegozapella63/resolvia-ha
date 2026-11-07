@@ -51,7 +51,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.46.0";
+const VERSION = "2.46.1";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.46.1
+
+- **Caixas de seleção**: tocar num botão que fica por cima de uma caixa (como a barra no fim de uma janela, com a lista rolada por baixo) aciona o botão, e não abre a caixa escondida.
+
 ## 2.46.0
 
 - **Caixas de seleção** (Fala para texto, IA usada pelo app, a lista e o cômodo de cada item ao importar, a lista do Relatório de pendências) abrem uma janela no visual do app, de baixo para cima, com as opções em linhas e a atual marcada na cor do app, no tema claro ou escuro, e não mais a janela padrão do celular. O Voltar do celular, o X ou tocar fora fecham só ela.

@@ -83,6 +83,15 @@ async def main():
             await pg.go_back(); await pg.wait_for_timeout(600)
             check(await pg.locator(".ss-wrap").count() == 0 and await a.locator(".more-tabs").count() == 1, f"{scheme}: Back closes only the sheet")
             check(prefs().get("voice_engine") == "stt.faster_whisper", f"{scheme}: Back changes nothing")
+            # ---- something over the box (a bar stuck over a scrolled list): the tap is for it, not for the box
+            await sel.scroll_into_view_if_needed()
+            await pg.evaluate("""() => { const s = document.querySelector('resolvia-panel').shadowRoot.querySelector('#falar select'), r = s.getBoundingClientRect();
+              const b = document.createElement('button'); b.id = 'tampa';
+              b.style.cssText = `position:fixed;left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px;z-index:50`;
+              b.onclick = () => (window.__tampa = (window.__tampa || 0) + 1); document.body.appendChild(b); }""")
+            await tap(pg, pg.locator("#tampa"))
+            check(await pg.locator(".ss-wrap").count() == 0 and await pg.evaluate("window.__tampa") == 1, f"{scheme}: a box under something else: the tap is for what is on top")
+            await pg.evaluate("document.getElementById('tampa').remove()")
             # ---- X and a tap outside
             await tap(pg, sel)
             await tap(pg, pg.locator(".ss-x"))
