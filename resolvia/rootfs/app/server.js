@@ -22,8 +22,10 @@ import { Inventario } from "./lib/inventario.js";
 import { Voice, readRaw, MAX_VOICE_BYTES } from "./lib/voice.js";
 import { snapshot, toCSV, backupZip, parseImport, Backups, listVersions, readVersion, fileStamp } from "./lib/data.js";
 import { DueAlert } from "./lib/duealert.js";
+import { Correria, ROTA as ROTA_CORRERIA } from "./lib/correria.js";
+import { Ferramentas, INSTRUCOES } from "./lib/ferramentas.js";
 
-const VERSION = "2.48.0";
+const VERSION = "2.49.0";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const WWW = path.join(HERE, "www");
 const DEV = process.env.RESOLVIA_DEV === "1";
@@ -95,6 +97,54 @@ async function sendPoints(data) {
   await ha.send({ type: "fire_event", event_type: "cronologia_pontos", event_data: { ...data, origem: "ResolvIA" } });
 }
 
+/**
+ * What completing (done) or reopening a task means for the scoreboard, without doing it: {points: 0[, reason]} (nothing
+ * to give), {ask: true, points, participantes} (who did it?), {key, who, points, participantes, mirrored?} (to give) or
+ * {undo: key}. msg: {entity_id, uid, summary, done, quem?, userId?} (quem: a name of the scoreboard; userId: the user of
+ * Home Assistant, as in its usuarios). A wrong quem throws invalid_format.
+ */
+function pointsPlan(msg) {
+  const uid = String(msg.uid).slice(0, 300).replace(/\|/g, "");
+  const wrong = () => Object.assign(new Error("Essa pessoa não está no placar"), { code: "invalid_format" });
+  // a maintenance or routine of the CronologIA: it marks it done itself; we only say who (or undo)
+  const esp = placar.mirrored(msg.entity_id, msg.uid);
+  if (esp) {
+    const key = `espelho|${msg.entity_id}|${uid}`;
+    if (!msg.done) return { undo: key };
+    const pe = placar.read();
+    // Recompensas off here: the CronologIA still marks it done, with no one's points
+    if (!store.prefs.app.points_on || !esp.pontos || !pe || !pe.ativo) return { points: 0 };
+    const who = msg.quem ? placar.participant(String(msg.quem)) : pe.usuarios[msg.userId] || null;
+    if (msg.quem && !who) throw wrong();
+    if (!who) return { ask: true, points: esp.pontos, participantes: pe.participantes };
+    return { key, who, points: esp.pontos, participantes: pe.participantes, mirrored: true };
+  }
+  const n = store.prefs.app.points_on ? store.pointsFor(msg.entity_id, String(msg.summary || "")) : 0;
+  if (!n) return { points: 0 };
+  const key = `resolvia|${msg.entity_id}|${uid}|${today()}`;
+  if (!msg.done) return { undo: key };
+  const p = placar.read();
+  if (!p || !p.ativo) return { points: 0, reason: "placar" };
+  const who = msg.quem ? placar.participant(String(msg.quem)) : p.usuarios[msg.userId] || null;
+  if (msg.quem && !who) throw wrong();
+  if (!who) return { ask: true, points: n, participantes: p.participantes };
+  return { key, who, points: n, participantes: p.participantes };
+}
+
+/** Completing or reopening a task, for the scoreboard of the CronologIA (the screen and the CorrerIA): see pointsPlan. */
+async function pointsDone(msg) {
+  const plan = pointsPlan(msg);
+  if (plan.undo) {
+    await sendPoints({ acao: "desfazer", chave: plan.undo });
+    return { points: 0, key: plan.undo };
+  }
+  if (!plan.who) return plan;
+  const { mirrored, ...out } = plan;
+  await sendPoints({ acao: "somar", chave: plan.key, quem: plan.who, pontos: plan.points, titulo: String(msg.summary || "Tarefa").slice(0, 120) });
+  log.info(`+${plan.points} para ${plan.who}: ${msg.summary}${mirrored ? " (CronologIA)" : ""}`);
+  return out;
+}
+
 /** Mais > Configurações > Integrações > Recompensas, and the points of each task. */
 function pointsState(userId) {
   const p = placar.read();
@@ -104,6 +154,7 @@ function pointsState(userId) {
 async function restoreAll(raw, reason, opts) {
   const out = await restore.run(raw, reason, opts);
   publishPresence();
+  correria.publicar(); // the switch of the CorrerIA may have come with the backup
   return out;
 }
 const HA_REST = process.env.HA_REST_URL || "http://supervisor/core/api";
@@ -124,6 +175,46 @@ const dueLists = () => {
 };
 // it goes to each person of Home Assistant, on the phones tied to them there
 const dueAlert = new DueAlert({ ha, store, lists: dueLists, items: recurring.items, log });
+
+// Mais › Configurações › Integrações › CorrerIA (off by default; it does not need Usar IA): the WhatsApp, the Claude and
+// the Gemini read and change the lists through the tools (lib/ferramentas.js), with the key of share/resolvia/correria.json
+const correriaOn = () => store.prefs.app.correria_on === true;
+const correria = new Correria({ dataDir: DATA_DIR, shareDir: SHARE_DIR, port: PORT, version: VERSION, log, enabled: correriaOn, url: process.env.RESOLVIA_URL_INTERNA || "" });
+/** The lists for the tools, in the order of the app, with the names and what each one takes. */
+async function toolLists() {
+  const looks = await lookOfLists();
+  const dueOn = store.prefs.app.due_off !== true;
+  const rows = [...todoStates].map(([id, st]) => {
+    const prefs = store.prefs.lists[id] || {};
+    const features = Number(st.attributes.supported_features) || 0;
+    return { id, name: looks.get(id).name, features, hidden: !!prefs.hidden, owner: prefs.owner || "", unavailable: st.state === "unavailable" || st.state === "unknown", due: dueOn && !datesInfo(prefs, features) };
+  });
+  const order = [...looks.keys()];
+  return rows.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
+}
+/** The user of Home Assistant of a person ({id: "person.ana"}), for who is who in the scoreboard. */
+async function userOf(pessoa) {
+  const id = String((pessoa && pessoa.id) || "");
+  if (!/^person\.[a-z0-9_]+$/.test(id)) return null;
+  const st = (await ha.send({ type: "get_states" })).find((s) => s.entity_id === id);
+  return (st && st.attributes.user_id) || null;
+}
+const ferramentas = new Ferramentas({
+  lists: toolLists,
+  items: async (id) => (await ha.send({ type: "todo/item/list", entity_id: id })).items,
+  call: (service, data, entityId) => ha.send({ type: "call_service", domain: "todo", service, service_data: data, target: { entity_id: [entityId] } }),
+  store,
+  recurring,
+  placar,
+  inventario,
+  on: () => ({ due: store.prefs.app.due_off !== true, repeat: repeatOn(), points: !!store.prefs.app.points_on, rooms: roomsOn(), equips: equipsOn(), ext: store.prefs.app.ext_off !== true }),
+  userOf,
+  pointsPlan,
+  pointsDone,
+  roomsFromEquips,
+  changed: () => publishPresence(),
+  now: () => Date.now(),
+});
 
 /** The people who can own a list: the persons of Home Assistant and the participants of the scoreboard. */
 async function peopleNames() {
@@ -520,8 +611,14 @@ class Session {
           for (const [eid, items] of recurring.items) recurring.process(eid, items);
           publishPresence();
         }
+        // CorrerIA: on writes share/resolvia/correria.json, off removes it (and the key stops working)
+        if ("correria_on" in (msg.prefs || {})) correria.publicar();
         return this.result(id, prefs);
       }
+
+      // Mais › Configurações › Integrações › CorrerIA: on, and who used it last ({cliente, em, nome})
+      case "resolvia/correria/get":
+        return this.result(id, { on: correriaOn(), ultimo: correria.ultimo });
 
       // ---- Recompensas: points per task, given to the CronologIA scoreboard
       // ---- Cômodos do InventarIA
@@ -573,42 +670,9 @@ class Session {
        * A task was completed (or reopened) here. {entity_id, uid, summary, done, quem?}
        * -> {points: 0} | {ask: true, points, participantes} | {key, who, points, participantes}
        */
-      case "resolvia/points/done": {
+      case "resolvia/points/done":
         if (!isTodo(msg.entity_id) || typeof msg.uid !== "string" || !msg.uid) return this.error(id, "invalid_format", "Tarefa inválida");
-        // a maintenance or routine of the CronologIA: it marks it done itself; we only say who (or undo)
-        const esp = placar.mirrored(msg.entity_id, msg.uid);
-        if (esp) {
-          const ekey = `espelho|${msg.entity_id}|${msg.uid.slice(0, 300).replace(/\|/g, "")}`;
-          if (!msg.done) {
-            await sendPoints({ acao: "desfazer", chave: ekey });
-            return this.result(id, { points: 0, key: ekey });
-          }
-          const pe = placar.read();
-          // Recompensas off here: the CronologIA still marks it done, with no one's points
-          if (!store.prefs.app.points_on || !esp.pontos || !pe || !pe.ativo) return this.result(id, { points: 0 });
-          const whoE = msg.quem ? placar.participant(String(msg.quem)) : pe.usuarios[this.user.id] || null;
-          if (msg.quem && !whoE) return this.error(id, "invalid_format", "Essa pessoa não está no placar");
-          if (!whoE) return this.result(id, { ask: true, points: esp.pontos, participantes: pe.participantes });
-          await sendPoints({ acao: "somar", chave: ekey, quem: whoE, pontos: esp.pontos, titulo: String(msg.summary || "Tarefa").slice(0, 120) });
-          log.info(`+${esp.pontos} para ${whoE}: ${msg.summary} (CronologIA)`);
-          return this.result(id, { key: ekey, who: whoE, points: esp.pontos, participantes: pe.participantes });
-        }
-        const n = store.prefs.app.points_on ? store.pointsFor(msg.entity_id, String(msg.summary || "")) : 0;
-        if (!n) return this.result(id, { points: 0 });
-        const key = `resolvia|${msg.entity_id}|${msg.uid.slice(0, 300).replace(/\|/g, "")}|${today()}`;
-        if (!msg.done) {
-          await sendPoints({ acao: "desfazer", chave: key });
-          return this.result(id, { points: 0, key });
-        }
-        const p = placar.read();
-        if (!p || !p.ativo) return this.result(id, { points: 0, reason: "placar" });
-        const who = msg.quem ? placar.participant(String(msg.quem)) : p.usuarios[this.user.id] || null;
-        if (msg.quem && !who) return this.error(id, "invalid_format", "Essa pessoa não está no placar");
-        if (!who) return this.result(id, { ask: true, points: n, participantes: p.participantes });
-        await sendPoints({ acao: "somar", chave: key, quem: who, pontos: n, titulo: String(msg.summary || "Tarefa").slice(0, 120) });
-        log.info(`+${n} para ${who}: ${msg.summary}`);
-        return this.result(id, { key, who, points: n, participantes: p.participantes });
-      }
+        return this.result(id, await pointsDone({ ...msg, userId: this.user.id }));
 
       case "resolvia/points/reassign": {
         const who = placar.participant(String(msg.quem || ""));
@@ -884,7 +948,42 @@ async function handleReport(url, res, pdf = false) {
   res.end(body);
 }
 
+/**
+ * The CorrerIA (the WhatsApp, the Claude and the Gemini), from the internal network of the apps, with the key of
+ * share/resolvia/correria.json: GET lists the tools, POST {nome, argumentos, pessoa, cliente} runs one -> {texto}
+ * (400 {erro}: a wrong argument, saying what is accepted; 404: no such tool). Off or a wrong key: 401.
+ */
+async function handleTools(req, res) {
+  if (!correria.autorizado(req.headers)) return sendJson(res, 401, { erro: "Chave inválida ou CorrerIA desligado no ResolvIA." });
+  if (req.method === "GET") return sendJson(res, 200, { versao: VERSION, instrucoes: INSTRUCOES, ferramentas: ferramentas.lista() });
+  if (req.method !== "POST") return sendJson(res, 405, { erro: "Use GET ou POST." });
+  let body;
+  try {
+    const raw = await readRaw(req, 256 * 1024);
+    body = JSON.parse(raw.toString("utf8"));
+    if (!body || typeof body !== "object") throw new Error("not an object");
+  } catch (err) {
+    return sendJson(res, err.code === "too_big" ? 413 : 400, { erro: err.code === "too_big" ? "Pedido grande demais." : "JSON inválido." });
+  }
+  const nome = String(body.nome || "");
+  const pessoa = body.pessoa && typeof body.pessoa === "object" ? body.pessoa : null;
+  const cliente = String(body.cliente || "CorrerIA").slice(0, 40);
+  try {
+    await ha.whenReady();
+    const texto = await ferramentas.chamar(nome, body.argumentos, { pessoa });
+    correria.usado(cliente, nome);
+    if (ferramentas.lista().some((t) => t.nome === nome && t.grava)) log.info(`CorrerIA: ${cliente}${pessoa && pessoa.nome ? ` (${String(pessoa.nome).slice(0, 40)})` : ""} ${nome} → ${texto.split("\n")[0].slice(0, 160)}`);
+    return sendJson(res, 200, { texto });
+  } catch (err) {
+    if (err.status === 400 || err.status === 404) return sendJson(res, err.status, { erro: err.message });
+    log.warn(`CorrerIA: ${nome}: ${err.message}`);
+    return sendJson(res, 502, { erro: `O Home Assistant não respondeu: ${err.message}` });
+  }
+}
+
 const server = http.createServer((req, res) => {
+  // the CorrerIA comes from another app (not the ingress): its key says who it is
+  if (new URL(req.url, "http://x").pathname === ROTA_CORRERIA) return handleTools(req, res);
   if (!allowed(req)) {
     res.writeHead(403).end("Forbidden");
     return;
@@ -976,6 +1075,10 @@ function publishPresence() {
 }
 publishPresence();
 setInterval(publishPresence, 15 * 60 * 1000);
+// CorrerIA: the file is written again at the start and every 15 minutes while on (the address may change); off, a file
+// left from before goes away
+correria.publicar();
+setInterval(() => correria.publicar(), 15 * 60 * 1000);
 // the owners of the lists of the CronologIA (before 1.53.0), taken once it publishes them
 // (every minute until then; afterwards it returns at once)
 setTimeout(adoptOwners, 3000);

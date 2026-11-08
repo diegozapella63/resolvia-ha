@@ -37,6 +37,7 @@ A primeira instalação leva alguns minutos, porque o app é montado no próprio
 - **Buscar** em todas as listas, sem ligar para acentos, também por cômodo, equipamento e quem faz.
 - **Cômodos e equipamentos** do InventarIA nas tarefas, sugeridos pela IA (ligue em **Mais › Configurações › Integrações**).
 - **Serviço externo**: marque quando alguém de fora vai fazer a tarefa (eletricista, assistência técnica). Quem não usa desliga em **Mais › Configurações › Opções**, como as **Notas**.
+- **CorrerIA**: pelo WhatsApp, o Claude e o Gemini, ver o que vence e criar, editar, concluir ou apagar tarefas (ligue em **Mais › Configurações › Integrações › CorrerIA**; precisa do app CorrerIA).
 - **Recompensas**: cada tarefa pode valer pontos no placar do CronologIA para quem concluir, e as **manutenções e rotinas** de lá viram tarefas aqui (concluir aqui vale como feito lá, e a tarefa volta com a próxima data).
 - **Mais** é um menu, como no InventarIA: **Listas** (nome, cor, ícone e quais aparecem), **Gráficos** (pendências por lista, cômodo, equipamento, prazo e quem faz) e **Configurações** (Integrações, Dados, Aparência e Opções).
 - **Dados**: exportar em ZIP, CSV ou JSON, backup em `share/resolvia`, importar (repõe os itens que faltarem, sem duplicar) e versões anteriores automáticas.

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.49.0
+
+- **CorrerIA**: novo cartão em **Mais › Configurações › Integrações**. Ligado (começa desligado e não depende do **Usar IA**), o app **CorrerIA** passa a ler e mudar as suas listas pelo **WhatsApp**, pelo **Claude** e pelo **Gemini**: ver o que está atrasado e o que vence, buscar tarefas, criar (com prazo, horário, notas, repetição, pontos, cômodos e quem faz; várias de uma vez, uma por linha), editar, mover de lista, concluir (os pontos vão para quem fez) e apagar.
+- O cartão mostra quem usou por último (ex.: **Claude usou hoje às 09:41**). Desligado, o CorrerIA deixa de ter acesso na hora.
+- Só aparece o que está ligado no app: sem recompensas, nada de pontos; sem cômodos, nada de cômodos.
+
 ## 2.48.0
 
 - **Sugestões** é a primeira aba e a tela onde o app abre: no alto, o que está **atrasado** e o que vence **hoje**; depois o **Comece por aqui** (sem repetir esses), **Amanhã**, **Próximos 7 dias**, **Mais adiante**, **Voltam sozinhas** e **Compras**. O número da aba é o que está atrasado ou vence hoje.

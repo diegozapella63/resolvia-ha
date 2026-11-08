@@ -156,6 +156,24 @@ No CronologIA 1.10.0 ou mais novo, **Mais › Integrações › Tarefas do Resol
 - Tocar na tarefa mostra o nome, a data, os pontos (quando valem: **Recompensas** e placar ligados) e as notas, só para ver: o nome, a data, as notas e os pontos se mudam no CronologIA, que reescreve a tarefa. **Excluir** tira da lista até a próxima data.
 - Nas notas vai uma marcação técnica, `[cr:…]`, que liga a tarefa à do CronologIA. O app a esconde.
 
+## CorrerIA (WhatsApp, Claude e Gemini)
+
+O **CorrerIA** é o app da CorrerIA Code que junta os apps da casa no WhatsApp, no Claude e no Gemini. Com ele, dá para perguntar "o que está atrasado?", pedir "põe leite e café na lista de compras" ou "marca lavar o carro como feito, fui eu" sem abrir o ResolvIA.
+
+1. Aqui, em **Mais › Configurações › Integrações › CorrerIA**, ligue **Usar com o CorrerIA** (começa desligado; não precisa do **Usar IA**, porque quem pensa é a IA do CorrerIA, o Claude ou o Gemini).
+2. No app **CorrerIA**, no mesmo Home Assistant, conecte o **WhatsApp** (o número da casa) e, se quiser, o **Claude** ou o **Gemini** (cada pessoa aprova no painel do Home Assistant). O manual do CorrerIA explica cada um.
+
+Pelo CorrerIA dá para:
+
+- ver o resumo do dia (o que está atrasado, vence hoje e nos próximos 7 dias) e buscar tarefas por lista, texto, prazo ou cômodo;
+- ver as tarefas que se repetem e quanto vale cada tarefa no placar (com **Repetir depois de concluir** e **Usar recompensas** ligados);
+- criar tarefas (várias de uma vez, uma por linha) com prazo, horário, notas, repetição, pontos, cômodos, equipamentos e quem faz, conforme o que a lista aceita e o que está ligado no app;
+- editar, mover para outra lista, concluir e desfazer, e apagar (apagar tira também a repetição).
+
+Ao concluir uma tarefa que vale pontos, eles vão para quem está falando (a pessoa do Home Assistant ligada ao placar do CronologIA) ou para quem a pessoa disser; sem saber quem foi, o CorrerIA pergunta. As manutenções e rotinas do CronologIA se concluem por aqui, mas se editam lá.
+
+O cartão mostra quem usou por último (**Claude usou hoje às 09:41**). Desligando, o arquivo de conexão some e a chave deixa de valer na hora. Nada de fotos, backups ou ajustes passa pelo CorrerIA.
+
 ## Prazos
 
 As **Sugestões** (a tela inicial) juntam o que tem prazo nas listas que aparecem: **Atrasados** e **Hoje** no alto, depois o **Comece por aqui**, **Amanhã**, **Próximos 7 dias**, **Mais adiante** e o que vai voltar sozinho em **Voltam sozinhas**. O número na aba é o que está atrasado ou vence hoje.
@@ -184,7 +202,7 @@ O Home Assistant não guarda quando um item foi criado, então o ResolvIA anota 
 
 - As tarefas continuam nas próprias listas do Home Assistant.
 - Nome, cor e ícone de cada lista, listas ocultas, os ajustes do app, as regras de repetição e, de cada tarefa, os pontos, os cômodos, os equipamentos e quem faz ficam em `/data/resolvia.json` dentro do app (entram no backup do Home Assistant).
-- Desde quando cada item pendente está na lista (para as Sugestões) fica em `/data/idades.json`, e o Uso da IA em `/data/uso_ia.json`.
+- Desde quando cada item pendente está na lista (para as Sugestões) fica em `/data/idades.json`, o Uso da IA em `/data/uso_ia.json` e, com o CorrerIA, a chave da conexão em `/data/correria.key` (fora do exportar e dos backups da pasta share) e o último uso em `/data/correria_uso.json`.
 - O tema (automático, claro ou escuro) é escolhido por aparelho; a conversa com a IA fica no aparelho, enquanto o app está aberto.
 
 ## Dados: exportar, backup e importar
@@ -205,4 +223,4 @@ Em **Mais › Configurações › Dados**:
 
 ## Segurança
 
-O app só aceita comandos de listas de tarefas (`todo.*`), além de chamar a IA (`ai_task.generate_data`) e a fala para texto do Home Assistant. Ele não lê nem controla nenhuma outra entidade da casa; a única que ele cria é o `sensor.resolvia_ia_hoje`, e só com **Sensores no Home Assistant** ligado. Na pasta `share` ele só grava e lê os próprios backups, em `share/resolvia`, e o arquivo `share/resolvia/integracao.json` (nome e versão do app, se controla prazos, as listas sem prazo, os pontos das tarefas, de quanto em quanto tempo cada uma volta e, com o InventarIA ligado, os cômodos e os equipamentos das tarefas, sem chave), que o CronologIA usa. Ele escuta dois eventos do CronologIA: `resolvia_comodo` (o cômodo ou o equipamento escolhido lá para uma tarefa daqui) e `resolvia_esquecer` (as tarefas levadas para lá, em Trazer uma lista para o CronologIA, perdem aqui a repetição, os pontos, o cômodo e o equipamento). Do CronologIA ele só lê `share/cronologia/integracao.json` (o placar e quais tarefas vêm das manutenções e rotinas). Os pontos vão para o CronologIA pelo evento `cronologia_pontos` do Home Assistant. Do InventarIA ele lê `share/inventario/integracao.json` e, só com **Usar cômodos** ou **Usar equipamentos** ligado, a lista de cômodos e de itens, sem mudar nada lá.
+O app só aceita comandos de listas de tarefas (`todo.*`), além de chamar a IA (`ai_task.generate_data`) e a fala para texto do Home Assistant. Ele não lê nem controla nenhuma outra entidade da casa; a única que ele cria é o `sensor.resolvia_ia_hoje`, e só com **Sensores no Home Assistant** ligado. Na pasta `share` ele só grava e lê os próprios backups, em `share/resolvia`, e o arquivo `share/resolvia/integracao.json` (nome e versão do app, se controla prazos, as listas sem prazo, os pontos das tarefas, de quanto em quanto tempo cada uma volta e, com o InventarIA ligado, os cômodos e os equipamentos das tarefas, sem chave), que o CronologIA usa. Ele escuta dois eventos do CronologIA: `resolvia_comodo` (o cômodo ou o equipamento escolhido lá para uma tarefa daqui) e `resolvia_esquecer` (as tarefas levadas para lá, em Trazer uma lista para o CronologIA, perdem aqui a repetição, os pontos, o cômodo e o equipamento). Do CronologIA ele só lê `share/cronologia/integracao.json` (o placar e quais tarefas vêm das manutenções e rotinas). Os pontos vão para o CronologIA pelo evento `cronologia_pontos` do Home Assistant. Do InventarIA ele lê `share/inventario/integracao.json` e, só com **Usar cômodos** ou **Usar equipamentos** ligado, a lista de cômodos e de itens, sem mudar nada lá. Com **Usar com o CorrerIA** ligado, ele grava `share/resolvia/correria.json` (o endereço do app e uma chave própria, só para o dono do arquivo) e responde ao CorrerIA, pela rede interna dos apps e só com essa chave, em `/api/integracao/ferramentas`: as mesmas ações da tela, nas listas de tarefas. Desligado, o arquivo some e a chave não vale mais.

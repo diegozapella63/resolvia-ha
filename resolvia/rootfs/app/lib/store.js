@@ -69,6 +69,9 @@ const APP_FIELDS = {
   ext_off: ["boolean"],
   // Mais > Configurações > Opções > Exibição › Notas: true = off (no Notas field, unless the item already has notes)
   notes_off: ["boolean"],
+  // Mais > Configurações > Integrações > CorrerIA: true = the WhatsApp, the Claude and the Gemini read and change the
+  // lists through the app CorrerIA (off unless turned on; it does not need Usar IA)
+  correria_on: ["boolean"],
 };
 
 /** Avisar o que vence hoje: a time "HH:MM" and phones notify.mobile_app_*; anything else is dropped. */

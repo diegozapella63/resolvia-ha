@@ -8,6 +8,7 @@ ResolvIA é um app (add-on) do Home Assistant: as listas de tarefas (to-do) do H
 | CronologIA | `diegozapella63/cronologia-ha` | calendário, rotinas, remédios, placar |
 | InventarIA | `diegozapella63/inventario-ha` | inventário da casa: cômodos e itens (equipamentos) |
 | GerencIA | `diegozapella63/gerencia-ha` | finanças: contas a pagar |
+| CorrerIA | `diegozapella63/correria-ha` | o contato no WhatsApp e o servidor MCP do Claude e do Gemini: usa as ferramentas daqui |
 
 O Home Assistant instala direto do GitHub (`repository.yaml` + `resolvia/config.yaml`), a partir da branch `main`. Por isso o JavaScript gerado da interface fica no repositório: o que está em `main` é o que os usuários recebem.
 
@@ -18,7 +19,8 @@ resolvia/config.yaml            versão e opções do app
 resolvia/CHANGELOG.md           o que mudou em cada versão (o HA mostra ao atualizar)
 resolvia/DOCS.md                manual do usuário (aba Documentação no HA)
 resolvia/rootfs/app/server.js   servidor (Node 22, sem dependências: só módulos do Node)
-resolvia/rootfs/app/lib/        regras: store.js (dados por tarefa), ai.js, recurring.js, inventario.js, data.js/restore.js...
+resolvia/rootfs/app/lib/        regras: store.js (dados por tarefa), ai.js, recurring.js, inventario.js, data.js/restore.js,
+                                correria.js (chave e arquivo do CorrerIA) e ferramentas.js (as ferramentas do CorrerIA)...
 resolvia/rootfs/app/www/        interface já gerada (não editar à mão)
 frontend/src/                   código da interface (Lit): resolvia-panel.js e os mixins rooms.js, suggest.js, points.js...
 preview/resolvia-preview.html   prévia gerada pelo build, abre sem servidor
@@ -59,6 +61,7 @@ Pela pasta `/share` do Home Assistant e por eventos do HA. Mudar um formato aqui
 - **ResolvIA → CronologIA**: este app grava `share/resolvia/integracao.json` (`prazos`, `sem_prazo`, `pontos`, `repete`, `comodos {lista, tarefas}`, `equipamentos {lista [{id, nome, comodo}], tarefas}`, `donos {lista: nome da pessoa}`). Em `tarefas`, o valor é um id ou, com vários equipamentos (e por isso vários cômodos), uma lista de ids; a CronologIA lê (função `publishPresence` no `server.js`).
 - **CronologIA → ResolvIA**: `share/cronologia/integracao.json` (o placar e `donos_listas`, o De quem é antigo de lá, adotado uma vez), lido em `lib/placar.js`. O aviso de prazos vai para os celulares ligados a cada pessoa no Home Assistant: os apps olham para a pessoa, nunca para um aparelho escolhido neles.
 - **Eventos**: `resolvia_comodo` (a CronologIA define o cômodo/equipamento de uma tarefa: `{entity_id, tarefa, comodo?, equipamento?, origem}`, onde comodo e equipamento são um id ou uma lista de ids), `resolvia_esquecer` (a CronologIA assume tarefas daqui: saem repetição, pontos, cômodo e equipamento), `cronologia_pontos` (este app soma, desfaz ou troca pontos no placar da CronologIA).
+- **CorrerIA → ResolvIA** (o contrato é o mesmo para todos os apps da família; ver o AGENTS.md do CorrerIA): com **Mais › Configurações › Integrações › CorrerIA** ligado (`correria_on`, desligado por padrão, sem depender do Usar IA), este app grava `share/resolvia/correria.json` (`app: "resolvia"`, `nome`, `assunto`, `url`, `ip_url`, `chave`, `versao`, `ferramentas`, `gravado_em`; 600, atômico; chave própria em `/data/correria.key`, 600; `RESOLVIA_URL_INTERNA` troca o endereço no desenvolvimento) e responde, fora do ingress e só com `Authorization: Bearer <chave>` (comparada em tempo constante; desligado ou chave errada: 401), em `GET /api/integracao/ferramentas` → `{versao, instrucoes, ferramentas: [{nome, titulo, descricao, entrada (JSON Schema), grava, apaga}]}` e `POST` `{nome, argumentos, pessoa: {id, nome}, cliente}` → `{texto}` (400 `{erro}` dizendo o que vale; 404 ferramenta desconhecida; 502 o Home Assistant falhou). As ferramentas (`lib/ferramentas.js`: resumo, tarefas, repeticoes, pontos, criar_tarefa, editar_tarefa, concluir_tarefa, apagar_tarefa) seguem o que está ligado no app e fazem o que a tela faz, com as mesmas funções: as ações `todo.*`, o `Recurring` e o `Store` pela `taskKey`; os ids das tarefas são `todo.lista:<uid>`. A `pessoa` (o `user_id` do `person.*` no `usuarios` do placar, ou o nome) recebe os pontos ao concluir, pelo mesmo `pointsPlan`/`pointsDone` do `resolvia/points/done`. O último uso (`cliente`) aparece no cartão (`resolvia/correria/get`).
 - **InventarIA**: `share/inventario/integracao.json` (`url`, `ip_url`, `chave`) e as rotas `/api/integracao/comodos` e `/api/integracao/itens` com `Authorization: Bearer <chave>` (`lib/inventario.js`). Cômodos e equipamentos são opcionais (**Mais › Integrações › InventarIA**), desligados por padrão.
 
 ## Como o dono gosta (interface)

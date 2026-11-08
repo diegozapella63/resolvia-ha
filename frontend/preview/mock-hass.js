@@ -359,6 +359,13 @@ export function createMockHass(onChange) {
         return { key: `resolvia|${msg.entity_id}|${msg.uid}|hoje`, who: msg.quem || "Diego", points: n, participantes: ["Diego", "Andressa"] };
       }
       if (msg.type === "resolvia/points/reassign") return { who: msg.quem };
+      // CorrerIA: on, the Claude used it half an hour ago
+      if (msg.type === "resolvia/correria/get") {
+        const t = new Date(Date.now() - 1800000);
+        const pad = (n) => String(n).padStart(2, "0");
+        const em = `${t.getFullYear()}-${pad(t.getMonth() + 1)}-${pad(t.getDate())}T${pad(t.getHours())}:${pad(t.getMinutes())}:00`;
+        return { on: !!prefs.app.correria_on, ultimo: prefs.app.correria_on ? { cliente: "Claude", em, nome: "resumo" } : null };
+      }
       throw new Error(`unknown command ${msg.type}`);
     },
     connection: {

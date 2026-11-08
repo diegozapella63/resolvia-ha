@@ -23,6 +23,7 @@ import { RoomsMixin } from "./rooms.js";
 import { ChatMixin } from "./chat-panel.js";
 import { ExternalMixin } from "./external.js";
 import { ChartsMixin, chartStyles } from "./charts.js";
+import { CorreriaMixin } from "./correria.js";
 import { chatStyles } from "./chat.js";
 import { Recorder, micError, VOICE_RATE, VOICE_MAX_S } from "./voice.js";
 import {
@@ -51,7 +52,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.48.0";
+const VERSION = "2.49.0";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -92,7 +93,7 @@ const IN_MORE = ["listas", "graficos", "config", "sobre"];
 // Novo/Editar item › Horário: Dia todo, this one or another (2.48.0)
 const DEFAULT_TIME = "08:00";
 
-class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(PointsMixin(DataMixin(LitElement))))))) {
+class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(PointsMixin(DataMixin(LitElement)))))))) {
   static properties = {
     hass: { attribute: false },
     narrow: { type: Boolean },
@@ -291,6 +292,7 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
         this._loadRooms();
         this._loadExternal();
         this._loadUsage();
+        this._loadCorreria();
       }
       if (tab === "dados") this._loadBackups();
     }
@@ -2695,7 +2697,7 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
       this._go(this._configPath(k), true, history.state && history.state.rvUp ? { rvUp: true } : null);
     };
     let body;
-    if (tab === "integracoes") body = html`${this._renderRewardsPanel()} ${this._renderRoomsPanel()} ${this._renderAiPanel()} ${this.hass.resolvia && this.hass.resolvia.voiceStatus && this._aiOn() ? this._renderVoicePanel() : nothing} ${this.hass.resolvia && this._aiOn() ? this._renderUsage() : nothing} ${this._renderSensorsPanel()}`;
+    if (tab === "integracoes") body = html`${this._renderRewardsPanel()} ${this._renderRoomsPanel()} ${this._renderCorreriaPanel()} ${this._renderAiPanel()} ${this.hass.resolvia && this.hass.resolvia.voiceStatus && this._aiOn() ? this._renderVoicePanel() : nothing} ${this.hass.resolvia && this._aiOn() ? this._renderUsage() : nothing} ${this._renderSensorsPanel()}`;
     else if (tab === "dados") body = this._renderDataPanel();
     else if (tab === "aparencia") body = this._renderAppearanceTab();
     else body = this._renderOptionsTab();
