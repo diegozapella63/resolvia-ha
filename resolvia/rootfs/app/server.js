@@ -25,7 +25,7 @@ import { DueAlert } from "./lib/duealert.js";
 import { Correria, ROTA as ROTA_CORRERIA } from "./lib/correria.js";
 import { Ferramentas, INSTRUCOES } from "./lib/ferramentas.js";
 
-const VERSION = "2.50.0";
+const VERSION = "2.50.1";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const WWW = path.join(HERE, "www");
 const DEV = process.env.RESOLVIA_DEV === "1";

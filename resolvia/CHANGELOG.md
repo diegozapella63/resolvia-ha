@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.50.1
+
+- **Mais › Sobre**: a linha da CorrerIA fica mais curta: "Pergunte e peça a qualquer app, no chat ou no WhatsApp."
+
 ## 2.50.0
 
 - **Barra de baixo**: o **Buscar** fica ao lado das **Sugestões**, e as **Listas** vão para o lugar dele: Sugestões · Buscar · Adicionar · Listas · Mais. Arrastar para o lado e a barra lateral do computador seguem a mesma ordem.
