@@ -55,6 +55,10 @@ class Base extends hostOf(PointsMixin, RoomsMixin, ExternalMixin) {
   _go(path) {
     this.went = path;
   }
+  // the groups of what is due come from the panel (resolvia-panel.js › _dueSections)
+  _dueSections() {
+    return this.due || { soon: [], later: [], coming: "", comingN: 0, rows: [], late: 0, today: 0 };
+  }
 }
 const Panel = SuggestMixin(Base);
 const top = (p) => p._suggestions().top.map((r) => `${r.i.summary}: ${r.why}`);
@@ -222,6 +226,27 @@ describe("suggest: the page", () => {
     click(v, /^feira/);
     assert.equal(p.went, "/lista/todo.feira");
     assert.doesNotMatch(t, /Sugerir com IA/, "AI off: no button");
+  });
+  it("2.48.0: the start of the app: late and today first, then Comece por aqui (without them), then the rest of what is due", () => {
+    const p = new Panel([list("todo.casa", [{ summary: "Pagar luz", due: ymd(-1) }, "Varrer", "Lavar", { summary: "Consertar", due: ymd(3) }])]);
+    const items = p.lists[0].items;
+    p.due = {
+      soon: [html`<div>Atrasados 1</div>`],
+      later: [html`<div>Próximos 7 dias 1</div>`],
+      coming: html`<div>Voltam sozinhas 1</div>`,
+      comingN: 1,
+      rows: [{ l: p.lists[0], i: items[0] }, { l: p.lists[0], i: items[3] }],
+      late: 1,
+      today: 0,
+    };
+    const t = text(p._renderSuggest());
+    assert.match(t, /^Sugestões 4 pendentes em 1 lista · 1 atrasado Atrasados 1 Comece por aqui 2 Varrer .* Lavar .* Próximos 7 dias 1 Voltam sozinhas 1$/);
+    assert.doesNotMatch(t, /Comece por aqui.*Pagar luz/, "a late one is not repeated in Comece por aqui");
+  });
+  it("2.48.0: nothing pending but a task that comes back by itself: it shows", () => {
+    const p = new Panel([list("todo.a", [])]);
+    p.due = { soon: [], later: [], coming: html`<div>Voltam sozinhas 1</div>`, comingN: 1, rows: [], late: 0, today: 0 };
+    assert.match(text(p._renderSuggest()), /Sugestões Nada pendente Voltam sozinhas 1$/);
   });
   it("with the AI on: Sugerir com IA (off while the AI isn't ready, saying why)", () => {
     const p = new Panel([list("todo.casa", ["Varrer"])]);

@@ -1,4 +1,4 @@
-# ResolvIA 2.14.0: Mais › Opções › Controlar prazos; off: no Prazos tab, no deadline field, Sugestões instead.
+# ResolvIA 2.14.0: Mais › Opções › Controlar prazos; off: no deadline field, and Sugestões (the first tab since 2.48.0) without what is due.
 import os as _os
 CRONOLOGIA = _os.environ.get("E2E_CRONOLOGIA", "")
 RESOLVIA = _os.environ.get("E2E_RESOLVIA", "")
@@ -43,9 +43,9 @@ async def main():
         pg = await b.new_page(viewport={"width": 390, "height": 844}, device_scale_factor=2, color_scheme="light")
         errs = []
         pg.on("pageerror", lambda e: errs.append(str(e)))
-        await pg.goto("http://127.0.0.1:8099/"); await pg.wait_for_timeout(1400)
+        await pg.goto("http://127.0.0.1:8099/?aba=listas"); await pg.wait_for_timeout(1400)
         nav = lambda: pg.locator("nav .tab").all_inner_texts()
-        check("Prazos" in " ".join(await nav()) and "Sugestões" not in " ".join(await nav()), "deadlines on by default: Prazos tab")
+        check("Sugestões" in " ".join(await nav()) and "Prazos" not in " ".join(await nav()), "2.48.0: Sugestões tab, no Prazos tab")
         await pg.locator(".list-card", has_text="Casa").click(); await pg.wait_for_timeout(500)
         check(await pg.locator(".item .tag.late", has_text="Ontem").count() == 1, "on: yesterday's bill is late")
         await pg.locator(".item .it-text", has_text="Pagar conta de luz").click(); await pg.wait_for_timeout(400)
@@ -60,10 +60,11 @@ async def main():
         check(await sw.is_checked(), "Opções › Prazos: Controlar prazos on")
         await sw.uncheck(); await pg.wait_for_timeout(600)
         check(stored()["prefs"]["app"].get("due_off") is True, "off is saved (due_off)")
-        check("vira Sugestões" in await pg.locator(".panel", has_text="Controlar prazos").inner_text(), "the hint says Prazos becomes Sugestões")
+        hint = await pg.locator(".panel", has_text="Controlar prazos").inner_text()
+        check("Datas só como informação." in hint and "vira" not in hint, f"the hint: dates only as information ({hint[:120]!r})")
         await pg.screenshot(path=f"{SP}/shots/rvs-opcoes.png")
         t = " ".join(await nav())
-        check("Sugestões" in t and "Prazos" not in t, f"off: Sugestões in place of Prazos ({t})")
+        check("Sugestões" in t and "Prazos" not in t, f"off: the same tabs ({t})")
         check(await pg.locator("nav .tab .badge").count() == 0, "no late badge")
 
         # home and list: dates are information only
@@ -146,15 +147,16 @@ async def main():
         r = await pg.evaluate(WS1, {"type": "resolvia/ai/suggest", "items": [{"key": "todo.casa|u8", "lista": "Casa", "texto": "x"}]})
         check(not r["success"] and r["error"]["code"] == "ai_off", "server refuses with ai_off")
 
-        # back on: Prazos returns
+        # back on: what is due comes back to Sugestões
+        check(await pg.locator(".overline", has_text="Atrasados").count() == 0, "off: nothing late in Sugestões")
         await pg.locator("nav .tab", has_text="Mais").click(); await pg.wait_for_timeout(300)
         await pg.locator(".more-row", has_text="Configurações").click(); await pg.wait_for_timeout(400)
         await pg.get_by_role("tab", name="Opções", exact=True).click(); await pg.wait_for_timeout(300)
         await pg.locator("input[aria-label='Controlar prazos']").check(); await pg.wait_for_timeout(600)
         t = " ".join(await nav())
-        check("Prazos" in t and "Sugestões" not in t and "due_off" not in stored()["prefs"]["app"], "back on: Prazos tab again")
-        await pg.locator("nav .tab", has_text="Prazos").click(); await pg.wait_for_timeout(500)
-        check(await pg.locator(".overline", has_text="Atrasados").count() == 1, "Prazos lists the late ones again")
+        check("Sugestões" in t and "due_off" not in stored()["prefs"]["app"], "back on: still Sugestões")
+        await pg.locator("nav .tab", has_text="Sugestões").click(); await pg.wait_for_timeout(500)
+        check(await pg.locator(".overline", has_text="Atrasados").count() == 1, "Sugestões lists the late ones again")
 
         # narrow phone, dark
         await pg.set_viewport_size({"width": 360, "height": 780}); await pg.emulate_media(color_scheme="dark")

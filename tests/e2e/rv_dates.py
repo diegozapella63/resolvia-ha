@@ -19,6 +19,7 @@ appenv = dict(os.environ, TZ="America/Sao_Paulo", RESOLVIA_DEV="1", HA_WS_URL="w
 app = subprocess.Popen(["node", f"{REPO}/resolvia/rootfs/app/server.js"], env=appenv, stdout=open(f"{SP}/rvd_app.log", "w"), stderr=subprocess.STDOUT)
 time.sleep(1.0)
 URL = "http://127.0.0.1:8099/"
+LISTAS = URL + "?aba=listas"  # 2.48.0: the app opens on Sugestões; these checks start on Listas
 passed, failed = 0, []
 def check(c, label):
     global passed
@@ -34,11 +35,11 @@ async def main():
         pg = await b.new_page(viewport={"width": 412, "height": 892}, device_scale_factor=2, color_scheme="dark")
         errs = []
         pg.on("pageerror", lambda e: errs.append(str(e)))
-        await pg.goto(URL); await pg.wait_for_timeout(1500)
-        badge = pg.locator(".tab", has_text="Prazos").locator(".badge")
-        check(await badge.inner_text() == "2", f"Prazos badge counts only real deadlines ({await badge.inner_text()})")
+        await pg.goto(LISTAS); await pg.wait_for_timeout(1500)
+        badge = pg.locator(".tab", has_text="Sugestões").locator(".badge")
+        check(await badge.inner_text() == "2", f"Sugestões badge counts only real deadlines ({await badge.inner_text()})")
         tabs = [t.strip().split("\n")[0] for t in await pg.locator("nav .tab").all_inner_texts()]
-        check(tabs == ["Listas", "Buscar", "Adicionar", "Prazos", "Mais"], f"Buscar before Adicionar, Prazos after ({tabs})")
+        check(tabs == ["Sugestões", "Listas", "Adicionar", "Buscar", "Mais"], f"2.48.0: Sugestões first, Listas, Adicionar, Buscar, Mais ({tabs})")
         await pg.screenshot(path=f"{SP}/shots/rvd-nav.png")
         await pg.locator(".list-card", has_text="Problem List").click(); await pg.wait_for_timeout(600)
         item = pg.locator(".item", has_text="Luz do Banheiro")
@@ -50,13 +51,13 @@ async def main():
         check(await pg.locator(".sheet .switch input[aria-label=Prazos]").count() == 0 and "não aceita prazo" in await pg.locator(".sheet .sheet-note").inner_text(), "no switch to turn integration dates into deadlines, a note instead")
         await pg.screenshot(path=f"{SP}/shots/rvd-customize-pl.png")
         await pg.locator(".sheet .icon-btn[aria-label=Fechar]").click(); await pg.wait_for_timeout(300)
-        await pg.locator(".tab", has_text="Prazos").click(); await pg.wait_for_timeout(500)
-        txt = await pg.locator(".page").inner_text()
-        check("Luz do Banheiro" not in txt and "Pagar conta de luz" in txt, "Prazos page has only real deadlines")
+        await pg.locator(".tab", has_text="Sugestões").click(); await pg.wait_for_timeout(500)
+        txt = " ".join(await pg.locator(".page .panel.due-group").all_inner_texts())
+        check("Luz do Banheiro" not in txt and "Pagar conta de luz" in txt, "what is due in Sugestões: only real deadlines")
         p0 = presence()
         check(PL in p0["sem_prazo"] and "todo.casa" not in p0["sem_prazo"], f"presence file lists the lists without deadlines ({p0['sem_prazo']})")
         # turn off the deadlines of Casa
-        await pg.goto(URL); await pg.wait_for_timeout(1200)
+        await pg.goto(LISTAS); await pg.wait_for_timeout(1200)
         await pg.locator(".list-card", has_text="Casa").click(); await pg.wait_for_timeout(500)
         await pg.locator(".icon-btn[aria-label=\"Opções da lista\"]").click(); await pg.wait_for_timeout(300)
         await pg.locator(".sheet .menu-row", has_text="Personalizar").click(); await pg.wait_for_timeout(300)

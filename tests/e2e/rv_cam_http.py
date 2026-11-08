@@ -29,7 +29,7 @@ async def main():
         await ctx.add_init_script("Object.defineProperty(navigator, 'mediaDevices', { value: undefined, configurable: true }); Object.defineProperty(window, 'isSecureContext', { value: false, configurable: true }); Object.defineProperty(navigator, 'clipboard', { value: undefined, configurable: true });")
         pg = await ctx.new_page(); errs = []
         pg.on("pageerror", lambda e: errs.append(str(e)))
-        await pg.goto("http://127.0.0.1:8099/"); await pg.wait_for_timeout(1800)
+        await pg.goto("http://127.0.0.1:8099/?aba=listas"); await pg.wait_for_timeout(1800)
         a = pg.locator("resolvia-panel")
         await a.evaluate("(el) => el._openImport(null, 'pick')"); await pg.wait_for_timeout(400)
         tile = a.locator(".sheet .imp-tile", has_text="Digitalizar")
@@ -63,7 +63,7 @@ async def main():
         check(await a.locator(".sheet textarea").count() == 1 and not any(t.strip() == "Colar" for t in acts), f"http: no Colar button ({acts})")
         # over https: the button is there
         ctx2 = await b.new_context(viewport={"width": 390, "height": 844}, permissions=["clipboard-read", "clipboard-write"])
-        pg2 = await ctx2.new_page(); await pg2.goto("http://127.0.0.1:8099/"); await pg2.wait_for_timeout(1800)
+        pg2 = await ctx2.new_page(); await pg2.goto("http://127.0.0.1:8099/?aba=listas"); await pg2.wait_for_timeout(1800)
         a2 = pg2.locator("resolvia-panel")
         await a2.evaluate("(el) => el._openImport(null, 'text')"); await pg2.wait_for_timeout(500)
         await pg2.evaluate("() => navigator.clipboard.writeText('leite, ovos')")

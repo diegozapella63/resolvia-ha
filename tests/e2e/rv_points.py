@@ -28,6 +28,7 @@ def start_app(user=None):
     time.sleep(1.0)
 start_app("u-diego")
 URL = "http://127.0.0.1:8099/"
+LISTAS = URL + "?aba=listas"  # 2.48.0: the app opens on Sugestões; these checks start on Listas
 passed, failed = 0, []
 def check(c, label):
     global passed
@@ -54,7 +55,7 @@ async def main():
         A = await ctxA.new_page(); B = await ctxB.new_page()
         errs = []
         for pg in (A, B): pg.on("pageerror", lambda e: errs.append(str(e)))
-        await A.goto(URL); await A.wait_for_timeout(1500)
+        await A.goto(LISTAS); await A.wait_for_timeout(1500)
         # Mais › Integrações
         await A.locator(".tab", has_text="Mais").click(); await A.wait_for_timeout(400)
         await A.locator(".more-row", has_text="Configurações").click(); await A.wait_for_timeout(400)
@@ -72,7 +73,7 @@ async def main():
         await sw.uncheck(); await A.wait_for_timeout(700)
         await A.screenshot(path=f"{SP}/shots/rvp-integracoes.png")
         # off: no field in the item sheet
-        await A.goto(URL); await A.wait_for_timeout(1000)
+        await A.goto(LISTAS); await A.wait_for_timeout(1000)
         await A.locator(".list-card", has_text="Casa").click(); await A.wait_for_timeout(500)
         await A.locator(".items .item .it-body", has_text="Passar pano").click(); await A.wait_for_timeout(300)
         check(await A.locator(".sheet .flabel", has_text="Pontos").count() == 0, "no points field while off")
@@ -85,7 +86,7 @@ async def main():
         check(stored()["prefs"]["app"].get("points_on") is True, "switch saved")
         await wait_for(lambda: presence().get("pontos") == {}, "ResolvIA tells the CronologIA (no points yet)")
         # set +10 on Passar pano
-        await A.goto(URL); await A.wait_for_timeout(1000)
+        await A.goto(LISTAS); await A.wait_for_timeout(1000)
         await A.locator(".list-card", has_text="Casa").click(); await A.wait_for_timeout(500)
         await A.locator(".items .item .it-body", has_text="Passar pano").click(); await A.wait_for_timeout(400)
         check(await A.locator(".sheet .flabel", has_text="Pontos para quem concluir").count() == 1, "points field in the item sheet")
@@ -110,7 +111,7 @@ async def main():
         await wait_for(lambda: any(e["data"].get("acao") == "desfazer" for e in events()), "reopening takes the points back")
         # unknown user: asks who (the app again, now without a known Home Assistant user)
         start_app(None)
-        await B.goto(URL); await B.wait_for_timeout(1500)
+        await B.goto(LISTAS); await B.wait_for_timeout(1500)
         await B.locator(".list-card", has_text="Casa").click(); await B.wait_for_timeout(500)
         await B.locator(".items .item:not(.done)", has_text="Passar pano").locator(".check").click(); await B.wait_for_timeout(700)
         check("Quem fez?" in await B.locator(".sheet").inner_text(), "unknown user: asks who did it")
@@ -120,7 +121,7 @@ async def main():
         await wait_for(lambda: any(e["data"].get("acao") == "somar" and e["data"].get("quem") == "Andressa" for e in events()[n0:]), "the chosen person gets the points")
         # rename keeps the points
         start_app("u-diego")
-        await A.goto(URL); await A.wait_for_timeout(1000)
+        await A.goto(LISTAS); await A.wait_for_timeout(1000)
         await A.locator(".list-card", has_text="Casa").click(); await A.wait_for_timeout(500)
         await A.locator(".items .item .it-body", has_text="Trocar filtro").click(); await A.wait_for_timeout(400)
         await A.locator(".sheet .pick", has_text="+20").click()
@@ -147,7 +148,7 @@ async def main():
         await A.get_by_role("tab", name="Integrações", exact=True).click(); await A.wait_for_timeout(400)
         await A.locator("#recompensas .switch input").uncheck(); await A.wait_for_timeout(700)
         check(presence()["pontos"] == {}, "off: nothing published")
-        await A.goto(URL); await A.wait_for_timeout(1000)
+        await A.goto(LISTAS); await A.wait_for_timeout(1000)
         await A.locator(".list-card", has_text="Casa").click(); await A.wait_for_timeout(500)
         check(await A.locator(".tag.pts").count() == 0, "off: no chips")
         n0 = len(events())

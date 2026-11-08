@@ -42,7 +42,7 @@ async def main():
         pg = await b.new_page(viewport={"width": 412, "height": 892}, device_scale_factor=2, color_scheme="dark")
         errs = []
         pg.on("pageerror", lambda e: errs.append(str(e)))
-        await pg.goto("http://127.0.0.1:8099/"); await pg.wait_for_timeout(1200)
+        await pg.goto("http://127.0.0.1:8099/?aba=listas"); await pg.wait_for_timeout(1200)
         heads = [t.strip() for t in await pg.locator(".grp-head:not(.desk-only) h2").all_inner_texts()]
         check(len(heads) >= 2, f"the group headings are there ({heads})")
         print("groups:", heads)

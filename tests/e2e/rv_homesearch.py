@@ -30,7 +30,7 @@ async def main():
         b = await p.chromium.launch()
         pg = await b.new_page(viewport={"width": 1200, "height": 800})
         errs = []; pg.on("pageerror", lambda e: errs.append(str(e)))
-        await pg.goto("http://127.0.0.1:8099/"); await pg.wait_for_timeout(1800)
+        await pg.goto("http://127.0.0.1:8099/?aba=listas"); await pg.wait_for_timeout(1800)
         a = pg.locator("resolvia-panel")
         box = a.locator("form.home-search input")
         check(await box.count() == 1, "the home has the Buscar box")
@@ -70,7 +70,7 @@ async def main():
         await pg.screenshot(path=f"{SP}/shots/rvhs-sugestoes.png")
         # the phone: no automatic focus (the keyboard would cover the screen), no key hint
         ph2 = await b.new_page(viewport={"width": 390, "height": 844}, has_touch=True, is_mobile=True)
-        await ph2.goto("http://127.0.0.1:8099/"); await ph2.wait_for_timeout(1800)
+        await ph2.goto("http://127.0.0.1:8099/?aba=listas"); await ph2.wait_for_timeout(1800)
         b2 = ph2.locator("resolvia-panel")
         check(not await b2.locator("form.home-search kbd").is_visible(), "phone: no / hint")
         await b2.locator("nav .tab", has_text="Buscar").tap(); await ph2.wait_for_timeout(600)

@@ -21,6 +21,7 @@ time.sleep(0.6)
 app = subprocess.Popen(["node", f"{REPO}/resolvia/rootfs/app/server.js"], env=dict(os.environ, TZ=TZ, RESOLVIA_DEV="1", HA_WS_URL=f"ws://127.0.0.1:{HA_PORT}/api/websocket", HA_TOKEN="test", DATA_DIR=DATA, SHARE_DIR=SHARE, PORT=APP_PORT), stdout=open(f"{SP}/rvf_app.log", "w"), stderr=subprocess.STDOUT)
 time.sleep(1.0)
 URL = f"http://127.0.0.1:{APP_PORT}/"
+LISTAS = URL + "?aba=listas"  # 2.48.0: the app opens on Sugestões; these checks start on Listas
 CASA, ALEXA, COMPRAS, GOOGLE, AVISOS, CHAMADOS, CALDAV = "todo.casa", "todo.notas_e_rotinas_do_alexa_shopping_list", "todo.shopping_list", "todo.google_tasks", "todo.avisos", "todo.sem_novos", "todo.caldav"
 passed, failed = 0, []
 def check(c, label):
@@ -67,7 +68,7 @@ async def main():
             return {"labels": [t.strip() for t in await pg.locator(".sheet .flabel").all_inner_texts()], "trash": await pg.locator(".sheet .btn.danger").count()}
         close = lambda: pg.locator(".sheet .icon-btn[aria-label='Fechar']").click()
 
-        await pg.goto(URL); await pg.wait_for_timeout(1500)
+        await pg.goto(LISTAS); await pg.wait_for_timeout(1500)
         names = await pg.locator(".list-card .lc-title").all_inner_texts()
         check(len(names) == 9 and {"Lista de compras", "Google Tasks", "Avisos do condomínio", "Chamados", "CalDAV"} <= set(names), f"nine lists on the home ({names})")
         cal = pg.locator(".list-card", has=pg.locator(".lc-title", has_text="CalDAV"))
@@ -81,7 +82,7 @@ async def main():
         s = await sheet_of("Pagar conta de luz")
         check(s["labels"][:3] == ["Item", "Notas", "Prazo"] and s["trash"] == 1, f"Casa: notes, deadline, delete ({s})")
         await pg.locator(".sheet .pick", has_text="Amanhã").click(); await pg.wait_for_timeout(150)
-        check(await pg.locator(".sheet .time-row").count() == 1, "Casa: a deadline can have a time")
+        check(await pg.locator(".sheet .field", has=pg.locator(".flabel", has_text="Horário")).count() == 1, "Casa: a deadline can have a time")
         await close(); await pg.wait_for_timeout(300)
 
         # ---- Lista de compras: reorder, but no dates and no notes
@@ -107,13 +108,13 @@ async def main():
         s = await sheet_of("Renovar passaporte")
         check(s["labels"][:3] == ["Item", "Notas", "Prazo"], f"Google Tasks: notes and deadline ({s['labels']})")
         await pg.locator(".sheet .pick", has_text="Amanhã").click(); await pg.wait_for_timeout(150)
-        check(await pg.locator(".sheet .time-row").count() == 0, "Google Tasks: no time for the deadline")
+        check(await pg.locator(".sheet .field", has=pg.locator(".flabel", has_text="Horário")).count() == 0, "Google Tasks: no time for the deadline")
         await pg.locator(".sheet textarea").nth(1).fill("Levar foto 3x4")
         await pg.locator(".sheet .btn.primary").click(); await pg.wait_for_timeout(700)
         it = await item(GOOGLE, "Renovar passaporte")
         check(it.get("due") == tomorrow and it.get("description") == "Levar foto 3x4", f"saved as a date, with the notes ({it})")
-        await pg.locator(".tab", has_text="Prazos").click(); await pg.wait_for_timeout(500)
-        check("Renovar passaporte" in await pg.locator(".page").inner_text(), "its deadline is in Prazos")
+        await pg.locator(".tab", has_text="Sugestões").click(); await pg.wait_for_timeout(500)
+        check("Renovar passaporte" in " ".join(await pg.locator(".page .panel.due-group").all_inner_texts()), "its deadline is in Sugestões")
 
         # ---- Alexa: add, edit, delete only
         await open_list("Shopping list")

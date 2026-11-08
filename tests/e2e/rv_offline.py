@@ -30,7 +30,7 @@ async def main():
         ctx = await b.new_context(viewport={"width": 390, "height": 844}, device_scale_factor=2, color_scheme="dark")
         pg = await ctx.new_page(); errs = []
         pg.on("pageerror", lambda e: errs.append(str(e)))
-        await pg.goto("http://127.0.0.1:8099/"); await pg.wait_for_timeout(1500)
+        await pg.goto("http://127.0.0.1:8099/?aba=listas"); await pg.wait_for_timeout(1500)
         a = pg.locator("resolvia-panel")
         cards = lambda: a.locator(".list-card .lc-title").all_inner_texts()
         before = await cards()

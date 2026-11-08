@@ -23,6 +23,7 @@ appenv = dict(os.environ, RESOLVIA_DEV="1", HA_WS_URL="ws://127.0.0.1:8123/api/w
 app = subprocess.Popen(["node", f"{REPO}/resolvia/rootfs/app/server.js"], env=appenv, stdout=open(f"{SP}/rv_app.log", "w"), stderr=subprocess.STDOUT)
 time.sleep(1.0)
 URL = "http://127.0.0.1:8099/"
+LISTAS = URL + "?aba=listas"  # 2.48.0: the app opens on Sugestões; these checks start on Listas
 
 passed = 0
 failed = []
@@ -68,7 +69,7 @@ async def main():
         errs = []
         pg.on("console", lambda m: m.type == "error" and errs.append(m.text))
         pg.on("pageerror", lambda e: errs.append(f"pageerror: {e}"))
-        await pg.goto(URL)
+        await pg.goto(LISTAS)
         await pg.wait_for_timeout(1200)
         ws = lambda msg: pg.evaluate(WS, msg)
         items = lambda eid: pg.evaluate(WS, {"type": "todo/item/list", "entity_id": eid})

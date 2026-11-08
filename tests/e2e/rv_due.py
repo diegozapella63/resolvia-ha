@@ -1,4 +1,6 @@
-# ResolvIA Prazos: the groups (Atrasados, Hoje, Amanhã, Próximos 7 dias, Mais adiante) and the badge, completing and changing a deadline there, Voltam sozinhas (also for a cleared item), and the empty screens.
+# ResolvIA Sugestões, the start (2.48.0; the Prazos tab up to 2.47): the groups of what is due (Atrasados and Hoje first, then
+# Comece por aqui, then Amanhã, Próximos 7 dias, Mais adiante) and the badge, completing and changing a deadline there, Voltam
+# sozinhas (also for a cleared item), and without deadlines.
 import os as _os
 CRONOLOGIA = _os.environ.get("E2E_CRONOLOGIA", "")
 RESOLVIA = _os.environ.get("E2E_RESOLVIA", "")
@@ -20,6 +22,7 @@ time.sleep(0.6)
 app = subprocess.Popen(["node", f"{REPO}/resolvia/rootfs/app/server.js"], env=dict(os.environ, TZ=TZ, RESOLVIA_DEV="1", HA_WS_URL=f"ws://127.0.0.1:{HA_PORT}/api/websocket", HA_TOKEN="test", DATA_DIR=DATA, SHARE_DIR=SHARE, PORT=APP_PORT), stdout=open(f"{SP}/rvp2_app.log", "w"), stderr=subprocess.STDOUT)
 time.sleep(1.0)
 URL = f"http://127.0.0.1:{APP_PORT}/"
+LISTAS = URL + "?aba=listas"  # 2.48.0: the app opens on Sugestões; these checks start on Listas
 CASA = "todo.casa"
 passed, failed = 0, []
 def check(c, label):
@@ -42,14 +45,17 @@ async def main():
         async def item(summary):
             return next((i for i in (await ws({"type": "todo/item/list", "entity_id": CASA}))["items"] if i["summary"] == summary), None)
         add = lambda summary, due: ws({"type": "call_service", "domain": "todo", "service": "add_item", "service_data": {"item": summary, "due_date": due}, "target": {"entity_id": CASA}})
-        badge = pg.locator("nav .tab", has_text="Prazos").locator(".badge")
+        badge = pg.locator("nav .tab", has_text="Sugestões").locator(".badge")
         groups = lambda: pg.locator(".page .panel.items > .overline").all_text_contents()
         status = lambda: pg.locator(".brand-head .status").inner_text()
         group = lambda title: pg.locator(".page .panel.items", has=pg.locator(".overline", has_text=title))
         async def prazos():
-            await pg.locator("nav .tab", has_text="Prazos").click(); await pg.wait_for_timeout(500)
+            await pg.locator("nav .tab", has_text="Sugestões").click(); await pg.wait_for_timeout(500)
 
         await pg.goto(URL); await pg.wait_for_timeout(1200)
+        tabs = [t.strip() for t in await pg.locator("nav .tab").all_inner_texts()]
+        check([t.split("\n")[0] for t in tabs] == ["Sugestões", "Listas", "Adicionar", "Buscar", "Mais"] or tabs[0].startswith("Sugestões"), f"the tabs: Sugestões first ({tabs})")
+        check(await pg.locator(".page-title").inner_text() == "Sugestões" and "on" in await pg.locator("nav .tab").first.get_attribute("class"), "the app opens on Sugestões")
         await add("Levar o carro na revisão", day(1))
         await add("Renovar o seguro", day(3))
         await add("Declarar o imposto", day(20))
@@ -58,17 +64,21 @@ async def main():
         await prazos()
         g = await groups()
         check(g == ["Atrasados · 1", "Hoje · 1", "Amanhã · 1", "Próximos 7 dias · 1", "Mais adiante · 1"], f"the groups, soonest first ({g})")
-        check(await status() == "1 atrasado · 1 para hoje", f"status ({await status()})")
+        order = await pg.evaluate("""() => [...document.querySelector('resolvia-panel').shadowRoot.querySelectorAll('.page > .panel')].map((p) => (p.querySelector('.overline, h2') || {}).textContent || '').map((t) => t.trim().split(' ·')[0])""")
+        check(order[:3] == ["Atrasados", "Hoje", "Comece por aqui"] and order.index("Amanhã") > order.index("Comece por aqui"), f"late and today first, then Comece por aqui, then the rest ({order})")
+        start = await pg.locator(".panel.start").inner_text()
+        check("Pagar conta de luz" not in start, "Comece por aqui doesn't repeat what is late")
+        check((await status()).endswith("· 1 atrasado · 1 para hoje"), f"status ({await status()})")
         late = group("Atrasados").locator(".item")
         check(await late.locator(".it-text").inner_text() == "Pagar conta de luz" and await late.locator(".tag.late").count() == 1 and await late.locator(".tag.list").inner_text() == "Casa", "Atrasados: the item, in red, with its list")
-        check("Luz do Banheiro" not in await pg.locator(".page").inner_text(), "the dates of the Problem List are not deadlines")
+        check("Luz do Banheiro" not in " ".join(await pg.locator(".page .panel.due-group").all_inner_texts()), "the dates of the Problem List are not deadlines")
         await pg.screenshot(path=f"{SP}/shots/rvp2-groups.png", full_page=True)
 
         # complete from Prazos
         await late.locator(".check").click(); await pg.wait_for_timeout(300)
         check((await item("Pagar conta de luz"))["status"] == "completed" and (await pg.locator(".toast span").inner_text()).startswith("Resolvido: Pagar conta de luz"), "completed from Prazos")
         await pg.wait_for_timeout(1300)
-        check("Atrasados · 1" not in await groups() and await badge.inner_text() == "1" and await status() == "1 para hoje", "it leaves Prazos; badge and status follow")
+        check("Atrasados · 1" not in await groups() and await badge.inner_text() == "1" and (await status()).endswith("· 1 para hoje"), "it leaves Prazos; badge and status follow")
         # change a deadline from Prazos: it moves to its group
         await group("Mais adiante").locator(".it-body").click(); await pg.wait_for_timeout(300)
         await pg.locator(".sheet .pick", has_text="Hoje").first.click()
@@ -82,7 +92,7 @@ async def main():
         await ws({"type": "resolvia/prefs/set_app", "prefs": {"repeat_on": True}})
         pano = await item("Passar pano na casa")
         await ws({"type": "resolvia/recurring/set", "entity_id": CASA, "uid": pano["uid"], "summary": pano["summary"], "days": 1})
-        await pg.reload(); await pg.wait_for_timeout(1300)
+        await pg.goto(LISTAS); await pg.wait_for_timeout(1300)
         await pg.locator(".list-card", has_text="Casa").click(); await pg.wait_for_timeout(400)
         await pg.locator(".items .item", has_text="Passar pano").locator(".check").click(); await pg.wait_for_timeout(1300)
         await prazos()
@@ -90,7 +100,6 @@ async def main():
         check(await coming.count() == 1 and "Voltam sozinhas · 1" in await groups(), "Voltam sozinhas · 1")
         chips = await coming.locator(".tag").all_inner_texts()
         check(chips == ["Casa", "volta amanhã"], f"with its list and when it comes back ({chips})")
-        check("1 volta sozinha" in await status(), f"status counts it ({await status()})")
         await pg.screenshot(path=f"{SP}/shots/rvp2-voltam.png", full_page=True)
         # cleared before its time: still listed, tapping opens its list
         await ws({"type": "call_service", "domain": "todo", "service": "remove_completed_items", "service_data": {}, "target": {"entity_id": CASA}})
@@ -100,32 +109,26 @@ async def main():
         await row.locator(".it-body").click(); await pg.wait_for_timeout(500)
         check(await pg.locator(".detail-head h1").inner_text() == "Casa", "tapping it opens its list")
 
-        # empty: the only list that takes deadlines has them off (Personalizar › Prazos): a date set there wouldn't come here (2.44.0)
+        # without deadlines: the only list that takes them has them off (Personalizar › Prazos), none set, or no list takes dates
+        nogroups = lambda g: not any(x.split(" ·")[0] in ("Atrasados", "Hoje", "Amanhã", "Próximos 7 dias", "Mais adiante") for x in g)
         await ws({"type": "resolvia/recurring/clear"})
         await ws({"type": "resolvia/prefs/set_list", "entity_id": CASA, "prefs": {"dates_info": True}})
         await pg.reload(); await pg.wait_for_timeout(1300)  # (the screen reads the preferences when it opens)
-        await prazos()
-        txt = await pg.locator(".page").inner_text()
-        check("Nada com prazo" in txt and "Os prazos estão desligados nas listas (⋯ › Personalizar)." in txt and "Toque num item" not in txt and await status() == "Nada atrasado", f"deadlines off in the lists: says so, no 'Toque num item' ({txt[-160:]!r})")
+        g = await groups()
+        check(nogroups(g) and "atrasado" not in await status() and await pg.locator(".panel.start").count() == 1, f"deadlines off in the lists: no group of what is due, Comece por aqui stays ({g})")
         check(await badge.count() == 0, "no badge")
         await pg.screenshot(path=f"{SP}/shots/rvp2-prazos-desligados.png")
-        # empty: deadlines on, none set
         await ws({"type": "resolvia/prefs/set_list", "entity_id": CASA, "prefs": {"dates_info": None}})
         for i in (await ws({"type": "todo/item/list", "entity_id": CASA}))["items"]:
             if i.get("due"):
                 await ws({"type": "call_service", "domain": "todo", "service": "update_item", "service_data": {"item": i["uid"], ("due_datetime" if "T" in i["due"] else "due_date"): None}, "target": {"entity_id": CASA}})
         await pg.reload(); await pg.wait_for_timeout(1300)
-        await prazos()
-        txt = await pg.locator(".page").inner_text()
-        check("Nada com prazo" in txt and "Quando um item tiver data, ele aparece aqui. Toque num item para definir um prazo." in txt and await status() == "Nada atrasado", "no deadline set: 'Nada com prazo'")
-        check(await badge.count() == 0, "no badge")
-        # empty: no list shown takes deadlines
-        await ws({"type": "resolvia/prefs/set_list", "entity_id": CASA, "prefs": {"dates_info": None, "hidden": True}})
+        check(nogroups(await groups()) and await badge.count() == 0, "no deadline set: no group, no badge")
+        # Controlar prazos off: the tab stays Sugestões (up to 2.47 the Prazos tab became Sugestões)
+        await ws({"type": "resolvia/prefs/set_app", "prefs": {"due_off": True}})
         await pg.reload(); await pg.wait_for_timeout(1300)
-        await prazos()
-        txt = await pg.locator(".page").inner_text()
-        check("Sem prazos por aqui" in txt and "não aceitam datas" in txt, "no list takes dates: says which ones do")
-        await pg.screenshot(path=f"{SP}/shots/rvp2-sem-prazos.png")
+        tabs = [t.strip().split("\n")[0] for t in await pg.locator("nav .tab").all_inner_texts()]
+        check(tabs[0] == "Sugestões" and "Prazos" not in tabs, f"Controlar prazos off: the same tabs ({tabs})")
         check(not errs, f"no page errors {errs[:3]}")
         await b.close()
 try:

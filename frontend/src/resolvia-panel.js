@@ -51,7 +51,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.47.1";
+const VERSION = "2.48.0";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -89,6 +89,8 @@ const REPEAT_PICKS = [
 const keyOf = (item) => item.uid || item.summary;
 // the screens opened from the menu Mais: the bar keeps Mais lit, and "‹ Mais" goes back to the menu
 const IN_MORE = ["listas", "graficos", "config", "sobre"];
+// Novo/Editar item › Horário: Dia todo, this one or another (2.48.0)
+const DEFAULT_TIME = "08:00";
 
 class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(PointsMixin(DataMixin(LitElement))))))) {
   static properties = {
@@ -268,7 +270,7 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
     this._chatAfterRender();
     const view = this._view();
     // an address of Mais before 2.37 (/mais/dados): the new one in its place (/config/dados)
-    if (view.old && changed.has("_path")) {
+    if (view.old != null && changed.has("_path")) {
       this._go(view.old, true, history.state && history.state.rvUp ? { rvUp: true } : null);
       return;
     }
@@ -298,14 +300,15 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
       this._focusSearchBox();
     }
     // Sugestões: the ages of the items, again after a minute
-    if (this._view().name === "suggest" && Date.now() - (this._suggestAt || 0) > 60000) this._loadSuggest();
+    if (this._view().name === "home" && Date.now() - (this._suggestAt || 0) > 60000) this._loadSuggest();
   }
 
   firstUpdated() {
     this._checkHeight();
-    // the alert of Prazos (Avisar o que vence hoje) opens the app on Prazos
+    // the alert of Prazos (Avisar o que vence hoje) opens the app on Sugestões
     const tab = openTab();
-    if (tab && !this._inHA()) this._go(tab, true);
+    // Listas over the start (Voltar goes to it); the alert of Prazos opens the start itself
+    if (tab && !this._inHA()) this._go(tab, tab === "/prazos");
   }
 
   _checkHeight() {
@@ -543,8 +546,10 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
     const p = (this._path || "").replace(/\/+$/, "");
     let m;
     if ((m = p.match(/^\/lista\/(todo\.[^/]+)$/))) return { name: "list", id: decodeURIComponent(m[1]) };
-    if (p === "/prazos" && this._dueOn()) return { name: "due" };
-    if (p === "/sugestoes" && !this._dueOn()) return { name: "suggest" };
+    // the start is Sugestões (2.48.0), with what is due; the lists have their tab. The addresses of Prazos and
+    // Sugestões up to 2.47 (an alert of Prazos opens /prazos) open the start, and updated() puts it in their place
+    if (p === "/minhas-listas") return { name: "lists" };
+    if (p === "/prazos" || p === "/sugestoes") return { name: "home", old: "" };
     if (p === "/buscar") return { name: "search" };
     // Mais is a menu (/mais): Listas (/listas), Gráficos (/graficos), Configurações (/config/<aba>) and Sobre (/sobre); Repetições is in Opções
     if (p === "/mais") return { name: "more" };
@@ -620,7 +625,7 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
     location.href = r.report(q.toString());
   }
 
-  // Arrastar para o lado: Listas ⇄ Buscar ⇄ Prazos (ou Sugestões) ⇄ Mais; dentro de uma lista, para a direita volta,
+  // Arrastar para o lado: Sugestões ⇄ Listas ⇄ Buscar ⇄ Mais; dentro de uma lista, para a direita volta,
   // e numa tela do Mais (Listas, Gráficos, Configurações), para a direita volta ao menu
   _onSwipeStart(e) {
     this._sw = this._sheet || this._cam ? null : swipeStart(e);
@@ -630,11 +635,10 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
     const d = swipeEnd(e, this._sw);
     this._sw = null;
     if (!d || this._sheet) return;
-    const due = this._dueOn();
     const order = [
       ["home", ""],
+      ["lists", "/minhas-listas"],
       ["search", "/buscar"],
-      [due ? "due" : "suggest", due ? "/prazos" : "/sugestoes"],
       ["more", "/mais"],
     ];
     const name = this._view().name;
@@ -642,7 +646,7 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
       if (d > 0) return;
       this._haptic("light");
       this._back();
-      slideIn(this, "home", d);
+      slideIn(this, "lists", d);
       return;
     }
     if (IN_MORE.includes(name)) {
@@ -677,7 +681,13 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
         if (main) main.scrollTo({ top: 0 });
         return;
       }
-      this._back();
+      // Sugestões, the start: all the way back (Listas › a list › Buscar: three steps), not just one; the first
+      // entry becomes the start if it was another screen (an address opened straight)
+      const depth = (history.state && history.state.rvDepth) || 0;
+      if (depth > 0) {
+        this._afterPop = "";
+        history.go(-depth);
+      } else this._go("", true);
       return;
     }
     // Switching between tabs replaces the entry so Back always returns home.
@@ -1011,7 +1021,7 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
     });
   }
 
-  /** Mais › Configurações › Opções › Controlar prazos: off hides the Prazos tab and the deadline field (Sugestões instead). */
+  /** Mais › Configurações › Opções › Controlar prazos: off, no deadline field and Sugestões without what is due. */
   _dueOn() {
     return !this._app("due_off", false);
   }
@@ -1880,15 +1890,14 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
       `--rv-accent-soft:${hexToRgba(local.fill, dark ? 0.18 : 0.14)};--rv-accent-ink-light:${local.ink};`;
     let page;
     if (view.name === "list") page = this._renderList(view.id);
-    else if (view.name === "due") page = this._renderDue();
-    else if (view.name === "suggest") page = this._renderSuggest();
+    else if (view.name === "lists") page = this._renderLists();
     else if (view.name === "search") page = this._renderSearch();
     else if (view.name === "more") page = this._renderMore();
     else if (view.name === "listas") page = this._renderMoreScreen("Listas", this._listsStatus(), this._renderListsTab());
     else if (view.name === "graficos") page = this._renderCharts();
     else if (view.name === "sobre") page = this._renderMoreScreen("Sobre", null, aboutPage({ app: "ResolvIA", version: VERSION }));
     else if (view.name === "config") page = this._renderConfig();
-    else page = this._renderHome();
+    else page = this._renderSuggest();
 
     return html`
       <div class="root" style=${style}>
@@ -1916,8 +1925,8 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
   }
 
   _renderNav(view) {
-    const lateCount = this._visible().reduce((n, l) => n + l.late + l.today, 0);
-    const cur = view.name === "list" ? "home" : IN_MORE.includes(view.name) ? "more" : view.name;
+    const lateCount = this._dueOn() ? this._visible().reduce((n, l) => n + l.late + l.today, 0) : 0;
+    const cur = view.name === "list" ? "lists" : IN_MORE.includes(view.name) ? "more" : view.name;
     const tab = (name, path, label, ic, badge = 0) => html`
       <button class="tab ${cur === name ? "on" : ""}" @click=${() => this._goTab(path)} aria-label=${label}>
         ${icon(ic)}<span>${label}</span>
@@ -1927,12 +1936,11 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
     return html`
       <nav>
         <div class="tabs">
-          ${tab("home", "", "Listas", "list-checks")} ${tab("search", "/buscar", "Buscar", "search")}
+          ${tab("home", "", "Sugestões", "lightbulb", lateCount)} ${tab("lists", "/minhas-listas", "Listas", "list-checks")}
           <button class="tab fab" @click=${() => this._openAdd(view.name === "list" ? view.id : null)} aria-label="Adicionar item">
             <span class="pill">${icon("plus")}</span><span>Adicionar</span>
           </button>
-          ${this._dueOn() ? tab("due", "/prazos", "Prazos", "calendar-clock", lateCount) : tab("suggest", "/sugestoes", "Sugestões", "lightbulb")}
-          ${tab("more", "/mais", "Mais", "ellipsis")}
+          ${tab("search", "/buscar", "Buscar", "search")} ${tab("more", "/mais", "Mais", "ellipsis")}
         </div>
       </nav>
     `;
@@ -1944,7 +1952,7 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
    */
   _renderSide(view) {
     const lists = this._byPending(this._visible());
-    const lateCount = lists.reduce((n, l) => n + l.late + l.today, 0);
+    const lateCount = this._dueOn() ? lists.reduce((n, l) => n + l.late + l.today, 0) : 0;
     const cur = IN_MORE.includes(view.name) ? "more" : view.name;
     const item = (name, path, label, ic, badge = 0, key = "") => html`<button class="side-link" aria-current=${cur === name ? "page" : "false"} @click=${() => this._goTab(path)}>
       ${icon(ic)}<span>${label}</span>${badge ? html`<span class="side-badge">${badge > 99 ? "99+" : badge}</span>` : nothing}${key ? html`<kbd>${key}</kbd>` : nothing}
@@ -1952,9 +1960,8 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
     return html`<aside class="side" aria-label="Navegação">
       <div class="side-brand">${appIcon()}Resolv<span>IA</span></div>
       <div class="side-nav">
-        ${item("home", "", "Listas", "list-checks")} ${item("search", "/buscar", "Buscar", "search", 0, "/")}
-        ${this._dueOn() ? item("due", "/prazos", "Prazos", "calendar-clock", lateCount) : item("suggest", "/sugestoes", "Sugestões", "lightbulb")}
-        ${item("more", "/mais", "Mais", "ellipsis")}
+        ${item("home", "", "Sugestões", "lightbulb", lateCount)} ${item("lists", "/minhas-listas", "Listas", "list-checks")}
+        ${item("search", "/buscar", "Buscar", "search", 0, "/")} ${item("more", "/mais", "Mais", "ellipsis")}
       </div>
       ${lists.length
         ? html`<div class="side-h"><span>Listas</span><small>${lists.length}</small></div>
@@ -2001,7 +2008,8 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
     return [...lists].sort((a, b) => b.pending - a.pending);
   }
 
-  _renderHome() {
+  /** Listas (the tab): every list, with what is pending in each. */
+  _renderLists() {
     const lists = this._byPending(this._visible());
     const pending = lists.reduce((n, l) => n + l.pending, 0);
     const late = lists.reduce((n, l) => n + l.late, 0);
@@ -2441,8 +2449,8 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
     const facts = [];
     const fact = (ic, tone, label, value, right, go) => facts.push({ ic, tone, label, value, right, go });
     if (this._dueOn()) {
-      fact("circle-alert", late.length ? "late" : "", "Atrasados", late.length ? late[0].i.summary : "Nada atrasado", late.length ? String(late.length) : "", late.length ? () => this._go("/prazos") : null);
-      fact("clock", today.length ? "today" : "", "Para hoje", today.length ? today[0].i.summary : "Nada para hoje", today.length ? String(today.length) : "", today.length ? () => this._go("/prazos") : null);
+      fact("circle-alert", late.length ? "late" : "", "Atrasados", late.length ? late[0].i.summary : "Nada atrasado", late.length ? String(late.length) : "", late.length ? () => this._goTab("") : null);
+      fact("clock", today.length ? "today" : "", "Para hoje", today.length ? today[0].i.summary : "Nada para hoje", today.length ? String(today.length) : "", today.length ? () => this._goTab("") : null);
       fact("calendar-clock", "", "Próximo prazo", next ? next.i.summary : "Sem prazos marcados", next ? next.d.text : "", next ? () => this._go(`/lista/${next.l.id}`) : null);
     }
     fact("list-checks", "", "Mais cheia", full ? full.name : "Tudo resolvido", full ? plural(full.pending, "pendente", "pendentes") : "", full ? () => this._go(`/lista/${full.id}`) : null);
@@ -2458,15 +2466,17 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
     </dl>`;
   }
 
-  _renderDue() {
+  /**
+   * Sugestões, with Controlar prazos on: what is due, by when (Atrasados, Hoje, Amanhã, Próximos 7 dias,
+   * Mais adiante), and the tasks that come back by themselves. {soon: [late, today], later: [...], coming,
+   * rows, late, today}: Sugestões shows the soon ones first, then Comece por aqui, then the later ones.
+   */
+  _dueSections() {
     const lists = this._visible();
-    const supportsDue = lists.some((l) => has(l.features, F.DUE_DATE) || has(l.features, F.DUE_DATETIME));
-    // Personalizar › Prazos off in every list that takes them: a date set is only information, it doesn't come here
-    const anyDue = lists.some((l) => !l.noDue);
-    const rows = this._dueRows(lists);
+    const rows = this._dueOn() ? this._dueRows(lists) : [];
     const buckets = [
-      { title: "Atrasados", test: (d) => d.overdue },
-      { title: "Hoje", test: (d) => d.diff === 0 },
+      { title: "Atrasados", test: (d) => d.overdue, soon: true },
+      { title: "Hoje", test: (d) => d.diff === 0, soon: true },
       { title: "Amanhã", test: (d) => d.diff === 1 },
       { title: "Próximos 7 dias", test: (d) => d.diff > 1 && d.diff < 7 },
       { title: "Mais adiante", test: () => true },
@@ -2479,9 +2489,15 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
         return { ...b, rows: list };
       })
       .filter((g) => g.rows.length);
+    const panel = (g) => html`
+      <div class="panel items due-group">
+        <div class="overline" style=${g.title === "Atrasados" ? "color:var(--rv-late)" : ""}>${g.title} · ${g.rows.length}</div>
+        ${repeat(g.rows, (r) => r.l.id + keyOf(r.i), (r) => this._renderItem(r.l, r.i, { showList: true }))}
+      </div>
+    `;
 
     // Recurring tasks waiting to come back.
-    const coming = (this._repeatOn() ? this._rules : [])
+    const coming = (this._dueOn() && this._repeatOn() ? this._rules : [])
       .filter((r) => r.reopen_at)
       .map((r) => {
         const l = this._list(r.entity_id);
@@ -2512,39 +2528,15 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
           )}
         </div>`
       : nothing;
-
-    return html`
-      <section class="page">
-        ${this._renderPageHead("Prazos", (() => {
-          const late = rows.filter((r) => r.d.overdue).length;
-          const today = rows.filter((r) => !r.d.overdue && r.d.diff === 0).length;
-          const bits = [];
-          if (late) bits.push(plural(late, "atrasado", "atrasados"));
-          if (today) bits.push(`${today} para hoje`);
-          if (coming.length) bits.push(`${coming.length} ${coming.length === 1 ? "volta" : "voltam"} sozinha${coming.length === 1 ? "" : "s"}`);
-          return { text: bits.length ? bits.join(" · ") : "Nada atrasado", tone: late ? "late" : "" };
-        })())}
-        ${groups.length || coming.length
-          ? [groups.map(
-              (g) => html`
-                <div class="panel items">
-                  <div class="overline" style=${g.title === "Atrasados" ? "color:var(--rv-late)" : ""}>${g.title} · ${g.rows.length}</div>
-                  ${repeat(g.rows, (r) => r.l.id + keyOf(r.i), (r) => this._renderItem(r.l, r.i, { showList: true }))}
-                </div>
-              `,
-            ), comingPanel]
-          : html`<div class="panel">
-              <div class="empty">
-                <div class="em-icon">${icon("calendar-days")}</div>
-                ${supportsDue
-                  ? html`<h3>Nada com prazo</h3>
-                      <p>${anyDue ? "Quando um item tiver data, ele aparece aqui. Toque num item para definir um prazo." : "Os prazos estão desligados nas listas (⋯ › Personalizar)."}</p>`
-                  : html`<h3>Sem prazos por aqui</h3>
-                      <p>Suas listas atuais não aceitam datas. Listas locais (“Lista de tarefas local”), Google Tasks e CalDAV aceitam.</p>`}
-              </div>
-            </div>`}
-      </section>
-    `;
+    return {
+      soon: groups.filter((g) => g.soon).map(panel),
+      later: groups.filter((g) => !g.soon).map(panel),
+      coming: comingPanel,
+      comingN: coming.length,
+      rows,
+      late: rows.filter((r) => r.d.overdue).length,
+      today: rows.filter((r) => !r.d.overdue && r.d.diff === 0).length,
+    };
   }
 
   // ---------- search
@@ -2844,8 +2836,8 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
           ${this._secHead("calendar-clock", "Prazos")}
           <div class="row">
             <div class="grow"><div class="label">Controlar prazos</div><div class="hint" style="white-space:normal">${dueOn
-              ? "O que vence fica vermelho e entra em Prazos."
-              : "A aba Prazos vira Sugestões."}</div></div>
+              ? "O que vence fica vermelho e aparece em Sugestões."
+              : "Datas só como informação."}</div></div>
             ${sw(dueOn, "Controlar prazos", (e) => this._saveAppPrefs({ due_off: e.target.checked ? null : true }))}
           </div>
           ${dueOn ? this._renderDueAlert(sw) : nothing}
@@ -2929,7 +2921,7 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
   async _testDueAlert() {
     try {
       const res = await this.hass.callWS({ type: "resolvia/due_alert/test" });
-      this._showToast(res && res.today ? "Aviso enviado para o seu celular. Toque nele para abrir Prazos." : "Aviso enviado para o seu celular (nada vence hoje).");
+      this._showToast(res && res.today ? "Aviso enviado para o seu celular. Toque nele para abrir Sugestões." : "Aviso enviado para o seu celular (nada vence hoje).");
     } catch (err) {
       this._showToast(`Não foi: ${err.message}`);
     }
@@ -3150,13 +3142,19 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
               </button>
               ${f.date ? html`<button class="pick ghost" @click=${() => this._setForm({ date: null, time: null })}>${icon("x")}<span>Sem prazo</span></button>` : nothing}
             </div>
-            ${canTime && f.date
-              ? html`<div class="time-row">
-                  <span class="tl">Horário</span>
-                  <input type="time" .value=${f.time || ""} @change=${(e) => this._setForm({ time: e.target.value || null })} />
-                  ${f.time ? html`<button class="text-btn" @click=${() => this._setForm({ time: null })}>Dia todo</button>` : nothing}
-                </div>`
-              : nothing}
+          </div>`
+        : nothing}
+      ${canDate && canTime && f.date
+        ? html`<div class="field">
+            <span class="flabel">Horário</span>
+            <div class="chip-row grid">
+              <button class="pick ${!f.time ? "on" : ""}" @click=${() => this._setForm({ time: null })}>${icon("sun")}<span>Dia todo</span></button>
+              <button class="pick ${f.time === DEFAULT_TIME ? "on" : ""}" @click=${() => this._setForm({ time: DEFAULT_TIME })}>${icon("clock")}<span>${DEFAULT_TIME}</span></button>
+              <button class="pick ${f.time && f.time !== DEFAULT_TIME ? "on" : ""}" @click=${() => openPicker("#rv-time")}>
+                ${icon("clock-fading")}<span>${f.time && f.time !== DEFAULT_TIME ? f.time : "Outro horário"}</span>
+                <input id="rv-time" class="hidden-input" type="time" tabindex="-1" .value=${f.time || DEFAULT_TIME} @change=${(e) => this._setForm({ time: e.target.value || null })} />
+              </button>
+            </div>
           </div>`
         : nothing}
       ${this._rulesOk && this._repeatOn() && !f.mirrored && (has(feat, F.UPDATE) || has(feat, F.CREATE))
@@ -3457,7 +3455,7 @@ class ResolviaPanel extends ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(Sugge
         ? html`<div class="row" style="border:0;padding-top:0">
             <div class="grow">
               <div class="label">Prazos</div>
-              <div class="hint" style="white-space:normal">${f.deadlines ? "Vencidos ficam vermelhos e entram em Prazos." : "Datas só como informação."}</div>
+              <div class="hint" style="white-space:normal">${f.deadlines ? "Vencidos ficam vermelhos e aparecem em Sugestões." : "Datas só como informação."}</div>
             </div>
             <label class="switch"><input type="checkbox" role="switch" .checked=${f.deadlines} @change=${(e) => this._setForm({ deadlines: e.target.checked })} aria-label="Prazos" /><span class="track"></span></label>
           </div>`

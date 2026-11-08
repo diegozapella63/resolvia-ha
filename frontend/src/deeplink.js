@@ -1,6 +1,7 @@
 // A notification opens the app on a tab: ?aba=<tab> on the address of the app or of the page around it
 // (the frame of Home Assistant). Read once and taken out, so Voltar and a reload don't open it again.
-export const TABS_OPEN = { prazos: "/prazos" };
+// (prazos: the alert of Prazos, which opens Sugestões since 2.48.0; listas: the tab Listas)
+export const TABS_OPEN = { prazos: "/prazos", listas: "/minhas-listas" };
 
 /** The path to open (e.g. "/prazos") or null. */
 export function openTab(win = typeof window === "undefined" ? null : window, tabs = TABS_OPEN) {

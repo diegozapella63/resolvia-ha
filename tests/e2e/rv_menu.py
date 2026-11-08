@@ -14,6 +14,7 @@ SP = _os.environ["E2E_TMP"]; REPO = RESOLVIA
 HA_PORT = _os.environ.get("E2E_HA_PORT", "8123")
 APP_PORT = _os.environ.get("E2E_APP_PORT", "8099")
 URL = f"http://127.0.0.1:{APP_PORT}/"
+LISTAS = URL + "?aba=listas"  # 2.48.0: the app opens on Sugestões; these checks start on Listas
 DATA, SHARE = f"{SP}/rvmn-data", f"{SP}/rvmn-share"
 for d in (DATA, SHARE): shutil.rmtree(d, ignore_errors=True); os.makedirs(d)
 n_ok, failed = 0, []
@@ -131,13 +132,16 @@ async def main():
         await tab("Mais")
         check(await view() == "more" and await depth() == 1, "Mais in the bar on a screen of Mais: back to the menu")
         await rows.nth(3).click(); await pg.wait_for_timeout(450)
+        await tab("Sugestões")
+        check(await view() == "home" and await depth() == 0, "Sugestões in the bar on a screen of Mais: the start, the menu goes too")
+        await tab("Mais"); await rows.nth(3).click(); await pg.wait_for_timeout(450)
         await tab("Listas")
-        check(await view() == "home" and await depth() == 0, "Listas in the bar on a screen of Mais: the lists, the menu goes too")
+        check(await view() == "lists" and await depth() == 1, "Listas in the bar on a screen of Mais: in the place of Mais")
         await tab("Mais"); await rows.nth(3).click(); await pg.wait_for_timeout(450)
         await tab("Buscar")
         check(await view() == "search" and await depth() == 1, "Buscar in the bar on a screen of Mais: in the place of Mais")
         await pg.go_back(); await pg.wait_for_timeout(450)
-        check(await view() == "home", "and Back from there: the lists, not the menu")
+        check(await view() == "home", "and Back from there: the start, not the menu")
 
         # ---- the addresses of the old tabs land on the new place
         for old, new, name in [("/mais/integracoes", "/config", "config"), ("/mais/ia", "/config", "config"), ("/mais/dados", "/config/dados", "config"),

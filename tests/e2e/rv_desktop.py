@@ -26,13 +26,13 @@ async def main():
         b = await p.chromium.launch()
         pg = await b.new_page(viewport={"width": 1200, "height": 800})
         errs = []; pg.on("pageerror", lambda e: errs.append(str(e)))
-        await pg.goto("http://127.0.0.1:8099/"); await pg.wait_for_timeout(1800)
+        await pg.goto("http://127.0.0.1:8099/?aba=listas"); await pg.wait_for_timeout(1800)
         a = pg.locator("resolvia-panel"); side = a.locator("aside.side")
         check(await side.is_visible() and not await a.locator("nav .tabs").is_visible(), "1200 px: sidebar, no bottom tabs")
         links = [t.strip() for t in await side.locator(".side-link > span:not(.side-badge)").all_inner_texts()]
-        check(links == ["Listas", "Buscar", "Prazos", "Mais"], f"the sections ({links})")
-        badge = side.locator(".side-link", has_text="Prazos").locator(".side-badge")
-        check(await badge.count() == 1 and int(await badge.inner_text()) > 0, "Prazos with the badge of late and today")
+        check(links == ["Sugestões", "Listas", "Buscar", "Mais"], f"the sections, Sugestões first (2.48.0) ({links})")
+        badge = side.locator(".side-link", has_text="Sugestões").locator(".side-badge")
+        check(await badge.count() == 1 and int(await badge.inner_text()) > 0, "Sugestões with the badge of late and today")
         names = [t.strip() for t in await side.locator(".side-list .sl-name").all_inner_texts()]
         home_names = [t.strip() for t in await a.locator(".list-card .lc-title").all_inner_texts()]
         check(names and sorted(names) == sorted(home_names), f"the lists, as on the home ({names})")

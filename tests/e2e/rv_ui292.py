@@ -48,7 +48,7 @@ async def main():
         pg = await b.new_page(viewport={"width": 412, "height": 892}, device_scale_factor=2, color_scheme="dark", has_touch=True, is_mobile=True)
         errs = []
         pg.on("pageerror", lambda e: errs.append(str(e)))
-        await pg.goto("http://127.0.0.1:8099/"); await pg.wait_for_timeout(1200)
+        await pg.goto("http://127.0.0.1:8099/?aba=listas"); await pg.wait_for_timeout(1200)
         # Buscar: no keyboard popping up
         await pg.locator(".tab", has_text="Buscar").click(); await pg.wait_for_timeout(500)
         focused = await pg.evaluate("() => { const r = document.querySelector('resolvia-panel') || document.querySelector('*'); const deep = (d) => d.activeElement && d.activeElement.shadowRoot ? deep(d.activeElement.shadowRoot) : d.activeElement; const a = deep(document); return a ? a.tagName + ':' + (a.type || '') : ''; }")

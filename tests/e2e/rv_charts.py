@@ -42,6 +42,7 @@ time.sleep(1)
 procs.append(subprocess.Popen(["node", f"{REPO}/resolvia/rootfs/app/server.js"], env=dict(os.environ, TZ=TZ, RESOLVIA_DEV="1", HA_WS_URL="ws://127.0.0.1:8123/api/websocket", HA_REST_URL="http://127.0.0.1:8123/api", HA_TOKEN="test", DATA_DIR=DATA, SHARE_DIR=SHARE, PORT="8099"), stdout=open(f"{T}/app.log", "w"), stderr=subprocess.STDOUT))
 time.sleep(1.5)
 URL = "http://127.0.0.1:8099/"
+LISTAS = URL + "?aba=listas"  # 2.48.0: the app opens on Sugestões; these checks start on Listas
 WS = """(m) => new Promise((res) => { const ws = new WebSocket(location.origin.replace('http', 'ws') + '/ws'); ws.onopen = () => ws.send(JSON.stringify({ id: 1, ...m })); ws.onmessage = (e) => { const r = JSON.parse(e.data); if (r.id !== 1 || r.type !== 'result') return; ws.close(); res(r.success ? r.result : { __error: r.error }); }; })"""
 day = lambda n: (datetime.now(ZoneInfo(TZ)) + timedelta(days=n)).strftime("%Y-%m-%d")
 # what goes past the right edge of the screen
@@ -76,7 +77,7 @@ async def main():
         errs = []
         pg.on("pageerror", lambda e: errs.append(str(e)))
         pg.on("console", lambda m: m.type == "error" and errs.append(m.text))
-        await pg.goto(URL); await pg.wait_for_timeout(1500)
+        await pg.goto(LISTAS); await pg.wait_for_timeout(1500)
         ws = lambda m: pg.evaluate(WS, m)
         add = lambda summary, due=None: ws({"type": "call_service", "domain": "todo", "service": "add_item", "service_data": {"item": summary, **({"due_date": due} if due else {})}, "target": {"entity_id": CASA}})
         for s in ("Limpar a geladeira", "Limpar o filtro do ar", "Trocar a resistência do chuveiro", "Consertar a pia", "Trocar a lâmpada da sala"):
@@ -186,7 +187,7 @@ async def main():
         check(found == ["Consertar a pia", "Consertar o portão", "Trocar a resistência do chuveiro"], f"Serviço externo: Buscar finds the 3 ({found})")
         await pg.go_back(); await pg.wait_for_timeout(450)
         await a.locator("#g-prazos .g-row", has_text="Atrasados").click(); await pg.wait_for_timeout(500)
-        check(await view() == "due", "Atrasados: Prazos")
+        check(await view() == "home", "Atrasados: Sugestões, the start (2.48.0)")
         await pg.go_back(); await pg.wait_for_timeout(450)
         check(await view() == "graficos", "and Back: Gráficos")
 
@@ -238,7 +239,7 @@ async def main():
             ctx = await b.new_context(viewport={"width": 390, "height": 844}, device_scale_factor=2, color_scheme=scheme, has_touch=True, timezone_id=TZ)
             pg = await ctx.new_page()
             pg.on("pageerror", lambda e: errs.append(str(e)))
-            await pg.goto(URL); await pg.wait_for_timeout(1800)
+            await pg.goto(LISTAS); await pg.wait_for_timeout(1800)
             a = pg.locator("resolvia-panel")
             await a.evaluate("(el) => el._go('/graficos')"); await pg.wait_for_timeout(700)
             check(len(await a.locator(".g-panel").all()) == 5, f"{scheme}: the five charts")

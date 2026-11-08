@@ -47,7 +47,7 @@ async def main():
         ctx = await b.new_context(viewport={"width": 390, "height": 844}, device_scale_factor=2, permissions=["microphone"])
         pg = await ctx.new_page(); errs = []
         pg.on("pageerror", lambda e: errs.append(str(e)))
-        await pg.goto("http://127.0.0.1:8099/"); await pg.wait_for_timeout(1800)
+        await pg.goto("http://127.0.0.1:8099/?aba=listas"); await pg.wait_for_timeout(1800)
         a = pg.locator("resolvia-panel"); sheet = a.locator(".sheet")
         await a.locator(".tab", has_text="Mais").click(); await pg.wait_for_timeout(300)
         await a.locator(".more-row", has_text="Configurações").click(); await pg.wait_for_timeout(400)

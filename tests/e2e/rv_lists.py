@@ -18,6 +18,7 @@ time.sleep(0.6)
 app = subprocess.Popen(["node", f"{REPO}/resolvia/rootfs/app/server.js"], env=dict(os.environ, TZ=TZ, RESOLVIA_DEV="1", HA_WS_URL=f"ws://127.0.0.1:{HA_PORT}/api/websocket", HA_TOKEN="test", DATA_DIR=DATA, SHARE_DIR=SHARE, PORT=APP_PORT), stdout=open(f"{SP}/rvl_app.log", "w"), stderr=subprocess.STDOUT)
 time.sleep(1.0)
 URL = f"http://127.0.0.1:{APP_PORT}/"
+LISTAS = URL + "?aba=listas"  # 2.48.0: the app opens on Sugestões; these checks start on Listas
 passed, failed = 0, []
 def check(c, label):
     global passed
@@ -56,7 +57,7 @@ async def main():
         panel = pg.locator("main .page .panel.lists-panel")
         labels = lambda: panel.locator(".row:not(.inact-head) .label").all_inner_texts()
 
-        await pg.goto(URL); await pg.wait_for_timeout(1300)
+        await pg.goto(LISTAS); await pg.wait_for_timeout(1300)
         await mais_listas()
         check(sorted(await labels()) == sorted(["Shopping list", "To-do list", "Casa", "Problem List"]), f"Mais › Listas: every list ({await labels()})")
         hints = await panel.locator(".row .hint").all_inner_texts()
@@ -135,7 +136,9 @@ async def main():
         check("Lista não encontrada" in txt and "removida ou renomeada" in txt, "removed while open: 'Lista não encontrada'")
         await pg.screenshot(path=f"{SP}/shots/rvl-removida.png")
         await pg.locator(".page .btn", has_text="Voltar para o início").click(); await pg.wait_for_timeout(500)
-        check(await pg.locator(".page-title").inner_text() == "Minhas listas" and "Viagem" not in await cards(), "Voltar para o início: the home, without it")
+        check(await pg.locator(".page-title").inner_text() == "Sugestões", "Voltar para o início: the start (Sugestões, 2.48.0)")
+        await pg.locator("nav .tab", has_text="Listas").click(); await pg.wait_for_timeout(500)
+        check(await pg.locator(".page-title").inner_text() == "Minhas listas" and "Viagem" not in await cards(), "and Listas without it")
 
         # ---- an older integration without item subscriptions: the items are read on each change
         fake_ha("POST", "/dev/list", {"entity_id": "todo.antiga", "name": "Lista antiga", "features": 7, "items": ["Item velho"], "no_subscribe": True})
@@ -155,16 +158,16 @@ async def main():
         await pg.locator(".row", has_text="Criar nova lista").click()
         await pg.wait_for_url("**/config/integrations/dashboard/add?domain=local_todo", timeout=5000)
         check(pg.url.endswith("/config/integrations/dashboard/add?domain=local_todo"), f"Criar nova lista: Home Assistant's Lista de tarefas local ({pg.url})")
-        await pg.goto(URL); await pg.wait_for_timeout(1200)
+        await pg.goto(LISTAS); await pg.wait_for_timeout(1200)
         await pg.locator(".pick", has_text="Nova lista").click()
         await pg.wait_for_url("**/add?domain=local_todo", timeout=5000)
         check(pg.url.endswith("/config/integrations/dashboard/add?domain=local_todo"), "the home's Nova lista goes there too")
-        await pg.goto(URL); await pg.wait_for_timeout(1200)
+        await pg.goto(LISTAS); await pg.wait_for_timeout(1200)
         await mais_listas()
         await pg.locator(".row", has_text="Abrir listas padrão do HA").click()
         await pg.wait_for_url("**/todo", timeout=5000)
         check(pg.url.endswith("/todo"), "Abrir listas padrão do HA: /todo")
-        await pg.goto(URL); await pg.wait_for_timeout(1200)
+        await pg.goto(LISTAS); await pg.wait_for_timeout(1200)
         await pg.locator(".list-card", has_text="Casa").click(); await pg.wait_for_timeout(400)
         await pg.locator(".icon-btn[aria-label='Opções da lista']").click(); await pg.wait_for_timeout(300)
         await pg.locator(".sheet .menu-row", has_text="Abrir na tela padrão do HA").click()
@@ -180,7 +183,7 @@ async def main():
         await fr.locator(".row", has_text="Criar nova lista").click(); await pg.wait_for_timeout(400)
         moves = await pg.evaluate("() => window.__moves")
         check(moves == ["/config/integrations/dashboard/add?domain=local_todo"] and pg.url.endswith("/config/integrations/dashboard/add?domain=local_todo") and len(pg.frames) == 2, f"inside Home Assistant: its own navigation, the app stays ({moves})")
-        await pg.goto(URL); await pg.wait_for_timeout(1200)
+        await pg.goto(LISTAS); await pg.wait_for_timeout(1200)
 
         # ---- Opções › Exibição
         await tab("Mais")

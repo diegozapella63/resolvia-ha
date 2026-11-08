@@ -18,6 +18,7 @@ time.sleep(0.6)
 app = subprocess.Popen(["node", f"{REPO}/resolvia/rootfs/app/server.js"], env=dict(os.environ, TZ=TZ, RESOLVIA_DEV="1", HA_WS_URL=f"ws://127.0.0.1:{HA_PORT}/api/websocket", HA_TOKEN="test", DATA_DIR=DATA, SHARE_DIR=SHARE, PORT=APP_PORT), stdout=open(f"{SP}/rvs_app.log", "w"), stderr=subprocess.STDOUT)
 time.sleep(1.0)
 URL = f"http://127.0.0.1:{APP_PORT}/"
+LISTAS = URL + "?aba=listas"  # 2.48.0: the app opens on Sugestões; these checks start on Listas
 CASA, SHOP = "todo.casa", "todo.notas_e_rotinas_do_alexa_shopping_list"
 passed, failed = 0, []
 def check(c, label):
@@ -108,7 +109,7 @@ async def main():
         await pg.screenshot(path=f"{SP}/shots/rvs-live.png")
         # Back leaves Buscar
         await pg.go_back(); await pg.wait_for_timeout(500)
-        check(await pg.locator(".page-title").inner_text() == "Minhas listas", "Back goes to the home")
+        check(await pg.locator(".page-title").inner_text() == "Sugestões", "Back goes to the start (Sugestões)")
         check(not errs, f"no page errors {errs[:3]}")
         await b.close()
 try:

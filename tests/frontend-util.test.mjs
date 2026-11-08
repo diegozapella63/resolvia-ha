@@ -321,12 +321,13 @@ describe("deeplink: ?aba= opens a tab once", async () => {
     assert.equal(top.location.href, "http://ha.local/app/abc_resolvia");
   });
   it("an unknown tab, none, another origin around or no window: nothing", () => {
-    assert.equal(openTab(win("http://ha.local/?aba=listas")), null);
+    assert.equal(openTab(win("http://ha.local/?aba=compras")), null);
+    assert.equal(openTab(win("http://ha.local/?aba=listas")), "/minhas-listas", "2.48.0: the tab Listas");
     assert.equal(openTab(win("http://ha.local/")), null);
     const locked = win("http://ha.local/");
     locked.parent = { get location() { throw new Error("cross-origin"); } };
     assert.equal(openTab(locked), null);
     assert.equal(openTab(null), null);
-    assert.deepEqual(Object.keys(TABS_OPEN), ["prazos"]);
+    assert.deepEqual(Object.keys(TABS_OPEN), ["prazos", "listas"]);
   });
 });

@@ -11,6 +11,7 @@ SP = _os.environ["E2E_TMP"]; REPO = RESOLVIA
 HA_PORT = _os.environ.get("E2E_HA_PORT", "8123")
 APP_PORT = _os.environ.get("E2E_APP_PORT", "8099")
 URL = f"http://127.0.0.1:{APP_PORT}/"
+LISTAS = URL + "?aba=listas"  # 2.48.0: the app opens on Sugestões; these checks start on Listas
 DATA, SHARE = f"{SP}/rvss-data", f"{SP}/rvss-share"
 for d in (DATA, SHARE): shutil.rmtree(d, ignore_errors=True); os.makedirs(d)
 os.makedirs(f"{SP}/shots", exist_ok=True)
@@ -44,7 +45,7 @@ async def main():
             ctx = await b.new_context(viewport={"width": 390, "height": 844}, color_scheme=scheme, locale="pt-BR", timezone_id="America/Sao_Paulo", device_scale_factor=2, has_touch=True, is_mobile=True)
             pg = await ctx.new_page(); errs = []
             pg.on("pageerror", lambda e: errs.append(str(e)))
-            await pg.goto(URL); await pg.wait_for_timeout(1800)
+            await pg.goto(LISTAS); await pg.wait_for_timeout(1800)
             a = pg.locator("resolvia-panel")
             if scheme == "light":
                 # a hidden list, for the report
@@ -126,7 +127,7 @@ async def main():
         ctx = await b.new_context(viewport={"width": 1200, "height": 800}, locale="pt-BR")
         pg = await ctx.new_page(); errs = []
         pg.on("pageerror", lambda e: errs.append(str(e)))
-        await pg.goto(URL); await pg.wait_for_timeout(1800)
+        await pg.goto(LISTAS); await pg.wait_for_timeout(1800)
         a = pg.locator("resolvia-panel")
         await a.evaluate("(el) => el._go('/config')"); await pg.wait_for_timeout(600)
         sel = a.locator("#falar select")

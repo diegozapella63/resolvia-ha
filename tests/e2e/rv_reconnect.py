@@ -22,6 +22,7 @@ time.sleep(0.6)
 procs["app"] = start_app()
 time.sleep(1.0)
 URL = f"http://127.0.0.1:{APP_PORT}/"
+LISTAS = URL + "?aba=listas"  # 2.48.0: the app opens on Sugestões; these checks start on Listas
 CASA = "todo.casa"
 passed, failed = 0, []
 def check(c, label):
@@ -55,7 +56,7 @@ async def main():
         status = lambda: pg.locator(".brand-head .status").inner_text()
         texts = lambda: pg.locator(".items .item .it-text").all_inner_texts()
 
-        await pg.goto(URL); await pg.wait_for_timeout(1300)
+        await pg.goto(LISTAS); await pg.wait_for_timeout(1300)
         check(await offline.count() == 0 and "ao vivo com o Home Assistant" in await status(), "connected: no warning, 'ao vivo'")
         await pg.locator(".list-card", has_text="Casa").click(); await pg.wait_for_timeout(500)
 
@@ -98,7 +99,7 @@ async def main():
         # ---- opening the app while Home Assistant is down: it waits, then opens
         stop("fake")
         await pg.wait_for_timeout(500)
-        await pg.goto(URL); await pg.wait_for_timeout(1500)
+        await pg.goto(LISTAS); await pg.wait_for_timeout(1500)
         check(await pg.locator("#boot").inner_text() == "Carregando ResolvIA…" and await pg.locator(".list-card").count() == 0, "it shows 'Carregando ResolvIA…' while Home Assistant is down")
         await pg.screenshot(path=f"{SP}/shots/rvc-loading.png")
         procs["fake"] = start_fake()

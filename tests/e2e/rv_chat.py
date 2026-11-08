@@ -38,7 +38,7 @@ async def main():
         b = await p.chromium.launch(args=["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream"])
         pg = await b.new_page(viewport={"width": 390, "height": 844}, device_scale_factor=2, color_scheme="dark")
         errs = []; pg.on("pageerror", lambda e: errs.append(str(e)))
-        await pg.goto("http://127.0.0.1:8099/"); await pg.wait_for_timeout(2000)
+        await pg.goto("http://127.0.0.1:8099/?aba=listas"); await pg.wait_for_timeout(2000)
         a = pg.locator("resolvia-panel"); sheet = a.locator(".sheet")
         # the button beside the microphone (home and a list)
         btn = a.locator(".chat-top").first

@@ -39,7 +39,7 @@ async def main():
         ctx = await b.new_context(viewport={"width": 390, "height": 844}, device_scale_factor=2, permissions=["microphone"])
         pg = await ctx.new_page(); errs = []
         pg.on("pageerror", lambda e: errs.append(str(e)))
-        await pg.goto("http://127.0.0.1:8099/"); await pg.wait_for_timeout(1800)
+        await pg.goto("http://127.0.0.1:8099/?aba=listas"); await pg.wait_for_timeout(1800)
         a = pg.locator("resolvia-panel"); sheet = a.locator(".sheet")
         mic = a.locator(".mic-top:not(.chat-top):visible")
         check(await mic.count() == 1, "Listas: the microphone at the top right")
@@ -77,7 +77,7 @@ async def main():
     async with async_playwright() as p:
         b = await p.chromium.launch()
         pg = await b.new_page(viewport={"width": 390, "height": 844})
-        await pg.goto("http://127.0.0.1:8099/"); await pg.wait_for_timeout(1800)
+        await pg.goto("http://127.0.0.1:8099/?aba=listas"); await pg.wait_for_timeout(1800)
         check(await pg.locator("resolvia-panel").locator(".mic-top:not(.chat-top):visible").count() == 0, "without speech-to-text: no microphone")
         await b.close()
 try: asyncio.run(main())

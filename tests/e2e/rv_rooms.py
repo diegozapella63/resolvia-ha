@@ -47,7 +47,7 @@ async def main():
         b = await p.chromium.launch()
         pg = await b.new_page(viewport={"width": 390, "height": 844}, device_scale_factor=2, color_scheme="dark")
         errs = []; pg.on("pageerror", lambda e: errs.append(str(e)))
-        await pg.goto("http://127.0.0.1:8099/"); await pg.wait_for_timeout(2000)
+        await pg.goto("http://127.0.0.1:8099/?aba=listas"); await pg.wait_for_timeout(2000)
         a = pg.locator("resolvia-panel"); sheet = a.locator(".sheet")
         # off by default: no room anywhere
         await a.evaluate("(el) => el._openAdd('todo.casa')"); await pg.wait_for_timeout(400)

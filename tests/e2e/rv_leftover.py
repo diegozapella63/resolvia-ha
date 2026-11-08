@@ -30,7 +30,7 @@ async def main():
         pg = await b.new_page(viewport={"width": 390, "height": 844}, device_scale_factor=2, color_scheme="dark")
         errs = []
         pg.on("pageerror", lambda e: errs.append(str(e)))
-        await pg.goto("http://127.0.0.1:8099/"); await pg.wait_for_timeout(1200)
+        await pg.goto("http://127.0.0.1:8099/?aba=listas"); await pg.wait_for_timeout(1200)
         # like 2.12: on, two rules, then switched off (rules kept)
         await pg.evaluate(WS, [{"type": "resolvia/prefs/set_app", "prefs": {"repeat_on": True}},
                                {"type": "resolvia/recurring/set", "entity_id": "todo.casa", "summary": "Passar pano na casa", "days": 2},

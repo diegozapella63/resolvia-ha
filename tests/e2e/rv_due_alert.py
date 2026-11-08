@@ -16,6 +16,7 @@ SP = _os.environ["E2E_TMP"]; REPO = RESOLVIA
 HA_PORT = _os.environ.get("E2E_HA_PORT", "8123")
 APP_PORT = _os.environ.get("E2E_APP_PORT", "8099")
 URL = f"http://127.0.0.1:{APP_PORT}/"
+LISTAS = URL + "?aba=listas"  # 2.48.0: the app opens on Sugestões; these checks start on Listas
 DATA, SHARE = f"{SP}/rvda-data", f"{SP}/rvda-share"
 for d in (DATA, SHARE): shutil.rmtree(d, ignore_errors=True); os.makedirs(d)
 n_ok, failed = 0, []
@@ -43,7 +44,7 @@ async def main():
             ctx = await b.new_context(viewport={"width": w, "height": 844 if w < 1000 else 900}, device_scale_factor=2, color_scheme=scheme, has_touch=w < 1000)
             pg = await ctx.new_page(); errs = []
             pg.on("pageerror", lambda e: errs.append(str(e)))
-            await pg.goto(URL); await pg.wait_for_timeout(1500)
+            await pg.goto(LISTAS); await pg.wait_for_timeout(1500)
             a = pg.locator("resolvia-panel")
             tag = f"{scheme} {w}px"
             await a.evaluate("(el) => el._go('/config/opcoes')"); await pg.wait_for_timeout(600)
@@ -72,7 +73,7 @@ async def main():
                 got = notes()[n0:]
                 check([n["service"] for n in got] == ["mobile_app_pixel_8"] and "Trocar filtro do ar" in got[0]["message"], f"{tag}: Testar: what is due today, on my phone ({[(n['service'], n['message']) for n in got]})")
                 toast = await a.locator(".toast").inner_text() if await a.locator(".toast").count() else ""
-                check(toast.startswith("Aviso enviado para o seu celular.") and "Toque nele para abrir Prazos" in toast and "Pixel" not in toast, f"{tag}: the toast, no device name ({toast})")
+                check(toast.startswith("Aviso enviado para o seu celular.") and "Toque nele para abrir Sugestões" in toast and "Pixel" not in toast, f"{tag}: the toast, no device name ({toast})")
                 # someone without a phone: "sem celular", and where to tie one (Home Assistant), even with the CronologIA
                 await a.evaluate("(el) => { el._alertPeople = [...el._alertPeople, { name: 'Cida', phone: false, me: false }]; el._pts = { ...(el._pts || {}), placar: { versao: '1.53.5', ativo: true, participantes: ['Ana'] } }; el.requestUpdate(); }"); await pg.wait_for_timeout(300)
                 who = [" ".join(t.split()) for t in await prazos.locator(".due-who .dw").all_inner_texts()]
@@ -96,7 +97,7 @@ async def main():
         ctx = await b.new_context(viewport={"width": 390, "height": 844}, device_scale_factor=2, color_scheme="dark", has_touch=True)
         pg = await ctx.new_page(); errs = []
         pg.on("pageerror", lambda e: errs.append(str(e)))
-        await pg.goto(URL); await pg.wait_for_timeout(1500)
+        await pg.goto(LISTAS); await pg.wait_for_timeout(1500)
         a = pg.locator("resolvia-panel")
         await a.evaluate("(el) => el._openCustomize(el._list('todo.casa'))"); await pg.wait_for_timeout(900)
         sheet = a.locator(".sheet")
@@ -129,13 +130,14 @@ async def main():
         check("owner" not in json.load(open(f"{DATA}/resolvia.json"))["prefs"]["lists"].get("todo.casa", {}), "Todos: everyone's again")
         check(not errs, f"De quem é: no page errors {errs}")
         await ctx.close()
-        # ?aba=prazos (the tap on the alert): the app opens on Prazos
+        # ?aba=prazos (the tap on the alert): the app opens on Sugestões (2.48.0; Prazos before), with what is due
         ctx = await b.new_context(viewport={"width": 390, "height": 844})
         pg = await ctx.new_page()
         await pg.goto(URL + "?aba=prazos"); await pg.wait_for_timeout(1500)
         a = pg.locator("resolvia-panel")
         view = await a.evaluate("(el) => el._view().name")
-        check(view == "due" and "aba=" not in pg.url, f"the tap on the alert opens Prazos ({view}, {pg.url})")
+        path = await pg.evaluate("() => (history.state && history.state.rvPath) || ''")
+        check(view == "home" and path == "" and "aba=" not in pg.url and await a.locator(".overline", has_text="Atrasados").count() == 1, f"the tap on the alert opens Sugestões ({view}, {path!r}, {pg.url})")
         await ctx.close()
         await b.close()
 

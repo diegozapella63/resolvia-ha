@@ -41,7 +41,7 @@ async def main():
         b = await p.chromium.launch()
         pg = await b.new_page(viewport={"width": 390, "height": 844}, device_scale_factor=2, color_scheme="dark")
         errs = []; pg.on("pageerror", lambda e: errs.append(str(e)))
-        await pg.goto("http://127.0.0.1:8099/"); await pg.wait_for_timeout(1500)
+        await pg.goto("http://127.0.0.1:8099/?aba=listas"); await pg.wait_for_timeout(1500)
         # To-do list gets 3 more: 5 pending, more than Casa (3)
         await pg.locator(".list-card", has_text="To-do list").click(); await pg.wait_for_timeout(600)
         for t in ("Item A", "Item B", "Item C"):

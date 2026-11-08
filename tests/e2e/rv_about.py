@@ -12,6 +12,7 @@ SP = _os.environ["E2E_TMP"]; REPO = RESOLVIA
 HA_PORT = _os.environ.get("E2E_HA_PORT", "8123")
 APP_PORT = _os.environ.get("E2E_APP_PORT", "8099")
 URL = f"http://127.0.0.1:{APP_PORT}/"
+LISTAS = URL + "?aba=listas"  # 2.48.0: the app opens on Sugestões; these checks start on Listas
 DATA, SHARE = f"{SP}/rvab-data", f"{SP}/rvab-share"
 for d in (DATA, SHARE): shutil.rmtree(d, ignore_errors=True); os.makedirs(d)
 n_ok, failed = 0, []
@@ -37,7 +38,7 @@ async def main():
             ctx = await b.new_context(viewport={"width": w, "height": 844 if w < 1000 else 900}, device_scale_factor=2, color_scheme=scheme, has_touch=w < 1000)
             pg = await ctx.new_page(); errs = []
             pg.on("pageerror", lambda e: errs.append(str(e)))
-            await pg.goto(URL); await pg.wait_for_timeout(1500)
+            await pg.goto(LISTAS); await pg.wait_for_timeout(1500)
             a = pg.locator("resolvia-panel")
             tag = f"{scheme} {w}px"
             await a.evaluate("(el) => el._go('/mais')"); await pg.wait_for_timeout(500)

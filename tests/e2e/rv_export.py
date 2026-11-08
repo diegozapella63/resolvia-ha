@@ -42,7 +42,7 @@ async def main():
         ctx = await b.new_context(viewport={"width": 390, "height": 844}, device_scale_factor=2, color_scheme="dark", accept_downloads=True)
         pg = await ctx.new_page()
         errs = []; pg.on("pageerror", lambda e: errs.append(str(e)))
-        await pg.goto("http://127.0.0.1:8099/"); await pg.wait_for_timeout(1200)
+        await pg.goto("http://127.0.0.1:8099/?aba=listas"); await pg.wait_for_timeout(1200)
         await pg.locator(".tab", has_text="Mais").click(); await pg.wait_for_timeout(300)
         await pg.locator(".more-row", has_text="Configurações").click(); await pg.wait_for_timeout(400)
         await pg.get_by_role("tab", name="Dados", exact=True).click(); await pg.wait_for_timeout(600)

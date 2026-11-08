@@ -22,6 +22,7 @@ appenv = dict(os.environ, TZ="America/Sao_Paulo", RESOLVIA_DEV="1", HA_WS_URL=f"
 app = subprocess.Popen(["node", f"{REPO}/resolvia/rootfs/app/server.js"], env=appenv, stdout=open(f"{SP}/rve_app.log", "w"), stderr=subprocess.STDOUT)
 time.sleep(1.0)
 URL = f"http://127.0.0.1:{APP_PORT}/"
+LISTAS = URL + "?aba=listas"  # 2.48.0: the app opens on Sugestões; these checks start on Listas
 passed, failed = 0, []
 def check(c, label):
     global passed
@@ -55,10 +56,10 @@ async def main():
         texts = lambda sel: pg.locator(sel).all_inner_texts()
         pend = lambda: texts(".items .item:not(.done) .it-text")
 
-        await pg.goto(URL); await pg.wait_for_timeout(1200)
+        await pg.goto(LISTAS); await pg.wait_for_timeout(1200)
         # ResolvIA 2.9.2: repetition is a switch in Mais › Repetições (off on a fresh install)
         await ws({"type": "resolvia/prefs/set_app", "prefs": {"repeat_on": True}})
-        await pg.reload(); await pg.wait_for_timeout(1200)
+        await pg.goto(LISTAS); await pg.wait_for_timeout(1200)
         names = await texts(".list-card .lc-title")
         check(sorted(names) == sorted(["Shopping list", "To-do list", "Casa", "Problem List"]), f"home: the four lists of Home Assistant ({names})")
         await pg.screenshot(path=f"{SP}/shots/rve-home.png")
@@ -145,14 +146,14 @@ async def main():
         await pg.set_content(f'<html><body style="margin:0"><iframe src="{URL}" style="border:0;width:412px;height:892px"></iframe></body></html>')
         await pg.wait_for_timeout(1500)
         fr = pg.frames[1]
-        check(await fr.locator(".topbar").count() == 0 and await fr.locator(".page-title").inner_text() == "Minhas listas", "in an iframe: no top bar, the home")
+        check(await fr.locator(".topbar").count() == 0 and await fr.locator(".page-title").inner_text() == "Sugestões", "in an iframe: no top bar, the start (Sugestões)")
 
         # Home Assistant restarts: the page loads again
         fake.kill(); fake.wait()
-        await pg.goto(URL); await pg.wait_for_timeout(500)
+        await pg.goto(LISTAS); await pg.wait_for_timeout(500)
         fake = start_fake()
         await pg.wait_for_timeout(2500)
-        await pg.goto(URL); await pg.wait_for_timeout(1500)
+        await pg.goto(LISTAS); await pg.wait_for_timeout(1500)
         check(len(await texts(".list-card .lc-title")) == 4, "after Home Assistant restarts, the lists are back")
         check(not errs, f"no console errors {errs}")
         await b.close()

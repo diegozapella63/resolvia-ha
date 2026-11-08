@@ -20,6 +20,7 @@ time.sleep(0.6)
 app = subprocess.Popen(["node", f"{REPO}/resolvia/rootfs/app/server.js"], env=dict(os.environ, TZ=TZ, RESOLVIA_DEV="1", HA_WS_URL=f"ws://127.0.0.1:{HA_PORT}/api/websocket", HA_TOKEN="test", DATA_DIR=DATA, SHARE_DIR=SHARE, PORT=APP_PORT), stdout=open(f"{SP}/rvit_app.log", "w"), stderr=subprocess.STDOUT)
 time.sleep(1.0)
 URL = f"http://127.0.0.1:{APP_PORT}/"
+LISTAS = URL + "?aba=listas"  # 2.48.0: the app opens on Sugestões; these checks start on Listas
 CASA, SHOP, TODO = "todo.casa", "todo.notas_e_rotinas_do_alexa_shopping_list", "todo.notas_e_rotinas_do_alexa_to_do_list"
 passed, failed = 0, []
 def check(c, label):
@@ -66,7 +67,7 @@ async def main():
         async def open_edit(text):
             await row(text).first.locator(".it-body").click(); await pg.wait_for_timeout(300)
 
-        await pg.goto(URL); await pg.wait_for_timeout(1300)
+        await pg.goto(LISTAS); await pg.wait_for_timeout(1300)
         await pg.locator(".list-card", has_text="Casa").click(); await pg.wait_for_timeout(600)
         check(await pg.locator(".detail-head h1").inner_text() == "Casa", "Casa opens")
 
@@ -120,10 +121,20 @@ async def main():
         check(await tas.nth(0).input_value() == "Comprar pilhas", "the text is there")
         await tas.nth(0).fill("Comprar pilhas AA")
         await tas.nth(1).fill("Duracell, 4 unidades")
-        check(await pg.locator(".sheet .time-row").count() == 0, "no time before a date")
+        hora = pg.locator(".sheet .field", has=pg.locator(".flabel", has_text="Horário"))
+        check(await hora.count() == 0, "no time before a date")
         await pg.locator(".sheet .pick", has_text="Amanhã").click(); await pg.wait_for_timeout(150)
-        check(await pg.locator(".sheet .pick.on", has_text="Amanhã").count() == 1 and await pg.locator(".sheet .time-row").count() == 1, "Amanhã chosen, the time appears (the list takes times)")
-        await pg.locator(".sheet .time-row input[type=time]").fill("14:30"); await pg.wait_for_timeout(150)
+        check(await pg.locator(".sheet .pick.on", has_text="Amanhã").count() == 1 and await hora.count() == 1, "Amanhã chosen, the time appears (the list takes times)")
+        # 2.48.0: Horário is Dia todo (chosen), 08:00 or Outro horário, side by side and the same size
+        picks = hora.locator(".pick")
+        check([t.strip() for t in await picks.all_inner_texts()] == ["Dia todo", "08:00", "Outro horário"] and await hora.locator(".pick.on").inner_text() == "Dia todo", f"Horário: Dia todo, 08:00, Outro horário ({await picks.all_inner_texts()})")
+        boxes = [await picks.nth(k).bounding_box() for k in range(3)]
+        check(abs(boxes[0]["width"] - boxes[1]["width"]) < 1 and abs(boxes[0]["y"] - boxes[1]["y"]) < 1 and abs(boxes[0]["height"] - boxes[2]["height"]) < 1, f"the same size, aligned ({boxes})")
+        await picks.nth(1).click(); await pg.wait_for_timeout(150)
+        check((await hora.locator(".pick.on").inner_text()).strip() == "08:00", "08:00 with a tap")
+        await hora.locator("input[type=time]").fill("14:30"); await pg.wait_for_timeout(150)
+        check((await hora.locator(".pick.on").inner_text()).strip() == "14:30", "another time: on Outro horário, with the time")
+        await hora.screenshot(path=f"{SP}/shots/rvit-horario.png")
         await pg.screenshot(path=f"{SP}/shots/rvit-edit.png")
         await pg.locator(".sheet .btn.primary", has_text="Salvar").click(); await pg.wait_for_timeout(700)
         it = await item("Comprar pilhas AA")
@@ -166,7 +177,7 @@ async def main():
         await pg.locator(".sheet .icon-btn[aria-label='Fechar']").click(); await pg.wait_for_timeout(300)
         # Dia todo: only the date
         await open_edit("Comprar pilhas AA")
-        await pg.locator(".sheet .text-btn", has_text="Dia todo").click(); await pg.wait_for_timeout(150)
+        await pg.locator(".sheet .pick", has_text="Dia todo").click(); await pg.wait_for_timeout(150)
         await pg.locator(".sheet .btn.primary").click(); await pg.wait_for_timeout(700)
         check((await item("Comprar pilhas AA")).get("due") == ymd(tomorrow), "Dia todo: a date without time")
         check(await row("Comprar pilhas AA").locator(".tag").inner_text() == "Amanhã", "chip 'Amanhã'")

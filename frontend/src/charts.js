@@ -236,7 +236,7 @@ export const ChartsMixin = (Base) =>
         "Por prazo",
         html`${this._gSplit("Pendentes por prazo", parts.map((p) => ({ name: p.label, n: p.n, cls: `k-${p.key}` })))}
           ${parts.map((p) =>
-            this._gRow({ name: p.label, n: p.n, max, pct: share(p.n, total), tile: p.icon, cls: `k-${p.key}`, go: p.key === "none" ? null : () => this._go("/prazos"), label: `${p.label}: ${plural(p.n, "pendente", "pendentes")}` }),
+            this._gRow({ name: p.label, n: p.n, max, pct: share(p.n, total), tile: p.icon, cls: `k-${p.key}`, go: p.key === "none" ? null : () => this._go(""), label: `${p.label}: ${plural(p.n, "pendente", "pendentes")}` }),
           )}`,
       );
     }

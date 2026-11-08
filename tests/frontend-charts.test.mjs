@@ -232,7 +232,7 @@ describe("charts: the screen", () => {
     assert.deepEqual(sections(p), []);
   });
 
-  it("a tap: a list opens it; a room, an equipment or Serviço externo, Buscar with the word; a deadline, Prazos", () => {
+  it("a tap: a list opens it; a room, an equipment or Serviço externo, Buscar with the word; a deadline, Sugestões (the start, 2.48.0)", () => {
     const p = new Panel(LISTS(), { rooms: ROOMS_STATE(), ext: { "todo.casa": { "consertar a pia": "Encanador" } } });
     p._searchDone = true;
     p._searchRooms = p._searchEquips = p._searchExt = false;
@@ -245,7 +245,7 @@ describe("charts: the screen", () => {
     click(p._renderCharts(), "Serviço externo: 1 pendente");
     assert.deepEqual([p._query, p._searchExt], ["Serviço externo", true]);
     click(p._renderCharts(), "Atrasados: 1 pendente");
-    assert.equal(p.went.at(-1), "/prazos");
+    assert.equal(p.went.at(-1), "");
     assert.deepEqual(p.haptics, ["light", "light", "light"]);
     const tappable = labels(p._renderCharts());
     assert.ok(!tappable.some((l) => /^Sem prazo|^Nós mesmos/.test(l)), `Sem prazo and Nós mesmos open nothing (${tappable})`);

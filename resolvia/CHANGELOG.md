@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.48.0
+
+- **Sugestões** é a primeira aba e a tela onde o app abre: no alto, o que está **atrasado** e o que vence **hoje**; depois o **Comece por aqui** (sem repetir esses), **Amanhã**, **Próximos 7 dias**, **Mais adiante**, **Voltam sozinhas** e **Compras**. O número da aba é o que está atrasado ou vence hoje.
+- A aba **Prazos** sai: o que ela mostrava está nas Sugestões. **Controlar prazos** desligado não troca mais de aba; só tira os prazos das Sugestões.
+- A barra de baixo fica **Sugestões**, **Listas**, **Adicionar**, **Buscar** e **Mais**.
+- **Editar item › Horário**: **Dia todo**, **08:00** ou **Outro horário**, lado a lado, no lugar da caixa de horário vazia.
+
 ## 2.47.1
 
 - **Relatório de pendências › Baixar PDF** funciona no app do Home Assistant no celular: o PDF vai para a pasta Downloads (aparece nas notificações), e o botão diz **Baixando…**.

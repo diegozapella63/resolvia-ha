@@ -1,9 +1,11 @@
-// Sugestões: the tab in place of Prazos when Mais › Configurações › Opções › Controlar prazos is
-// off. What to resolve now, from the lists: what has been there longest, what
-// closes a list, what is worth points, what came back (repeats), what the
-// CronologIA dated for today. Shopping lists go apart (you resolve them at the
-// store). With Usar IA on, Sugerir com IA lets the AI pick the Comece por aqui
-// instead, each with why (only when asked; kept until asked again or Voltar ao automático).
+// Sugestões: the first tab and the start of the app (2.48.0), to open it and know what to do. With
+// Controlar prazos on, what is late and for today first (then Comece por aqui, then tomorrow, the next
+// 7 days, later on and what comes back by itself: what the Prazos tab had up to 2.47). Comece por aqui
+// is what to resolve now, from the lists: what has been there longest, what closes a list, what is
+// worth points, what came back (repeats), what the CronologIA dated for today (without the ones
+// already in a group of what is due). Shopping lists go apart (you resolve them at the store). With
+// Usar IA on, Sugerir com IA lets the AI pick the Comece por aqui instead, each with why (only when
+// asked; kept until asked again or Voltar ao automático).
 // Mixed into <resolvia-panel>.
 import { html, nothing, repeat, unsafeSVG } from "../vendor/lit-all.min.js";
 import { ICONS } from "./icons.js";
@@ -63,8 +65,8 @@ export const SuggestMixin = (Base) =>
       return this._visible().filter((l) => !l.unavailable && l.items && has(l.features, F.UPDATE));
     }
 
-    /** {top: [{l, i, why}], shopping: [{l, n, oldest}], pending, lists} */
-    _suggestions() {
+    /** {top: [{l, i, why}], shopping: [{l, n, oldest}], pending, lists}; `skip`: the items already shown (what is due). */
+    _suggestions(skip = new Set()) {
       const now = new Date();
       const rows = [];
       const shopping = [];
@@ -81,6 +83,7 @@ export const SuggestMixin = (Base) =>
           continue;
         }
         pend.forEach((i, idx) => {
+          if (skip.has(i)) return;
           const why = [];
           let score = 0;
           const age = this._ageOf(l, i, now);
@@ -229,15 +232,22 @@ export const SuggestMixin = (Base) =>
     }
 
     _renderSuggest() {
-      const s = this._suggestions();
+      const due = this._dueSections();
+      const s = this._suggestions(new Set(due.rows.map((r) => r.i)));
+      const bits = [];
+      if (s.pending) bits.push(`${plural(s.pending, "pendente", "pendentes")} em ${plural(s.lists, "lista", "listas")}`);
+      if (due.late) bits.push(plural(due.late, "atrasado", "atrasados"));
+      if (due.today) bits.push(`${due.today} para hoje`);
+      const any = s.pending || due.comingN;
       return html`
         <section class="page">
-          ${this._renderPageHead("Sugestões", {
-            text: s.pending ? `${plural(s.pending, "pendente", "pendentes")} em ${plural(s.lists, "lista", "listas")}` : "Nada pendente",
-          })}
-          ${s.pending
+          ${this._renderPageHead("Sugestões", { text: bits.length ? bits.join(" · ") : "Nada pendente", tone: due.late ? "late" : "" })}
+          ${any
             ? html`
-                ${this._renderStart(s)}
+                ${due.soon}
+                ${s.pending ? this._renderStart(s) : nothing}
+                ${due.later}
+                ${due.coming}
                 ${s.shopping.length
                   ? html`<div class="panel">
                       <div class="mais-head"><span class="mais-ic" aria-hidden="true">${icon("shopping-cart")}</span><h2>Compras</h2><small class="mh-count">${s.shopping.length}</small></div>

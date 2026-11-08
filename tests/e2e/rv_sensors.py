@@ -44,7 +44,7 @@ async def main():
         b = await p.chromium.launch()
         pg = await b.new_page(viewport={"width": 390, "height": 844}, device_scale_factor=2, color_scheme="dark")
         errs = []; pg.on("pageerror", lambda e: errs.append(str(e)))
-        await pg.goto("http://127.0.0.1:8099/"); await pg.wait_for_timeout(2000)
+        await pg.goto("http://127.0.0.1:8099/?aba=listas"); await pg.wait_for_timeout(2000)
         await wait_for(lambda: not has("sensor.resolvia_ia_hoje"), "off by default: the old sensor is removed")
         extract(); await asyncio.sleep(1.5)
         check(not has("sensor.resolvia_ia_hoje"), "an AI call does not create it")

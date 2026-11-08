@@ -28,7 +28,7 @@ async def main():
         pg = await ctx.new_page(); errs = []
         pg.on("pageerror", lambda e: errs.append(str(e)))
         pg.on("console", lambda m: m.type == "error" and errs.append(m.text))
-        await pg.goto("http://127.0.0.1:8099/"); await pg.wait_for_timeout(1500)
+        await pg.goto("http://127.0.0.1:8099/?aba=listas"); await pg.wait_for_timeout(1500)
         a = pg.locator("resolvia-panel")
         cards = lambda: a.locator(".list-card .lc-title").all_inner_texts()
         sheet = a.locator(".sheet")
@@ -54,7 +54,7 @@ async def main():
         await sheet.screenshot(path=f"{SP}/shots/rvm-customize.png")
         await sheet.locator(".btn.primary", has_text="Salvar").click(); await pg.wait_for_timeout(600)
         check((await a.locator(".page h1").first.inner_text()).strip() == "Casa da praia", "the list page shows the new name")
-        await pg.reload(); await pg.wait_for_timeout(1500)
+        await pg.goto("http://127.0.0.1:8099/?aba=listas"); await pg.wait_for_timeout(1500)
         check("Casa da praia" in await cards() and "Casa" not in await cards(), f"kept after reloading ({await cards()})")
         style = await a.locator(".list-card", has_text="Casa da praia").first.get_attribute("style")
         check("#2" in (style or "") or "--c:" in (style or ""), f"the card has its color ({(style or '')[:40]})")
@@ -71,7 +71,7 @@ async def main():
         # ---- Ocultar do início, and Mostrar no início
         await a.get_by_label("Opções da lista").click(); await pg.wait_for_timeout(300)
         await sheet.locator(".menu-row", has_text="Ocultar do início").click(); await pg.wait_for_timeout(500)
-        await go("")
+        await go("/minhas-listas")
         got = await cards()
         check("Casa" not in got and "Shopping list" in got, f"hidden from the start screen, the others still there ({got})")
         await go("/listas")
@@ -81,7 +81,7 @@ async def main():
         await a.get_by_label("Opções da lista").click(); await pg.wait_for_timeout(300)
         check(await sheet.locator(".menu-row", has_text="Mostrar no início").count() == 1, "the menu now offers Mostrar no início")
         await sheet.locator(".menu-row", has_text="Mostrar no início").click(); await pg.wait_for_timeout(500)
-        await go("")
+        await go("/minhas-listas")
         check("Casa" in await cards(), "back on the start screen")
 
         # ---- completing, with Desfazer

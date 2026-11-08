@@ -29,6 +29,7 @@ appenv = dict(os.environ, TZ="America/Sao_Paulo", RESOLVIA_DEV="1", RESOLVIA_DEV
 app = subprocess.Popen(["node", f"{REPO}/resolvia/rootfs/app/server.js"], env=appenv, stdout=open(f"{SP}/rvm_app.log", "w"), stderr=subprocess.STDOUT)
 time.sleep(1.0)
 URL = "http://127.0.0.1:8099/"
+LISTAS = URL + "?aba=listas"  # 2.48.0: the app opens on Sugestões; these checks start on Listas
 passed, failed = 0, []
 def check(c, label):
     global passed
@@ -51,7 +52,7 @@ async def main():
         errs = []
         pg.on("pageerror", lambda e: errs.append(str(e)))
         # the CronologIA writes the marker in the notes
-        await pg.goto(URL); await pg.wait_for_timeout(1200)
+        await pg.goto(LISTAS); await pg.wait_for_timeout(1200)
         await pg.evaluate("""(uid) => new Promise((res) => { const ws = new WebSocket(location.origin.replace('http','ws') + '/ws'); ws.onopen = () => ws.send(JSON.stringify({id: 1, type: 'call_service', domain: 'todo', service: 'update_item', service_data: {item: uid, description: 'Rotina da casa do CronologIA · +10 pontos [cr:1a2b3c4d]'}, target: {entity_id: 'todo.casa'}})); ws.onmessage = () => { ws.close(); res(); }; })""", pano["uid"])
         # Recompensas off: no points promised anywhere (the CronologIA marks it done, with no one's points) (2.44.0)
         await pg.locator(".list-card", has_text="Casa").click(); await pg.wait_for_timeout(700)
@@ -64,7 +65,7 @@ async def main():
         await pg.locator(".sheet .btn.primary", has_text="Fechar").click(); await pg.wait_for_timeout(400)
         # Recompensas on (ResolvIA 2.13.0: off by default, and then no points at all)
         await pg.evaluate("""() => new Promise((res) => { const ws = new WebSocket(location.origin.replace('http','ws') + '/ws'); ws.onopen = () => ws.send(JSON.stringify({id: 1, type: 'resolvia/prefs/set_app', prefs: {points_on: true}})); ws.onmessage = () => { ws.close(); res(); }; })""")
-        await pg.reload(); await pg.wait_for_timeout(1200)
+        await pg.goto(LISTAS); await pg.wait_for_timeout(1200)
         await pg.locator(".list-card", has_text="Casa").click(); await pg.wait_for_timeout(700)
         row = pg.locator(".items .item", has_text="Passar pano")
         check((await row.locator(".tag.pts").inner_text()).strip() == "+10", "CronologIA task shows its points (Recompensas on)")

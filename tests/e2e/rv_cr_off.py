@@ -34,7 +34,7 @@ async def main():
         pg = await b.new_page(viewport={"width": 390, "height": 844})
         errs = []
         pg.on("pageerror", lambda e: errs.append(str(e)))
-        await pg.goto("http://127.0.0.1:8099/"); await pg.wait_for_timeout(1300)
+        await pg.goto("http://127.0.0.1:8099/?aba=listas"); await pg.wait_for_timeout(1300)
         check(presence().get("prazos") is True, "presence: prazos on by default")
         await pg.evaluate(WS1, {"type": "resolvia/prefs/set_app", "prefs": {"points_on": True, "due_off": True}})
         await pg.wait_for_timeout(500)
