@@ -30,7 +30,7 @@ async def main():
         a = pg.locator("resolvia-panel"); side = a.locator("aside.side")
         check(await side.is_visible() and not await a.locator("nav .tabs").is_visible(), "1200 px: sidebar, no bottom tabs")
         links = [t.strip() for t in await side.locator(".side-link > span:not(.side-badge)").all_inner_texts()]
-        check(links == ["Sugestões", "Listas", "Buscar", "Mais"], f"the sections, Sugestões first (2.48.0) ({links})")
+        check(links == ["Sugestões", "Buscar", "Listas", "Mais"], f"the sections, Sugestões first and Buscar by it (2.50.0) ({links})")
         badge = side.locator(".side-link", has_text="Sugestões").locator(".side-badge")
         check(await badge.count() == 1 and int(await badge.inner_text()) > 0, "Sugestões with the badge of late and today")
         names = [t.strip() for t in await side.locator(".side-list .sl-name").all_inner_texts()]

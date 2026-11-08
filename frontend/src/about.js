@@ -13,7 +13,7 @@ export const PRODUCTS = [
   ["InventarIA", "inventario-ha", "package", "Inventário da casa: cômodos, itens e valores."],
   ["EconomIA", "economia-ha", "receipt", "Lista de compras com o melhor preço perto de casa."],
   ["MemorIA", "memoria-ha", "book-open", "Cadernos de anotação que abrem na hora certa."],
-  ["CorrerIA", "correria-ha", "message-circle", "O contato no WhatsApp: os apps respondem por lá."],
+  ["CorrerIA", "correria-ha", "message-circle", "Chat com todos os apps: pergunte e peça, também pelo WhatsApp."],
 ];
 
 const icon = (name) =>

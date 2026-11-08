@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.50.0
+
+- **Barra de baixo**: o **Buscar** fica ao lado das **Sugestões**, e as **Listas** vão para o lugar dele: Sugestões · Buscar · Adicionar · Listas · Mais. Arrastar para o lado e a barra lateral do computador seguem a mesma ordem.
+- **Mais › Sobre**: a CorrerIA agora é descrita como o chat com todos os apps (pergunte e peça, também pelo WhatsApp).
+
 ## 2.49.1
 
 - **Mais › Sobre**: a **CorrerIA** (o contato no WhatsApp) entra na lista dos apps.

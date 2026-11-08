@@ -1,4 +1,4 @@
-# ResolvIA 2.21.0: a swipe to the side changes the tab (Sugestões, Listas, Buscar, Mais since 2.48.0); in a list, to the right goes back (2.37: on a screen of Mais, back to the menu); the app icon by the name.
+# ResolvIA 2.21.0: a swipe to the side changes the tab (Sugestões, Buscar, Listas, Mais since 2.50.0, the order of the bar); in a list, to the right goes back (2.37: on a screen of Mais, back to the menu); the app icon by the name.
 import os as _os
 CRONOLOGIA = _os.environ.get("E2E_CRONOLOGIA", "")
 RESOLVIA = _os.environ.get("E2E_RESOLVIA", "")
@@ -53,9 +53,9 @@ async def main():
         await pg.locator(".brand-head").first.screenshot(path=f"{SP}/shots/rvw-icon.png")
         check(await view() == "home", "starts on Sugestões")
         await swipe(pg, H, "main .page", 300, 520, 110, 520)
-        check(await view() == "lists", "finger to the left: Listas")
+        check(await view() == "search", f"finger to the left: Buscar ({await view()})")
         await swipe(pg, H, "main .page", 300, 520, 110, 520)
-        check(await view() == "search", f"again: Buscar ({await view()})")
+        check(await view() == "lists", f"again: Listas ({await view()})")
         await swipe(pg, H, "main .page", 300, 300, 110, 300)
         check(await view() == "more", "again: Mais")
         await swipe(pg, H, "main .page", 300, 300, 110, 300)
@@ -71,9 +71,9 @@ async def main():
         await swipe(pg, H, "main .page", 110, 520, 300, 520)
         check(await view() == "more", "in Mais › Listas, to the right: back to the menu")
         await swipe(pg, H, "main .page", 110, 420, 300, 420)
-        check(await view() == "search", "finger to the right: back")
+        check(await view() == "lists", f"finger to the right: back to Listas ({await view()})")
         await swipe(pg, H, "main .page", 110, 420, 300, 420)
-        check(await view() == "lists", "again: Listas")
+        check(await view() == "search", f"again: Buscar ({await view()})")
         for _ in range(2): await swipe(pg, H, "main .page", 110, 420, 300, 420)
         check(await view() == "home", "back to Sugestões, and it stays there")
         await pg.locator("nav .tab", has_text="Listas").click(); await pg.wait_for_timeout(500)

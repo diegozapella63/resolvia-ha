@@ -55,6 +55,8 @@ async def main():
             check(hrefs == [f"{GH}/{r}" for _, r in APPS], f"{tag}: the seven apps, each to its GitHub ({hrefs})")
             names = [" ".join(t.split()).split(" Este app")[0] for t in await rows.locator("b").all_inner_texts()]
             check(names == [n for n, _ in APPS], f"{tag}: the names, in one piece ({names})")
+            cor = " ".join((await rows.nth(6).inner_text()).split())
+            check(cor.endswith("Chat com todos os apps: pergunte e peça, também pelo WhatsApp."), f"{tag}: CorrerIA, the chat with every app (2.50.0) ({cor})")
             here = a.locator(".ab-row.here")
             check(await here.count() == 1 and f"Este app · v{VERSION}" in await here.inner_text() and await here.get_attribute("href") == f"{GH}/resolvia-ha", f"{tag}: this app marked, with v{VERSION}")
             targets = await a.locator(".about a").evaluate_all("(xs) => xs.map((x) => x.target + ' ' + x.rel)")

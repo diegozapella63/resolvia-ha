@@ -18,13 +18,13 @@ O **Mais** (os três pontos na barra) é um menu, como no InventarIA. Cada linha
 - **Configurações**, em abas: **Integrações** (recompensas do CronologIA, InventarIA, leitura por IA, Falar, uso da IA e sensores), **Dados** (exportar, backup, importar, versões), **Aparência** (tema e cor; com **Cor do dia**, ligada no começo, a cor muda todo dia sozinha, e escolher uma cor deixa fixa nela) e **Opções** (**Prazos**: controlar prazos; **Exibição**: agrupar por dispositivo, concluídos abertos, notas; **Quem faz**: serviços externos; **Repetição**: ligar ou desligar e as tarefas que voltam sozinhas).
 - **Sobre**, por último: quem faz o app (**CorrerIA Code**), os outros apps da família, cada um com uma linha e o link para o GitHub, e **Meu GitHub**.
 
-A barra de baixo tem **Sugestões** (a primeira, onde o app abre), **Listas**, **Adicionar**, **Buscar** e **Mais**. No celular, arrastar para o lado troca de aba.
+A barra de baixo tem **Sugestões** (a primeira, onde o app abre), **Buscar**, **Adicionar**, **Listas** e **Mais**. No celular, arrastar para o lado troca de aba, na mesma ordem.
 
 As caixas de seleção (como **Fala para texto** ou a lista de um item ao importar) abrem uma janela de baixo para cima com as opções; a atual vem marcada. O Voltar do celular, o **X** ou tocar fora fecham sem mudar nada. No computador, a janela abre no meio da tela, e dá para escolher com as setas e Enter.
 
 ### No computador
 
-Com a tela larga (1000 pixels ou mais, como no InventarIA), as abas de baixo viram uma **barra lateral**, com as seções (Sugestões, Listas, Buscar, Mais) e as **listas**, cada uma com o que falta. No alto, à direita, ficam a **Conversa**, o **Falar**, **Ler com IA** e **Adicionar item**; no início, ao lado do caderno, **Atrasados**, **Para hoje**, **Próximo prazo** e **Mais cheia** (cada um abre o que mostra). As janelas (Novo item, editar) abrem no meio da tela. O **Buscar** já abre com o cursor no campo, e a tecla **/** abre o Buscar de qualquer tela (como no InventarIA). No celular e no tablet nada muda; lá o Buscar não abre o teclado sozinho.
+Com a tela larga (1000 pixels ou mais, como no InventarIA), as abas de baixo viram uma **barra lateral**, com as seções (Sugestões, Buscar, Listas, Mais) e as **listas**, cada uma com o que falta. No alto, à direita, ficam a **Conversa**, o **Falar**, **Ler com IA** e **Adicionar item**; no início, ao lado do caderno, **Atrasados**, **Para hoje**, **Próximo prazo** e **Mais cheia** (cada um abre o que mostra). As janelas (Novo item, editar) abrem no meio da tela. O **Buscar** já abre com o cursor no campo, e a tecla **/** abre o Buscar de qualquer tela (como no InventarIA). No celular e no tablet nada muda; lá o Buscar não abre o teclado sozinho.
 
 ## Listas e itens
 

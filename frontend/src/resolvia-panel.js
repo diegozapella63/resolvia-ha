@@ -52,7 +52,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.49.1";
+const VERSION = "2.50.0";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -627,7 +627,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     location.href = r.report(q.toString());
   }
 
-  // Arrastar para o lado: Sugestões ⇄ Listas ⇄ Buscar ⇄ Mais; dentro de uma lista, para a direita volta,
+  // Arrastar para o lado: Sugestões ⇄ Buscar ⇄ Listas ⇄ Mais (a ordem da barra de baixo); dentro de uma lista, para a direita volta,
   // e numa tela do Mais (Listas, Gráficos, Configurações), para a direita volta ao menu
   _onSwipeStart(e) {
     this._sw = this._sheet || this._cam ? null : swipeStart(e);
@@ -639,8 +639,8 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     if (!d || this._sheet) return;
     const order = [
       ["home", ""],
-      ["lists", "/minhas-listas"],
       ["search", "/buscar"],
+      ["lists", "/minhas-listas"],
       ["more", "/mais"],
     ];
     const name = this._view().name;
@@ -1938,11 +1938,11 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     return html`
       <nav>
         <div class="tabs">
-          ${tab("home", "", "Sugestões", "lightbulb", lateCount)} ${tab("lists", "/minhas-listas", "Listas", "list-checks")}
+          ${tab("home", "", "Sugestões", "lightbulb", lateCount)} ${tab("search", "/buscar", "Buscar", "search")}
           <button class="tab fab" @click=${() => this._openAdd(view.name === "list" ? view.id : null)} aria-label="Adicionar item">
             <span class="pill">${icon("plus")}</span><span>Adicionar</span>
           </button>
-          ${tab("search", "/buscar", "Buscar", "search")} ${tab("more", "/mais", "Mais", "ellipsis")}
+          ${tab("lists", "/minhas-listas", "Listas", "list-checks")} ${tab("more", "/mais", "Mais", "ellipsis")}
         </div>
       </nav>
     `;
@@ -1962,8 +1962,8 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     return html`<aside class="side" aria-label="Navegação">
       <div class="side-brand">${appIcon()}Resolv<span>IA</span></div>
       <div class="side-nav">
-        ${item("home", "", "Sugestões", "lightbulb", lateCount)} ${item("lists", "/minhas-listas", "Listas", "list-checks")}
-        ${item("search", "/buscar", "Buscar", "search", 0, "/")} ${item("more", "/mais", "Mais", "ellipsis")}
+        ${item("home", "", "Sugestões", "lightbulb", lateCount)} ${item("search", "/buscar", "Buscar", "search", 0, "/")}
+        ${item("lists", "/minhas-listas", "Listas", "list-checks")} ${item("more", "/mais", "Mais", "ellipsis")}
       </div>
       ${lists.length
         ? html`<div class="side-h"><span>Listas</span><small>${lists.length}</small></div>
