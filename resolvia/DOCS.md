@@ -42,7 +42,9 @@ Segure um item (ou use **⋯ › Selecionar itens**) para selecionar: toque nos 
 
 ### Buscar
 
-A aba **Buscar** procura em todas as listas que aparecem (as ocultas ficam fora), no texto e nas notas, sem ligar para acentos. Em **Incluir** ficam **Concluídos**, **Serviços externos** (acha por quem faz; só com **Serviços externos** ligado em Opções) e, com o InventarIA, **Cômodos** e **Equipamentos** (acha pelo nome ou pela zona; só aparecem com **Usar cômodos** e **Usar equipamentos** ligados).
+A aba **Buscar** abre com todos os pendentes das listas que aparecem (as ocultas ficam fora), separados por lista, como no InventarIA. Digitar procura no texto e nas notas, sem ligar para acentos. Em **Incluir** ficam **Concluídos**, **Serviços externos** (acha por quem faz; só com **Serviços externos** ligado em Opções) e, com o InventarIA, **Cômodos** e **Equipamentos** (acha pelo nome ou pela zona; só aparecem com **Usar cômodos** e **Usar equipamentos** ligados).
+
+**Selecionar** (ao lado da contagem, ou segurando um item) escolhe vários pendentes, de listas diferentes; **Todos** pega os que estão à vista (com o que foi digitado). **Alterar N itens** abre uma janela com **Prazo** (e o **Horário**), **Cômodo**, **Equipamento**, **Quem faz** e **Lista** (mover), cada um começando em **Manter**: só muda o que você escolher, e cada campo só aparece com a opção dele ligada (**Controlar prazos**, **Usar cômodos**, **Usar equipamentos**, **Serviços externos**). O que uma lista não aceita fica como estava: prazo numa lista sem datas, mover de uma lista que não apaga e, numa tarefa com equipamento, o cômodo (que vem dele). O aviso no fim diz quantos mudaram. Manutenções e rotinas do CronologIA não entram (mude por lá).
 
 No início, logo abaixo do resumo, fica o campo **Buscar entre N itens**, como no InventarIA: a primeira letra já abre o **Buscar** com o que você digitou, e dá para continuar digitando lá.
 

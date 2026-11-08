@@ -49,7 +49,7 @@ async def main():
         await pg.goto(URL); await pg.wait_for_timeout(1300)
         await pg.locator(".tab", has_text="Buscar").click(); await pg.wait_for_timeout(400)
         check(await pg.locator(".page-title").inner_text() == "Buscar" and "Em 4 listas" in await pg.locator(".brand-head .status").inner_text(), "Buscar: in the 4 lists")
-        check(await sub() == "Procure por qualquer palavra, em todas as listas." and await pg.locator(".page .panel.items").count() == 0, "empty: a hint, no results")
+        check(await sub() == "9 pendentes" and await pg.locator(".page .panel.items").count() == 4, f"empty: everything pending, by list, like the InventarIA (2.51.0) ({await sub()})")
 
         # one word, two lists; highlighted; the list names as headings
         await search("luz")
@@ -85,7 +85,7 @@ async def main():
         check("Nada encontrado" in await pg.locator(".page").inner_text(), "nothing found")
         await pg.screenshot(path=f"{SP}/shots/rvs-nada.png")
         await pg.locator(".search-box .icon-btn[aria-label='Limpar']").click(); await pg.wait_for_timeout(250)
-        check(await box.input_value() == "" and await sub() == "Procure por qualquer palavra, em todas as listas.", "× clears the search")
+        check(await box.input_value() == "" and await sub() == "9 pendentes", "× clears the search: everything pending again")
 
         # open an item from a result and edit it
         await search("filtro")

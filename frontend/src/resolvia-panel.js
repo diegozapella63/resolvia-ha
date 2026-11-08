@@ -52,7 +52,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.50.1";
+const VERSION = "2.51.0";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -116,6 +116,8 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     _doneOpen: { state: true },
     // Selecionar: several items of one list at once {listId, keys: Set}, or null
     _sel: { state: true },
+    // Buscar › Selecionar: pending items of any list at once {path, keys: Set of "list|item"}, or null
+    _bsel: { state: true },
     _rules: { state: true },
     _cam: { state: true },
     _rooms: { state: true },
@@ -2297,9 +2299,10 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
    * One item to another list, as the item sheet's Mover does: added there with its date, and its
    * repetition, points, rooms and equipment go along. It is removed from here by the caller.
    */
-  async _moveItem(list, item, target) {
+  async _moveItem(list, item, target, newDue = null) {
     const summary = item.summary || "";
-    const due = parseDue(item.due);
+    // newDue: the deadline chosen in Buscar › Alterar ({date, time}; date null = Sem prazo), or null to keep it
+    const due = newDue ? (newDue.date ? newDue : null) : parseDue(item.due);
     const ok = await this._addFull(target, { summary, description: stripMark(item.description), date: due ? due.date : null, time: due ? due.time : null });
     if (!ok) return false;
     const rule = this._ruleFor(list.id, item);
@@ -2383,8 +2386,9 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     if (opts.selecting) {
       const on = !!opts.selected;
       return html`
-        <div class="item selecting ${on ? "picked" : ""}" data-key=${keyOf(item)} @click=${() => this._toggleSel(item)}>
-          <span class="check sel ${on ? "on" : ""}" role="checkbox" aria-checked=${on ? "true" : "false"} aria-label="Selecionar ${item.summary || ""}">${icon("check")}</span>
+        <div class="item selecting ${on ? "picked" : ""} ${opts.locked ? "locked" : ""}" data-key=${keyOf(item)} style=${opts.showList ? colorVars(l.color, this._dark) : ""} title=${opts.locked || ""}
+          @click=${() => (opts.locked ? this._showToast(opts.locked) : opts.onToggle ? opts.onToggle() : this._toggleSel(item))}>
+          <span class="check sel ${on ? "on" : ""}" role="checkbox" aria-checked=${on ? "true" : "false"} aria-disabled=${opts.locked ? "true" : "false"} aria-label="Selecionar ${item.summary || ""}">${icon(opts.locked ? "lock" : "check")}</span>
           <div class="it-body">
             <div class="it-text">${item.summary || ""}</div>
             ${this._roomIdOf(l.id, item.summary) || this._equipIdOf(l.id, item.summary) || this._externalOf(l.id, item.summary) ? html`<div class="chips">${this._renderExternalTag(l.id, item)} ${this._renderRoomTag(l.id, item)} ${this._renderEquipTag(l.id, item)}</div>` : nothing}
@@ -2393,7 +2397,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
       `;
     }
     return html`
-      <div class="item ${done ? "done" : ""}" data-key=${keyOf(item)} ?data-drag=${opts.draggable} style=${opts.showList ? colorVars(l.color, this._dark) : ""} @contextmenu=${opts.selectable ? (e) => (e.preventDefault(), this._startSelect(l, item)) : null}>
+      <div class="item ${done ? "done" : ""}" data-key=${keyOf(item)} ?data-drag=${opts.draggable} style=${opts.showList ? colorVars(l.color, this._dark) : ""} @contextmenu=${opts.onHold ? (e) => (e.preventDefault(), opts.onHold()) : opts.selectable ? (e) => (e.preventDefault(), this._startSelect(l, item)) : null}>
         <button class="check ${done ? "on" : ""}" role="checkbox" aria-checked=${done ? "true" : "false"} aria-label=${done ? "Marcar como pendente" : "Marcar como resolvido"} ?disabled=${!canUpdate} @click=${() => this._toggle(l, item)}>
           ${icon("check")}
         </button>
@@ -2551,28 +2555,40 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
   _renderSearch() {
     const q = this._query.trim();
     const needle = fold(q);
+    const selecting = this._bselOn();
     const results = [];
     let count = 0;
     const byRoom = this._roomsOn() && this._searchRooms;
     const byEquip = this._equipsOn() && this._searchEquips;
     const byExt = this._extOn() && this._searchExt;
     const place = (l, i) => (byRoom || byEquip ? fold(this._placeText(l.id, i.summary, { rooms: byRoom, equips: byEquip })).includes(needle) : false);
-    if (needle) {
-      // only the lists that are on (Mais › Listas): the hidden ones are not searched
-      for (const l of this._visible()) {
-        const hits = (l.items || []).filter(
-          // also by the room or the item of the InventarIA ("cozinha", "fogão")
-          (i) => (this._searchDone || !isDone(i)) && (fold(i.summary).includes(needle) || fold(i.description).includes(needle) || place(l, i) || (byExt && fold(this._externalText(l.id, i.summary)).includes(needle))),
-        );
-        if (hits.length) {
-          hits.sort((a, b) => Number(isDone(a)) - Number(isDone(b)));
-          results.push({ l, hits });
-          count += hits.length;
-        }
+    const hit = (l, i) =>
+      !needle || fold(i.summary).includes(needle) || fold(i.description).includes(needle) || place(l, i) || (byExt && fold(this._externalText(l.id, i.summary)).includes(needle));
+    // like the InventarIA: everything pending from the start (only the lists that are on, Mais › Listas), and a word
+    // narrows it, also by the room or the item of the InventarIA ("cozinha", "fogão"); selecting, only what is pending
+    for (const l of this._visible()) {
+      const hits = (l.items || []).filter((i) => ((this._searchDone && !selecting) || !isDone(i)) && hit(l, i));
+      if (hits.length) {
+        hits.sort((a, b) => Number(isDone(a)) - Number(isDone(b)));
+        results.push({ l, hits });
+        count += hits.length;
       }
     }
+    const shown = results.flatMap(({ l, hits }) => hits.filter((i) => !this._bulkLocked(l, i)).map((i) => this._bkey(l, i)));
+    const n = selecting ? this._bulkRows().length : 0;
+    const all = selecting && shown.length > 0 && shown.every((k) => this._bsel.keys.has(k));
+    const head = selecting
+      ? html`<div class="res-head sel-head">
+          <button class="icon-btn" @click=${() => this._endBulk()} aria-label="Cancelar seleção">${icon("x")}</button>
+          <b class="res-n">${n ? `${n} ${n === 1 ? "selecionado" : "selecionados"}` : "Selecionar"}</b>
+          <button class="text-btn" ?disabled=${!shown.length} @click=${() => (this._bsel = { ...this._bsel, keys: all ? new Set() : new Set([...this._bsel.keys, ...shown]) })}>${all ? "Nenhum" : "Todos"}</button>
+        </div>`
+      : html`<div class="res-head">
+          <p class="page-sub">${needle ? plural(count, "resultado", "resultados") : this._searchDone ? plural(count, "item", "itens") : plural(count, "pendente", "pendentes")}</p>
+          ${count ? html`<button class="text-btn" @click=${() => this._startBulk()}>${icon("square-check-big")}Selecionar</button>` : nothing}
+        </div>`;
     return html`
-      <section class="page">
+      <section class="page ${selecting ? "selecting-page" : ""}">
         ${this._renderPageHead("Buscar", { text: `Em ${plural(this._visible().length, "lista", "listas")}` })}
         <label class="search-box">
           ${icon("search")}
@@ -2581,27 +2597,278 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
         </label>
         <div class="filters-label" id="incluir">Incluir</div>
         <div class="filters" role="group" aria-labelledby="incluir">
-          ${this._searchToggle("circle-check", "Concluídos", this._searchDone, () => (this._searchDone = !this._searchDone))}
+          ${selecting ? nothing : this._searchToggle("circle-check", "Concluídos", this._searchDone, () => (this._searchDone = !this._searchDone))}
           ${/* Serviços externos, Cômodos and Equipamentos only with their option on (off: they aren't there) */ ""}
           ${this._extOn() ? this._searchToggle("hard-hat", "Serviços externos", this._searchExt, () => (this._searchExt = !this._searchExt)) : nothing}
           ${this._rooms && this._rooms.encontrado && this._roomsOn() ? this._searchToggle("door-open", "Cômodos", this._searchRooms, () => (this._searchRooms = !this._searchRooms)) : nothing}
           ${this._rooms && this._rooms.encontrado && this._equipsOn() ? this._searchToggle("package", "Equipamentos", this._searchEquips, () => (this._searchEquips = !this._searchEquips)) : nothing}
         </div>
-        ${!needle
-          ? html`<p class="page-sub" style="margin-top:0">Procure por qualquer palavra, em todas as listas.</p>`
-          : results.length
-            ? html`<p class="page-sub" style="margin-top:0">${plural(count, "resultado", "resultados")}</p>
-                ${results.map(
-                  ({ l, hits }) => html`
-                    <div class="panel items" style=${colorVars(l.color, this._dark)}>
-                      <div class="overline">${l.name}${l.group ? ` · ${l.group}` : ""}</div>
-                      ${repeat(hits, keyOf, (i) => this._renderItem(l, i, { query: q }))}
-                    </div>
-                  `,
-                )}`
-            : html`<div class="panel"><div class="empty"><div class="em-icon">${icon("search")}</div><h3>Nada encontrado</h3><p>Nenhum item com “${clip(q, 30)}”.</p></div></div>`}
+        ${results.length
+          ? html`${head}
+              ${results.map(
+                ({ l, hits }) => html`
+                  <div class="panel items" style=${colorVars(l.color, this._dark)}>
+                    <div class="overline">${l.name}${l.group ? ` · ${l.group}` : ""}</div>
+                    ${repeat(hits, keyOf, (i) =>
+                      selecting
+                        ? this._renderItem(l, i, { selecting: true, selected: this._bsel.keys.has(this._bkey(l, i)), locked: this._bulkLocked(l, i), onToggle: () => this._toggleBulk(l, i) })
+                        : this._renderItem(l, i, { query: q, onHold: isDone(i) || this._bulkLocked(l, i) ? null : () => this._startBulk(l, i) }),
+                    )}
+                  </div>
+                `,
+              )}
+              ${selecting
+                ? html`<div class="sel-bar">
+                    <button class="btn primary" ?disabled=${!n} @click=${() => this._openBulk()}>${icon("pencil")}${n ? `Alterar ${n} ${n === 1 ? "item" : "itens"}` : "Alterar"}</button>
+                  </div>`
+                : nothing}`
+          : needle
+            ? html`<div class="panel"><div class="empty"><div class="em-icon">${icon("search")}</div><h3>Nada encontrado</h3><p>Nenhum item com “${clip(q, 30)}”.</p></div></div>`
+            : html`<div class="panel"><div class="empty"><div class="em-icon">${icon("circle-check")}</div><h3>Nada pendente</h3><p>Tudo resolvido nas listas.</p></div></div>`}
       </section>
     `;
+  }
+
+  // ---------- Buscar › Selecionar: pending items of any list, changed at once (Alterar)
+
+  _bkey(l, i) {
+    return `${l.id}|${keyOf(i)}`;
+  }
+
+  /** Selecting in Buscar (leaving it ends it: another page has another path). */
+  _bselOn() {
+    return !!(this._bsel && this._bsel.path === this._path);
+  }
+
+  /** Why an item can't be picked (a maintenance or routine of the CronologIA is changed there), or "". */
+  _bulkLocked(l, i) {
+    return this._mirrored(l.id, i.uid) ? "Vem do CronologIA: mude por lá." : "";
+  }
+
+  /** From Selecionar, or holding an item (that one comes selected). */
+  _startBulk(l = null, i = null) {
+    this._bsel = { path: this._path, keys: new Set(l && i ? [this._bkey(l, i)] : []) };
+    this._haptic("light");
+  }
+
+  _toggleBulk(l, i) {
+    const keys = new Set(this._bsel.keys);
+    const k = this._bkey(l, i);
+    if (keys.has(k)) keys.delete(k);
+    else keys.add(k);
+    this._bsel = { ...this._bsel, keys };
+  }
+
+  _endBulk() {
+    this._bsel = null;
+  }
+
+  /** The selected items that are still there and pending: [{l, i}]. */
+  _bulkRows() {
+    if (!this._bsel) return [];
+    const out = [];
+    for (const l of this._visible()) for (const i of l.items || []) if (!isDone(i) && this._bsel.keys.has(this._bkey(l, i)) && !this._bulkLocked(l, i)) out.push({ l, i });
+    return out;
+  }
+
+  /** Alterar N itens: each field starts on Manter (nothing changes until another choice). */
+  _openBulk() {
+    this._openSheet("bulk", { setDue: false, date: null, time: null, setRooms: false, rooms: [], setEquips: false, equips: [], equipQ: "", equipMore: false, equipAdding: false, setExt: false, ext: null, target: null });
+  }
+
+  /**
+   * The sheet of Alterar: Prazo, Cômodo, Equipamento, Quem faz and Lista, each only when its option is on
+   * (Controlar prazos, Usar cômodos, Usar equipamentos, Serviços externos), as in the item sheet.
+   */
+  _renderBulkSheet() {
+    const f = this._form;
+    const rows = this._bulkRows();
+    const n = rows.length;
+    if (!f || !n) return nothing;
+    const canDate = this._dueOn() && rows.some(({ l }) => has(l.features, F.DUE_DATE) || has(l.features, F.DUE_DATETIME));
+    const canTime = rows.some(({ l }) => has(l.features, F.DUE_DATETIME));
+    const quick = quickDates();
+    const isQuick = quick.some((q) => q.date === f.date);
+    const openPicker = (sel) => {
+      const input = this.renderRoot.querySelector(sel);
+      if (!input) return;
+      try {
+        input.showPicker();
+      } catch (e) {
+        input.focus();
+        input.click();
+      }
+    };
+    const keep = (on, change) => html`<button class="pick keep ${on ? "on" : ""}" aria-pressed=${on ? "true" : "false"} @click=${change}>Manter</button>`;
+    const eqOn = this._equipsOn();
+    const eqIds = f.setEquips ? f.equips || [] : [];
+    const locked = eqOn && eqIds.length > 0;
+    const rooms = locked ? this._roomsOfEquips(eqIds) : f.rooms || [];
+    const allIds = this._roomList().map((c) => c.id);
+    const allRooms = !locked && f.setRooms && this._allRooms(rooms);
+    const toggleRoom = (id) => {
+      const next = rooms.includes(id) ? rooms.filter((x) => x !== id) : [...rooms, id];
+      this._setForm({ setRooms: true, rooms: next });
+    };
+    const e = f.setExt ? f.ext : null;
+    const targets = this._L.filter((t) => has(t.features, F.CREATE) && !t.unavailable && !t.hidden);
+    const changed = f.setDue || f.setRooms || f.setEquips || f.setExt || !!f.target;
+    return html`
+      <div class="sheet-head">
+        <h3 class="display">Alterar ${n} ${n === 1 ? "item" : "itens"}</h3>
+        <button class="icon-btn" @click=${() => this._closeSheet()} aria-label="Fechar">${icon("x")}</button>
+      </div>
+      ${canDate
+        ? html`<div class="field" data-f="prazo">
+            <span class="flabel">Prazo</span>
+            <div class="chip-row grid">
+              ${keep(!f.setDue, () => this._setForm({ setDue: false, date: null, time: null }))}
+              ${quick.map((q) => html`<button class="pick ${f.setDue && f.date === q.date ? "on" : ""}" @click=${() => this._setForm({ setDue: true, date: q.date })}>${q.label}</button>`)}
+              <button class="pick ${f.setDue && f.date && !isQuick ? "on" : ""}" @click=${() => openPicker("#rv-bulk-date")}>
+                ${icon("calendar")}<span>${f.setDue && f.date && !isQuick ? shortDate(f.date) : "Outra data"}</span>
+                <input id="rv-bulk-date" class="hidden-input" type="date" tabindex="-1" .value=${f.date || ""} @change=${(ev) => ev.target.value && this._setForm({ setDue: true, date: ev.target.value })} />
+              </button>
+              <button class="pick ${f.setDue && !f.date ? "on" : ""}" @click=${() => this._setForm({ setDue: true, date: null, time: null })}>${icon("x")}<span>Sem prazo</span></button>
+            </div>
+          </div>`
+        : nothing}
+      ${canDate && canTime && f.setDue && f.date
+        ? html`<div class="field" data-f="horario">
+            <span class="flabel">Horário</span>
+            <div class="chip-row grid">
+              <button class="pick ${!f.time ? "on" : ""}" @click=${() => this._setForm({ time: null })}>${icon("sun")}<span>Dia todo</span></button>
+              <button class="pick ${f.time === DEFAULT_TIME ? "on" : ""}" @click=${() => this._setForm({ time: DEFAULT_TIME })}>${icon("clock")}<span>${DEFAULT_TIME}</span></button>
+              <button class="pick ${f.time && f.time !== DEFAULT_TIME ? "on" : ""}" @click=${() => openPicker("#rv-bulk-time")}>
+                ${icon("clock-fading")}<span>${f.time && f.time !== DEFAULT_TIME ? f.time : "Outro horário"}</span>
+                <input id="rv-bulk-time" class="hidden-input" type="time" tabindex="-1" .value=${f.time || DEFAULT_TIME} @change=${(ev) => this._setForm({ time: ev.target.value || null })} />
+              </button>
+            </div>
+          </div>`
+        : nothing}
+      ${this._roomsOn()
+        ? html`<div class="field" data-f="comodo">
+            <span class="flabel">Cômodo</span>
+            <div class="chip-row grid ${locked ? "locked" : ""}">
+              ${keep(!f.setRooms && !locked, () => this._setForm({ setRooms: false, rooms: [] }))}
+              <button class="pick ${f.setRooms && !rooms.length && !locked ? "on" : ""}" ?disabled=${locked} @click=${() => this._setForm({ setRooms: true, rooms: [] })}>Nenhum</button>
+              ${allIds.length > 1
+                ? html`<button class="pick room all-rooms ${allRooms ? "on" : ""}" ?disabled=${locked} @click=${() => this._setForm(allRooms ? { setRooms: true, rooms: [] } : { setRooms: true, rooms: allIds })}>${icon("house")}<span>Todos</span></button>`
+                : nothing}
+              ${this._roomList().map(
+                (c) => html`<button class="pick room ${(f.setRooms || locked) && rooms.includes(c.id) ? "on" : ""}" aria-pressed=${(f.setRooms || locked) && rooms.includes(c.id) ? "true" : "false"} ?disabled=${locked} @click=${() => toggleRoom(c.id)}>${icon("door-open")}<span>${clip(c.nome, 22)}</span></button>`,
+              )}
+            </div>
+            ${locked ? html`<span class="field-hint">${icon("lock")}<span>Vem ${eqIds.length > 1 ? "dos equipamentos" : "do equipamento"}.</span></span>` : nothing}
+          </div>`
+        : nothing}
+      ${eqOn
+        ? html`<div class="field" data-f="equipamento">
+            <span class="flabel">${eqIds.length > 1 ? "Equipamentos" : "Equipamento"}</span>
+            <div class="chip-row grid">
+              ${keep(!f.setEquips, () => this._setForm({ setEquips: false, equips: [], equipAdding: false }))}
+              <button class="pick ${f.setEquips && !eqIds.length ? "on" : ""}" @click=${() => this._setForm({ setEquips: true, equips: [], equipAdding: false })}>Nenhum</button>
+            </div>
+            ${renderEquipPicker({
+              lit: { html, nothing },
+              icon,
+              items: this._equipItems(),
+              room: eqIds.length ? this._roomsOfEquips(eqIds)[0] || null : this._roomsOn() && f.setRooms && rooms.length === 1 ? rooms[0] : null,
+              roomName: eqIds.length ? this._roomName(this._roomsOfEquips(eqIds)[0]) || "" : this._roomsOn() && f.setRooms && rooms.length === 1 ? this._roomName(rooms[0]) || "" : "",
+              value: eqIds,
+              query: f.equipQ || "",
+              more: !!f.equipMore,
+              adding: !!f.equipAdding,
+              autofocus: !!f.equipAdding,
+              onQuery: (q) => this._setForm({ equipQ: q, equipMore: false }),
+              onMore: () => this._setForm({ equipMore: true }),
+              onAdd: () => this._setForm({ equipAdding: true, equipQ: "", equipMore: false }),
+              onPick: (id) => this._setForm({ setEquips: true, equips: [...eqIds, id], equipQ: "", equipMore: false, equipAdding: false }),
+              onRemove: (id) => this._setForm({ equips: eqIds.filter((x) => x !== id) }),
+            })}
+          </div>`
+        : nothing}
+      ${this._extOn()
+        ? html`<div class="field" data-f="quem-faz">
+            <span class="flabel">Quem faz</span>
+            <div class="chip-row ext-row bulk-ext">
+              ${keep(!f.setExt, () => this._setForm({ setExt: false, ext: null }))}
+              <button class="pick ${f.setExt && !e ? "on" : ""}" @click=${() => this._setForm({ setExt: true, ext: null })}>${icon("house")}<span>Nós mesmos</span></button>
+              <button class="pick ${f.setExt && e ? "on" : ""}" @click=${() => this._setForm({ setExt: true, ext: e || true })}>${icon("hard-hat")}<span>Serviço externo</span></button>
+            </div>
+            ${f.setExt && e
+              ? html`<input type="text" class="ext-who" maxlength="60" .value=${e === true ? "" : e} placeholder="Quem? Eletricista, assistência técnica…" aria-label="Quem vai fazer"
+                  @input=${(ev) => this._setForm({ ext: ev.target.value.replace(/\s+/g, " ").trim().slice(0, 60) || true })} />`
+              : nothing}
+          </div>`
+        : nothing}
+      ${targets.length > 1
+        ? html`<div class="field" data-f="lista">
+            <span class="flabel">Lista</span>
+            <div class="chip-row grid">
+              ${keep(!f.target, () => this._setForm({ target: null }))}
+              ${targets.map((t) => html`<button class="pick list ${f.target === t.id ? "on" : ""}" style=${colorVars(t.color, this._dark)} @click=${() => this._setForm({ target: t.id })}><span class="dot"></span><span>${clip(t.name, 26)}</span></button>`)}
+            </div>
+          </div>`
+        : nothing}
+      <div class="sheet-actions">
+        <button class="btn primary" ?disabled=${!changed} @click=${() => this._applyBulk()}>Aplicar</button>
+      </div>
+    `;
+  }
+
+  /**
+   * Aplicar: what was chosen goes to every selected item, with the same functions as the item sheet. What a list
+   * can't take is left as it was: no deadline on a list without dates, no move out of a list that doesn't delete,
+   * and, with equipment, the room stays the equipment's (as in the item sheet, where it is locked).
+   */
+  async _applyBulk() {
+    const f = this._form;
+    const rows = this._bulkRows();
+    this._closeSheet();
+    this._endBulk();
+    if (!rows.length) return;
+    const target = f.target ? this._list(f.target) : null;
+    const due = f.setDue && this._dueOn() ? { date: f.date || null, time: f.date ? f.time || null : null } : null;
+    const eqOn = this._equipsOn();
+    const equips = eqOn && f.setEquips ? f.equips || [] : null;
+    const rooms = this._roomsOn() ? (equips && equips.length ? this._roomsOfEquips(equips) : f.setRooms ? f.rooms || [] : null) : null;
+    const moved = new Map();
+    let whole = 0;
+    this._haptic("light");
+    for (const { l, i } of rows) {
+      const summary = i.summary || "";
+      let skip = false;
+      if (equips) await this._setTaskEquip(l.id, summary, equips);
+      if (rooms) {
+        const own = equips ? [] : this._equipIdsOf(l.id, summary);
+        const theirs = this._roomsOfEquips(own);
+        if (own.length && theirs.join("|") !== [...rooms].join("|")) skip = true;
+        else await this._setTaskRoom(l.id, summary, rooms);
+      }
+      if (f.setExt && this._extOn()) await this._setTaskExternal(l.id, summary, f.ext || null);
+      const canDue = has(l.features, F.DUE_DATE) || has(l.features, F.DUE_DATETIME);
+      if (due && !canDue) skip = true;
+      if (target && target.id !== l.id) {
+        if (has(l.features, F.DELETE) && (await this._moveItem(l, i, target, due && canDue ? due : null))) {
+          if (!moved.has(l.id)) moved.set(l.id, []);
+          moved.get(l.id).push(keyOf(i));
+          if (!skip) whole++;
+          continue;
+        }
+        skip = true;
+      }
+      if (due && canDue && has(l.features, F.UPDATE)) {
+        const before = parseDue(i.due);
+        if ((before ? before.date : null) !== due.date || (before ? before.time : null) !== due.time) {
+          const fields = this._dueFields(l, due.date, due.time, true);
+          if (Object.keys(fields).length) await this._call("update_item", { item: keyOf(i), ...fields }, l.id);
+        }
+      }
+      if (!skip) whole++;
+    }
+    for (const [id, keys] of moved) await this._call("remove_item", { item: keys }, id);
+    const n = rows.length;
+    this._showToast(whole === n ? `${n} ${n === 1 ? "item alterado" : "itens alterados"}` : `${whole} de ${n} itens alterados: o resto não aceita a mudança`);
   }
 
   // ---------- Mais: a menu; Listas, Gráficos and Configurações are screens of their own (Repetição is in Opções)
@@ -3031,6 +3298,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     else if (this._sheet === "versions") body = this._renderVersions();
     else if (this._sheet === "who") body = this._renderWhoSheet();
     else if (this._sheet === "move") body = this._renderMoveSheet();
+    else if (this._sheet === "bulk") body = this._renderBulkSheet();
     else if (this._sheet === "chat") body = this._renderChatSheet();
     return html`
       <div class="scrim" @click=${() => this._closeSheet()}></div>

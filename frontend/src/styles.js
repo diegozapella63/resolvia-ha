@@ -991,6 +991,46 @@ export const styles = css`
   .sel-head .text-btn {
     align-self: center;
   }
+  /* Buscar: how many, and Selecionar (2.51.0); selecting: X, how many, Todos/Nenhum */
+  .res-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin: -8px 2px 12px;
+    min-height: 40px;
+  }
+  .res-head .page-sub {
+    margin: 0;
+  }
+  .res-head .text-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+  .res-head .text-btn .i {
+    width: 18px;
+    height: 18px;
+  }
+  .res-head.sel-head {
+    justify-content: flex-start;
+  }
+  .res-head .res-n {
+    flex: 1;
+    min-width: 0;
+    font-size: 17px;
+  }
+  .item.selecting.locked {
+    cursor: default;
+    opacity: 0.55;
+  }
+  .chip-row.ext-row.bulk-ext {
+    grid-template-columns: 1fr 1fr;
+  }
+  .chip-row.ext-row.bulk-ext .keep {
+    grid-column: 1 / -1;
+  }
   .sel-bar {
     position: sticky;
     bottom: calc(var(--rv-nav-h) + 12px + env(safe-area-inset-bottom, 0px));

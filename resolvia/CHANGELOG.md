@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.51.0
+
+- **Buscar** abre com todos os pendentes, separados por lista, como no InventarIA. Digitar continua filtrando.
+- **Selecionar** (ao lado da contagem, ou segurando um item) escolhe vários pendentes de uma vez, de listas diferentes, com **Todos** e **Nenhum**.
+- **Alterar N itens** muda todos juntos: **Prazo** (e o horário), **Cômodo**, **Equipamento**, **Quem faz** e **Lista**. Cada campo começa em **Manter** e só aparece com a opção dele ligada.
+- O que uma lista não aceita fica como estava (prazo numa lista sem datas, por exemplo), e o aviso no fim diz quantos mudaram.
+
 ## 2.50.1
 
 - **Mais › Sobre**: a linha da CorrerIA fica mais curta: "Pergunte e peça a qualquer app, no chat ou no WhatsApp."
