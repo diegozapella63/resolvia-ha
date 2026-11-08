@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.47.1
+
+- **Relatório de pendências › Baixar PDF** funciona no app do Home Assistant no celular: o PDF vai para a pasta Downloads (aparece nas notificações), e o botão diz **Baixando…**.
+
 ## 2.47.0
 
 - **Relatório de pendências** com os gráficos da aba **Gráficos**: por lista (cada uma na sua cor), por prazo e, quando há, por cômodo, por equipamento e quem faz. Na página e no PDF.

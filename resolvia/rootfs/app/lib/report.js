@@ -199,6 +199,17 @@ const ICON = (cor) => `<svg class="ic" viewBox="0 0 32 32" aria-hidden="true">
 <path d="M9.6 18.6l4.3 4.3 8.6-9" fill="none" stroke="#2a1614" stroke-width="2.9" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M9.5 2.8v6.4M16 2.8v6.4M22.5 2.8v6.4" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"/></svg>`;
 
+/**
+ * Baixar PDF (2.47.1): the page is in the frame of the app in Home Assistant, and the app Home Assistant on Android
+ * only downloads what the page of Home Assistant itself asks for (a frame's link does nothing there). So the link goes
+ * to the top page, as Home Assistant downloads its backups: a link there with download, clicked. The same origin
+ * (ingress) lets it; without it (another origin, no frame), the link downloads as always.
+ */
+export const BAIXAR =
+  "try{var d=window.top.document,a=d.createElement('a');a.href=this.href;a.download=this.getAttribute('download')||'';a.target='_blank';a.style.display='none';" +
+  "d.body.appendChild(a);a.dispatchEvent(new MouseEvent('click'));d.body.removeChild(a);var b=this;b.textContent='Baixando…';" +
+  "setTimeout(function(){b.textContent='Baixar PDF'},4000);return false}catch(e){return true}";
+
 /** The colors of the parts of the charts (lists bring their own): late red, today amber, then greys going quiet. */
 const PART = { late: "var(--late)", today: "var(--today)", week: "var(--g1)", later: "var(--g2)", none: "var(--g3)", house: "var(--g2)", ext: "var(--ext)", rest: "var(--g2)" };
 const partColor = (x) => x.color || PART[x.key] || "var(--a)";
@@ -333,7 +344,7 @@ td small{display:block;color:var(--mut);font-size:12.5px}
 </style><script src="selectsheet.js"></script></head><body><main>
 <div class="barra">
 <select aria-label="Listas" onchange="var u=new window.URL(window.location.href);if(this.value)u.searchParams.set('lista',this.value);else u.searchParams.delete('lista');location.replace(u.href)">${options}</select>
-<a href="./" onclick="if(history.length>1){history.back();return false}">Voltar</a><a class="pdf" href="${esc(pdfHref)}" download="${esc(pdfName(rep))}">Baixar PDF</a>
+<a href="./" onclick="if(history.length>1){history.back();return false}">Voltar</a><a class="pdf" href="${esc(pdfHref)}" download="${esc(pdfName(rep))}" onclick="${BAIXAR}">Baixar PDF</a>
 </div>
 <header class="cab">${ICON(accent)}<div><div class="app"><span class="wm">Resolv<b>IA</b></span> · listas de tarefas</div><h1>Relatório de pendências</h1><p>O que falta fazer ${esc(which)} · ${when}</p></div></header>
 ${rep.total ? `<div class="resumo">${tiles}</div>` : ""}

@@ -3,6 +3,7 @@
 # counts, a section per marked list with its open tasks (late first, in red) and what is on (points, repeat); the
 # list can be changed there (one list; 2.46: never a hidden one); Voltar returns to the app.
 # 2.45.1: Baixar PDF in place of Imprimir (the app Home Assistant on the phone doesn't print a page): the PDF downloads.
+# 2.47.1: in a frame (as in Home Assistant), the download goes through the top page.
 import os as _os
 RESOLVIA = _os.environ.get("E2E_RESOLVIA", "")
 import asyncio, os, subprocess, time, shutil, re
@@ -98,6 +99,26 @@ async def main():
             check("/relatorio" not in pg.url and await pg.locator("resolvia-panel").count() == 1, f"{scheme}: Voltar returns to the app ({pg.url})")
             check(not errs, f"{scheme}: no page errors {errs}")
             await ctx.close()
+        # 2.47.1: in Home Assistant the report is in a frame, and the app Home Assistant on Android only downloads what the
+        # top page asks for: Baixar PDF puts the link there (as Home Assistant does with its backups) and clicks it
+        ctx = await b.new_context(viewport={"width": 390, "height": 844}, locale="pt-BR", timezone_id="America/Sao_Paulo", accept_downloads=True)
+        pg = await ctx.new_page(); errs = []
+        pg.on("pageerror", lambda e: errs.append(str(e)))
+        await pg.goto(URL); await pg.wait_for_timeout(800)
+        await pg.evaluate("""() => { document.body.innerHTML = '<iframe id="ha" src="relatorio?tema=claro" style="width:390px;height:800px;border:0"></iframe>';
+          document.addEventListener('click', (e) => { if (e.target.download) window.__top = [e.target.href, e.target.download, e.target.target]; }, true); }""")
+        await pg.wait_for_timeout(1200)
+        fr = pg.frame_locator("#ha")
+        async with pg.expect_download() as dl:
+            await fr.locator(".barra a.pdf").click()
+        d = await dl.value
+        top = await pg.evaluate("window.__top")
+        check(top and "/relatorio.pdf?" in top[0] and top[1].startswith("pendencias-") and top[2] == "_blank", f"in a frame: the link goes to the top page ({top})")
+        check(d.suggested_filename.startswith("pendencias-") and open(await d.path(), "rb").read(5) == b"%PDF-", f"in a frame: the PDF downloads ({d.suggested_filename})")
+        check((await fr.locator(".barra a.pdf").inner_text()).strip() == "Baixando…", "it says it is downloading")
+        check(await pg.locator("a[download]").count() == 0, "the link of the top page goes away")
+        check(not errs, f"in a frame: no page errors {errs}")
+        await ctx.close()
         await b.close()
 
 try: asyncio.run(main())

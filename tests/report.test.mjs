@@ -2,7 +2,7 @@
 // deadlines and what is on, and the page with a header (the app, the report, when, which lists).
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { pendencias, reportHtml, dueText, reportPdf, pdfName, graficos, listLooks } from "../resolvia/rootfs/app/lib/report.js";
+import { pendencias, reportHtml, dueText, reportPdf, pdfName, graficos, listLooks, BAIXAR } from "../resolvia/rootfs/app/lib/report.js";
 import { Pdf, winAnsi, textWidth, wrap, rgb } from "../resolvia/rootfs/app/lib/pdf.js";
 
 const NOW = new Date(2026, 10, 7, 17, 0).getTime();
@@ -61,7 +61,9 @@ describe("Relatório de pendências", () => {
     assert.doesNotMatch(html, /todo\.velha|Velha/, "a hidden list is not offered");
     assert.match(html, /Pagar &lt;luz&gt;/);
     assert.match(html, /de Ana · 4 pendentes · 1 atrasada/);
-    assert.match(html, /<a class="pdf" href="relatorio.pdf\?cor=%23ff5a4f" download="pendencias-2026-11-07.pdf">Baixar PDF<\/a>/, "a PDF to download: the app Home Assistant doesn't print a page");
+    assert.match(html, /<a class="pdf" href="relatorio.pdf\?cor=%23ff5a4f" download="pendencias-2026-11-07.pdf" onclick="[^"]+">Baixar PDF<\/a>/, "a PDF to download: the app Home Assistant doesn't print a page");
+    // 2.47.1: the download goes through the top page (the app Home Assistant on Android only downloads from there)
+    assert.ok(html.includes(`onclick="${BAIXAR}"`) && BAIXAR.startsWith("try{var d=window.top.document") && !BAIXAR.includes('"'));
     assert.doesNotMatch(html, /window\.print/);
     assert.match(html, /@media print\{[^}]*\} \.barra\{display:none\}/, "on paper: no buttons, always light");
     assert.deepEqual(html.match(/<script[^>]*>/gi), ['<script src="selectsheet.js">'], "only the box of choice in the look of the app (2.46)");
