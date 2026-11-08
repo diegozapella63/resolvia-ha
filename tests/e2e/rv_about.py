@@ -1,5 +1,5 @@
 # ResolvIA 2.40.0: Mais › Sobre, the last row of the menu, the same page as the CronologIA (about.js is the same
-# file in both): CorrerIA Code and why the name, the six apps with a line and their GitHub (this one marked with
+# file in both): CorrerIA Code and why the name, the seven apps with a line and their GitHub (this one marked with
 # its version) and Meu GitHub. 320 px to the computer, light and dark.
 import os as _os
 CRONOLOGIA = _os.environ.get("E2E_CRONOLOGIA", "")
@@ -27,7 +27,7 @@ app = subprocess.Popen(["node", f"{REPO}/resolvia/rootfs/app/server.js"], env=di
 time.sleep(1.2)
 
 GH = "https://github.com/diegozapella63"
-APPS = [("CronologIA", "cronologia-ha"), ("ResolvIA", "resolvia-ha"), ("GerencIA", "gerencia-ha"), ("InventarIA", "inventario-ha"), ("EconomIA", "economia-ha"), ("MemorIA", "memoria-ha")]
+APPS = [("CronologIA", "cronologia-ha"), ("ResolvIA", "resolvia-ha"), ("GerencIA", "gerencia-ha"), ("InventarIA", "inventario-ha"), ("EconomIA", "economia-ha"), ("MemorIA", "memoria-ha"), ("CorrerIA", "correria-ha")]
 import re
 VERSION = re.search(r'^version:\s*"?([\d.]+)', open(f"{REPO}/resolvia/config.yaml").read(), re.M).group(1)
 
@@ -52,13 +52,13 @@ async def main():
             check("programador sem tempo" in why and "IA para rodar tudo isso aqui" in why, f"{tag}: why CorrerIA")
             rows = a.locator(".about-apps .ab-row")
             hrefs = [await rows.nth(i).get_attribute("href") for i in range(await rows.count())]
-            check(hrefs == [f"{GH}/{r}" for _, r in APPS], f"{tag}: the six apps, each to its GitHub ({hrefs})")
+            check(hrefs == [f"{GH}/{r}" for _, r in APPS], f"{tag}: the seven apps, each to its GitHub ({hrefs})")
             names = [" ".join(t.split()).split(" Este app")[0] for t in await rows.locator("b").all_inner_texts()]
             check(names == [n for n, _ in APPS], f"{tag}: the names, in one piece ({names})")
             here = a.locator(".ab-row.here")
             check(await here.count() == 1 and f"Este app · v{VERSION}" in await here.inner_text() and await here.get_attribute("href") == f"{GH}/resolvia-ha", f"{tag}: this app marked, with v{VERSION}")
             targets = await a.locator(".about a").evaluate_all("(xs) => xs.map((x) => x.target + ' ' + x.rel)")
-            check(len(targets) == 7 and all(t == "_blank noopener" for t in targets), f"{tag}: links open outside ({targets})")
+            check(len(targets) == 8 and all(t == "_blank noopener" for t in targets), f"{tag}: links open outside ({targets})")
             gh = a.locator("a.ab-github")
             check(await gh.get_attribute("href") == GH and (await gh.inner_text()).strip() == "Meu GitHub", f"{tag}: Meu GitHub")
             wh = await a.locator(".ab-what").evaluate("(x) => [x.getBoundingClientRect().height, parseFloat(getComputedStyle(x).fontSize)]")

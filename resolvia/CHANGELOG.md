@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.49.1
+
+- **Mais › Sobre**: a **CorrerIA** (o contato no WhatsApp) entra na lista dos apps.
+
 ## 2.49.0
 
 - **CorrerIA**: novo cartão em **Mais › Configurações › Integrações**. Ligado (começa desligado e não depende do **Usar IA**), o app **CorrerIA** passa a ler e mudar as suas listas pelo **WhatsApp**, pelo **Claude** e pelo **Gemini**: ver o que está atrasado e o que vence, buscar tarefas, criar (com prazo, horário, notas, repetição, pontos, cômodos e quem faz; várias de uma vez, uma por linha), editar, mover de lista, concluir (os pontos vão para quem fez) e apagar.
