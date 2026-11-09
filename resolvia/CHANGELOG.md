@@ -66,7 +66,7 @@
 
 ## 2.44.2
 
-- **Avisar o que vence hoje** acha o celular de cada pessoa pelo aparelho do app Home Assistant ligado a ela, mesmo quando o rastreador tem outro nome (como "Celular Diego" sendo `goku_phone`). Um rastreador do roteador não conta como celular.
+- **Avisar o que vence hoje** acha o celular de cada pessoa pelo aparelho do app Home Assistant ligado a ela, mesmo quando o rastreador tem outro nome (como "Celular Davi" sendo `meu_celular`). Um rastreador do roteador não conta como celular.
 
 ## 2.44.1
 
@@ -369,7 +369,7 @@
 ## 2.9.0
 
 - **Manutenções e rotinas do CronologIA**: com o CronologIA 1.10.0 levando as manutenções e rotinas para uma lista daqui, elas aparecem com a próxima data e o troféu com os pontos.
-  - Concluir aqui vale como **Feito** no CronologIA e dá os pontos para quem concluiu (com **Quem fez?** e **Foi Andressa**); desmarcar desfaz lá também. A tarefa volta sozinha com a data seguinte.
+  - Concluir aqui vale como **Feito** no CronologIA e dá os pontos para quem concluiu (com **Quem fez?** e **Foi Aurora**); desmarcar desfaz lá também. A tarefa volta sozinha com a data seguinte.
   - Tocar numa delas abre um resumo só para ver (nome, data, pontos e notas), porque quem manda nelas é o CronologIA. Excluir tira da lista até a próxima data.
   - A marcação técnica `[cr:…]` que vai nas notas fica escondida.
 
@@ -380,7 +380,7 @@
 ## 2.8.0
 
 - **Recompensas**: as tarefas podem valer pontos no placar do CronologIA. Ligue em **Mais › Integrações › Recompensas** (começa desligado), e em cada tarefa escolha **Pontos para quem concluir** (+5, +10, +20, +30, +50 ou outro valor).
-  - A tarefa mostra o troféu com os pontos. Ao concluir, os pontos vão para quem está usando o app (o usuário do Home Assistant de cada um vira a pessoa do placar); se o app não souber, pergunta **Quem fez?**. O aviso de baixo tem **Foi Andressa** para trocar; desmarcar tira os pontos.
+  - A tarefa mostra o troféu com os pontos. Ao concluir, os pontos vão para quem está usando o app (o usuário do Home Assistant de cada um vira a pessoa do placar); se o app não souber, pergunta **Quem fez?**. O aviso de baixo tem **Foi Aurora** para trocar; desmarcar tira os pontos.
   - A mesma tarefa no mesmo dia conta uma vez só, também se for concluída no CronologIA.
   - Os pontos de cada tarefa entram no backup (Dados) e na planilha.
 - A aba **IA** do Mais virou **Integrações**: Recompensas e Leitura por IA.
@@ -418,7 +418,7 @@
 
 - Corrigido: "Escolher fotos" não fazia nada no app Android do Home Assistant. A versão atual do app descarta seleções de várias fotos, então lá a escolha é de uma foto por vez (como na InventarIA), com "Mais fotos" na revisão para juntar outras.
 - "Digitalizar com IA" agora abre uma câmera dentro do próprio ResolvIA, com moldura, lanterna e várias páginas seguidas. Se a câmera não estiver liberada, oferece escolher uma foto.
-- Topo das páginas no mesmo padrão do EconomIA: "ResolvIA · Olá, Diego", título grande e linha de status.
+- Topo das páginas no mesmo padrão do EconomIA: "ResolvIA · Olá, Davi", título grande e linha de status.
 - Corrigido o número cortado no selo da aba Prazos.
 
 ## 2.2.1

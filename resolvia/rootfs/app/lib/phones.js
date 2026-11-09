@@ -2,7 +2,7 @@
 // The apps look at the person, never at a device: the phones of a person are the mobile apps (the app Home
 // Assistant on a phone or a watch) among the devices tracked by their person (Configurações › Pessoas).
 
-/** As Home Assistant names things: "Relógio Diego" → "relogio_diego". */
+/** As Home Assistant names things: "Relógio Davi" → "relogio_davi". */
 export function slug(s) {
   return String(s || "")
     .normalize("NFD")
@@ -16,7 +16,7 @@ export function slug(s) {
  * The device of each device tracker, from the registries: Map entity_id → {name, mobile} (mobile: a device of
  * the app Home Assistant), null for a tracker without a device; null when the registries can't be read.
  * Home Assistant names the service of a mobile app after the name the app registered (the device's name),
- * not after the tracker: device_tracker.goku_phone can be notify.mobile_app_pixel_8.
+ * not after the tracker: device_tracker.meu_celular can be notify.mobile_app_pixel_8.
  */
 export async function trackerDevices(ha) {
   try {

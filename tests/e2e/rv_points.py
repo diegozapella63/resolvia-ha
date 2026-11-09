@@ -14,7 +14,7 @@ for d in (DATA, SHARE):
     shutil.rmtree(d, ignore_errors=True)
 os.makedirs(f"{SHARE}/cronologia")
 now_z = datetime.datetime.now(datetime.timezone.utc).isoformat().replace("+00:00", "Z")
-json.dump({"app": "CronologIA", "versao": "1.6.0", "gravado_em": now_z, "placar": {"ativo": True, "periodo": "semana", "participantes": ["Diego", "Andressa"], "usuarios": {"u-diego": "Diego", "u-andressa": "Andressa"}}}, open(f"{SHARE}/cronologia/integracao.json", "w"))
+json.dump({"app": "CronologIA", "versao": "1.6.0", "gravado_em": now_z, "placar": {"ativo": True, "periodo": "semana", "participantes": ["Davi", "Aurora"], "usuarios": {"u-davi": "Davi", "u-aurora": "Aurora"}}}, open(f"{SHARE}/cronologia/integracao.json", "w"))
 env = dict(os.environ, FAKE_HA_TOKEN="test", FAKE_HA_PORT="8123", TZ="America/Sao_Paulo")
 fake = subprocess.Popen(["node", f"{REPO}/dev/fake-ha.mjs"], env=env, stdout=open(f"{SP}/rvp_fake.log", "w"), stderr=subprocess.STDOUT)
 time.sleep(0.6)
@@ -26,7 +26,7 @@ def start_app(user=None):
     e = dict(appenv, **({"RESOLVIA_DEV_USER_ID": user} if user else {}))
     procs["app"] = subprocess.Popen(["node", f"{REPO}/resolvia/rootfs/app/server.js"], env=e, stdout=open(f"{SP}/rvp_app.log", "a"), stderr=subprocess.STDOUT)
     time.sleep(1.0)
-start_app("u-diego")
+start_app("u-davi")
 URL = "http://127.0.0.1:8099/"
 LISTAS = URL + "?aba=listas"  # 2.48.0: the app opens on Sugestões; these checks start on Listas
 passed, failed = 0, []
@@ -69,7 +69,7 @@ async def main():
         check(not await sw.is_checked(), "points start off")
         await sw.check(); await A.wait_for_timeout(700)
         rp = await A.locator("#recompensas").inner_text()
-        check("Conectado ao placar do CronologIA 1.6.0" in rp and "Diego × Andressa" in rp and "os pontos vão para Diego" in rp, "on: Recompensas shows the CronologIA scoreboard and who you are")
+        check("Conectado ao placar do CronologIA 1.6.0" in rp and "Davi × Aurora" in rp and "os pontos vão para Davi" in rp, "on: Recompensas shows the CronologIA scoreboard and who you are")
         await sw.uncheck(); await A.wait_for_timeout(700)
         await A.screenshot(path=f"{SP}/shots/rvp-integracoes.png")
         # off: no field in the item sheet
@@ -97,14 +97,14 @@ async def main():
         check(presence()["pontos"] == {"todo.casa": {"passar pano na casa": 10}}, "and published for the CronologIA")
         row = A.locator(".items .item", has_text="Passar pano")
         check((await row.locator(".tag.pts").inner_text()).strip() == "+10", "+10 chip on the task")
-        # complete as Diego
+        # complete as Davi
         await row.locator(".check").click()
-        await wait_for(lambda: any(e["data"].get("acao") == "somar" and e["data"].get("quem") == "Diego" and e["data"].get("pontos") == 10 and e["data"]["chave"].startswith("resolvia|todo.casa|") and e["data"]["chave"].endswith(today) for e in events()), "completing sends +10 for Diego to the CronologIA")
+        await wait_for(lambda: any(e["data"].get("acao") == "somar" and e["data"].get("quem") == "Davi" and e["data"].get("pontos") == 10 and e["data"]["chave"].startswith("resolvia|todo.casa|") and e["data"]["chave"].endswith(today) for e in events()), "completing sends +10 for Davi to the CronologIA")
         toast = await A.locator(".toast").inner_text()
-        check("Resolvido por Diego · +10" in toast and "Foi Andressa" in toast, f"toast ({toast.strip()})")
+        check("Resolvido por Davi · +10" in toast and "Foi Aurora" in toast, f"toast ({toast.strip()})")
         await A.screenshot(path=f"{SP}/shots/rvp-toast.png")
-        await A.locator(".toast button", has_text="Foi Andressa").click()
-        await wait_for(lambda: any(e["data"].get("acao") == "trocar" and e["data"].get("quem") == "Andressa" for e in events()), "Foi Andressa moves the points")
+        await A.locator(".toast button", has_text="Foi Aurora").click()
+        await wait_for(lambda: any(e["data"].get("acao") == "trocar" and e["data"].get("quem") == "Aurora" for e in events()), "Foi Aurora moves the points")
         # reopen
         await A.locator(".done-toggle").click(); await A.wait_for_timeout(300)
         await A.locator(".items .item.done", has_text="Passar pano").locator(".check").click()
@@ -117,10 +117,10 @@ async def main():
         check("Quem fez?" in await B.locator(".sheet").inner_text(), "unknown user: asks who did it")
         await B.screenshot(path=f"{SP}/shots/rvp-who.png")
         n0 = len(events())
-        await B.locator(".sheet .who-btn", has_text="Andressa").click()
-        await wait_for(lambda: any(e["data"].get("acao") == "somar" and e["data"].get("quem") == "Andressa" for e in events()[n0:]), "the chosen person gets the points")
+        await B.locator(".sheet .who-btn", has_text="Aurora").click()
+        await wait_for(lambda: any(e["data"].get("acao") == "somar" and e["data"].get("quem") == "Aurora" for e in events()[n0:]), "the chosen person gets the points")
         # rename keeps the points
-        start_app("u-diego")
+        start_app("u-davi")
         await A.goto(LISTAS); await A.wait_for_timeout(1000)
         await A.locator(".list-card", has_text="Casa").click(); await A.wait_for_timeout(500)
         await A.locator(".items .item .it-body", has_text="Trocar filtro").click(); await A.wait_for_timeout(400)

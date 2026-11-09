@@ -14,11 +14,11 @@ for d in (DATA, SHARE): shutil.rmtree(d, ignore_errors=True)
 os.makedirs(f"{SHARE}/cronologia")
 now_z = datetime.datetime.now(datetime.timezone.utc).isoformat()
 json.dump({"app": "CronologIA", "versao": "1.16.0", "gravado_em": now_z, "resolvia": False,
-           "placar": {"ativo": True, "periodo": "semana", "participantes": ["Diego", "Andressa"], "usuarios": {"u-diego": "Diego"}},
+           "placar": {"ativo": True, "periodo": "semana", "participantes": ["Davi", "Aurora"], "usuarios": {"u-davi": "Davi"}},
            "espelho": {"todo.casa": {"u8": {"pontos": 10, "tipo": "rotina"}}}}, open(f"{SHARE}/cronologia/integracao.json", "w"))
 fake = subprocess.Popen(["node", f"{REPO}/dev/fake-ha.mjs"], env=dict(os.environ, FAKE_HA_TOKEN="test", FAKE_HA_PORT="8123"), stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
 time.sleep(0.6)
-app = subprocess.Popen(["node", f"{REPO}/resolvia/rootfs/app/server.js"], env=dict(os.environ, TZ="America/Sao_Paulo", RESOLVIA_DEV="1", RESOLVIA_DEV_USER_ID="u-diego", HA_WS_URL="ws://127.0.0.1:8123/api/websocket", HA_TOKEN="test", DATA_DIR=DATA, SHARE_DIR=SHARE, PORT="8099"), stdout=open(f"{SP}/rvo_app.log", "w"), stderr=subprocess.STDOUT)
+app = subprocess.Popen(["node", f"{REPO}/resolvia/rootfs/app/server.js"], env=dict(os.environ, TZ="America/Sao_Paulo", RESOLVIA_DEV="1", RESOLVIA_DEV_USER_ID="u-davi", HA_WS_URL="ws://127.0.0.1:8123/api/websocket", HA_TOKEN="test", DATA_DIR=DATA, SHARE_DIR=SHARE, PORT="8099"), stdout=open(f"{SP}/rvo_app.log", "w"), stderr=subprocess.STDOUT)
 time.sleep(1.2)
 passed, failed = 0, []
 def check(c, label):

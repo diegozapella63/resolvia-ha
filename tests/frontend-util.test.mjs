@@ -221,13 +221,13 @@ describe("dates", () => {
   });
 
   it("greeting by the hour, with the first name", () => {
-    const g = (h, mi, name = "Diego Zapella") => U.greeting(name, local(2026, 11, 2, h, mi));
-    assert.equal(g(4, 59), "Boa noite, Diego");
-    assert.equal(g(5, 0), "Bom dia, Diego");
-    assert.equal(g(11, 59), "Bom dia, Diego");
-    assert.equal(g(12, 0), "Boa tarde, Diego");
-    assert.equal(g(17, 59), "Boa tarde, Diego");
-    assert.equal(g(18, 0), "Boa noite, Diego");
+    const g = (h, mi, name = "Davi Souza") => U.greeting(name, local(2026, 11, 2, h, mi));
+    assert.equal(g(4, 59), "Boa noite, Davi");
+    assert.equal(g(5, 0), "Bom dia, Davi");
+    assert.equal(g(11, 59), "Bom dia, Davi");
+    assert.equal(g(12, 0), "Boa tarde, Davi");
+    assert.equal(g(17, 59), "Boa tarde, Davi");
+    assert.equal(g(18, 0), "Boa noite, Davi");
     assert.equal(g(9, 0, "  "), "Bom dia");
     assert.equal(g(9, 0, null), "Bom dia");
   });

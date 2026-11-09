@@ -24,8 +24,8 @@ js = """const ws = new WebSocket('ws://127.0.0.1:8123/api/websocket'); ws.onmess
 items = json.loads(subprocess.check_output(["node", "-e", js]).decode())
 pano = next(i for i in items if i["summary"] == "Passar pano na casa")
 now_z = datetime.datetime.now(datetime.timezone.utc).isoformat().replace("+00:00", "Z")
-json.dump({"app": "CronologIA", "versao": "1.10.0", "gravado_em": now_z, "placar": {"ativo": True, "periodo": "semana", "participantes": ["Diego", "Andressa"], "usuarios": {"u-diego": "Diego"}}, "espelho": {"todo.casa": {pano["uid"]: {"pontos": 10, "tipo": "rotina"}}}}, open(f"{SHARE}/cronologia/integracao.json", "w"))
-appenv = dict(os.environ, TZ="America/Sao_Paulo", RESOLVIA_DEV="1", RESOLVIA_DEV_USER_ID="u-diego", HA_WS_URL="ws://127.0.0.1:8123/api/websocket", HA_TOKEN="test", DATA_DIR=DATA, SHARE_DIR=SHARE, PORT="8099")
+json.dump({"app": "CronologIA", "versao": "1.10.0", "gravado_em": now_z, "placar": {"ativo": True, "periodo": "semana", "participantes": ["Davi", "Aurora"], "usuarios": {"u-davi": "Davi"}}, "espelho": {"todo.casa": {pano["uid"]: {"pontos": 10, "tipo": "rotina"}}}}, open(f"{SHARE}/cronologia/integracao.json", "w"))
+appenv = dict(os.environ, TZ="America/Sao_Paulo", RESOLVIA_DEV="1", RESOLVIA_DEV_USER_ID="u-davi", HA_WS_URL="ws://127.0.0.1:8123/api/websocket", HA_TOKEN="test", DATA_DIR=DATA, SHARE_DIR=SHARE, PORT="8099")
 app = subprocess.Popen(["node", f"{REPO}/resolvia/rootfs/app/server.js"], env=appenv, stdout=open(f"{SP}/rvm_app.log", "w"), stderr=subprocess.STDOUT)
 time.sleep(1.0)
 URL = "http://127.0.0.1:8099/"
@@ -82,13 +82,13 @@ async def main():
         await pg.locator(".sheet .btn.primary", has_text="Fechar").click(); await pg.wait_for_timeout(500)
         after = next(i for i in json.loads(subprocess.check_output(["node", "-e", js]).decode()) if i["uid"] == pano["uid"])
         check(after.get("description", "").endswith("[cr:1a2b3c4d]"), "closing leaves the item as it was")
-        # complete: Diego (this user) gets the points through the CronologIA
+        # complete: Davi (this user) gets the points through the CronologIA
         await row.locator(".check").click()
-        await wait_for(lambda: any(e["data"].get("acao") == "somar" and e["data"].get("chave") == KEY and e["data"].get("quem") == "Diego" and e["data"].get("pontos") == 10 for e in events()), "completing tells the CronologIA who did it (espelho key)")
+        await wait_for(lambda: any(e["data"].get("acao") == "somar" and e["data"].get("chave") == KEY and e["data"].get("quem") == "Davi" and e["data"].get("pontos") == 10 for e in events()), "completing tells the CronologIA who did it (espelho key)")
         toast = await pg.locator(".toast").inner_text()
-        check("Resolvido por Diego · +10" in toast and "Foi Andressa" in toast, f"toast ({toast.strip()})")
-        await pg.locator(".toast button", has_text="Foi Andressa").click()
-        await wait_for(lambda: any(e["data"].get("acao") == "trocar" and e["data"].get("chave") == KEY and e["data"].get("quem") == "Andressa" for e in events()), "Foi Andressa goes to the CronologIA")
+        check("Resolvido por Davi · +10" in toast and "Foi Aurora" in toast, f"toast ({toast.strip()})")
+        await pg.locator(".toast button", has_text="Foi Aurora").click()
+        await wait_for(lambda: any(e["data"].get("acao") == "trocar" and e["data"].get("chave") == KEY and e["data"].get("quem") == "Aurora" for e in events()), "Foi Aurora goes to the CronologIA")
         # reopen: the CronologIA undoes
         await pg.locator(".done-toggle").click(); await pg.wait_for_timeout(300)
         await pg.locator(".items .item.done", has_text="Passar pano").locator(".check").click()

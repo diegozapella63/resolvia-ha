@@ -85,10 +85,10 @@ EXTERNAL = {"Trocar a resistência do chuveiro": "Eletricista"}
 OTHER_LISTS = [
     {"entity_id": MERCADO, "name": "Mercado", "features": F_SHOP, "items": ["Leite", "Ovos", "Café", "Pão de forma", "Bananas", "Detergente", "Arroz"]},
     {"entity_id": VIAGEM, "name": "Viagem de julho", "features": 127, "items": ["Renovar o passaporte", "Reservar o hotel", "Comprar adaptador de tomada", "Pedir as férias"]},
-    {"entity_id": PETS, "name": "Pets", "features": 127, "items": ["Vacina da Luna", "Comprar ração", "Banho e tosa"]},
+    {"entity_id": PETS, "name": "Pets", "features": 127, "items": ["Vacina da Pipoca", "Comprar ração", "Banho e tosa"]},
 ]
 DONE_ELSEWHERE = [(MERCADO, "Arroz"), (VIAGEM, "Pedir as férias")]
-DUE_ELSEWHERE = [(VIAGEM, "Renovar o passaporte", day(12)), (PETS, "Vacina da Luna", day(5))]
+DUE_ELSEWHERE = [(VIAGEM, "Renovar o passaporte", day(12)), (PETS, "Vacina da Pipoca", day(5))]
 ALEXA = {ALEXA_COMPRAS: ["Pilhas AA", "Filtro de café"],
          ALEXA_TAREFAS: ["Ligar para o dentista", "Ver sobre: https://www.home-assistant.io/integrations/todo/"]}
 COLORS = {CASA: "vermelho", MERCADO: "menta", VIAGEM: "azul", PETS: "laranja", ALEXA_COMPRAS: "ouro", ALEXA_TAREFAS: "lilas"}

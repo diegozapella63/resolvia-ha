@@ -65,11 +65,11 @@ export function createMockHass(onChange) {
         it("Revisar automação da irrigação"),
         it("Ver automações com spark gemini"),
         it("Configurar modo claro e escuro em tudo"),
-        it("Ver homeassistant. no notebook diego do grupo"),
+        it("Ver homeassistant. no notebook davi do grupo"),
         it("Conf ha mcp os dois"),
         it("Configurar universal control"),
         it("Configurar browsermod no monitor da sala"),
-        it("Aplicar pasta notebook diego"),
+        it("Aplicar pasta notebook davi"),
         it("Aplicar pasta notebook alexa"),
         it("Ver sobre: https://github.com/exemplo/ha-custom-sidebar"),
         it("Ver sobre: https://www.home-assistant.io/integrations/todo/"),
@@ -207,7 +207,7 @@ export function createMockHass(onChange) {
     states: buildStates(),
     entities,
     devices,
-    user: { name: "Diego Zapella", is_admin: true },
+    user: { name: "Davi Souza", is_admin: true },
     themes: { darkMode: true },
     language: "pt-BR",
     // Simulated photo/message reading (the real app uses Home Assistant's AI).
@@ -330,7 +330,7 @@ export function createMockHass(onChange) {
         return JSON.parse(JSON.stringify(prefs));
       }
       // Recompensas (the CronologIA scoreboard), simulated
-      const ptsState = () => ({ on: !!prefs.app.points_on, points: JSON.parse(JSON.stringify(points)), placar: { versao: "1.10.0", ativo: true, periodo: "semana", participantes: ["Diego", "Andressa"], eu: "Diego" }, espelho: { "todo.casa": { "cr-filtro": { pontos: 30, tipo: "manutencao" }, "cr-lixo": { pontos: 10, tipo: "rotina" } } } });
+      const ptsState = () => ({ on: !!prefs.app.points_on, points: JSON.parse(JSON.stringify(points)), placar: { versao: "1.10.0", ativo: true, periodo: "semana", participantes: ["Davi", "Aurora"], eu: "Davi" }, espelho: { "todo.casa": { "cr-filtro": { pontos: 30, tipo: "manutencao" }, "cr-lixo": { pontos: 10, tipo: "rotina" } } } });
       if (msg.type === "resolvia/ai/usage") {
         const d = new Date();
         const pad = (n) => String(n).padStart(2, "0");
@@ -356,7 +356,7 @@ export function createMockHass(onChange) {
         const esp = (ptsState().espelho[msg.entity_id] || {})[msg.uid];
         const n = esp ? esp.pontos : prefs.app.points_on ? ((points[msg.entity_id] || {})[taskKey(msg.summary)] || 0) : 0;
         if (!n || !msg.done) return { points: 0 };
-        return { key: `resolvia|${msg.entity_id}|${msg.uid}|hoje`, who: msg.quem || "Diego", points: n, participantes: ["Diego", "Andressa"] };
+        return { key: `resolvia|${msg.entity_id}|${msg.uid}|hoje`, who: msg.quem || "Davi", points: n, participantes: ["Davi", "Aurora"] };
       }
       if (msg.type === "resolvia/points/reassign") return { who: msg.quem };
       // CorrerIA: on, the Claude used it half an hour ago
