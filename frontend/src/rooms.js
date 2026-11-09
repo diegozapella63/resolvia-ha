@@ -91,11 +91,12 @@ export const RoomsMixin = (Base) =>
       }
     }
 
-    /** The items of a task as tags: one (its name cut short); several, the first one and "+N" (one line). */
+    /** The items of a task as a tag: one, its name cut short; several, "Vários equipamentos" (which ones: opening the item). */
     _renderEquipTag(listId, item) {
       const es = this._equipIdsOf(listId, item.summary).map((id) => this._equipOf(id));
       if (!es.length) return nothing;
-      return html`<span class="tag room" title=${es[0].nome}>${icon("package")}${clip(es[0].nome, 26)}</span>${es.length > 1 ? html`<span class="tag room" title=${es.slice(1).map((e) => e.nome).join(", ")}>+${es.length - 1}</span>` : nothing}`;
+      if (es.length > 1) return html`<span class="tag room" title=${es.map((e) => e.nome).join(", ")}>${icon("package")}Vários equipamentos</span>`;
+      return html`<span class="tag room" title=${es[0].nome}>${icon("package")}${clip(es[0].nome, 26)}</span>`;
     }
 
     /** The items for the picker: with the name of their room. */
@@ -205,9 +206,11 @@ export const RoomsMixin = (Base) =>
       // several items: no rooms (the first item and +N say enough)
       if (this._equipIdsOf(listId, item.summary).length > 1) return nothing;
       const ids = this._roomIdsOf(listId, item.summary);
-      // every room of the house: one tag
-      if (this._allRooms(ids)) return html`<span class="tag room" title=${ids.map((id) => this._roomName(id)).join(", ")}>${icon("house")}Todos os cômodos</span>`;
-      return ids.length ? html`${ids.map((id) => html`<span class="tag room">${icon("door-open")}${clip(this._roomName(id), 22)}</span>`)}` : nothing;
+      // every room of the house: one tag; several: one tag too, Vários cômodos (which ones: opening the item)
+      const names = ids.map((id) => this._roomName(id)).join(", ");
+      if (this._allRooms(ids)) return html`<span class="tag room" title=${names}>${icon("house")}Todos os cômodos</span>`;
+      if (ids.length > 1) return html`<span class="tag room" title=${names}>${icon("door-open")}Vários cômodos</span>`;
+      return ids.length ? html`<span class="tag room">${icon("door-open")}${clip(this._roomName(ids[0]), 22)}</span>` : nothing;
     }
 
     /** Item sheet: Cômodo (when on). With equipment, the rooms are those of the items, locked. */

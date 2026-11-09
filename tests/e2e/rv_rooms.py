@@ -182,7 +182,7 @@ async def main():
         await a.evaluate("(el) => el._go('/lista/todo.casa')"); await pg.wait_for_timeout(700)
         row = a.locator(".item", has_text="Limpar o filtro")
         tags = [" ".join(t.split()) for t in await row.locator(".tag.room").all_inner_texts()]
-        check(tags == ["Ar-condicionado", "+1"], f"two equipments: the first one and +1, no rooms (one line) ({tags})")
+        check(tags == ["Vários equipamentos"], f"two equipments: one tag, Vários equipamentos (2.51.1), no rooms ({tags})")
         await pg.screenshot(path=f"{T}/list2.png")
         # the AI picks the equipment too
         await a.evaluate("(el) => el._openImport('todo.casa', 'text')"); await pg.wait_for_timeout(400)

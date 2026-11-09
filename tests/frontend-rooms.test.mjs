@@ -204,10 +204,18 @@ describe("rooms: on the screen", () => {
     click(tpl, /Tirar Ar-condicionado/);
     assert.deepEqual([p._form.equips, p._form.room], [[], "quarto"]);
   });
-  it("several items: the first one and +N, no rooms (one line); Buscar still finds them all", () => {
+  it("2.51.1: more than one room (not all of them), one tag, Vários cômodos, with the names in the title", () => {
+    const r = ROOMS();
+    r.comodos.push({ id: "sala", nome: "Sala" });
+    const p = panel({ ...r, map: { "todo.casa": { a: ["cozinha", "sala"], b: ["sala"] } } });
+    assert.equal(text(p._renderRoomTag("todo.casa", { summary: "A" })), "Vários cômodos");
+    assert.match(JSON.stringify(p._renderRoomTag("todo.casa", { summary: "A" }).values), /Cozinha, Sala/);
+    assert.equal(text(p._renderRoomTag("todo.casa", { summary: "B" })), "Sala", "one room: its name");
+  });
+  it("several items: one tag, Vários equipamentos (2.51.1), no rooms; Buscar still finds them all", () => {
     const p = panel({ ...ROOMS(), map: { "todo.casa": { a: ["cozinha", "quarto"] } }, emap: { "todo.casa": { a: ["geladeira", "ar", "escada"] } } });
     assert.equal(text(p._renderRoomTag("todo.casa", { summary: "A" })), "");
-    assert.equal(text(p._renderEquipTag("todo.casa", { summary: "A" })).replace(/\s+/g, " ").trim(), "Geladeira +2");
+    assert.equal(text(p._renderEquipTag("todo.casa", { summary: "A" })).replace(/\s+/g, " ").trim(), "Vários equipamentos");
     assert.match(p._placeText("todo.casa", "A"), /Cozinha.*Quarto.*Geladeira.*Ar-condicionado.*Escada/);
   });
 });

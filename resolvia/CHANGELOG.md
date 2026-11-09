@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.51.1
+
+- **Cômodos e equipamentos** nas tarefas: com mais de um, uma etiqueta só, **Vários cômodos** ou **Vários equipamentos**, em vez de uma etiqueta para cada. Quais são, abrindo a tarefa. Um só continua com o nome, e todos, **Todos os cômodos**.
+
 ## 2.51.0
 
 - **Buscar** abre com todos os pendentes, separados por lista, como no InventarIA. Digitar continua filtrando.
