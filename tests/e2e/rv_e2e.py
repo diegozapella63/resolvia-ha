@@ -146,7 +146,7 @@ async def main():
         await pg.set_content(f'<html><body style="margin:0"><iframe src="{URL}" style="border:0;width:412px;height:892px"></iframe></body></html>')
         await pg.wait_for_timeout(1500)
         fr = pg.frames[1]
-        check(await fr.locator(".topbar").count() == 0 and await fr.locator(".page-title").inner_text() == "Sugestões", "in an iframe: no top bar, the start (Sugestões)")
+        check(await fr.locator(".topbar").count() == 0 and await fr.locator(".page-title").inner_text() == "Agora", "in an iframe: no top bar, the start (Sugestões)")
 
         # Home Assistant restarts: the page loads again
         fake.kill(); fake.wait()

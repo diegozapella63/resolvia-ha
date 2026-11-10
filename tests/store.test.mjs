@@ -520,6 +520,18 @@ describe("Store: list and app prefs", () => {
     assert.deepEqual(store.prefs.app, {});
   });
 
+  it("2.60.0: app prefs: Agora › Ordem dos cards, each person their order (short ids, no repeats; empty or null = unset)", (t) => {
+    const { store } = newStore(t);
+    store.setAppPrefs({ now_order: { "u-ana": ["start", "late", "start"], "u-beto": [], "u-caio": ["Bad Id"], "": ["shopping"] } });
+    assert.deepEqual(store.prefs.app, { now_order: { "u-ana": ["start", "late"], "": ["shopping"] } });
+    assert.throws(() => store.setAppPrefs({ now_order: ["late"] }), /now_order must be an object/);
+    store.setAppPrefs({ now_order: { "u-beto": [] } });
+    assert.deepEqual(store.prefs.app, {}, "nothing left: unset");
+    store.setAppPrefs({ now_order: { "u-ana": ["late"] } });
+    store.setAppPrefs({ now_order: null });
+    assert.deepEqual(store.prefs.app, {});
+  });
+
   it("app prefs: Cor do dia (on by default; false turns it off, null back on)", (t) => {
     const { store } = newStore(t);
     store.setAppPrefs({ accent: "azul", accent_daily: false });

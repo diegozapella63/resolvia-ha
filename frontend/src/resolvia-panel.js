@@ -19,7 +19,7 @@ import { themePicker, colorPicker, lookStyles, colorOfDay } from "./look.js";
 import { unsafeCSS } from "../vendor/lit-all.min.js";
 import { DataMixin } from "./datapanel.js";
 import { PointsMixin, stripMark, markOf } from "./points.js";
-import { SuggestMixin } from "./suggest.js";
+import { SuggestMixin, DUE_GROUPS } from "./suggest.js";
 import { RoomsMixin } from "./rooms.js";
 import { ChatMixin } from "./chat-panel.js";
 import { ExternalMixin } from "./external.js";
@@ -1950,7 +1950,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     return html`
       <nav>
         <div class="tabs">
-          ${tab("home", "", "Sugestões", "lightbulb", lateCount)} ${tab("search", "/buscar", "Buscar", "search")}
+          ${tab("home", "", "Agora", "clock", lateCount)} ${tab("search", "/buscar", "Buscar", "search")}
           <button class="tab fab" @click=${() => this._openAdd(view.name === "list" ? view.id : null)} aria-label="Adicionar item">
             <span class="pill">${icon("plus")}</span><span>Adicionar</span>
           </button>
@@ -1974,7 +1974,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     return html`<aside class="side" aria-label="Navegação">
       <div class="side-brand">${appIcon()}Resolv<span>IA</span></div>
       <div class="side-nav">
-        ${item("home", "", "Sugestões", "lightbulb", lateCount)} ${item("search", "/buscar", "Buscar", "search", 0, "/")}
+        ${item("home", "", "Agora", "clock", lateCount)} ${item("search", "/buscar", "Buscar", "search", 0, "/")}
         ${item("lists", "/minhas-listas", "Listas", "list-checks")} ${item("more", "/mais", "Mais", "ellipsis")}
       </div>
       ${lists.length
@@ -2485,35 +2485,32 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     </dl>`;
   }
 
+  /** The heading of a card of Agora: the icon, the title and the count (like Comece por aqui and Compras). */
+  _cardHead(ic, title, n, tone = "") {
+    return html`<div class="mais-head due-head"><span class="mais-ic ${tone}" aria-hidden="true">${icon(ic)}</span><h2>${title}</h2><small class="mh-count">${n}</small></div>`;
+  }
+
   /**
-   * Sugestões, with Controlar prazos on: what is due, by when (Atrasados, Hoje, Amanhã, Próximos 7 dias,
-   * Mais adiante), and the tasks that come back by themselves. {soon: [late, today], later: [...], coming,
-   * rows, late, today}: Sugestões shows the soon ones first, then Comece por aqui, then the later ones.
+   * Agora (Sugestões up to 2.59), with Controlar prazos on: what is due, by when (Atrasados, Hoje, Amanhã, Próximos 7
+   * dias, Mais adiante), and the tasks that come back by themselves. {cards: {late, today, tomorrow, week, later}, coming,
+   * rows, late, today}: each card with its icon, in the order of the person (Ordem dos cards, 2.60.0).
    */
   _dueSections() {
     const lists = this._visible();
     const rows = this._dueOn() ? this._dueRows(lists) : [];
-    const buckets = [
-      { title: "Atrasados", test: (d) => d.overdue, soon: true },
-      { title: "Hoje", test: (d) => d.diff === 0, soon: true },
-      { title: "Amanhã", test: (d) => d.diff === 1 },
-      { title: "Próximos 7 dias", test: (d) => d.diff > 1 && d.diff < 7 },
-      { title: "Mais adiante", test: () => true },
-    ];
     const used = new Set();
-    const groups = buckets
-      .map((b) => {
-        const list = rows.filter((r) => !used.has(r) && b.test(r.d));
-        list.forEach((r) => used.add(r));
-        return { ...b, rows: list };
-      })
-      .filter((g) => g.rows.length);
-    const panel = (g) => html`
-      <div class="panel items due-group">
-        <div class="overline" style=${g.title === "Atrasados" ? "color:var(--rv-late)" : ""}>${g.title} · ${g.rows.length}</div>
-        ${repeat(g.rows, (r) => r.l.id + keyOf(r.i), (r) => this._renderItem(r.l, r.i, { showList: true }))}
-      </div>
-    `;
+    const groups = DUE_GROUPS.map((b) => {
+      const list = rows.filter((r) => !used.has(r) && b.test(r.d));
+      list.forEach((r) => used.add(r));
+      return { ...b, rows: list };
+    });
+    const panel = (g) =>
+      g.rows.length
+        ? html`<div class="panel items due-group" data-card=${g.id}>
+            ${this._cardHead(g.icon, g.title, g.rows.length, g.id === "late" ? "late" : "")}
+            ${repeat(g.rows, (r) => r.l.id + keyOf(r.i), (r) => this._renderItem(r.l, r.i, { showList: true }))}
+          </div>`
+        : nothing;
 
     // Recurring tasks waiting to come back.
     const coming = (this._dueOn() && this._repeatOn() ? this._rules : [])
@@ -2526,8 +2523,8 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
       .filter((x) => x.l && !x.l.hidden)
       .sort((a, b) => a.r.reopen_at - b.r.reopen_at);
     const comingPanel = coming.length
-      ? html`<div class="panel items">
-          <div class="overline">Voltam sozinhas · ${coming.length}</div>
+      ? html`<div class="panel items due-group" data-card="coming">
+          ${this._cardHead("repeat", "Voltam sozinhas", coming.length)}
           ${repeat(
             coming,
             (x) => x.r.id,
@@ -2548,8 +2545,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
         </div>`
       : nothing;
     return {
-      soon: groups.filter((g) => g.soon).map(panel),
-      later: groups.filter((g) => !g.soon).map(panel),
+      cards: Object.fromEntries(groups.map((g) => [g.id, panel(g)])),
       coming: comingPanel,
       comingN: coming.length,
       rows,
@@ -3117,7 +3113,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
           ${this._secHead("calendar-clock", "Prazos")}
           <div class="row">
             <div class="grow"><div class="label">Controlar prazos</div><div class="hint" style="white-space:normal">${dueOn
-              ? "O que vence fica vermelho e aparece em Sugestões."
+              ? "O que vence fica vermelho e aparece em Agora."
               : "Datas só como informação."}</div></div>
             ${sw(dueOn, "Controlar prazos", (e) => this._saveAppPrefs({ due_off: e.target.checked ? null : true }))}
           </div>
@@ -3270,7 +3266,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
   async _testDueAlert() {
     try {
       const res = await this.hass.callWS({ type: "resolvia/due_alert/test" });
-      this._showToast(res && res.today ? "Aviso enviado para o seu celular. Toque nele para abrir Sugestões." : "Aviso enviado para o seu celular (nada vence hoje).");
+      this._showToast(res && res.today ? "Aviso enviado para o seu celular. Toque nele para abrir Agora." : "Aviso enviado para o seu celular (nada vence hoje).");
     } catch (err) {
       this._showToast(`Não foi: ${err.message}`);
     }
@@ -3381,6 +3377,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     else if (this._sheet === "move") body = this._renderMoveSheet();
     else if (this._sheet === "bulk") body = this._renderBulkSheet();
     else if (this._sheet === "chat") body = this._renderChatSheet();
+    else if (this._sheet === "cards") body = this._renderCardsSheet();
     return html`
       <div class="scrim" @click=${() => this._closeSheet()}></div>
       <div class="sheet" role="dialog" aria-modal="true" style=${this._sheetStyle()} @keydown=${(e) => e.key === "Escape" && this._closeSheet()}>
@@ -3845,7 +3842,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
         ? html`<div class="row" style="border:0;padding-top:0">
             <div class="grow">
               <div class="label">Prazos</div>
-              <div class="hint" style="white-space:normal">${f.deadlines ? "Vencidos ficam vermelhos e aparecem em Sugestões." : "Datas só como informação."}</div>
+              <div class="hint" style="white-space:normal">${f.deadlines ? "Vencidos ficam vermelhos e aparecem em Agora." : "Datas só como informação."}</div>
             </div>
             <label class="switch"><input type="checkbox" role="switch" .checked=${f.deadlines} @change=${(e) => this._setForm({ deadlines: e.target.checked })} aria-label="Prazos" /><span class="track"></span></label>
           </div>`

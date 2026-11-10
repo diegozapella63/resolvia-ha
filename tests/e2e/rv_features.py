@@ -114,7 +114,7 @@ async def main():
         await pg.locator(".sheet .btn.primary").click(); await pg.wait_for_timeout(700)
         it = await item(GOOGLE, "Renovar passaporte")
         check(it.get("due") == tomorrow and it.get("description") == "Levar foto 3x4", f"saved as a date, with the notes ({it})")
-        await pg.locator(".tab", has_text="Sugestões").click(); await pg.wait_for_timeout(500)
+        await pg.locator(".tab", has_text="Agora").click(); await pg.wait_for_timeout(500)
         check("Renovar passaporte" in " ".join(await pg.locator(".page .panel.due-group").all_inner_texts()), "its deadline is in Sugestões")
 
         # ---- Alexa: add, edit, delete only
@@ -136,7 +136,7 @@ async def main():
         saved = json.load(open(f"{DATA}/resolvia.json")).get("dues", {})
         check(saved.get(ALEXA) == {"leite desnatado": tomorrow}, f"kept by the app, by the name ({saved})")
         await home()
-        await pg.locator(".tab", has_text="Sugestões").click(); await pg.wait_for_timeout(500)
+        await pg.locator(".tab", has_text="Agora").click(); await pg.wait_for_timeout(500)
         check("Leite desnatado" in " ".join(await pg.locator(".page .panel.due-group").all_inner_texts()), "Alexa: its deadline is in Sugestões")
         await open_list("Shopping list")
         await pg.locator(".items .item", has_text="Leite desnatado").locator(".it-body").click(); await pg.wait_for_timeout(300)

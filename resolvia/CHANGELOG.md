@@ -1,5 +1,13 @@
 # Mudanças
 
+## 2.60.0
+
+- **Sugestões agora se chama Agora** (a aba, a barra lateral e o título), como no CronologIA.
+- **Cada card da Agora com o seu ícone**: Atrasados (em vermelho), Hoje, Amanhã, Próximos 7 dias, Mais adiante e Voltam sozinhas, como o Comece por aqui e as Compras.
+- **Ordem dos cards**, no fim da Agora, como no CronologIA: Subir e Descer põem os cards na ordem que você quiser. Cada pessoa tem a sua; **Voltar à ordem de sempre** desfaz.
+- **Verificar de novo** (IA, Falar e InventarIA) na largura do cartão no celular, como os outros botões das Configurações.
+- **Campos de texto que aumentam**: o item, as Notas e o Colar mensagem aumentam puxando o canto, e o tamanho fica guardado no aparelho, como nos outros apps da família.
+
 ## 2.59.0
 
 - **Prazo nas listas sem data**: o **Adicionar › Tarefa** do CronologIA (1.73.0) e a **Nova tarefa** do InventarIA (1.49.0) também põem prazo nessas listas (as da Alexa, a Shopping list); ele fica guardado aqui, como o que você põe no ResolvIA.

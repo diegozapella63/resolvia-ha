@@ -132,7 +132,7 @@ async def main():
         await tab("Mais")
         check(await view() == "more" and await depth() == 1, "Mais in the bar on a screen of Mais: back to the menu")
         await rows.nth(3).click(); await pg.wait_for_timeout(450)
-        await tab("Sugestões")
+        await tab("Agora")
         check(await view() == "home" and await depth() == 0, "Sugestões in the bar on a screen of Mais: the start, the menu goes too")
         await tab("Mais"); await rows.nth(3).click(); await pg.wait_for_timeout(450)
         await tab("Listas")

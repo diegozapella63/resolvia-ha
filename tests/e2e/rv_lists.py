@@ -136,7 +136,7 @@ async def main():
         check("Lista não encontrada" in txt and "removida ou renomeada" in txt, "removed while open: 'Lista não encontrada'")
         await pg.screenshot(path=f"{SP}/shots/rvl-removida.png")
         await pg.locator(".page .btn", has_text="Voltar para o início").click(); await pg.wait_for_timeout(500)
-        check(await pg.locator(".page-title").inner_text() == "Sugestões", "Voltar para o início: the start (Sugestões, 2.48.0)")
+        check(await pg.locator(".page-title").inner_text() == "Agora", "Voltar para o início: the start (Sugestões, 2.48.0)")
         await pg.locator("nav .tab", has_text="Listas").click(); await pg.wait_for_timeout(500)
         check(await pg.locator(".page-title").inner_text() == "Minhas listas" and "Viagem" not in await cards(), "and Listas without it")
 

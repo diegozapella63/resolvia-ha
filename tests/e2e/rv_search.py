@@ -109,7 +109,7 @@ async def main():
         await pg.screenshot(path=f"{SP}/shots/rvs-live.png")
         # Back leaves Buscar
         await pg.go_back(); await pg.wait_for_timeout(500)
-        check(await pg.locator(".page-title").inner_text() == "Sugestões", "Back goes to the start (Sugestões)")
+        check(await pg.locator(".page-title").inner_text() == "Agora", "Back goes to the start (Sugestões)")
         check(not errs, f"no page errors {errs[:3]}")
         await b.close()
 try:

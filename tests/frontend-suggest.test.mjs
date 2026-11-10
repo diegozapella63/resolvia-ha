@@ -1,10 +1,11 @@
-// frontend/src/suggest.js: Sugestões (what to resolve now) and Comece por aqui (automatic or by the AI).
+// frontend/src/suggest.js: Agora (Sugestões up to 2.59: what to resolve now), Comece por aqui (automatic or by the AI)
+// and Ordem dos cards (2.60.0).
 import "./_lit.mjs";
 import { describe, it, beforeEach, afterEach, mock } from "node:test";
 import assert from "node:assert/strict";
 import { text, click, labels, controls, fakeHass, hostOf } from "./_lit.mjs";
 import { html } from "../frontend/vendor/lit-all.min.js";
-import { SuggestMixin, ageText } from "../frontend/src/suggest.js";
+import { SuggestMixin, ageText, NOW_CARDS, nowOrder } from "../frontend/src/suggest.js";
 import { PointsMixin } from "../frontend/src/points.js";
 import { RoomsMixin } from "../frontend/src/rooms.js";
 import { ExternalMixin } from "../frontend/src/external.js";
@@ -57,7 +58,7 @@ class Base extends hostOf(PointsMixin, RoomsMixin, ExternalMixin) {
   }
   // the groups of what is due come from the panel (resolvia-panel.js › _dueSections)
   _dueSections() {
-    return this.due || { soon: [], later: [], coming: "", comingN: 0, rows: [], late: 0, today: 0 };
+    return this.due || { cards: {}, coming: "", comingN: 0, rows: [], late: 0, today: 0 };
   }
 }
 const Panel = SuggestMixin(Base);
@@ -212,41 +213,82 @@ describe("suggest: the AI", () => {
 });
 
 describe("suggest: the page", () => {
-  it("nothing pending: Nada para sugerir", () => {
+  it("nothing pending: Tudo em dia (Agora since 2.60.0), without Ordem dos cards", () => {
     const t = text(new Panel([list("todo.a", [])])._renderSuggest());
-    assert.match(t, /Sugestões Nada pendente Nada para sugerir Todas as listas estão em dia\./);
+    assert.equal(t, "Agora Nada pendente Tudo em dia");
   });
   it("Comece por aqui with the reasons, and Compras with the oldest item; a shopping list opens", () => {
     const p = new Panel([list("todo.casa", ["Varrer", "Lavar"]), list("todo.mercado", ["leite", "ovos"], { icon: "shopping-cart" }), list("todo.feira", ["alface"], { icon: "shopping-cart" })]);
     p._ages = { "todo.mercado": { "todo.mercado-0": ago(15) } };
     const v = p._renderSuggest();
     const t = text(v);
-    assert.match(t, /Sugestões 5 pendentes em 3 listas Comece por aqui 2 Varrer \(Faltam 2 para zerar a lista\) Lavar \(Faltam 2 para zerar a lista\)/);
-    assert.match(t, /Compras 2 mercado O mais antigo está há 2 semanas 2 feira 1 item para comprar 1/);
+    assert.match(t, /Agora 5 pendentes em 3 listas Comece por aqui 2 Varrer \(Faltam 2 para zerar a lista\) Lavar \(Faltam 2 para zerar a lista\)/);
+    assert.match(t, /Compras 2 mercado O mais antigo está há 2 semanas 2 feira 1 item para comprar 1 Ordem dos cards$/);
     click(v, /^feira/);
     assert.equal(p.went, "/lista/todo.feira");
     assert.doesNotMatch(t, /Sugerir com IA/, "AI off: no button");
   });
-  it("2.48.0: the start of the app: late and today first, then Comece por aqui (without them), then the rest of what is due", () => {
+  const dated = () => {
     const p = new Panel([list("todo.casa", [{ summary: "Pagar luz", due: ymd(-1) }, "Varrer", "Lavar", { summary: "Consertar", due: ymd(3) }])]);
     const items = p.lists[0].items;
     p.due = {
-      soon: [html`<div>Atrasados 1</div>`],
-      later: [html`<div>Próximos 7 dias 1</div>`],
+      cards: { late: html`<div>Atrasados 1</div>`, week: html`<div>Próximos 7 dias 1</div>` },
       coming: html`<div>Voltam sozinhas 1</div>`,
       comingN: 1,
       rows: [{ l: p.lists[0], i: items[0] }, { l: p.lists[0], i: items[3] }],
       late: 1,
       today: 0,
     };
-    const t = text(p._renderSuggest());
-    assert.match(t, /^Sugestões 4 pendentes em 1 lista · 1 atrasado Atrasados 1 Comece por aqui 2 Varrer .* Lavar .* Próximos 7 dias 1 Voltam sozinhas 1$/);
+    return p;
+  };
+  it("2.48.0: the start of the app: late and today first, then Comece por aqui (without them), then the rest of what is due", () => {
+    const t = text(dated()._renderSuggest());
+    assert.match(t, /^Agora 4 pendentes em 1 lista · 1 atrasado Atrasados 1 Comece por aqui 2 Varrer .* Lavar .* Próximos 7 dias 1 Voltam sozinhas 1 Ordem dos cards$/);
     assert.doesNotMatch(t, /Comece por aqui.*Pagar luz/, "a late one is not repeated in Comece por aqui");
   });
   it("2.48.0: nothing pending but a task that comes back by itself: it shows", () => {
     const p = new Panel([list("todo.a", [])]);
-    p.due = { soon: [], later: [], coming: html`<div>Voltam sozinhas 1</div>`, comingN: 1, rows: [], late: 0, today: 0 };
-    assert.match(text(p._renderSuggest()), /Sugestões Nada pendente Voltam sozinhas 1$/);
+    p.due = { cards: {}, coming: html`<div>Voltam sozinhas 1</div>`, comingN: 1, rows: [], late: 0, today: 0 };
+    assert.match(text(p._renderSuggest()), /Agora Nada pendente Voltam sozinhas 1 Ordem dos cards$/);
+  });
+  it("2.60.0: nowOrder: every card, without repeats or unknowns; one missing goes after the one before it by default", () => {
+    assert.deepEqual(nowOrder(null), NOW_CARDS);
+    assert.deepEqual(nowOrder(["shopping", "x", "shopping", "late"]), ["shopping", "late", "today", "start", "tomorrow", "week", "later", "coming"]);
+    assert.deepEqual(nowOrder(["coming", "start"]), ["late", "today", "coming", "shopping", "start", "tomorrow", "week", "later"]);
+  });
+  it("2.60.0: Ordem dos cards: each person their order; Subir, Descer and Voltar à ordem de sempre", () => {
+    const p = dated();
+    p.hass.user = { id: "u-ana", name: "Ana" };
+    p._repeatOn = () => true;
+    const v = p._renderSuggest();
+    click(v, /^Ordem dos cards$/);
+    assert.equal(p._sheet, "cards");
+    let sheet = p._renderCardsSheet();
+    let t = text(sheet);
+    assert.match(t, /^Ordem dos cards A ordem da Agora, só para você\. Atrasados Hoje Sem nada agora Comece por aqui Amanhã Sem nada agora Próximos 7 dias Mais adiante Sem nada agora Voltam sozinhas Compras Sem nada agora$/);
+    assert.match(controls(sheet).find((c) => c.aria === "Subir Atrasados").attrs, /disabled/, "the first can't go up");
+    assert.match(controls(sheet).find((c) => c.aria === "Descer Compras").attrs, /disabled/, "the last can't go down");
+    click(sheet, "Subir Comece por aqui");
+    assert.deepEqual(p.prefs.at(-1), { now_order: { "u-ana": ["late", "start", "today", "tomorrow", "week", "later", "coming", "shopping"] } });
+    click(p._renderCardsSheet(), "Descer Atrasados");
+    assert.deepEqual(p._nowOrder().slice(0, 3), ["start", "late", "today"]);
+    assert.match(text(p._renderSuggest()), /^Agora .* Comece por aqui 2 .* Atrasados 1 Próximos 7 dias 1 Voltam sozinhas 1 Ordem dos cards$/);
+    // another person: the order of always
+    p.hass.user = { id: "u-beto", name: "Beto" };
+    assert.deepEqual(p._nowOrder(), NOW_CARDS);
+    p.hass.user = { id: "u-ana", name: "Ana" };
+    sheet = p._renderCardsSheet();
+    click(sheet, /Voltar à ordem de sempre/);
+    assert.deepEqual(p.prefs.at(-1), { now_order: null });
+    assert.doesNotMatch(text(p._renderCardsSheet()), /Voltar à ordem de sempre/);
+  });
+  it("2.60.0: Ordem dos cards with Controlar prazos off: the cards of the deadlines say so", () => {
+    const p = new Panel([list("todo.casa", ["Varrer"])]);
+    p._app_.due_off = true;
+    p._renderSuggest();
+    const t = text(p._renderCardsSheet());
+    assert.match(t, /Atrasados Controlar prazos desligado Hoje Controlar prazos desligado Comece por aqui Amanhã/);
+    assert.match(t, /Voltam sozinhas Controlar prazos desligado Compras Sem nada agora$/);
   });
   it("with the AI on: Sugerir com IA (off while the AI isn't ready, saying why)", () => {
     const p = new Panel([list("todo.casa", ["Varrer"])]);

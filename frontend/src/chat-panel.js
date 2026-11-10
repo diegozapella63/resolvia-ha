@@ -106,7 +106,7 @@ export const ChatMixin = (Base) =>
       if (v.name === "listas") return "Mais › Listas (nome, cor, ícone e quais listas aparecem)";
       if (v.name === "graficos") return `Mais › Gráficos (gráficos das ${this._chartsLine().replace(/\.$/, "").toLowerCase()})`;
       if (v.name === "config") return "Mais › Configurações (integrações, dados, aparência e opções do app: prazos, exibição, quem faz e repetição)";
-      return this._dueOn() ? "Sugestões, o início (o que está atrasado, o que vence hoje e nos próximos dias e por onde começar)" : "Sugestões, o início (por onde começar)";
+      return this._dueOn() ? "Agora, o início (o que está atrasado, o que vence hoje e nos próximos dias e por onde começar)" : "Agora, o início (por onde começar)";
     }
 
     /** The lists for the AI: the visible ones (the open one first), their pending items with date, points, room and equipment. */

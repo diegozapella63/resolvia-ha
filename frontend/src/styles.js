@@ -413,6 +413,49 @@ export const styles = css`
     background: var(--rv-accent-soft);
     color: var(--rv-accent-ink);
   }
+  .mais-ic.late {
+    background: var(--rv-late-soft);
+    color: var(--rv-late);
+  }
+  /* Agora › Ordem dos cards (2.60.0): the line at the end of Agora and the list in the sheet, like the CronologIA */
+  .now-order {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    min-height: 48px;
+    padding: 10px 4px 14px;
+    color: var(--rv-muted);
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .now-order .i {
+    width: 18px;
+    height: 18px;
+  }
+  .now-cards {
+    list-style: none;
+    margin: 0;
+    padding: 0 2px;
+  }
+  .now-cards .row {
+    gap: 12px;
+    padding: 6px 0;
+  }
+  .now-cards .row:first-child {
+    border-top: 0;
+  }
+  .now-cards .row.off .label {
+    color: var(--rv-muted);
+  }
+  .now-cards .icon-btn:disabled {
+    opacity: 0.3;
+  }
+  .now-reset {
+    width: 100%;
+    margin-top: 12px;
+  }
   .mais-ic .i {
     width: 21px;
     height: 21px;
@@ -2801,8 +2844,17 @@ export const styles = css`
     display: flex;
     margin: 14px 0 6px;
   }
-  .ai-actions .btn {
-    flex: none;
+  /* Verificar de novo (IA, Falar, InventarIA): the width of the card on the phone, like the buttons of Dados (2.60.0) */
+  .ai-actions:not(.start-acts) .btn {
+    flex: 1 1 100%;
+    width: 100%;
+    min-height: 50px;
+  }
+  @media (min-width: 1000px) {
+    .ai-actions:not(.start-acts) .btn {
+      flex: none;
+      width: 250px;
+    }
   }
   .steps-box {
     margin: 10px 0 14px;

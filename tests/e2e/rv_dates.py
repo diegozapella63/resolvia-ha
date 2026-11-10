@@ -36,10 +36,10 @@ async def main():
         errs = []
         pg.on("pageerror", lambda e: errs.append(str(e)))
         await pg.goto(LISTAS); await pg.wait_for_timeout(1500)
-        badge = pg.locator(".tab", has_text="Sugestões").locator(".badge")
+        badge = pg.locator(".tab", has_text="Agora").locator(".badge")
         check(await badge.inner_text() == "2", f"Sugestões badge counts only real deadlines ({await badge.inner_text()})")
         tabs = [t.strip().split("\n")[0] for t in await pg.locator("nav .tab").all_inner_texts()]
-        check(tabs == ["Sugestões", "Buscar", "Adicionar", "Listas", "Mais"], f"2.50.0: Sugestões, Buscar by it, Adicionar, Listas, Mais ({tabs})")
+        check(tabs == ["Agora", "Buscar", "Adicionar", "Listas", "Mais"], f"2.50.0: Sugestões, Buscar by it, Adicionar, Listas, Mais ({tabs})")
         await pg.screenshot(path=f"{SP}/shots/rvd-nav.png")
         await pg.locator(".list-card", has_text="Problem List").click(); await pg.wait_for_timeout(600)
         item = pg.locator(".item", has_text="Luz do Banheiro")
@@ -51,7 +51,7 @@ async def main():
         check(await pg.locator(".sheet .switch input[aria-label=Prazos]").count() == 0 and "não aceita prazo" in await pg.locator(".sheet .sheet-note").inner_text(), "no switch to turn integration dates into deadlines, a note instead")
         await pg.screenshot(path=f"{SP}/shots/rvd-customize-pl.png")
         await pg.locator(".sheet .icon-btn[aria-label=Fechar]").click(); await pg.wait_for_timeout(300)
-        await pg.locator(".tab", has_text="Sugestões").click(); await pg.wait_for_timeout(500)
+        await pg.locator(".tab", has_text="Agora").click(); await pg.wait_for_timeout(500)
         txt = " ".join(await pg.locator(".page .panel.due-group").all_inner_texts())
         check("Luz do Banheiro" not in txt and "Pagar conta de luz" in txt, "what is due in Sugestões: only real deadlines")
         p0 = presence()

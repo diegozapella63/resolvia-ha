@@ -100,7 +100,7 @@ async def main():
                 got = notes()[n0:]
                 check([n["service"] for n in got] == ["mobile_app_pixel_8"] and "Trocar filtro do ar" in got[0]["message"], f"{tag}: Testar: what is due today, on my phone ({[(n['service'], n['message']) for n in got]})")
                 toast = await a.locator(".toast").inner_text() if await a.locator(".toast").count() else ""
-                check(toast.startswith("Aviso enviado para o seu celular.") and "Toque nele para abrir Sugestões" in toast and "Pixel" not in toast, f"{tag}: the toast, no device name ({toast})")
+                check(toast.startswith("Aviso enviado para o seu celular.") and "Toque nele para abrir Agora" in toast and "Pixel" not in toast, f"{tag}: the toast, no device name ({toast})")
                 # 2.54.0: Quem recebe chooses: a tap takes Beto out (saved), another brings him back (everyone again)
                 await prazos.locator(".due-who .dw", has_text="Beto").click(); await pg.wait_for_timeout(700)
                 check(app_prefs().get("due_alert_people") == ["person.ana"] and await prazos.locator(".due-who .dw.on").all_inner_texts() == ["Ana"], f"{tag}: Beto out of Quem recebe ({app_prefs().get('due_alert_people')})")
@@ -173,7 +173,7 @@ async def main():
         a = pg.locator("resolvia-panel")
         view = await a.evaluate("(el) => el._view().name")
         path = await pg.evaluate("() => (history.state && history.state.rvPath) || ''")
-        check(view == "home" and path == "" and "aba=" not in pg.url and await a.locator(".overline", has_text="Atrasados").count() == 1, f"the tap on the alert opens Sugestões ({view}, {path!r}, {pg.url})")
+        check(view == "home" and path == "" and "aba=" not in pg.url and await a.locator(".due-head", has_text="Atrasados").count() == 1, f"the tap on the alert opens Sugestões ({view}, {path!r}, {pg.url})")
         await ctx.close()
         await b.close()
 

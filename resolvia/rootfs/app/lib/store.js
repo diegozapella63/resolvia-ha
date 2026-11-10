@@ -74,6 +74,8 @@ const APP_FIELDS = {
   // Mais > Configurações > Integrações > CorrerIA: true = the WhatsApp, the Claude and the Gemini read and change the
   // lists through the app CorrerIA (off unless turned on; it does not need Usar IA)
   correria_on: ["boolean"],
+  // Agora › Ordem dos cards (2.60.0): {user of Home Assistant (or "" without one): [card ids]}, each person their own
+  now_order: ["order", 50],
 };
 
 /** Avisar o que vence hoje: a time "HH:MM" and phones notify.mobile_app_*; anything else is dropped. */
@@ -560,6 +562,15 @@ export class Store {
       } else if (type === "list") {
         if (!Array.isArray(value) || !value.every((v) => typeof v === "string")) throw new Error(`${key} must be a list of text`);
         out[key] = value.slice(0, limit).map((v) => v.slice(0, 255));
+      } else if (type === "order") {
+        // {who: [ids]}: up to `limit` people, each a list of short ids without repeats; empty = unset
+        if (!isObj(value)) throw new Error(`${key} must be an object`);
+        const by = {};
+        for (const [who, ids] of Object.entries(value).slice(0, limit)) {
+          if (!Array.isArray(ids) || !ids.length || !ids.every((v) => typeof v === "string" && /^[a-z]{1,20}$/.test(v))) continue;
+          by[String(who).slice(0, 80)] = [...new Set(ids)].slice(0, 30);
+        }
+        out[key] = Object.keys(by).length ? by : null;
       }
     }
     return out;

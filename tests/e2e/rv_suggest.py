@@ -45,7 +45,7 @@ async def main():
         pg.on("pageerror", lambda e: errs.append(str(e)))
         await pg.goto("http://127.0.0.1:8099/?aba=listas"); await pg.wait_for_timeout(1400)
         nav = lambda: pg.locator("nav .tab").all_inner_texts()
-        check("Sugestões" in " ".join(await nav()) and "Prazos" not in " ".join(await nav()), "2.48.0: Sugestões tab, no Prazos tab")
+        check("Agora" in " ".join(await nav()) and "Prazos" not in " ".join(await nav()), "2.48.0: Sugestões tab, no Prazos tab")
         await pg.locator(".list-card", has_text="Casa").click(); await pg.wait_for_timeout(500)
         check(await pg.locator(".item .tag.late", has_text="Ontem").count() == 1, "on: yesterday's bill is late")
         await pg.locator(".item .it-text", has_text="Pagar conta de luz").click(); await pg.wait_for_timeout(400)
@@ -64,7 +64,7 @@ async def main():
         check("Datas só como informação." in hint and "vira" not in hint, f"the hint: dates only as information ({hint[:120]!r})")
         await pg.screenshot(path=f"{SP}/shots/rvs-opcoes.png")
         t = " ".join(await nav())
-        check("Sugestões" in t and "Prazos" not in t, f"off: the same tabs ({t})")
+        check("Agora" in t and "Prazos" not in t, f"off: the same tabs ({t})")
         check(await pg.locator("nav .tab .badge").count() == 0, "no late badge")
 
         # home and list: dates are information only
@@ -87,13 +87,13 @@ async def main():
         check(not stored()["prefs"]["lists"].get("todo.casa", {}).get("dates_info"), "saving Personalizar doesn't turn the list's deadlines off")
 
         # Sugestões
-        await pg.locator("nav .tab", has_text="Sugestões").click(); await pg.wait_for_timeout(900)
+        await pg.locator("nav .tab", has_text="Agora").click(); await pg.wait_for_timeout(900)
         page = await pg.locator(".page").inner_text()
         top = pg.locator(".panel.items", has_text="Comece por aqui").locator(".item")
         n = await top.count()
         texts = [await top.nth(k).inner_text() for k in range(n)]
         print("TOP:", [t.replace("\n", " / ") for t in texts])
-        check("Sugestões" in page and "pendentes em" in page, "Sugestões page with the count")
+        check("Agora" in page and "pendentes em" in page, "Sugestões page with the count")
         check(n == 5, f"Comece por aqui: 5 ({n})")
         check(texts and "TV da Sala" in texts[0] and "Assim há 2 meses" in texts[0], "first: the device problem of 2 months")
         cfg = [t for t in texts if "Configurar modo claro" in t]
@@ -126,7 +126,7 @@ async def main():
         check(os.path.exists(f"{DATA}/sugestao_ia.json"), "saved in sugestao_ia.json")
         restart_app()
         await pg.reload(); await pg.wait_for_timeout(1800)
-        await pg.locator("nav .tab", has_text="Sugestões").click(); await pg.wait_for_timeout(1200)
+        await pg.locator("nav .tab", has_text="Agora").click(); await pg.wait_for_timeout(1200)
         check(await pg.locator(".panel.start .it-why", has_text="Motivo de teste").count() == 3, "after restarting the app, the AI pick is still there")
         # resolve one from Sugestões
         first = pg.locator(".panel.items", has_text="Comece por aqui").locator(".item").first
@@ -142,27 +142,27 @@ async def main():
         # Usar IA off: no AI panel, the server refuses
         await pg.evaluate(WS1, {"type": "resolvia/prefs/set_app", "prefs": {"ai_off": True}})
         await pg.reload(); await pg.wait_for_timeout(1400)
-        await pg.locator("nav .tab", has_text="Sugestões").click(); await pg.wait_for_timeout(900)
+        await pg.locator("nav .tab", has_text="Agora").click(); await pg.wait_for_timeout(900)
         check(await pg.locator(".panel.start .btn", has_text="Sugerir com IA").count() == 0 and await pg.locator(".panel.start .item").count() >= 1, "Usar IA off: Comece por aqui without Sugerir com IA")
         r = await pg.evaluate(WS1, {"type": "resolvia/ai/suggest", "items": [{"key": "todo.casa|u8", "lista": "Casa", "texto": "x"}]})
         check(not r["success"] and r["error"]["code"] == "ai_off", "server refuses with ai_off")
 
         # back on: what is due comes back to Sugestões
-        check(await pg.locator(".overline", has_text="Atrasados").count() == 0, "off: nothing late in Sugestões")
+        check(await pg.locator(".due-head", has_text="Atrasados").count() == 0, "off: nothing late in Sugestões")
         await pg.locator("nav .tab", has_text="Mais").click(); await pg.wait_for_timeout(300)
         await pg.locator(".more-row", has_text="Configurações").click(); await pg.wait_for_timeout(400)
         await pg.get_by_role("tab", name="Opções", exact=True).click(); await pg.wait_for_timeout(300)
         await pg.locator("input[aria-label='Controlar prazos']").check(); await pg.wait_for_timeout(600)
         t = " ".join(await nav())
-        check("Sugestões" in t and "due_off" not in stored()["prefs"]["app"], "back on: still Sugestões")
-        await pg.locator("nav .tab", has_text="Sugestões").click(); await pg.wait_for_timeout(500)
-        check(await pg.locator(".overline", has_text="Atrasados").count() == 1, "Sugestões lists the late ones again")
+        check("Agora" in t and "due_off" not in stored()["prefs"]["app"], "back on: still Sugestões")
+        await pg.locator("nav .tab", has_text="Agora").click(); await pg.wait_for_timeout(500)
+        check(await pg.locator(".due-head", has_text="Atrasados").count() == 1, "Sugestões lists the late ones again")
 
         # narrow phone, dark
         await pg.set_viewport_size({"width": 360, "height": 780}); await pg.emulate_media(color_scheme="dark")
         await pg.evaluate(WS1, {"type": "resolvia/prefs/set_app", "prefs": {"due_off": True, "ai_off": None}})
         await pg.reload(); await pg.wait_for_timeout(1400)
-        await pg.locator("nav .tab", has_text="Sugestões").click(); await pg.wait_for_timeout(900)
+        await pg.locator("nav .tab", has_text="Agora").click(); await pg.wait_for_timeout(900)
         await pg.screenshot(path=f"{SP}/shots/rvs-dark.png", full_page=True)
         w = await pg.evaluate("() => document.documentElement.scrollWidth")
         check(w <= 360, f"no sideways scroll at 360px ({w})")

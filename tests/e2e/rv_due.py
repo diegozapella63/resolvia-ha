@@ -45,17 +45,18 @@ async def main():
         async def item(summary):
             return next((i for i in (await ws({"type": "todo/item/list", "entity_id": CASA}))["items"] if i["summary"] == summary), None)
         add = lambda summary, due: ws({"type": "call_service", "domain": "todo", "service": "add_item", "service_data": {"item": summary, "due_date": due}, "target": {"entity_id": CASA}})
-        badge = pg.locator("nav .tab", has_text="Sugestões").locator(".badge")
-        groups = lambda: pg.locator(".page .panel.items > .overline").all_text_contents()
+        badge = pg.locator("nav .tab", has_text="Agora").locator(".badge")
+        # 2.60.0: each card with its icon, the title and the count (the heading of Comece por aqui and Compras)
+        groups = lambda: pg.evaluate("""() => [...document.querySelector('resolvia-panel').shadowRoot.querySelectorAll('.page .due-group > .due-head')].map((h) => h.querySelector('h2').textContent + ' · ' + h.querySelector('.mh-count').textContent)""")
         status = lambda: pg.locator(".brand-head .status").inner_text()
-        group = lambda title: pg.locator(".page .panel.items", has=pg.locator(".overline", has_text=title))
+        group = lambda title: pg.locator(".page .panel.items", has=pg.locator(".due-head", has_text=title))
         async def prazos():
-            await pg.locator("nav .tab", has_text="Sugestões").click(); await pg.wait_for_timeout(500)
+            await pg.locator("nav .tab", has_text="Agora").click(); await pg.wait_for_timeout(500)
 
         await pg.goto(URL); await pg.wait_for_timeout(1200)
         tabs = [t.strip() for t in await pg.locator("nav .tab").all_inner_texts()]
-        check([t.split("\n")[0] for t in tabs] == ["Sugestões", "Buscar", "Adicionar", "Listas", "Mais"], f"the tabs: Sugestões first, Buscar by it (2.50.0) ({tabs})")
-        check(await pg.locator(".page-title").inner_text() == "Sugestões" and "on" in await pg.locator("nav .tab").first.get_attribute("class"), "the app opens on Sugestões")
+        check([t.split("\n")[0] for t in tabs] == ["Agora", "Buscar", "Adicionar", "Listas", "Mais"], f"the tabs: Sugestões first, Buscar by it (2.50.0) ({tabs})")
+        check(await pg.locator(".page-title").inner_text() == "Agora" and "on" in await pg.locator("nav .tab").first.get_attribute("class"), "the app opens on Sugestões")
         await add("Levar o carro na revisão", day(1))
         await add("Renovar o seguro", day(3))
         await add("Declarar o imposto", day(20))
@@ -128,7 +129,7 @@ async def main():
         await ws({"type": "resolvia/prefs/set_app", "prefs": {"due_off": True}})
         await pg.reload(); await pg.wait_for_timeout(1300)
         tabs = [t.strip().split("\n")[0] for t in await pg.locator("nav .tab").all_inner_texts()]
-        check(tabs[0] == "Sugestões" and "Prazos" not in tabs, f"Controlar prazos off: the same tabs ({tabs})")
+        check(tabs[0] == "Agora" and "Prazos" not in tabs, f"Controlar prazos off: the same tabs ({tabs})")
         check(not errs, f"no page errors {errs[:3]}")
         await b.close()
 try:

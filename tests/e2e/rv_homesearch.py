@@ -61,7 +61,7 @@ async def main():
         await pg.wait_for_timeout(200)
         check(await a.locator("input[data-q='buscar']").input_value() == "/", "typing / in the box is just a character")
         # Sugestões with one list of new items: still a top of more than one
-        await a.locator(".side-link", has_text="Sugestões").click(); await pg.wait_for_timeout(1200)
+        await a.locator(".side-link", has_text="Agora").click(); await pg.wait_for_timeout(1200)
         top = a.locator(".panel.items", has_text="Comece por aqui").locator(".item")
         texts = [t.replace("\n", " / ") for t in await top.all_inner_texts()]
         print("TOP:", texts)
