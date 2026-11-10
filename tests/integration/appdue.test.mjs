@@ -83,13 +83,29 @@ describe("Prazo no ResolvIA: the lists that take no date", () => {
     assert.equal(saved()[CASA], undefined);
   });
 
+  it("2.59.0: the other apps send the deadline of a new task in resolvia_comodo (prazo), and know which lists take it", async () => {
+    const p = stack.presence();
+    assert.ok(p.com_prazo_app.includes(SHOP) && !p.com_prazo_app.includes(CASA), "for the CronologIA");
+    assert.equal(p.listas.find((l) => l.id === SHOP).prazo_app, true, "for the InventarIA");
+    assert.equal(p.listas.find((l) => l.id === CASA).prazo_app, undefined);
+    await c.call("call_service", svc("add_item", { item: "Sabão em pó" }));
+    await stack.fire("resolvia_comodo", { entity_id: SHOP, tarefa: "Sabão em pó", prazo: "2026-12-12T09:00:00", origem: "CronologIA" });
+    await waitFor(async () => ((await byName("Sabão em pó")) || {}).due === "2026-12-12T09:00:00", { what: "the deadline from the event" });
+    await stack.fire("resolvia_comodo", { entity_id: CASA, tarefa: "Trocar a lâmpada", prazo: "2026-12-20", origem: "InventarIA" });
+    await new Promise((r) => setTimeout(r, 300));
+    assert.equal(saved()[CASA], undefined, "a list with dates of its own: the date is in Home Assistant, not here");
+    await c.call("resolvia/prefs/set_list", { entity_id: SHOP, prefs: { dates_info: true } });
+    await waitFor(() => !stack.presence().com_prazo_app.includes(SHOP) && !stack.presence().listas.find((l) => l.id === SHOP).prazo_app, { what: "Prazos off on the list" });
+    await c.call("resolvia/prefs/set_list", { entity_id: SHOP, prefs: { dates_info: null } });
+  });
+
   it("the deadlines go with Começar do zero and survive a restart", async () => {
     await c.call("call_service", svc("add_item", { item: "Detergente", due_date: "2026-12-10" }));
     await stack.restartApp();
     c = await stack.client({ "x-remote-user-id": "user-ana" });
     assert.equal((await waitFor(() => byName("Detergente"), { what: "after the restart" })).due, "2026-12-10");
     const out = await c.call("resolvia/data/erase", { confirm: true });
-    assert.equal(out.dues, 1);
+    assert.equal(out.dues, 2, "Sabão em pó and Detergente");
     assert.equal((await byName("Detergente")).due, undefined);
   });
 });

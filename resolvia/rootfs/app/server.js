@@ -427,6 +427,11 @@ ha.subscribe({ type: "subscribe_events", event_type: "resolvia_comodo" }, (ev) =
       store.setEquip(d.entity_id, String(d.tarefa), Array.isArray(d.equipamento) ? d.equipamento.map(String) : d.equipamento ? String(d.equipamento) : null);
       roomsFromEquips(d.entity_id, String(d.tarefa));
     }
+    // prazo (2.59.0): the deadline of a new task in a list without dates (the CronologIA, the InventarIA), kept here
+    if ("prazo" in d && appDueIds.has(d.entity_id) && store.prefs.app.due_off !== true) {
+      store.setDue(d.entity_id, String(d.tarefa), d.prazo || null);
+      pushDues(d.entity_id);
+    }
     publishPresence();
   } catch (err) {
     log.warn(`Cômodo vindo do ${d.origem || "CronologIA"}: ${err.message}`);
@@ -1179,7 +1184,10 @@ function publishedLists() {
     const prefs = store.prefs.lists[id] || {};
     const features = Number(st && st.attributes && st.attributes.supported_features) || 0;
     if (!(features & TODO_CREATE) || prefs.hidden || !st || st.state === "unavailable" || st.state === "unknown") continue;
-    out.push({ id, nome: look.name, cor: look.color, prazo: dueOn && !datesInfo(prefs, features) && !appDueIds.has(id) });
+    // prazo_app (2.59.0): the deadline of the app (a list without dates): the InventarIA sends it in resolvia_comodo
+    // (prazo stays false there, for an InventarIA of before, which writes the date in Home Assistant)
+    const app = appDueIds.has(id);
+    out.push({ id, nome: look.name, cor: look.color, prazo: dueOn && !datesInfo(prefs, features) && !app, ...(app && dueOn && !prefs.dates_info ? { prazo_app: true } : {}) });
   }
   return out;
 }
@@ -1212,9 +1220,12 @@ function publishPresence() {
     // prazos_app: the deadlines the app keeps for the lists without dates ({todo.x: {task key: deadline}}), so the
     // CronologIA shows those tasks in the calendar too (only with Controlar prazos on)
     const prazosApp = prazos ? Object.fromEntries(Object.entries(store.dues).filter(([id]) => appDueIds.has(id) && !(store.prefs.lists[id] || {}).dates_info)) : {};
+    // com_prazo_app (2.59.0): the lists whose deadline the app keeps, so the CronologIA offers one in Adicionar › Tarefa
+    // (and sends it in resolvia_comodo)
+    const comPrazoApp = prazos ? [...appDueIds].filter((id) => !(store.prefs.lists[id] || {}).dates_info) : [];
     // the start is the same in every app of the family (app, nome, versao, gravado_em); app is still the name here, for the
     // CronologIA of before 1.66 (it checks it): the id ("resolvia") comes in a next version, the readers already take both
-    fs.writeFileSync(tmp, JSON.stringify({ app: "ResolvIA", nome: "ResolvIA", versao: VERSION, gravado_em: new Date().toISOString(), prazos, sem_prazo: semPrazo, prazos_app: prazosApp, pontos, repete, donos, listas, ...(comodos ? { comodos } : {}), ...(equipamentos ? { equipamentos } : {}) }, null, 1));
+    fs.writeFileSync(tmp, JSON.stringify({ app: "ResolvIA", nome: "ResolvIA", versao: VERSION, gravado_em: new Date().toISOString(), prazos, sem_prazo: semPrazo, prazos_app: prazosApp, com_prazo_app: comPrazoApp, pontos, repete, donos, listas, ...(comodos ? { comodos } : {}), ...(equipamentos ? { equipamentos } : {}) }, null, 1));
     fs.renameSync(tmp, path.join(dir, "integracao.json"));
     publishWarned = false;
   } catch (err) {

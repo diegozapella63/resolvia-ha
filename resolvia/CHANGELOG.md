@@ -1,5 +1,9 @@
 # Mudanças
 
+## 2.59.0
+
+- **Prazo nas listas sem data**: o **Adicionar › Tarefa** do CronologIA (1.73.0) e a **Nova tarefa** do InventarIA (1.49.0) também põem prazo nessas listas (as da Alexa, a Shopping list); ele fica guardado aqui, como o que você põe no ResolvIA.
+
 ## 2.58.0
 
 - **Prazo nas listas sem data** (as da Alexa, a Shopping list): agora dá para pôr prazo e horário. Como a integração não aceita data, o prazo fica guardado no próprio ResolvIA ("Guardado no ResolvIA: a lista não aceita data."). Ele fica vermelho quando atrasa e entra nas Sugestões, no aviso Vence hoje, no Relatório, na repetição e no CorrerIA. Não aparece no app da Alexa. Concluída ou apagada, a tarefa perde o prazo.
