@@ -122,11 +122,11 @@ async def main():
         check(local(casa["Passar pano na casa"].get("due")) == f"{TOMORROW} 08:00" and local(casa["Trocar filtro do ar"].get("due")) == f"{TOMORROW} 08:00",
               f"Casa: tomorrow at 08:00 ({casa['Passar pano na casa'].get('due')}, {casa['Trocar filtro do ar'].get('due')})")
         check(google["Renovar passaporte"].get("due") == TOMORROW, f"Google Tasks (date only): tomorrow ({google['Renovar passaporte'].get('due')})")
-        check(not shop["Pão"].get("due"), "the shopping list takes no date: as it was")
+        check(shop["Pão"].get("due") == f"{TOMORROW}T08:00:00", f"the shopping list takes no date: kept by the app (2.58.0) ({shop['Pão'].get('due')})")
         r = stored()["rooms"]
         check(r["todo.casa"].get("passar pano na casa") == "cozinha" and r["todo.google_tasks"].get("renovar passaporte") == "cozinha" and r["todo.shopping_list"].get("pao") == "cozinha", f"Cozinha on all four ({r})")
         toast = (await a.locator(".toast").inner_text()).strip()
-        check(toast.startswith("3 de 4 itens alterados"), f"the toast says one could not take everything ({toast})")
+        check(toast.startswith("4 itens alterados"), f"all four took everything ({toast})")
         check(await a.locator(".item.selecting").count() == 0 and await a.locator(".res-head .text-btn", has_text="Selecionar").count() == 1, "the selection ends")
         tags = await a.locator(".item", has_text="Passar pano na casa").locator(".tag").all_inner_texts()
         check(any("Cozinha" in t for t in tags) and any("Eletricista" in t for t in tags), f"the tags show it ({tags})")

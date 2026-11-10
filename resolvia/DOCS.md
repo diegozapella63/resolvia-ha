@@ -112,7 +112,7 @@ Exemplo: "Passar pano" com **3 dias**. Você marca como feito no domingo e ele v
 
 ## O que dá para fazer em cada lista
 
-Depende da integração da lista. A Lista de tarefas local aceita tudo (prazo, horário, notas, reordenar). A Shopping list aceita reordenar mas não prazos. As listas da Alexa aceitam adicionar, editar e apagar. O ResolvIA mostra só o que cada lista suporta.
+Depende da integração da lista. A Lista de tarefas local aceita tudo (prazo, horário, notas, reordenar). A Shopping list aceita reordenar mas não prazos. As listas da Alexa aceitam adicionar, editar e apagar. O ResolvIA mostra só o que cada lista suporta, com uma exceção: o prazo (veja **Prazo nas listas sem data**, em Prazos).
 
 ## Recompensas (pontos)
 
@@ -185,6 +185,8 @@ As **Sugestões** (a tela inicial) juntam o que tem prazo nas listas que aparece
 Prazo é só o que você define. Algumas integrações preenchem sozinhas a data dos itens: a Problem List da Análise dos Dispositivos, por exemplo, põe ali desde quando o aparelho está fora do ar. Como essas listas não deixam você definir prazo, a data delas aparece só como informação (em cinza, com um relógio apagado): não fica vermelha, não entra nas **Sugestões** como prazo nem no número da aba, e o CronologIA também não a trata como tarefa com prazo.
 
 Nas listas em que você define prazo, dá para desligar os prazos em **⋯ › Personalizar › Prazos**.
+
+**Prazo nas listas sem data**: nas listas cuja integração não aceita data (as da Alexa, a Shopping list), o prazo fica guardado no próprio ResolvIA, pelo nome da tarefa, como os pontos ("Guardado no ResolvIA: a lista não aceita data."). Ele vale como qualquer prazo: fica vermelho quando atrasa e entra nas **Sugestões**, no **Avisar o que vence hoje**, no **Relatório de pendências**, na repetição (a tarefa volta com o prazo de hoje) e no CorrerIA. Ele não aparece fora do ResolvIA (no app da Alexa ou na tela de listas do Home Assistant). Concluída ou apagada, em qualquer lugar, a tarefa perde o prazo; renomeada aqui, leva o prazo junto (renomeada lá fora, perde). Entra no exportar e no backup. As listas em que a integração põe datas sozinha (a Problem List) continuam com a data só como informação.
 
 **Avisar o que vence hoje** (em **Mais › Configurações › Opções › Prazos**, desligado por padrão): uma vez por dia, no horário escolhido (de meia em meia hora; 08:00 de início), cada pessoa da casa recebe no celular o que vence hoje nas listas dela (**⋯ › Personalizar › De quem é**) e nas de todos: um por linha, com o horário quando tem, e quantos estão atrasados. Tocar no aviso abre o app nas **Sugestões**. O aviso vai para a pessoa, nos celulares ligados a ela no Home Assistant (o app do Home Assistant no celular, em **Configurações › Pessoas**): **Quem recebe** tem um botão para cada pessoa da casa; toque para tirar ou pôr alguém (de início, todos recebem). Quem não tem celular ligado aparece como "sem celular". **Testar no meu celular** (embaixo de Quem recebe) manda o aviso de hoje para o seu celular, mesmo que você não esteja entre os escolhidos. Se nada vence no dia para alguém, não chega aviso para essa pessoa. Valem as listas que aparecem e que têm prazo; com **Controlar prazos** desligado, não há aviso.
 

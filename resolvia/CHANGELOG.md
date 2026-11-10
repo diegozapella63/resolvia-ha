@@ -1,5 +1,9 @@
 # Mudanças
 
+## 2.58.0
+
+- **Prazo nas listas sem data** (as da Alexa, a Shopping list): agora dá para pôr prazo e horário. Como a integração não aceita data, o prazo fica guardado no próprio ResolvIA ("Guardado no ResolvIA: a lista não aceita data."). Ele fica vermelho quando atrasa e entra nas Sugestões, no aviso Vence hoje, no Relatório, na repetição e no CorrerIA. Não aparece no app da Alexa. Concluída ou apagada, a tarefa perde o prazo.
+
 ## 2.57.0
 
 - **Atalho no celular**, em **Mais › Configurações › Opções**: o caminho do ResolvIA no Home Assistant, com **Copiar**, e como criar um ícone na tela inicial do celular que abre o app direto (no app do Home Assistant: Configurações › Aplicativo complementar › Gerenciar atalhos). O mesmo vale em todos os apps da família.

@@ -10,7 +10,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { acceptUpgrade } from "./lib/ws.js";
 import { HAClient } from "./lib/ha.js";
-import { Store, datesInfo } from "./lib/store.js";
+import { Store, datesInfo, taskKey } from "./lib/store.js";
 import { pendencias, reportHtml, reportPdf, pdfName, listLooks } from "./lib/report.js";
 import { Recurring } from "./lib/recurring.js";
 import { AI } from "./lib/ai.js";
@@ -55,13 +55,88 @@ const store = new Store(DATA_DIR, log);
 store.trimVersions(); // Versões anteriores: only the 3 newest (older installs kept up to 60)
 const ha = new HAClient(HA_URL, TOKEN, log);
 const todoStates = new Map();
+
+// ---- Prazo no ResolvIA (2.58.0): the lists whose integration takes no date (the Alexa, the Shopping list) get a
+// deadline kept by the app, by the name of the task, like the points. Their state goes to the screen and to the parts of
+// the app with the date features on (resolvia_prazo marks them); the date the screen, the repetition, the tools or a
+// restore send with add_item/update_item stays here (appSend), and the items come with it (itemsWithDue). A task done
+// or deleted loses it. Nothing changes in Home Assistant.
+const F_DUE = 16 | 32; // SET_DUE_DATE | SET_DUE_DATETIME
+const appDueIds = new Set();
+const rawStates = new Map(); // entity_id -> the state of Home Assistant
+const rawItems = new Map(); // entity_id -> the items of Home Assistant (without the deadlines of the app)
+const itemWatchers = new Set(); // {session, id, entity}: the screens following the items of a list
+// the lists whose integration writes dates of its own without taking one (Análise dos Dispositivos: "unavailable
+// since…"): those dates are information, so no deadlines of the app there
+const infoDates = new Set();
+function withAppDue(id, st) {
+  const f = Number(st && st.attributes && st.attributes.supported_features) || 0;
+  if (!st || f & F_DUE || !(f & (1 | 4)) || infoDates.has(id)) {
+    appDueIds.delete(id);
+    return st;
+  }
+  appDueIds.add(id);
+  return { ...st, attributes: { ...st.attributes, supported_features: f | F_DUE, resolvia_prazo: true } };
+}
+/** The items of a list with the deadlines the app keeps (only the open ones without a date of their own). */
+function itemsWithDue(id, items) {
+  const map = appDueIds.has(id) && store.dues[id];
+  if (!map || !Array.isArray(items)) return items;
+  return items.map((i) => (i && i.status === "needs_action" && !i.due && map[taskKey(i.summary)] ? { ...i, due: map[taskKey(i.summary)] } : i));
+}
+/** A deadline of the app changed: the screens following the list and the alert see it now. */
+function pushDues(id) {
+  const raw = rawItems.get(id);
+  if (!raw) return;
+  const items = itemsWithDue(id, raw);
+  recurring.items.set(id, items);
+  for (const w of itemWatchers) if (w.entity === id) w.session.event(w.id, { items });
+  publishPresence();
+}
+/** ha.send for the parts that change tasks: the date of a list without dates stays in the app. */
+async function appSend(msg, timeout) {
+  if (msg && msg.type === "todo/item/list") {
+    const r = await ha.send(msg, timeout);
+    return r && appDueIds.has(msg.entity_id) ? { ...r, items: itemsWithDue(msg.entity_id, r.items) } : r;
+  }
+  const ids = msg && msg.type === "call_service" && msg.domain === "todo" && (msg.service === "add_item" || msg.service === "update_item") ? [].concat((msg.target && msg.target.entity_id) || []) : [];
+  const id = ids.length === 1 && appDueIds.has(ids[0]) ? ids[0] : null;
+  if (!id) return ha.send(msg, timeout);
+  const data = { ...(msg.service_data || {}) };
+  const hasDue = "due_date" in data || "due_datetime" in data;
+  const due = data.due_datetime || data.due_date || null;
+  delete data.due_date;
+  delete data.due_datetime;
+  let summary = msg.service === "add_item" ? String(data.item || "") : null;
+  if (msg.service === "update_item") {
+    const it = (rawItems.get(id) || []).find((i) => i.uid === data.item || i.summary === data.item);
+    const before = it ? it.summary : String(data.item || "");
+    summary = data.rename ? String(data.rename) : before;
+    // a rename takes its deadline along before Home Assistant tells the old name is gone
+    if (data.rename && before) store.renameDue(id, before, data.rename);
+  }
+  // only the date changed: nothing for Home Assistant
+  const out = msg.service === "update_item" && Object.keys(data).length <= 1 ? {} : await ha.send({ ...msg, service_data: data }, timeout);
+  if (hasDue && summary) {
+    store.setDue(id, summary, due);
+    pushDues(id);
+  }
+  return out;
+}
+const haApp = new Proxy(ha, {
+  get(t, k) {
+    if (k === "send") return appSend;
+    const v = t[k];
+    return typeof v === "function" ? v.bind(t) : v;
+  },
+});
 /** Mais > Configurações > Opções > Repetição: the automatic repetition is on (unset: on when there are rules, so nothing stops after an update). */
 const repeatOn = () => {
   const v = store.prefs.app.repeat_on;
   return v === undefined ? Object.keys(store.rules || {}).length > 0 : v === true;
 };
-const recurring = new Recurring({ ha, store, log, states: todoStates, dayMs: DAY_MS, enabled: repeatOn });
-const restore = new Restore({ ha, store, recurring, states: todoStates, log });
+const recurring = new Recurring({ ha: haApp, store, log, states: todoStates, dayMs: DAY_MS, enabled: repeatOn });
+const restore = new Restore({ ha: haApp, store, recurring, states: todoStates, log });
 const backups = new Backups({ dir: path.join(SHARE_DIR, "resolvia") });
 const placar = new Placar({ shareDir: SHARE_DIR });
 // Cômodos do InventarIA (Mais › Configurações › Integrações; off by default): a room for each task
@@ -205,8 +280,8 @@ async function userOf(pessoa) {
 }
 const ferramentas = new Ferramentas({
   lists: toolLists,
-  items: async (id) => (await ha.send({ type: "todo/item/list", entity_id: id })).items,
-  call: (service, data, entityId) => ha.send({ type: "call_service", domain: "todo", service, service_data: data, target: { entity_id: [entityId] } }),
+  items: async (id) => (await appSend({ type: "todo/item/list", entity_id: id })).items,
+  call: (service, data, entityId) => appSend({ type: "call_service", domain: "todo", service, service_data: data, target: { entity_id: [entityId] } }),
   store,
   recurring,
   placar,
@@ -271,7 +346,10 @@ const isTodo = (id) => typeof id === "string" && /^todo\.[a-z0-9_]+$/.test(id);
 
 // ------------------------------------------------------------------ Home Assistant side
 
-function setTodoState(entityId, state) {
+function setTodoState(entityId, raw) {
+  const state = withAppDue(entityId, raw);
+  if (raw) rawStates.set(entityId, raw);
+  else rawStates.delete(entityId);
   if (state) todoStates.set(entityId, state);
   else todoStates.delete(entityId);
   if (lastLists && JSON.stringify(publishedLists()) !== lastLists) publishPresence();
@@ -284,9 +362,22 @@ function syncItemSubs() {
     const sub = ha.subscribe(
       { type: "todo/item/subscribe", entity_id: id },
       (ev) => {
-        const items = (ev && ev.items) || [];
+        const raw = (ev && ev.items) || [];
+        rawItems.set(id, raw);
+        const own = raw.some((i) => i && i.due);
+        const st0 = rawStates.get(id);
+        const f0 = Number(st0 && st0.attributes && st0.attributes.supported_features) || 0;
+        if (!(f0 & F_DUE) && own !== infoDates.has(id)) {
+          if (own) infoDates.add(id);
+          else infoDates.delete(id);
+          setTodoState(id, st0);
+        }
         const st = todoStates.get(id);
-        if (st && st.state !== "unavailable" && st.state !== "unknown") ages.track(id, items);
+        const up = st && st.state !== "unavailable" && st.state !== "unknown";
+        // the deadlines of the app whose task is done or deleted go (not when the list comes back empty: a glitch)
+        if (up && appDueIds.has(id) && raw.length && store.dropDues(id, new Set(raw.filter((i) => i.status === "needs_action").map((i) => taskKey(i.summary))))) publishPresence();
+        const items = itemsWithDue(id, raw);
+        if (up) ages.track(id, items);
         recurring.process(id, items);
       },
       (err) => {
@@ -311,7 +402,7 @@ async function loadStates() {
   for (const st of states) {
     if (!isTodo(st.entity_id)) continue;
     seen.add(st.entity_id);
-    if (todoStates.get(st.entity_id) !== st) setTodoState(st.entity_id, st);
+    if (rawStates.get(st.entity_id) !== st) setTodoState(st.entity_id, st);
   }
   for (const id of [...todoStates.keys()]) if (!seen.has(id)) setTodoState(id, null);
   syncItemSubs();
@@ -481,7 +572,7 @@ class Session {
   dispose() {
     for (const [, sub] of this.subs) sub.unsubscribe();
     this.subs.clear();
-    for (const set of [listWatchers, ruleWatchers]) for (const w of set) if (w.session === this) set.delete(w);
+    for (const set of [listWatchers, ruleWatchers, itemWatchers]) for (const w of set) if (w.session === this) set.delete(w);
   }
 
   watch(set, id) {
@@ -726,12 +817,24 @@ class Session {
 
       case "todo/item/subscribe": {
         if (!isTodo(msg.entity_id)) return this.error(id, "invalid_format", "Not a to-do entity");
+        const entity = msg.entity_id;
+        const w = { session: this, id, entity };
         const sub = ha.subscribe(
-          { type: "todo/item/subscribe", entity_id: msg.entity_id },
-          (ev) => this.event(id, ev),
-          () => this.subs.delete(id),
+          { type: "todo/item/subscribe", entity_id: entity },
+          (ev) => this.event(id, ev && appDueIds.has(entity) ? { ...ev, items: itemsWithDue(entity, ev.items) } : ev),
+          () => {
+            this.subs.delete(id);
+            itemWatchers.delete(w);
+          },
         );
-        this.subs.set(id, sub);
+        itemWatchers.add(w);
+        this.subs.set(id, {
+          ready: sub.ready,
+          unsubscribe: () => {
+            itemWatchers.delete(w);
+            sub.unsubscribe();
+          },
+        });
         await sub.ready;
         return this.result(id);
       }
@@ -746,7 +849,7 @@ class Session {
 
       case "todo/item/list":
         if (!isTodo(msg.entity_id)) return this.error(id, "invalid_format", "Not a to-do entity");
-        return this.result(id, await ha.send({ type, entity_id: msg.entity_id }));
+        return this.result(id, await appSend({ type, entity_id: msg.entity_id }));
 
       case "todo/item/move": {
         if (!isTodo(msg.entity_id)) return this.error(id, "invalid_format", "Not a to-do entity");
@@ -761,7 +864,7 @@ class Session {
         if (msg.domain !== "todo" || !SERVICES.has(msg.service) || !ids.length || !ids.every(isTodo)) {
           return this.error(id, "unauthorized", "ResolvIA only manages to-do lists");
         }
-        const result = await ha.send({
+        const result = await appSend({
           type,
           domain: "todo",
           service: msg.service,
@@ -1076,7 +1179,7 @@ function publishedLists() {
     const prefs = store.prefs.lists[id] || {};
     const features = Number(st && st.attributes && st.attributes.supported_features) || 0;
     if (!(features & TODO_CREATE) || prefs.hidden || !st || st.state === "unavailable" || st.state === "unknown") continue;
-    out.push({ id, nome: look.name, cor: look.color, prazo: dueOn && !datesInfo(prefs, features) });
+    out.push({ id, nome: look.name, cor: look.color, prazo: dueOn && !datesInfo(prefs, features) && !appDueIds.has(id) });
   }
   return out;
 }
@@ -1087,7 +1190,9 @@ function publishPresence() {
     const dir = path.join(SHARE_DIR, "resolvia");
     fs.mkdirSync(dir, { recursive: true });
     const tmp = path.join(dir, ".integracao.json.tmp");
-    const semPrazo = [...todoStates].filter(([id, st]) => datesInfo(store.prefs.lists[id], st && st.attributes && st.attributes.supported_features)).map(([id]) => id);
+    // sem_prazo: by what Home Assistant takes (a list with the deadlines of the app is here too: the CronologIA and the
+    // InventarIA write the date in Home Assistant, which refuses it there; prazos_app has those deadlines)
+    const semPrazo = [...rawStates].filter(([id, st]) => datesInfo(store.prefs.lists[id], st && st.attributes && st.attributes.supported_features)).map(([id]) => id);
     // pontos: what each task is worth, so the CronologIA gives the same points when a task is concluded there
     const pontos = store.prefs.app.points_on ? store.points : {};
     const repete = repeatMap();
@@ -1104,9 +1209,12 @@ function publishPresence() {
     // order; not the ones unmarked in Mais › Listas) and whether they take a deadline: the InventarIA creates tasks with it
     const listas = publishedLists();
     lastLists = JSON.stringify(listas);
+    // prazos_app: the deadlines the app keeps for the lists without dates ({todo.x: {task key: deadline}}), so the
+    // CronologIA shows those tasks in the calendar too (only with Controlar prazos on)
+    const prazosApp = prazos ? Object.fromEntries(Object.entries(store.dues).filter(([id]) => appDueIds.has(id) && !(store.prefs.lists[id] || {}).dates_info)) : {};
     // the start is the same in every app of the family (app, nome, versao, gravado_em); app is still the name here, for the
     // CronologIA of before 1.66 (it checks it): the id ("resolvia") comes in a next version, the readers already take both
-    fs.writeFileSync(tmp, JSON.stringify({ app: "ResolvIA", nome: "ResolvIA", versao: VERSION, gravado_em: new Date().toISOString(), prazos, sem_prazo: semPrazo, pontos, repete, donos, listas, ...(comodos ? { comodos } : {}), ...(equipamentos ? { equipamentos } : {}) }, null, 1));
+    fs.writeFileSync(tmp, JSON.stringify({ app: "ResolvIA", nome: "ResolvIA", versao: VERSION, gravado_em: new Date().toISOString(), prazos, sem_prazo: semPrazo, prazos_app: prazosApp, pontos, repete, donos, listas, ...(comodos ? { comodos } : {}), ...(equipamentos ? { equipamentos } : {}) }, null, 1));
     fs.renameSync(tmp, path.join(dir, "integracao.json"));
     publishWarned = false;
   } catch (err) {

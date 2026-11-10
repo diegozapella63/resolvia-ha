@@ -456,6 +456,8 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
         owner: p.owner || null,
         features,
         canDue,
+        // 2.58.0: the integration takes no date (the Alexa): the deadline is kept by the app
+        appDue: !!st.attributes.resolvia_prazo,
         datesInfo,
         noDue,
         hasDates: !!(items && items.some((i) => i.due)),
@@ -3529,6 +3531,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
               ${f.date ? html`<button class="pick ghost" @click=${() => this._setForm({ date: null, time: null, cal: null })}>${icon("x")}<span>Sem prazo</span></button>` : nothing}
             </div>
             ${f.cal ? this._renderCal(f.date, (d) => this._setForm({ date: d, cal: null })) : nothing}
+            ${target.appDue && f.date ? html`<p class="field-hint app-due">${icon("info")}<span>Guardado no ResolvIA: a lista não aceita data.</span></p>` : nothing}
           </div>`
         : nothing}
       ${canDate && canTime && f.date
@@ -3568,7 +3571,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
         : nothing}
       ${this._renderRoomField(f)}
       ${this._renderEquipField(f)}
-      ${this._renderExternalField(f, feat)}
+      ${this._renderExternalField(f, target.appDue ? feat & ~(F.DUE_DATE | F.DUE_DATETIME) : feat)}
       ${this._renderPointsField(f)}
       ${targets.length > 1
         ? html`<div class="field">

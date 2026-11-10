@@ -5,7 +5,7 @@ import path from "node:path";
 import { Store, normalize, taskKey, datesInfo } from "../resolvia/rootfs/app/lib/store.js";
 import { tmpDir, fakeLog, local } from "./_helpers.mjs";
 
-const EMPTY = { version: 1, prefs: { lists: {}, app: {} }, rules: {}, points: {}, rooms: {}, equips: {}, ext: {} };
+const EMPTY = { version: 1, prefs: { lists: {}, app: {} }, rules: {}, points: {}, rooms: {}, equips: {}, ext: {}, dues: {} };
 
 /** A store in a fresh temp dir, with its timers and clock under the test's control. */
 function newStore(t, { now = local(2026, 11, 2, 9, 0, 0), file } = {}) {
@@ -697,7 +697,7 @@ describe("Store: Começar do zero (2.53.0)", () => {
     store.data.rules.r1 = { id: "r1", entity_id: "todo.casa", summary: "Varrer", days: 7 };
     store.flush();
     const out = store.erase();
-    assert.deepEqual(out, { rules: 1, points: 2, rooms: 1, equips: 1, ext: 1 });
+    assert.deepEqual(out, { rules: 1, points: 2, rooms: 1, equips: 1, ext: 1, dues: 0 });
     const d = onDisk();
     assert.deepEqual([d.rules, d.points, d.rooms, d.equips, d.ext], [{}, {}, {}, {}, {}]);
     assert.equal(d.prefs.lists["todo.casa"].name, "Casa da Ana");
@@ -707,6 +707,30 @@ describe("Store: Começar do zero (2.53.0)", () => {
     assert.deepEqual(v, ["resolvia-20261109-100000000-antes-de-apagar.json"]);
     const copy = JSON.parse(fs.readFileSync(path.join(dir, "versoes", v[0]), "utf8"));
     assert.equal(copy.points["todo.casa"]["lavar a louca"], 10, "the copy has what was erased");
-    assert.deepEqual(store.erase(), { rules: 0, points: 0, rooms: 0, equips: 0, ext: 0 }, "nothing more to erase");
+    assert.deepEqual(store.erase(), { rules: 0, points: 0, rooms: 0, equips: 0, ext: 0, dues: 0 }, "nothing more to erase");
+  });
+});
+
+describe("Store: the deadlines of the app (2.58.0, the lists that take no date)", () => {
+  it("by the name of the task; a rename takes it along; a task no longer open loses it; checked on loading", () => {
+    const store = new Store(tmpDir(), fakeLog());
+    const L = "todo.notas_e_rotinas_do_alexa_shopping_list";
+    assert.equal(store.setDue(L, "  Pilhas AA ", "2026-12-01"), "2026-12-01");
+    assert.equal(store.dueFor(L, "pilhas aa"), "2026-12-01");
+    assert.equal(store.setDue(L, "Pilhas AA", "2026-12-02 15:00:00"), "2026-12-02T15:00:00", "with a time");
+    store.renameDue(L, "Pilhas AA", "Pilhas AAA");
+    assert.deepEqual(store.dues[L], { "pilhas aaa": "2026-12-02T15:00:00" });
+    store.setDue(L, "Detergente", "2026-12-10");
+    assert.equal(store.dropDues(L, new Set(["detergente"])), 1, "Pilhas AAA is done");
+    assert.deepEqual(store.dues[L], { detergente: "2026-12-10" });
+    assert.equal(store.dropDues(L, new Set(["detergente"])), 0);
+    assert.equal(store.dropDues("todo.outra", new Set()), 0);
+    assert.equal(store.setDue(L, "Detergente", null), null);
+    assert.deepEqual(store.dues, {}, "the last one gone: the list goes too");
+    store.setDue(L, "Sabão", "nada");
+    assert.deepEqual(store.dues, {}, "not a date: nothing");
+    assert.throws(() => store.setDue("light.x", "Sabão", "2026-12-01"), /to-do/);
+    assert.throws(() => store.setDue(L, "  ", "2026-12-01"), /name/);
+    assert.deepEqual(normalize({ dues: { [L]: { "Sabão  em pó": "2026-12-01", x: "2026-02-31x", y: 3 }, "light.x": { a: "2026-12-01" }, "todo.z": "x" } }).dues, { [L]: { "sabao em po": "2026-12-01" } });
   });
 });

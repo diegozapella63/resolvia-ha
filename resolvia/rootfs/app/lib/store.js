@@ -172,6 +172,30 @@ export function externalValue(v) {
   return s || null;
 }
 
+/** "2026-11-20" or "2026-11-20T15:00:00" (a deadline kept by the app), or null. */
+export function cleanDue(v) {
+  const s = String(v || "").trim();
+  const m = s.match(/^(\d{4}-\d{2}-\d{2})(?:[T ](\d{2}):(\d{2})(?::\d{2})?)?$/);
+  if (!m || Number.isNaN(Date.parse(m[1]))) return null;
+  return m[2] ? `${m[1]}T${m[2]}:${m[3]}:00` : m[1];
+}
+
+/** {todo.x: {task key: deadline}}: the deadlines the app keeps for the lists that take no date (Alexa, Shopping list). */
+function cleanDues(raw) {
+  const out = {};
+  if (!isObj(raw)) return out;
+  for (const [id, map] of Object.entries(raw)) {
+    if (!/^todo\.[a-z0-9_]+$/.test(id) || !isObj(map)) continue;
+    const m = {};
+    for (const [k, v] of Object.entries(map).slice(0, 2000)) {
+      const d = cleanDue(v);
+      if (k && d) m[taskKey(k)] = d;
+    }
+    if (Object.keys(m).length) out[id] = m;
+  }
+  return out;
+}
+
 /** {todo.x: {task key: true | "who"}}: the tasks done by someone from outside (a professional, a store). */
 function cleanExternal(raw) {
   const out = {};
@@ -190,7 +214,7 @@ function cleanExternal(raw) {
 
 /** The file contents, checked. Strict (imports) also validates every preference. */
 export function normalize(raw, strict = false) {
-  const data = { version: 1, prefs: { lists: {}, app: {} }, rules: {}, points: {}, rooms: {}, equips: {}, ext: {} };
+  const data = { version: 1, prefs: { lists: {}, app: {} }, rules: {}, points: {}, rooms: {}, equips: {}, ext: {}, dues: {} };
   if (!isObj(raw)) return data;
   if (isObj(raw.prefs)) {
     if (isObj(raw.prefs.lists)) {
@@ -238,6 +262,7 @@ export function normalize(raw, strict = false) {
   data.rooms = cleanLinks(raw.rooms); // {todo.x: {task key: room id | [room ids]}}
   data.ext = cleanExternal(raw.ext); // {todo.x: {task key: true | "who"}}: Serviço externo
   data.equips = cleanLinks(raw.equips); // {todo.x: {task key: item id | [item ids] of the InventarIA}}
+  data.dues = cleanDues(raw.dues); // {todo.x: {task key: deadline}}: the lists without dates (2.58.0)
   // the day each daily alert went out ({prazos: "YYYY-MM-DD"}), so it goes once a day even after a restart
   if (isObj(raw.alerts) && typeof raw.alerts.prazos === "string" && /^\d{4}-\d{2}-\d{2}$/.test(raw.alerts.prazos)) data.alerts = { prazos: raw.alerts.prazos };
   // the owners of the lists came from the CronologIA once (2.42.0): never again, so a list made everyone's stays so
@@ -278,10 +303,10 @@ export class Store {
    */
   erase() {
     const count = (o) => Object.values(o || {}).reduce((n, m) => n + (m && typeof m === "object" ? Object.keys(m).length : 0), 0);
-    const out = { rules: Object.keys(this.data.rules).length, points: count(this.data.points), rooms: count(this.data.rooms), equips: count(this.data.equips), ext: count(this.data.ext) };
+    const out = { rules: Object.keys(this.data.rules).length, points: count(this.data.points), rooms: count(this.data.rooms), equips: count(this.data.equips), ext: count(this.data.ext), dues: count(this.data.dues) };
     if (this.timer) this.flush({ version: false });
     this.version("antes-de-apagar", true);
-    this.data = { ...this.data, rules: {}, points: {}, rooms: {}, equips: {}, ext: {} };
+    this.data = { ...this.data, rules: {}, points: {}, rooms: {}, equips: {}, ext: {}, dues: {} };
     this.flush({ version: false });
     return out;
   }
@@ -364,6 +389,59 @@ export class Store {
 
   get rooms() {
     return this.data.rooms || {};
+  }
+
+  /**
+   * The deadlines the app keeps (2.58.0), for the lists whose integration takes no date (the Alexa, the Shopping list):
+   * by the name of the task, like the points. dueFor -> "2026-11-20" | "2026-11-20T15:00:00" | null.
+   */
+  get dues() {
+    return this.data.dues || {};
+  }
+
+  dueFor(entityId, summary) {
+    const map = this.dues[entityId];
+    return (map && map[taskKey(summary)]) || null;
+  }
+
+  /** Sets (a date or a date and time) or clears (null) the deadline of a task; `previous`: the old name after a rename. */
+  setDue(entityId, summary, due, previous = null) {
+    if (typeof entityId !== "string" || !/^todo\.[a-z0-9_]+$/.test(entityId)) throw new Error("Not a to-do entity");
+    const key = taskKey(summary);
+    if (!key) throw new Error("Task name required");
+    const all = { ...this.dues };
+    const map = { ...(all[entityId] || {}) };
+    if (previous != null && taskKey(previous) !== key) delete map[taskKey(previous)];
+    const d = cleanDue(due);
+    if (d) map[key] = d;
+    else delete map[key];
+    if (Object.keys(map).length) all[entityId] = map;
+    else delete all[entityId];
+    this.data.dues = all;
+    this.save();
+    return d;
+  }
+
+  /** Moves the deadline of a task to its new name (a rename). */
+  renameDue(entityId, from, to) {
+    const d = this.dueFor(entityId, from);
+    if (d && taskKey(from) !== taskKey(to)) this.setDue(entityId, to, d, from);
+  }
+
+  /** The deadlines of a list whose task is no longer open (done or deleted) go; keep: the task keys still open. */
+  dropDues(entityId, keep) {
+    const map = this.dues[entityId];
+    if (!map) return 0;
+    const gone = Object.keys(map).filter((k) => !keep.has(k));
+    if (!gone.length) return 0;
+    const all = { ...this.dues };
+    const next = { ...map };
+    for (const k of gone) delete next[k];
+    if (Object.keys(next).length) all[entityId] = next;
+    else delete all[entityId];
+    this.data.dues = all;
+    this.save();
+    return gone.length;
   }
 
   get equips() {

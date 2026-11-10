@@ -150,9 +150,10 @@ async def main():
         er = await rows("g-equips")
         check([r[:2] for r in er] == [["Geladeira", 2], ["Ar-condicionado", 1], ["Chuveiro", 1]] and [r[3] for r in er] == ["Cozinha", "Sala", "Banheiro"], f"Por equipamento: Geladeira 2, the tie in the order of the InventarIA, the room beside ({er})")
         check((await a.locator("#g-equips .g-foot").inner_text()).strip() == "Sem equipamento: 19", "Sem equipamento: the others")
-        # ---- Por prazo: the lists with deadlines (Casa and Google Tasks)
+        # ---- Por prazo: the lists with deadlines (Casa, Google Tasks and, since 2.58.0, the ones without dates, with the
+        # deadlines of the app: the Shopping lists and the Alexa one; not the Problem List, whose dates are information)
         dr = await rows("g-prazos")
-        check([r[:3] for r in dr] == [["Atrasados", 1, "9%"], ["Hoje", 1, "9%"], ["Próximos 7 dias", 2, "18%"], ["Mais adiante", 1, "9%"], ["Sem prazo", 6, "55%"]], f"Por prazo: late, today, 7 days, later, none, with the share ({dr})")
+        check([r[:3] for r in dr] == [["Atrasados", 1, "5%"], ["Hoje", 1, "5%"], ["Próximos 7 dias", 2, "11%"], ["Mais adiante", 1, "5%"], ["Sem prazo", 14, "74%"]], f"Por prazo: late, today, 7 days, later, none, with the share ({dr})")
         late = await a.evaluate("(el) => [getComputedStyle(el.renderRoot.querySelector('#g-prazos .g-row.k-late .g-bar i')).backgroundColor, getComputedStyle(el.renderRoot.querySelector('#g-prazos .g-row.k-today .g-bar i')).backgroundColor]")
         check(late[0] != late[1], f"late and today in their colors ({late})")
         check(await a.locator("#g-prazos div.g-row").count() == 1 and await a.locator("#g-prazos button.g-row").count() == 4, "Sem prazo is not a button (nothing to open)")

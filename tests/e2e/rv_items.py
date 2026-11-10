@@ -301,7 +301,8 @@ async def main():
         await open_edit("Pão de forma")
         await pg.locator(".sheet .pick.list", has_text="To-do list").click(); await pg.wait_for_timeout(150)
         check(await pg.locator(".sheet .btn.primary").inner_text() == "Mover", "choosing another list turns Salvar into Mover")
-        check(await pg.locator(".sheet .flabel", has_text="Notas").count() == 0 and await pg.locator(".sheet .flabel", has_text="Prazo").count() == 0, "the fields follow the list it goes to (no notes or deadline there)")
+        check(await pg.locator(".sheet .flabel", has_text="Notas").count() == 0 and await pg.locator(".sheet .flabel", has_text="Prazo").count() == 1,
+              "the fields follow the list it goes to (no notes there; 2.58.0: the deadline kept by the app)")
         await pg.locator(".sheet .btn.primary").click(); await pg.wait_for_timeout(900)
         check(await item("Pão de forma") is None and await item("Pão de forma", TODO), "moved: out of Casa, into To-do list")
         check(await pg.locator(".toast span").inner_text() == "Movido para To-do list", "toast 'Movido para To-do list'")
@@ -314,7 +315,7 @@ async def main():
         check(await pg.locator(".sheet .pick.list.on").inner_text() == "Casa", "the last list used comes chosen")
         await pg.locator(".sheet .pick.list", has_text="Shopping list").click(); await pg.wait_for_timeout(200)
         labels = [t.strip() for t in await pg.locator(".sheet .flabel").all_inner_texts()]
-        check("Notas" not in labels and "Prazo" not in labels, f"Shopping list: no notes, no deadline ({labels})")
+        check("Notas" not in labels and "Prazo" in labels, f"Shopping list: no notes, a deadline of the app ({labels})")
         await pg.locator(".sheet textarea").first.fill("Detergente")
         await pg.screenshot(path=f"{SP}/shots/rvit-add-home.png")
         await pg.locator(".sheet .btn.primary").click(); await pg.wait_for_timeout(800)

@@ -74,7 +74,8 @@ describe("items through Home Assistant", () => {
 
   it("Home Assistant's errors come back as they are", async () => {
     await assert.rejects(c.call("call_service", svc("update_item", { item: "não existe", status: "completed" })), { code: "service_validation_error", message: "Item not found" });
-    await assert.rejects(c.call("call_service", svc("add_item", { item: "x", due_date: "2026-12-01" }, SHOP)), { code: "service_validation_error" });
+    // (a date in a list that takes none stays in the app since 2.58.0: appdue.test.mjs)
+    await assert.rejects(c.call("call_service", svc("add_item", { item: "x", due_date: "2026-12-01" }, PROBLEMS)), { code: "service_validation_error" }, "a list with dates of its own (information) takes none");
   });
 
   it("only manages to-do lists, with the four item services", async () => {
