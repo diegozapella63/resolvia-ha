@@ -158,7 +158,7 @@ def wait_line(path, text, timeout=20):
 FRAME = """<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <style>html, body { margin: 0; height: 100%; background: #111; } iframe { display: block; border: 0; width: 100%; height: 100%; }</style></head>
 <body><home-assistant></home-assistant><script>document.querySelector("home-assistant").hass = { user: { name: "Ana", is_admin: true }, themes: { darkMode: true } };</script>
-<iframe src="./"></iframe></body></html>"""
+<iframe src="./?aba=listas"></iframe></body></html>"""
 
 
 # a mesma conexão que a tela usa, para preparar os dados (como nos testes visuais)

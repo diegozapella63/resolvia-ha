@@ -1,5 +1,9 @@
 # Mudanças
 
+## 2.54.2
+
+- **Documentação** revista: a aba **Listas** (o caderno, o Buscar e as listas, com as ocultas em **Inativas**), o que fica em cada aba de **Configurações** e as telas do README, com a barra de baixo de agora.
+
 ## 2.54.1
 
 - Nada muda na tela: a versão do app fica escrita num lugar só, e o Sobre, o rodapé e o servidor mostram sempre a mesma.

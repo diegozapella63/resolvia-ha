@@ -46,8 +46,9 @@ Os dados de cada tarefa (pontos, cômodo, equipamento) ficam no app, pela chave 
 
 ## Testes
 
-- `npm test`: unitários (`tests/*.test.mjs`) e de integração (`tests/integration/`), com `node:test`, sem instalar nada. Cada arquivo de integração sobe o HA simulado e o servidor em portas livres (o InventarIA é simulado por um servidor HTTP no próprio teste).
-- `tests/e2e/run.sh`: testes visuais em Python + Playwright (`pip install playwright && playwright install chromium`). Precisam dos outros apps ao lado deste repositório (`../cronologia-ha`, `../inventario-ha`, `../gerencia-ha`) ou nas variáveis `E2E_*`. Usam as portas fixas 8099/8123/8097: não rode duas baterias ao mesmo tempo.
+- `tests/run.sh` (ou `npm test`): unitários (`tests/*.test.mjs`) e de integração (`tests/integration/`), com `node:test`, sem instalar nada. Cada arquivo de integração sobe o HA simulado e o servidor em portas livres (o InventarIA é simulado por um servidor HTTP no próprio teste).
+- `tests/e2e/run.sh`: testes visuais em Python + Playwright (`pip install playwright && playwright install chromium`). Precisam dos outros apps ao lado deste repositório (`../cronologia-ha`, `../inventario-ha`, `../gerencia-ha`) ou nas variáveis `E2E_*`. Usam as portas 8099/8123/8097 (os scripts mais novos leem `E2E_APP_PORT` e `E2E_HA_PORT`), e o `run.sh` encerra, entre um script e outro, os servidores dos apps da família: não rode duas baterias ao mesmo tempo, nem junto com a de outro app na mesma máquina.
+- Cobertura: veja "Cobertura" no `tests/README.md`.
 - Nos unitários, nunca dependa do relógio real (passe a data ou use `mock.timers`). A versão esperada nos testes vem do `config.yaml`.
 
 ## Arquivos idênticos na CronologIA
