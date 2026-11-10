@@ -5,7 +5,7 @@
 // to them there (Configurações › Pessoas, the devices of the person). Tapping the alert opens the app on Prazos.
 import os from "node:os";
 import { datesInfo } from "./store.js";
-import { trackerDevices, trackerPhones } from "./phones.js";
+import { appTitle, trackerDevices, trackerPhones } from "./phones.js";
 
 const pad = (n) => String(n).padStart(2, "0");
 export const ymd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -124,14 +124,15 @@ export class DueAlert {
   noteData(tag) {
     const base = ingressUrl();
     const url = base ? `${base}?aba=prazos` : null;
-    return { tag, group: "resolvia-prazos", channel: "Prazos", ...(url ? { url, clickAction: url } : {}) };
+    // the icon of the app (the small one, on Android): every alert arrives as Home Assistant
+    return { tag, group: "resolvia-prazos", channel: "Prazos", notification_icon: "mdi:checkbox-marked-circle-outline", ...(url ? { url, clickAction: url } : {}) };
   }
 
   async send(targets, { title, message }, tag) {
     let sent = 0;
     for (const target of targets) {
       await this.ha
-        .send({ type: "call_service", domain: "notify", service: target, service_data: { title, message, data: this.noteData(tag) } })
+        .send({ type: "call_service", domain: "notify", service: target, service_data: { title: appTitle("ResolvIA", title), message, data: this.noteData(tag) } })
         .then(() => {
           sent++;
           this.log.info(`Aviso de prazos para ${target}`);

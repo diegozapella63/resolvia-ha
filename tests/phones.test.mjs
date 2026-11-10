@@ -2,7 +2,7 @@
 // tracks in Home Assistant, named after the device (not the tracker), as Home Assistant names the service.
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { slug, trackerDevices, trackerPhones } from "../resolvia/rootfs/app/lib/phones.js";
+import { appTitle, slug, trackerDevices, trackerPhones } from "../resolvia/rootfs/app/lib/phones.js";
 
 const NOTIFY = new Set(["mobile_app_pixel_8", "mobile_app_relogio_davi", "mobile_app_note_davi", "mobile_app_galaxy_s23"]);
 const REG = {
@@ -43,5 +43,13 @@ describe("phones of a person", () => {
   });
   it("one phone once, even tracked twice", async () => {
     assert.deepEqual(trackerPhones(["device_tracker.meu_celular", "device_tracker.pixel_8"], NOTIFY, await trackerDevices(ha())), ["mobile_app_pixel_8"]);
+  });
+});
+
+describe("appTitle: the name of the app in front of every alert title", () => {
+  it("once, and only the name when there is no title", () => {
+    assert.equal(appTitle("ResolvIA", "📅 Vence hoje"), "ResolvIA · 📅 Vence hoje");
+    assert.equal(appTitle("ResolvIA", "ResolvIA · 📅 Vence hoje"), "ResolvIA · 📅 Vence hoje");
+    assert.equal(appTitle("CronologIA", "  "), "CronologIA");
   });
 });

@@ -45,7 +45,7 @@ describe("Avisar o que vence hoje", () => {
     assert.deepEqual(res, { sent: 1, today: 1 });
     const n = (await notes()).at(-1);
     assert.equal(n.service, "mobile_app_pixel_8");
-    assert.equal(n.title, "📅 Vence hoje");
+    assert.equal(n.title, "ResolvIA · 📅 Vence hoje");
     assert.match(n.message, /^• Trocar filtro do ar\nE 1 atrasado\.$/);
     assert.equal(n.data.tag, "resolvia-prazos-teste");
     await assert.rejects(visita.call("resolvia/due_alert/test"), /não é uma pessoa da casa/);

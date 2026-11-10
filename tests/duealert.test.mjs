@@ -156,7 +156,8 @@ describe("DueAlert", () => {
     assert.equal(notes().length, 0);
     assert.equal(await da.tick(at(8, 0)), true);
     assert.deepEqual(notes().map((n) => n.service).sort(), ["mobile_app_galaxy", "mobile_app_pixel_8", "mobile_app_tablet"], "every phone of each person; not a phone of nobody");
-    assert.equal(notes()[0].service_data.title, "📅 Vence hoje");
+    assert.equal(notes()[0].service_data.title, "ResolvIA · 📅 Vence hoje", "the name of the app first, as in every app of the family");
+    assert.equal(notes()[0].service_data.data.notification_icon, "mdi:checkbox-marked-circle-outline", "the icon of the app");
     assert.equal(notes()[0].service_data.message, "• Trocar filtro");
     assert.equal(notes()[0].service_data.data.tag, "resolvia-prazos");
     assert.equal(sent.prazos, ymd(at(8, 0)));

@@ -1,5 +1,9 @@
 # Mudanças
 
+## 2.56.2
+
+- **Avisos no celular**: o título começa com **ResolvIA** ("ResolvIA · 📅 Vence hoje") e o ícone pequeno é o do app. Como todos os apps chegam como Home Assistant, agora dá para ver de qual app é cada aviso. Vale para todos os apps da família.
+
 ## 2.56.1
 
 - **Tema**: **Automático** agora se chama **Sistema** (segue o claro ou escuro do Home Assistant, como antes). O nome cabe ao lado do ícone e é o mesmo em todos os apps da família.

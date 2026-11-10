@@ -55,3 +55,12 @@ export function trackerPhones(trackers, notify, devices) {
   }
   return out;
 }
+
+/**
+ * Every alert of the family says which app sent it (on the phone they all arrive as Home Assistant): the title starts
+ * with the name of the app, once ("ResolvIA · 📅 Vence hoje"; the same in the GerencIA and the InventarIA, in Python).
+ */
+export function appTitle(app, title) {
+  const t = String(title || "").trim();
+  return !t ? app : t.startsWith(`${app} · `) ? t : `${app} · ${t}`;
+}
