@@ -24,8 +24,8 @@ import { snapshot, toCSV, backupZip, parseImport, Backups, listVersions, readVer
 import { DueAlert } from "./lib/duealert.js";
 import { Correria, ROTA as ROTA_CORRERIA } from "./lib/correria.js";
 import { Ferramentas, INSTRUCOES } from "./lib/ferramentas.js";
+import { VERSION } from "./lib/version.js"; // from resolvia/config.yaml, by the build
 
-const VERSION = "2.54.0";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const WWW = path.join(HERE, "www");
 const DEV = process.env.RESOLVIA_DEV === "1";

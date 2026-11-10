@@ -12,20 +12,23 @@ ResolvIA é um app (add-on) do Home Assistant: as listas de tarefas (to-do) do H
 
 O Home Assistant instala direto do GitHub (`repository.yaml` + `resolvia/config.yaml`), a partir da branch `main`. Por isso o JavaScript gerado da interface fica no repositório: o que está em `main` é o que os usuários recebem.
 
+No `config.yaml`, `url` aponta para o repositório e `panel_admin: false` deixa o ResolvIA **aparecer para todos** na barra lateral, não só para administradores: as listas são da casa toda (cada pessoa vê as suas e as de todos, conclui e ganha pontos), então quem não é administrador também precisa abrir o app. O que só um administrador pode fazer (criar lista no Home Assistant, por exemplo) o próprio app esconde para os outros.
+
 ## Estrutura
 
 ```
-resolvia/config.yaml            versão e opções do app
+resolvia/config.yaml            versão (o único lugar onde ela é escrita) e opções do app
 resolvia/CHANGELOG.md           o que mudou em cada versão (o HA mostra ao atualizar)
 resolvia/DOCS.md                manual do usuário (aba Documentação no HA)
 resolvia/rootfs/app/server.js   servidor (Node 22, sem dependências: só módulos do Node)
 resolvia/rootfs/app/lib/        regras: store.js (dados por tarefa), ai.js, recurring.js, inventario.js, data.js/restore.js,
-                                correria.js (chave e arquivo do CorrerIA) e ferramentas.js (as ferramentas do CorrerIA)...
+                                correria.js (chave e arquivo do CorrerIA) e ferramentas.js (as ferramentas do CorrerIA)...;
+                                version.js é gerado pelo build a partir do config.yaml (não editar)
 resolvia/rootfs/app/www/        interface já gerada (não editar à mão)
 frontend/src/                   código da interface (Lit): resolvia-panel.js e os mixins rooms.js, suggest.js, points.js...
 preview/resolvia-preview.html   prévia gerada pelo build, abre sem servidor
 dev/fake-ha.mjs                 Home Assistant simulado para desenvolver e testar
-tests/                          testes (ver tests/README.md)
+tests/                          testes (ver tests/README.md): tests/run.sh (unitários e integração), tests/e2e/run.sh (visuais)
 tools/prints_readme.py          refaz as telas do README (docs/*.png), com uma casa inventada
 ```
 
@@ -35,9 +38,9 @@ Os dados de cada tarefa (pontos, cômodo, equipamento) ficam no app, pela chave 
 
 1. Implementar. Servidor: só módulos nativos do Node (o WebSocket é o `lib/ws.js` próprio). Interface: Lit, em `frontend/src`.
 2. Gerar a interface: `cd frontend && npm install && npm run build`. Faça commit também de `resolvia/rootfs/app/www/resolvia.js` e `preview/resolvia-preview.html`.
-3. Testar: `npm test` (unitários e integração, uns 20 s) e os visuais ligados à mudança: `tests/e2e/run.sh rv_xxx ...` (ver tests/README.md). Toda mudança ou bug corrigido vem com o teste dele.
-4. Subir a versão nos três lugares (iguais): `resolvia/config.yaml` (`version:`), `resolvia/rootfs/app/server.js` (`const VERSION`) e `frontend/src/resolvia-panel.js` (`const VERSION`). Correção = patch (2.30.1 → 2.30.2); novidade = minor (2.30.x → 2.31.0).
-5. `resolvia/CHANGELOG.md`: nova seção no topo, em português, do ponto de vista de quem usa (o que mudou na tela, não no código).
+3. Testar: `tests/run.sh` (ou `npm test`: unitários e integração, uns 30 s) e os visuais ligados à mudança: `tests/e2e/run.sh rv_xxx ...` (ver tests/README.md). Toda mudança ou bug corrigido vem com o teste dele.
+4. Subir a versão só em `resolvia/config.yaml` (`version:`) e rodar o build: ele leva a versão para o servidor (`resolvia/rootfs/app/lib/version.js`) e para a tela (`__APP_VERSION__`); `tests/version.test.mjs` confere os três e a seção do CHANGELOG. Correção = patch (2.30.1 → 2.30.2); novidade = minor (2.30.x → 2.31.0).
+5. `resolvia/CHANGELOG.md` (começa com "# Mudanças"): nova seção no topo, em português, do ponto de vista de quem usa (o que mudou na tela, não no código).
 6. `resolvia/DOCS.md` quando muda o comportamento ou aparece algo novo.
 7. Commit em `main` com mensagem em português ("ResolvIA 2.31.0: ..."), `git pull --rebase` e push. O GitHub roda todos os testes a cada push (aba Actions).
 

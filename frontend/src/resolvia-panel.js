@@ -55,7 +55,9 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.54.0";
+// from resolvia/config.yaml, put here by the build (frontend/build.mjs); the only place the version is written
+// eslint-disable-next-line no-undef
+const VERSION = typeof __APP_VERSION__ === "string" ? __APP_VERSION__ : "dev";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";

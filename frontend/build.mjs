@@ -9,6 +9,13 @@ import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, "..");
+// The version is written in one place only, resolvia/config.yaml (version:): the build takes it to the server
+// (resolvia/rootfs/app/lib/version.js) and to the screen (__APP_VERSION__). tests/version.test.mjs checks them.
+const VERSION = /^version:\s*"([^"]+)"/m.exec(readFileSync(resolve(root, "resolvia/config.yaml"), "utf8"))[1];
+writeFileSync(
+  resolve(root, "resolvia/rootfs/app/lib/version.js"),
+  `// Gerado por frontend/build.mjs a partir de resolvia/config.yaml (version:). Não edite: suba a versão lá e rode o build.\nexport const VERSION = ${JSON.stringify(VERSION)};\n`,
+);
 const common = {
   bundle: true,
   minify: true,
@@ -17,6 +24,7 @@ const common = {
   target: ["chrome100", "safari15", "firefox100"],
   logLevel: "warning",
   format: "iife",
+  define: { __APP_VERSION__: JSON.stringify(VERSION) },
   // Lit prints a "loaded from a bundle" notice unless this is set first.
   banner: {
     js: "/* ResolvIA · Lit (BSD-3), Lucide icons (ISC), Barlow & Barlow Condensed (OFL) */\nwindow.litDisableBundleWarning=true;",
@@ -44,4 +52,4 @@ const js = out.outputFiles[0].text.replace(/<\/script/gi, "<\\/script");
 const shell = readFileSync(resolve(here, "preview/preview.template.html"), "utf8");
 mkdirSync(resolve(root, "preview"), { recursive: true });
 writeFileSync(resolve(root, "preview/resolvia-preview.html"), shell.replace("/*BUNDLE*/", () => js));
-console.log("built");
+console.log(`built ${VERSION}`);

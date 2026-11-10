@@ -1,5 +1,9 @@
 # Mudanças
 
+## 2.54.1
+
+- Nada muda na tela: a versão do app fica escrita num lugar só, e o Sobre, o rodapé e o servidor mostram sempre a mesma.
+
 ## 2.54.0
 
 - **Avisar o que vence hoje** (Mais › Configurações › Opções › Prazos) fica igual ao aviso dos outros apps da família: o **Horário** na metade da linha, um botão para cada pessoa em **Quem recebe** (lado a lado, do mesmo tamanho) e **Testar no meu celular** com a largura toda, embaixo.
