@@ -20,7 +20,7 @@ O **Mais** (os três pontos na barra) é um menu, como no InventarIA. Cada linha
 
 A barra de baixo tem **Sugestões** (a primeira, onde o app abre), **Buscar**, **Adicionar**, **Listas** e **Mais**. No celular, arrastar para o lado troca de aba, na mesma ordem.
 
-As caixas de seleção (como **Fala para texto** ou a lista de um item ao importar) abrem uma janela de baixo para cima com as opções; a atual vem marcada. O Voltar do celular, o **X** ou tocar fora fecham sem mudar nada. No computador, a janela abre no meio da tela, e dá para escolher com as setas e Enter.
+As caixas de seleção (como **Fala para texto**, o horário do aviso ou a lista de um item ao importar) abrem uma janela de baixo para cima com as opções; a atual vem marcada. O Voltar do celular, o **X** ou tocar fora fecham sem mudar nada. No computador, a janela abre no meio da tela, e dá para escolher com as setas e Enter. Nada abre a janela do próprio celular: a data (**Outra data**) abre um mês no visual do app, e os horários vêm de meia em meia hora, sem AM/PM.
 
 ### No computador
 
@@ -28,9 +28,9 @@ Com a tela larga (1000 pixels ou mais, como no InventarIA), as abas de baixo vir
 
 ## Listas e itens
 
-- No início, as listas com mais pendências vêm primeiro, agrupadas pelo dispositivo de onde vêm ("Notas e Rotinas do Alexa To-do list" vira **To-do list** no grupo *Notas e Rotinas do Alexa*); as outras ficam em **Listas locais**.
+- No início, as listas com mais pendências vêm primeiro, agrupadas pelo dispositivo de onde vêm ("Notas e Rotinas do Alexa To-do list" vira **To-do list** no grupo *Notas e Rotinas do Alexa*); as outras ficam em **Listas locais**. As ocultas (**Ocultar do início**) ficam no fim, recolhidas em **Inativas**, com quantas são: um toque abre, e dali dá para abrir a lista.
 - Numa lista, escreva no campo do alto e toque em **+** (colar várias linhas cria um item por linha). Tocar no quadrado conclui, com **Desfazer** no aviso de baixo; a alça à direita arrasta para reordenar; os concluídos ficam recolhidos no fim, com **Limpar**.
-- Tocar num item abre **Editar item**: texto, **Notas**, **Prazo** (Hoje, Amanhã, Sábado, Próx. semana ou outra data) e, quando a lista aceita, **Horário** (**Dia todo**, **08:00** ou **Outro horário**), **Repetir depois de concluir**, **Cômodo** e **Equipamento** (com o InventarIA), **Quem faz** (com **Serviços externos** ligado), **Pontos para quem concluir** (com as Recompensas) e **Lista**, para mover. Só aparece o que a lista e as opções ligadas permitem.
+- Tocar num item abre **Editar item**: texto, **Notas**, **Prazo** (Hoje, Amanhã, Sábado, Próx. semana ou **Outra data**, que abre o mês logo abaixo: **‹** e **›** trocam o mês e um toque no dia escolhe) e, quando a lista aceita, **Horário** (**Dia todo**, **08:00** ou **Outro horário**, de meia em meia hora), **Repetir depois de concluir**, **Cômodo** e **Equipamento** (com o InventarIA), **Quem faz** (com **Serviços externos** ligado), **Pontos para quem concluir** (com as Recompensas) e **Lista**, para mover. Só aparece o que a lista e as opções ligadas permitem.
 - **Notas** pode ser desligado em **Mais › Configurações › Opções › Exibição**: o campo some do **Novo item** e do **Editar item**, a não ser num item que já tem notas (para ver ou apagar). As notas que já existem continuam aparecendo nas listas.
 - Um link vira uma etiqueta curta: `Ver sobre: https://github.com/fulano/projeto` mostra `fulano/projeto`.
 - O **⋯** da lista: **Selecionar itens**, **Personalizar** (nome, cor, ícone, de quem é e prazos), **Ocultar do início**, **Abrir na tela padrão do HA** e **Limpar concluídos**.
@@ -184,7 +184,7 @@ Prazo é só o que você define. Algumas integrações preenchem sozinhas a data
 
 Nas listas em que você define prazo, dá para desligar os prazos em **⋯ › Personalizar › Prazos**.
 
-**Avisar o que vence hoje** (em **Mais › Configurações › Opções › Prazos**, desligado por padrão): uma vez por dia, no horário escolhido (08:00 de início), cada pessoa da casa recebe no celular o que vence hoje nas listas dela (**⋯ › Personalizar › De quem é**) e nas de todos: um por linha, com o horário quando tem, e quantos estão atrasados. Tocar no aviso abre o app nas **Sugestões**. O aviso vai para a pessoa, nos celulares ligados a ela no Home Assistant (o app do Home Assistant no celular, em **Configurações › Pessoas**): **Quem recebe** mostra as pessoas, e quem não tem celular ligado aparece como "sem celular". **Testar** manda o aviso de hoje para o seu celular. Se nada vence no dia para alguém, não chega aviso para essa pessoa. Valem as listas que aparecem e que têm prazo; com **Controlar prazos** desligado, não há aviso.
+**Avisar o que vence hoje** (em **Mais › Configurações › Opções › Prazos**, desligado por padrão): uma vez por dia, no horário escolhido (de meia em meia hora; 08:00 de início), cada pessoa da casa recebe no celular o que vence hoje nas listas dela (**⋯ › Personalizar › De quem é**) e nas de todos: um por linha, com o horário quando tem, e quantos estão atrasados. Tocar no aviso abre o app nas **Sugestões**. O aviso vai para a pessoa, nos celulares ligados a ela no Home Assistant (o app do Home Assistant no celular, em **Configurações › Pessoas**): **Quem recebe** mostra as pessoas, e quem não tem celular ligado aparece como "sem celular". **Testar** manda o aviso de hoje para o seu celular. Se nada vence no dia para alguém, não chega aviso para essa pessoa. Valem as listas que aparecem e que têm prazo; com **Controlar prazos** desligado, não há aviso.
 
 As tarefas com prazo também aparecem no CronologIA, na **Agora** e no calendário, quando a integração com o ResolvIA está ligada lá (as listas com prazos desligados ficam de fora). O aviso de prazos vem só daqui.
 

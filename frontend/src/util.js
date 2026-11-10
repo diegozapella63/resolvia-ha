@@ -203,6 +203,19 @@ export function quickDates(now = new Date()) {
   return picks;
 }
 
+/**
+ * The times of a box of choice, from half to half an hour ("00:00" … "23:30"), 24 hours, without AM/PM (the window
+ * of the phone shows it). `cur`, a time out of that step (07:15, from before), goes in its place.
+ */
+export function timeSlots(cur = null) {
+  const out = Array.from({ length: 48 }, (_, k) => `${String(k >> 1).padStart(2, "0")}:${k % 2 ? "30" : "00"}`);
+  if (/^([01]\d|2[0-3]):[0-5]\d$/.test(cur || "") && !out.includes(cur)) {
+    out.push(cur);
+    out.sort();
+  }
+  return out;
+}
+
 export function greeting(name, now = new Date()) {
   const h = now.getHours();
   const hello = h >= 5 && h < 12 ? "Bom dia" : h >= 12 && h < 18 ? "Boa tarde" : "Boa noite";

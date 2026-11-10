@@ -67,6 +67,8 @@ describe("Relatório de pendências", () => {
     assert.doesNotMatch(html, /window\.print/);
     assert.match(html, /@media print\{[^}]*\} \.barra\{display:none\}/, "on paper: no buttons, always light");
     assert.deepEqual(html.match(/<script[^>]*>/gi), ['<script src="selectsheet.js">'], "only the box of choice in the look of the app (2.46)");
+    // 2.52: closed, the box is like the boxes of the app: its own arrow and a long name ending in "…"
+    assert.match(html, /\.barra select\{[^}]*text-overflow:ellipsis;-webkit-appearance:none;appearance:none;background-image:linear-gradient\(45deg,transparent 50%,var\(--mut\) 50%\)/);
     // 2.47: the charts of Mais › Gráficos, then the lists; at the end the mark of CorrerIA Code (as in Mais › Sobre)
     assert.match(html, /<div class="graficos"><section class="g"><h3>Por lista<\/h3>.*<section class="g"><h3>Por prazo<\/h3>/s);
     assert.ok(html.indexOf('class="graficos"') < html.indexOf("<section><h2>"), "the charts before the lists");

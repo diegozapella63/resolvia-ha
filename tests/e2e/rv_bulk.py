@@ -37,7 +37,7 @@ WS = """(msgs) => new Promise((res) => { const out = []; const ws = new WebSocke
 TOMORROW = (date.today() + timedelta(days=1)).isoformat()
 OVER = """(el) => { const W = innerWidth, bad = [];
   for (const e of el.renderRoot.querySelectorAll('.page *, .sheet *')) { const r = e.getBoundingClientRect();
-    if (r.width && (r.right > W + 1 || r.left < -1) && !e.closest('.hidden-input')) bad.push((e.className && e.className.baseVal === undefined ? e.className : e.tagName) + ' ' + Math.round(r.right)); }
+    if (r.width && (r.right > W + 1 || r.left < -1)) bad.push((e.className && e.className.baseVal === undefined ? e.className : e.tagName) + ' ' + Math.round(r.right)); }
   return bad.slice(0, 4); }"""
 async def wait_for(fn, label, tries=40):
     for _ in range(tries):
@@ -93,6 +93,21 @@ async def main():
         check(await sheet.locator(".btn.primary", has_text="Aplicar").is_disabled(), "Aplicar off with nothing chosen")
         await sheet.locator("[data-f=prazo] .pick", has_text="Amanhã").click(); await pg.wait_for_timeout(150)
         check(await sheet.locator("[data-f=horario]").count() == 1, "a date: Horário too")
+        # 2.52.0: Outra data and Outro horário in the look of the app, never the windows of the phone
+        await sheet.locator("[data-f=prazo] .pick", has_text="Outra data").click(); await pg.wait_for_timeout(500)
+        cal = sheet.locator("[data-f=prazo] .cal")
+        tom = date.today() + timedelta(days=1)
+        check(await cal.count() == 1 and await cal.locator(".cal-day.on").inner_text() == str(tom.day), "Outra data: the month, with the date chosen (Amanhã) marked")
+        await cal.locator(".cal-day.on").click(); await pg.wait_for_timeout(300)
+        check(await cal.count() == 0 and await sheet.locator("[data-f=prazo] .pick.on").inner_text() == "Amanhã", "the same day: still Amanhã, the month folds")
+        await sheet.locator("[data-f=horario] .pick", has_text="Outro horário").click(); await pg.wait_for_timeout(700)
+        ss = pg.locator(".ss-wrap.in .ss-sheet")
+        check(await ss.count() == 1 and await ss.locator(".ss-opt.on").count() == 0, "Outro horário (Dia todo): the times, none marked")
+        seen = await ss.locator(".ss-opt", has_text="08:00").evaluate("(b) => { const l = b.closest('.ss-list').getBoundingClientRect(), r = b.getBoundingClientRect(); return r.top >= l.top && r.bottom <= l.bottom; }")
+        check(seen, "... starting at 08:00, not at midnight")
+        await pg.screenshot(path=f"{SP}/shots/rvb-horarios.png")
+        await ss.locator(".ss-opt", has_text="09:30").click(); await pg.wait_for_timeout(600)
+        check((await sheet.locator("[data-f=horario] .pick.on").inner_text()).strip() == "09:30", "09:30 on Outro horário")
         await sheet.locator("[data-f=horario] .pick", has_text="08:00").click()
         await sheet.locator("[data-f=comodo] .pick", has_text="Cozinha").click()
         await sheet.locator("[data-f=quem-faz] .pick", has_text="Serviço externo").click(); await pg.wait_for_timeout(150)

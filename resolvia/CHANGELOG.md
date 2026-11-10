@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.52.0
+
+- **Listas**: as listas ocultas (**Ocultar do início**) não somem mais da aba: ficam no fim, recolhidas em **Inativas**, com quantas são. Um toque abre, e dali dá para abrir a lista. É o mesmo jeito de **Mais › Listas**.
+- **Outra data** (no **Novo item**, no **Editar item** e no **Alterar** do Buscar) abre um mês no visual do app, logo abaixo, em vez do calendário do celular: **‹** e **›** trocam o mês, hoje vem com um círculo e um toque no dia escolhe.
+- **Outro horário** e o horário do **Avisar o que vence hoje** viram uma caixa de seleção do app, de meia em meia hora, sem AM/PM e sem o relógio do celular. Um horário escolhido antes fora da meia hora (07:15, por exemplo) continua lá.
+- As caixas de seleção fechadas ficam iguais aos outros campos (altura, cantos e seta), também no **Relatório de pendências**; um nome comprido termina em "…" antes da seta, em vez de ser cortado.
+
 ## 2.51.1
 
 - **Cômodos e equipamentos** nas tarefas: com mais de um, uma etiqueta só, **Vários cômodos** ou **Vários equipamentos**, em vez de uma etiqueta para cada. Quais são, abrindo a tarefa. Um só continua com o nome, e todos, **Todos os cômodos**.

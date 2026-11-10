@@ -5,6 +5,7 @@ import {
   html,
   nothing,
   repeat,
+  live,
   unsafeSVG,
 } from "../vendor/lit-all.min.js";
 import { ICONS } from "./icons.js";
@@ -25,6 +26,7 @@ import { ExternalMixin } from "./external.js";
 import { ChartsMixin, chartStyles } from "./charts.js";
 import { CorreriaMixin } from "./correria.js";
 import { chatStyles } from "./chat.js";
+import { renderCalendar, calendarStyles, monthOf } from "./calendar.js";
 import { Recorder, micError, VOICE_RATE, VOICE_MAX_S } from "./voice.js";
 import {
   F,
@@ -45,6 +47,7 @@ import {
   dueInfo,
   quickDates,
   shortDate,
+  timeSlots,
   greeting,
   splitLinks,
   ymd,
@@ -52,7 +55,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.51.1";
+const VERSION = "2.52.0";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -114,6 +117,8 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     _searchExt: { state: true },
     _theme: { state: true },
     _doneOpen: { state: true },
+    // the sections of what is off (Inativas), folded at the end of a list: which ones are open now
+    _folds: { state: true },
     // Selecionar: several items of one list at once {listId, keys: Set}, or null
     _sel: { state: true },
     // Buscar › Selecionar: pending items of any list at once {path, keys: Set of "list|item"}, or null
@@ -127,7 +132,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     env: { attribute: false },
   };
 
-  static styles = [styles, aboutStyles, unsafeCSS(usageStyles), unsafeCSS(lookStyles), unsafeCSS(equipPickerStyles), unsafeCSS(chatStyles), unsafeCSS(chartStyles)];
+  static styles = [styles, aboutStyles, unsafeCSS(usageStyles), unsafeCSS(lookStyles), unsafeCSS(equipPickerStyles), unsafeCSS(chatStyles), unsafeCSS(chartStyles), unsafeCSS(calendarStyles)];
 
   constructor() {
     super();
@@ -151,6 +156,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     this._searchExt = true;
     this._theme = store.get(THEME_KEY, "auto");
     this._doneOpen = {};
+    this._folds = {};
     this._lastTodoStates = null;
     this._L = [];
     this._rules = [];
@@ -2015,6 +2021,8 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
   /** Listas (the tab): every list, with what is pending in each. */
   _renderLists() {
     const lists = this._byPending(this._visible());
+    // the ones hidden (Ocultar do início) at the end, folded under Inativas
+    const off = this._L.filter((l) => l.hidden);
     const pending = lists.reduce((n, l) => n + l.pending, 0);
     const late = lists.reduce((n, l) => n + l.late, 0);
     const today = lists.reduce((n, l) => n + l.today, 0);
@@ -2084,6 +2092,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
                 `;
               })}
               </div>
+              ${off.length ? html`<div class="panel grp inact-grp">${this._renderFold("listas", off, (l) => this._renderListCard(l, !groupBy))}</div>` : nothing}
             `}
         ${this.hass.user && this.hass.user.is_admin
           ? html`<button class="pick ghost" style="margin:4px auto 0;display:flex" @click=${() => this._openInHA("/config/integrations/dashboard/add?domain=local_todo")}>
@@ -2689,16 +2698,6 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     const canTime = rows.some(({ l }) => has(l.features, F.DUE_DATETIME));
     const quick = quickDates();
     const isQuick = quick.some((q) => q.date === f.date);
-    const openPicker = (sel) => {
-      const input = this.renderRoot.querySelector(sel);
-      if (!input) return;
-      try {
-        input.showPicker();
-      } catch (e) {
-        input.focus();
-        input.click();
-      }
-    };
     const keep = (on, change) => html`<button class="pick keep ${on ? "on" : ""}" aria-pressed=${on ? "true" : "false"} @click=${change}>Manter</button>`;
     const eqOn = this._equipsOn();
     const eqIds = f.setEquips ? f.equips || [] : [];
@@ -2722,14 +2721,14 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
         ? html`<div class="field" data-f="prazo">
             <span class="flabel">Prazo</span>
             <div class="chip-row grid">
-              ${keep(!f.setDue, () => this._setForm({ setDue: false, date: null, time: null }))}
-              ${quick.map((q) => html`<button class="pick ${f.setDue && f.date === q.date ? "on" : ""}" @click=${() => this._setForm({ setDue: true, date: q.date })}>${q.label}</button>`)}
-              <button class="pick ${f.setDue && f.date && !isQuick ? "on" : ""}" @click=${() => openPicker("#rv-bulk-date")}>
+              ${keep(!f.setDue, () => this._setForm({ setDue: false, date: null, time: null, cal: null }))}
+              ${quick.map((q) => html`<button class="pick ${f.setDue && f.date === q.date ? "on" : ""}" @click=${() => this._setForm({ setDue: true, date: q.date, cal: null })}>${q.label}</button>`)}
+              <button class="pick ${f.setDue && f.date && !isQuick ? "on" : ""}" aria-expanded=${f.cal ? "true" : "false"} @click=${() => this._toggleCal()}>
                 ${icon("calendar")}<span>${f.setDue && f.date && !isQuick ? shortDate(f.date) : "Outra data"}</span>
-                <input id="rv-bulk-date" class="hidden-input" type="date" tabindex="-1" .value=${f.date || ""} @change=${(ev) => ev.target.value && this._setForm({ setDue: true, date: ev.target.value })} />
               </button>
-              <button class="pick ${f.setDue && !f.date ? "on" : ""}" @click=${() => this._setForm({ setDue: true, date: null, time: null })}>${icon("x")}<span>Sem prazo</span></button>
+              <button class="pick ${f.setDue && !f.date ? "on" : ""}" @click=${() => this._setForm({ setDue: true, date: null, time: null, cal: null })}>${icon("x")}<span>Sem prazo</span></button>
             </div>
+            ${f.cal ? this._renderCal(f.setDue ? f.date : null, (d) => this._setForm({ setDue: true, date: d, cal: null })) : nothing}
           </div>`
         : nothing}
       ${canDate && canTime && f.setDue && f.date
@@ -2738,11 +2737,11 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
             <div class="chip-row grid">
               <button class="pick ${!f.time ? "on" : ""}" @click=${() => this._setForm({ time: null })}>${icon("sun")}<span>Dia todo</span></button>
               <button class="pick ${f.time === DEFAULT_TIME ? "on" : ""}" @click=${() => this._setForm({ time: DEFAULT_TIME })}>${icon("clock")}<span>${DEFAULT_TIME}</span></button>
-              <button class="pick ${f.time && f.time !== DEFAULT_TIME ? "on" : ""}" @click=${() => openPicker("#rv-bulk-time")}>
+              <button class="pick time-other ${f.time && f.time !== DEFAULT_TIME ? "on" : ""}" @click=${() => this._pickTime("#rv-bulk-time")}>
                 ${icon("clock-fading")}<span>${f.time && f.time !== DEFAULT_TIME ? f.time : "Outro horário"}</span>
-                <input id="rv-bulk-time" class="hidden-input" type="time" tabindex="-1" .value=${f.time || DEFAULT_TIME} @change=${(ev) => this._setForm({ time: ev.target.value || null })} />
               </button>
             </div>
+            ${this._timeBox("rv-bulk-time", f.time)}
           </div>`
         : nothing}
       ${this._roomsOn()
@@ -2980,6 +2979,22 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     `;
   }
 
+  /**
+   * Inativos no fim, recolhidos (a rule of every app of the family): what is off goes in a section at the end of the
+   * list, folded at first, with its name and how many; a tap opens it. `key` tells the sections apart (each stays as
+   * it was while the app is open); `row` draws each one.
+   */
+  _renderFold(key, things, row, label = "Inativas") {
+    if (!things.length) return nothing;
+    const open = !!this._folds[key];
+    return html`<button class="row inact-head ${open ? "open" : ""}" data-fold=${key} aria-expanded=${open ? "true" : "false"} @click=${() => (this._folds = { ...this._folds, [key]: !open })}>
+        <span class="tile muted">${icon("eye-off")}</span>
+        <span class="grow"><div class="label">${label} <span class="count">${things.length}</span></div></span>
+        ${icon("chevron-down", "chev")}
+      </button>
+      ${open ? repeat(things, (l) => l.id, row) : nothing}`;
+  }
+
   /** Mais › Listas: name, color, icon and show/hide of each list; new lists. */
   _renderListsTab() {
     const sw = (on, label, ev) => html`<label class="switch"><input type="checkbox" role="switch" .checked=${on} @change=${ev} aria-label=${label} /><span class="track"></span></label>`;
@@ -2999,14 +3014,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
         <div class="panel lists-panel">
           <p class="panel-lead">Toque numa lista para personalizar.</p>
           ${this._L.length ? repeat(this._L.filter((l) => !l.hidden), (l) => l.id, row) : html`<div class="row"><div class="hint">Nenhuma lista encontrada.</div></div>`}
-          ${off.length
-            ? html`<button class="row inact-head ${this._inactOpen ? "open" : ""}" aria-expanded=${this._inactOpen ? "true" : "false"} @click=${() => ((this._inactOpen = !this._inactOpen), this.requestUpdate())}>
-                  <span class="tile muted">${icon("eye-off")}</span>
-                  <span class="grow"><div class="label">Inativas <span class="count">${off.length}</span></div></span>
-                  ${icon("chevron-down", "chev")}
-                </button>
-                ${this._inactOpen ? repeat(off, (l) => l.id, row) : nothing}`
-            : nothing}
+          ${this._renderFold("mais-listas", off, row)}
         </div>
 
         ${this.hass.user && this.hass.user.is_admin
@@ -3154,7 +3162,9 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
             <div class="field">
               <span class="flabel">Horário</span>
               <div class="remind-row">
-                <input type="time" class="remind-time" .value=${time} aria-label="Horário do aviso" @change=${(e) => /^\d{2}:\d{2}$/.test(e.target.value) && this._saveAppPrefs({ due_alert_time: e.target.value })} />
+                <select class="select remind-time" aria-label="Horário do aviso" .value=${live(time)} @change=${(e) => /^\d{2}:\d{2}$/.test(e.target.value) && this._saveAppPrefs({ due_alert_time: e.target.value })}>
+                  ${timeSlots(time).map((t) => html`<option value=${t} ?selected=${t === time}>${t}</option>`)}
+                </select>
                 <button class="btn outline remind-test" ?disabled=${!me || !me.phone} title=${why} aria-label="Testar no meu celular" @click=${() => this._testDueAlert()}>${icon("send")}Testar</button>
               </div>
             </div>
@@ -3349,6 +3359,53 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     `;
   }
 
+  /** Outra data: the month of the app opens (or closes) under the choices of Prazo, on the month of the date. */
+  _toggleCal() {
+    const f = this._form;
+    if (!f) return;
+    this._setForm({ cal: f.cal ? null : monthOf(f.date) });
+    // the month comes into view, inside the sheet
+    if (this._form.cal)
+      this.updateComplete.then(() => {
+        const cal = this.renderRoot.querySelector(".sheet .cal");
+        if (cal) cal.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      });
+  }
+
+  _renderCal(value, onPick) {
+    return renderCalendar({ icon, month: this._form.cal, value, today: ymd(new Date()), onPick, onMonth: (m) => this._setForm({ cal: m }) });
+  }
+
+  /**
+   * The box of Outro horário (out of sight): its times open in the sheet of the app, never the clock of the phone.
+   * When the sheet closes it gives the focus back to the box, and the box to the button.
+   */
+  _timeBox(id, time) {
+    return html`<select id=${id} class="time-box" tabindex="-1" aria-label="Horário" @focus=${(e) => {
+      const b = e.target.parentNode.querySelector(".time-other");
+      if (b) b.focus({ preventScroll: true });
+    }} @change=${(e) => this._setForm({ time: e.target.value || null })}>
+      <option value="" hidden></option>
+      ${timeSlots(time).map((t) => html`<option value=${t}>${t}</option>`)}
+    </select>`;
+  }
+
+  /** Outro horário: the sheet of selectsheet.js with the box of the times, the one it has marked; Dia todo: it starts at 08:00. */
+  _pickTime(sel) {
+    const box = this.renderRoot.querySelector(sel);
+    const ss = window.__selectSheet;
+    if (!box || !ss || !ss.open) return;
+    box.value = (this._form && this._form.time) || "";
+    ss.open(box);
+    if (box.value) return;
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        const opt = [...document.querySelectorAll(".ss-wrap .ss-opt")].find((b) => b.textContent.trim() === DEFAULT_TIME);
+        if (opt) opt.scrollIntoView({ block: "center" });
+      }),
+    );
+  }
+
   _renderItemSheet() {
     const f = this._form;
     const src = this._list(f.listId);
@@ -3369,16 +3426,6 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
         : has(src.features, F.DELETE)
           ? this._L.filter((l) => has(l.features, F.CREATE) && !l.unavailable && (!l.hidden || l.id === src.id))
           : [];
-    const openPicker = (sel) => {
-      const input = this.renderRoot.querySelector(sel);
-      if (!input) return;
-      try {
-        input.showPicker();
-      } catch (e) {
-        input.focus();
-        input.click();
-      }
-    };
     return html`
       <div class="sheet-head">
         <h3 class="display">${f.mode === "add" ? "Novo item" : "Editar item"}</h3>
@@ -3405,13 +3452,13 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
         ? html`<div class="field">
             <span class="flabel">Prazo</span>
             <div class="chip-row grid">
-              ${quick.map((q) => html`<button class="pick ${f.date === q.date ? "on" : ""}" @click=${() => this._setForm({ date: f.date === q.date ? null : q.date })}>${q.label}</button>`)}
-              <button class="pick ${f.date && !isQuick ? "on" : ""}" @click=${() => openPicker("#rv-date")}>
+              ${quick.map((q) => html`<button class="pick ${f.date === q.date ? "on" : ""}" @click=${() => this._setForm({ date: f.date === q.date ? null : q.date, cal: null })}>${q.label}</button>`)}
+              <button class="pick ${f.date && !isQuick ? "on" : ""}" aria-expanded=${f.cal ? "true" : "false"} @click=${() => this._toggleCal()}>
                 ${icon("calendar")}<span>${f.date && !isQuick ? shortDate(f.date) : "Outra data"}</span>
-                <input id="rv-date" class="hidden-input" type="date" tabindex="-1" .value=${f.date || ""} @change=${(e) => this._setForm({ date: e.target.value || null })} />
               </button>
-              ${f.date ? html`<button class="pick ghost" @click=${() => this._setForm({ date: null, time: null })}>${icon("x")}<span>Sem prazo</span></button>` : nothing}
+              ${f.date ? html`<button class="pick ghost" @click=${() => this._setForm({ date: null, time: null, cal: null })}>${icon("x")}<span>Sem prazo</span></button>` : nothing}
             </div>
+            ${f.cal ? this._renderCal(f.date, (d) => this._setForm({ date: d, cal: null })) : nothing}
           </div>`
         : nothing}
       ${canDate && canTime && f.date
@@ -3420,11 +3467,11 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
             <div class="chip-row grid">
               <button class="pick ${!f.time ? "on" : ""}" @click=${() => this._setForm({ time: null })}>${icon("sun")}<span>Dia todo</span></button>
               <button class="pick ${f.time === DEFAULT_TIME ? "on" : ""}" @click=${() => this._setForm({ time: DEFAULT_TIME })}>${icon("clock")}<span>${DEFAULT_TIME}</span></button>
-              <button class="pick ${f.time && f.time !== DEFAULT_TIME ? "on" : ""}" @click=${() => openPicker("#rv-time")}>
+              <button class="pick time-other ${f.time && f.time !== DEFAULT_TIME ? "on" : ""}" @click=${() => this._pickTime("#rv-time")}>
                 ${icon("clock-fading")}<span>${f.time && f.time !== DEFAULT_TIME ? f.time : "Outro horário"}</span>
-                <input id="rv-time" class="hidden-input" type="time" tabindex="-1" .value=${f.time || DEFAULT_TIME} @change=${(e) => this._setForm({ time: e.target.value || null })} />
               </button>
             </div>
+            ${this._timeBox("rv-time", f.time)}
           </div>`
         : nothing}
       ${this._rulesOk && this._repeatOn() && !f.mirrored && (has(feat, F.UPDATE) || has(feat, F.CREATE))

@@ -4,7 +4,7 @@ CRONOLOGIA = _os.environ.get("E2E_CRONOLOGIA", "")
 RESOLVIA = _os.environ.get("E2E_RESOLVIA", "")
 GERENCIA = _os.environ.get("E2E_GERENCIA", "")
 INVENTARIA = _os.environ.get("E2E_INVENTARIA", "")
-import asyncio, subprocess, os, json, time, shutil
+import asyncio, subprocess, os, json, time, shutil, re
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from playwright.async_api import async_playwright
@@ -132,8 +132,19 @@ async def main():
         check(abs(boxes[0]["width"] - boxes[1]["width"]) < 1 and abs(boxes[0]["y"] - boxes[1]["y"]) < 1 and abs(boxes[0]["height"] - boxes[2]["height"]) < 1, f"the same size, aligned ({boxes})")
         await picks.nth(1).click(); await pg.wait_for_timeout(150)
         check((await hora.locator(".pick.on").inner_text()).strip() == "08:00", "08:00 with a tap")
-        await hora.locator("input[type=time]").fill("14:30"); await pg.wait_for_timeout(150)
+        # 2.52.0: Outro horário opens the times in the sheet of the app (selectsheet.js), from half to half an hour,
+        # 24 hours: never the clock of the phone (with AM/PM)
+        check(await pg.locator(".sheet input[type=time], .sheet input[type=date]").count() == 0, "no field of the phone for the date or the time")
+        await picks.nth(2).click(); await pg.wait_for_timeout(600)
+        ss = pg.locator(".ss-wrap.in .ss-sheet")
+        opts = [t.strip() for t in await ss.locator(".ss-opt").all_inner_texts()]
+        check(await ss.count() == 1 and (await ss.locator(".ss-head b").inner_text()).strip() == "Horário", "Outro horário: the sheet of the app, Horário")
+        check(len(opts) == 48 and opts[0] == "00:00" and opts[-1] == "23:30" and not any("M" in o for o in opts), f"from half to half an hour, no AM/PM ({opts[:3]}…{opts[-2:]})")
+        check(await ss.locator(".ss-opt.on").inner_text() == "08:00", "08:00 marked (the time it has)")
+        await ss.locator(".ss-opt", has_text="14:30").click(); await pg.wait_for_timeout(600)
+        check(await pg.locator(".ss-wrap").count() == 0 and await pg.locator(".sheet").count() == 1, "choosing closes only the sheet of the times")
         check((await hora.locator(".pick.on").inner_text()).strip() == "14:30", "another time: on Outro horário, with the time")
+        check(await pg.locator("resolvia-panel").evaluate("(el) => !!el.renderRoot.activeElement && el.renderRoot.activeElement.classList.contains('time-other')"), "the focus back on Outro horário")
         await hora.screenshot(path=f"{SP}/shots/rvit-horario.png")
         await pg.screenshot(path=f"{SP}/shots/rvit-edit.png")
         await pg.locator(".sheet .btn.primary", has_text="Salvar").click(); await pg.wait_for_timeout(700)
@@ -184,8 +195,21 @@ async def main():
         # Outra data
         later = local_now().date() + timedelta(days=12)
         await open_edit("Comprar pilhas AA")
-        await pg.locator(".sheet #rv-date").evaluate("(el, v) => { el.value = v; el.dispatchEvent(new Event('change', { bubbles: true })); }", ymd(later))
-        await pg.wait_for_timeout(150)
+        # 2.52.0: Outra data opens a month in the look of the app under the choices, never the calendar of the phone
+        cal = pg.locator(".sheet .cal")
+        check(await cal.count() == 0, "the month folded at first")
+        await pg.locator(".sheet .pick", has_text="Outra data").click(); await pg.wait_for_timeout(500)
+        months_pt = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]
+        title = (await cal.locator(".cal-title").inner_text()).strip()
+        check(await cal.count() == 1 and title == f"{months_pt[tomorrow.month - 1].capitalize()} de {tomorrow.year}", f"Outra data: the month of the date it has ({title})")
+        check(await cal.locator(".cal-day.on").inner_text() == str(tomorrow.day), "its day marked")
+        check(await cal.locator(".cal-day.today").count() == (1 if tomorrow.month == local_now().month else 0), "today with its ring")
+        check(await cal.evaluate("(c) => { const r = c.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight + 1; }"), "the month in view")
+        await cal.screenshot(path=f"{SP}/shots/rvit-mes.png")
+        if later.month != tomorrow.month:
+            await cal.get_by_role("button", name="Próximo mês").click(); await pg.wait_for_timeout(200)
+        await cal.locator(".cal-day").filter(has_text=re.compile(f"^{later.day}$")).click(); await pg.wait_for_timeout(300)
+        check(await cal.count() == 0, "a tap on a day picks it and folds the month")
         other = await pg.locator(".sheet .pick.on").first.inner_text()
         check(other.strip().startswith(str(later.day)), f"the other date shows on its button ({other.strip()})")
         await pg.locator(".sheet .btn.primary").click(); await pg.wait_for_timeout(700)

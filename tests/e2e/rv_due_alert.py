@@ -61,13 +61,31 @@ async def main():
             check(await prazos.locator(".pick.phone").count() == 0, f"{tag}: no phones to pick")
             who = [" ".join(t.split()) for t in await prazos.locator(".due-who .dw").all_inner_texts()]
             check(who == ["Ana", "Beto"], f"{tag}: Quem recebe, each person, no device names ({who})")
-            t = prazos.locator("input.remind-time"); tb = prazos.locator(".remind-test")
+            # 2.52.0: the time is a box of the app (selectsheet.js), from half to half an hour, never the clock of
+            # the phone (with AM/PM); closed, like the other boxes (corners, arrow)
+            t = prazos.locator("select.remind-time"); tb = prazos.locator(".remind-test")
+            check(await prazos.locator("input[type=time]").count() == 0, f"{tag}: no clock of the phone")
             check(await t.input_value() == ("08:00" if k == 0 else "07:30"), f"{tag}: the time ({await t.input_value()})")
             bt, bb = await t.bounding_box(), await tb.bounding_box()
             check(abs(bt["height"] - bb["height"]) <= 1 and abs(bt["width"] - bb["width"]) <= 1 and abs(bt["y"] - bb["y"]) <= 1, f"{tag}: the time and Testar side by side, the same size ({bt['width']:.0f}x{bt['height']:.0f} / {bb['width']:.0f}x{bb['height']:.0f})")
+            look = await t.evaluate("(s) => { const c = getComputedStyle(s); return [c.appearance, c.borderTopLeftRadius, c.backgroundImage.includes('gradient'), c.pointerEvents]; }")
+            check(look == ["none", "14px", True, "none"], f"{tag}: closed like the other boxes, its own arrow, and the tap is for the sheet ({look})")
             if k == 0:
-                await t.fill("07:30"); await t.dispatch_event("change"); await pg.wait_for_timeout(600)
-                check(app_prefs().get("due_alert_time") == "07:30", f"{tag}: the time saved")
+                await t.scroll_into_view_if_needed(); bt = await t.bounding_box()
+                await pg.touchscreen.tap(bt["x"] + bt["width"] / 2, bt["y"] + bt["height"] / 2); await pg.wait_for_timeout(600)
+                ss = pg.locator(".ss-wrap.in .ss-sheet")
+                opts = [x.strip() for x in await ss.locator(".ss-opt").all_inner_texts()]
+                check((await ss.locator(".ss-head b").inner_text()).strip() == "Horário do aviso" and len(opts) == 48 and opts[15] == "07:30" and not any("M" in o for o in opts), f"{tag}: the sheet of the app, every half an hour, no AM/PM ({opts[:2]}…)")
+                check(await ss.locator(".ss-opt.on").inner_text() == "08:00", f"{tag}: 08:00 marked")
+                await pg.screenshot(path=f"{SP}/shots/rvda-horarios.png")
+                await ss.locator(".ss-opt", has_text="07:30").click(); await pg.wait_for_timeout(800)
+                check(app_prefs().get("due_alert_time") == "07:30" and await t.input_value() == "07:30", f"{tag}: the time saved")
+                # a time from before (07:15, out of the step) stays, in its place among the others
+                await a.evaluate("(el) => el._saveAppPrefs({ due_alert_time: '07:15' })"); await pg.wait_for_timeout(600)
+                ts = await t.locator("option").all_inner_texts()
+                check(await t.input_value() == "07:15" and ts[14:17] == ["07:00", "07:15", "07:30"], f"{tag}: a time from before stays ({ts[14:17]})")
+                await a.evaluate("(el) => el._saveAppPrefs({ due_alert_time: '07:30' })"); await pg.wait_for_timeout(600)
+                check(await t.input_value() == "07:30", f"{tag}: back to 07:30")
                 n0 = len(notes())
                 await tb.click(); await pg.wait_for_timeout(900)
                 got = notes()[n0:]

@@ -83,7 +83,8 @@ export const styles = css`
     cursor: default;
   }
   input,
-  textarea {
+  textarea,
+  select {
     font: inherit;
     color: inherit;
   }
@@ -1306,21 +1307,15 @@ export const styles = css`
     grid-template-columns: 1fr 1fr;
     gap: 8px;
   }
-  .remind-row input.remind-time {
-    width: 100%;
+  /* the time: a box of the app (half to half an hour, no AM/PM), like the other boxes, as tall as Testar */
+  .remind-row .select.remind-time {
     min-width: 0;
     height: 100%;
     min-height: 44px;
-    padding: 0 8px;
-    font: inherit;
-    font-size: 17px;
-    font-weight: 700;
-    text-align: center;
-    border-radius: 12px;
-    border: 1px solid var(--rv-line-strong);
-    background: var(--rv-surface);
-    color: var(--rv-text);
-    color-scheme: inherit;
+    padding-top: 0;
+    padding-bottom: 0;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
   }
   .remind-row .remind-test {
     margin: 0;
@@ -1441,14 +1436,15 @@ export const styles = css`
     overflow: visible;
     text-overflow: clip;
   }
-  .hidden-input {
+
+  /* Outro horário: the box of the times, out of sight (the button opens it in the sheet of selectsheet.js) */
+  .time-box {
     position: absolute;
-    inset: 0;
+    width: 1px;
+    height: 1px;
     opacity: 0;
-    width: 100%;
-    height: 100%;
-    border: 0;
-    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
     pointer-events: none;
   }
 
@@ -1784,8 +1780,7 @@ export const styles = css`
     color: var(--rv-text-2);
   }
   .field textarea,
-  .field input[type="text"],
-  .field input[type="time"] {
+  .field input[type="text"] {
     width: 100%;
     border: 1.5px solid var(--rv-line-strong);
     background: var(--rv-bg);
@@ -2758,6 +2753,10 @@ export const styles = css`
     padding: 12px 40px 12px 14px;
     appearance: none;
     -webkit-appearance: none;
+    /* a long name ends in "…" before the arrow (the whole name is in the sheet) */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     background-image: linear-gradient(45deg, transparent 50%, var(--rv-muted) 50%), linear-gradient(135deg, var(--rv-muted) 50%, transparent 50%);
     background-position: calc(100% - 20px) 52%, calc(100% - 14px) 52%;
     background-size: 6px 6px;

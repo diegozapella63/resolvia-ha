@@ -287,7 +287,8 @@ main{max-width:860px;margin:0 auto}
 .barra{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px}
 .barra a,.barra button,.barra select{font:inherit;font-size:14px;font-weight:600;min-height:44px;padding:8px 10px;border-radius:12px;border:1px solid var(--borda);background:var(--card);color:var(--fg);text-decoration:none;cursor:pointer;text-align:center}
 .barra a{display:flex;align-items:center;justify-content:center;line-height:1.2}
-.barra select{grid-column:1/-1;text-align:left;font-size:15px;padding:10px 14px}
+/* the box closed like the boxes of the app: its own arrow, never the one of the phone (it opens in selectsheet.js) */
+.barra select{grid-column:1/-1;text-align:left;font-size:15px;padding:10px 40px 10px 14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;-webkit-appearance:none;appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--mut) 50%),linear-gradient(135deg,var(--mut) 50%,transparent 50%);background-position:calc(100% - 20px) 52%,calc(100% - 14px) 52%;background-size:6px 6px;background-repeat:no-repeat}
 .barra .pdf{background:var(--a);border-color:transparent;color:#1a1210}
 .cab{display:flex;gap:14px;align-items:center;background:var(--card);border:1px solid var(--linha);border-left:6px solid var(--a);border-radius:16px;padding:16px 18px;margin-bottom:14px}
 .cab .ic{width:52px;height:52px;flex:none;color:var(--fg)}
