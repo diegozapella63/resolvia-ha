@@ -244,7 +244,7 @@ async def main():
         check(await pg.locator(".items .item.done").count() == 0 and await pg.locator(".done-head").count() == 0, "nothing in Concluídos")
         await row("Comprar pilhas AAA").locator(".check").click(); await pg.wait_for_timeout(1400)
         toggle = pg.locator(".done-toggle")
-        check(await toggle.count() == 1 and "Concluídos · 1" in (await toggle.inner_text()).replace("\n", " ") and await toggle.get_attribute("aria-expanded") == "false", "after a moment it goes to Concluídos (closed)")
+        check(await toggle.count() == 1 and "Concluídos (1)" in (await toggle.inner_text()).replace("\n", " ") and await toggle.get_attribute("aria-expanded") == "false", "after a moment it goes to Concluídos (closed)")
         check("Comprar pilhas AAA" not in await pending_texts(), "and leaves the pending ones")
         await toggle.click(); await pg.wait_for_timeout(300)
         done_row = pg.locator(".item.done", has_text="Comprar pilhas AAA")
@@ -269,9 +269,9 @@ async def main():
 
         # ---- delete, and Desfazer brings it back with its notes and deadline
         await open_edit("Consertar a torneira")
-        await pg.locator(".sheet .btn.danger[aria-label='Excluir']").click(); await pg.wait_for_timeout(500)
+        await pg.locator(".sheet .btn.danger[aria-label='Apagar']").click(); await pg.wait_for_timeout(500)
         check(await item("Consertar a torneira") is None and await row("Consertar a torneira").count() == 0, "deleted")
-        check(await pg.locator(".toast span").inner_text() == "Item excluído", "toast 'Item excluído'")
+        check(await pg.locator(".toast span").inner_text() == "Item apagado", "toast 'Item apagado'")
         await pg.locator(".toast button", has_text="Desfazer").click(); await pg.wait_for_timeout(800)
         it = await item("Consertar a torneira")
         check(it and it.get("description") == "Vazando na cozinha" and it.get("due") == ymd(tomorrow), f"Desfazer: back with notes and deadline ({it})")

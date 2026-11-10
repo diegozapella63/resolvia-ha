@@ -1295,31 +1295,16 @@ export const styles = css`
     grid-column: 1 / -1;
   }
 
-  /* Opções › Prazos › Avisar o que vence hoje: the time and Testar side by side, the same height, then the phones */
+  /* Opções › Prazos › Avisar o que vence hoje: the time (a box of the app, half to half an hour, no AM/PM), the
+     people, then Testar no meu celular (as in the other apps) */
   .due-alert {
     padding: 4px 0 6px;
   }
   .due-alert .field {
     margin: 10px 0 0;
   }
-  .remind-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-  }
-  /* the time: a box of the app (half to half an hour, no AM/PM), like the other boxes, as tall as Testar */
-  .remind-row .select.remind-time {
-    min-width: 0;
-    height: 100%;
-    min-height: 44px;
-    padding-top: 0;
-    padding-bottom: 0;
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-  }
-  .remind-row .remind-test {
-    margin: 0;
-    min-height: 44px;
+  .due-alert .ai-actions {
+    margin: 14px 0 0;
   }
   /* Quem recebe: each person of the house (the phones are the ones tied to them in Home Assistant) */
   .due-who {
@@ -2693,7 +2678,7 @@ export const styles = css`
       transition: none !important;
     }
   }
-  /* ---------- Leitura por IA ---------- */
+  /* ---------- IA do Home Assistant ---------- */
   .panel-lead {
     margin: 0 0 14px;
     font-size: 14px;
@@ -2866,18 +2851,10 @@ export const styles = css`
     background: color-mix(in srgb, var(--rv-muted) 16%, transparent);
     color: var(--rv-muted);
   }
+  /* Nome (n), as in every app of the family */
   .inact-head .label .count {
-    display: inline-block;
-    min-width: 1.6em;
-    margin-left: 6px;
-    padding: 0 7px;
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--rv-muted) 16%, transparent);
     color: var(--rv-muted);
-    font-size: 13px;
-    font-weight: 600;
-    text-align: center;
-    vertical-align: 2px;
+    font-variant-numeric: tabular-nums;
   }
   .inact-head .chev {
     color: var(--rv-muted);

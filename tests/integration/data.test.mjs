@@ -165,6 +165,26 @@ describe("versions (Versões anteriores)", () => {
   });
 });
 
+describe("Começar do zero (2.53.0)", () => {
+  it("the data of the tasks go, the settings and the items stay, with a copy in Versões anteriores that brings them back", async () => {
+    // besides what the family set (points, room, equipment and the repetition of Passar pano), who does another one
+    await c.call("resolvia/external/set", { entity_id: CASA, summary: "Trocar filtro do ar", value: "Técnico" });
+    const sub = await c.subscribe("resolvia/recurring/subscribe");
+    const before = { prefs: await c.call("resolvia/prefs/get"), items: (await items(c, CASA)).length };
+    const out = await c.call("resolvia/data/erase");
+    assert.ok(out.rules >= 1 && out.points >= 1 && out.rooms >= 1 && out.equips >= 1 && out.ext >= 1, JSON.stringify(out));
+    assert.deepEqual((await c.call("resolvia/points/get")).points[CASA] || {}, {});
+    assert.deepEqual((await c.call("resolvia/external/get")).ext, {});
+    await waitFor(() => sub.events.length && sub.events.at(-1).rules.length === 0, { what: "the screens see no repetitions" });
+    assert.deepEqual(await c.call("resolvia/prefs/get"), before.prefs, "the settings stay");
+    assert.equal((await items(c, CASA)).length, before.items, "the items stay in Home Assistant");
+    const v = (await c.call("resolvia/versions/list"))[0];
+    assert.equal(v.reason, "antes-de-apagar");
+    await c.call("resolvia/versions/restore", { name: v.name });
+    assert.equal((await c.call("resolvia/external/get")).ext[CASA]["trocar filtro do ar"], "Técnico", "the copy brings them back");
+  });
+});
+
 describe("import (Importar backup)", () => {
   it("a backup .zip from another Home Assistant finds the lists by name and moves rooms, equipment and points", async () => {
     const exported = await (await get("/api/export/json")).json();

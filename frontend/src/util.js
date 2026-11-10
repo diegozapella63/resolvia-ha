@@ -14,22 +14,52 @@ export const has = (features, flag) => ((features || 0) & flag) === flag;
 
 // Red-leaning palette. `fill` is used for solid surfaces (dark text on top),
 // `ink` is a darker shade for text/icons on light backgrounds.
+// The palette of the family (the same 12 colors, in this order, in every app: the one of the CronologIA). The colors
+// of the lists and the color of the app; the Cor do dia takes the 11 without the Grafite (look.js, colorOfDay).
 export const PALETTE = [
   { id: "vermelho", label: "Vermelho", fill: "#FF5A4F", ink: "#C42A1F" },
   { id: "coral", label: "Coral", fill: "#FF8A65", ink: "#C2410C" },
-  { id: "rosa", label: "Rosa", fill: "#FF77A9", ink: "#BE185D" },
-  { id: "framboesa", label: "Framboesa", fill: "#E8508A", ink: "#A3124F" },
   { id: "laranja", label: "Laranja", fill: "#FFA23E", ink: "#B45309" },
   { id: "ouro", label: "Ouro", fill: "#F2C14E", ink: "#8A6100" },
-  { id: "lilas", label: "Lilás", fill: "#B99BFF", ink: "#6D3FD6" },
-  { id: "azul", label: "Azul", fill: "#62B5FF", ink: "#0B67A8" },
+  { id: "verde", label: "Verde", fill: "#8BD45F", ink: "#3F7A17" },
   { id: "menta", label: "Menta", fill: "#4ED3A6", ink: "#0E7A57" },
-  { id: "grafite", label: "Grafite", fill: "#B9ADAE", ink: "#5E5253" },
+  { id: "turquesa", label: "Turquesa", fill: "#3CCBDA", ink: "#0B7285" },
+  { id: "azul", label: "Azul", fill: "#62B5FF", ink: "#0B67A8" },
+  { id: "indigo", label: "Índigo", fill: "#8F9BFF", ink: "#3D4BC2" },
+  { id: "lilas", label: "Lilás", fill: "#B99BFF", ink: "#6D3FD6" },
+  { id: "rosa", label: "Rosa", fill: "#FF77A9", ink: "#BE185D" },
+  { id: "grafite", label: "Grafite", fill: "#B5B9C2", ink: "#4E5560" },
 ];
-// Lists without a chosen color cycle through the warm ones.
-const AUTO_COLORS = ["vermelho", "coral", "rosa", "laranja", "framboesa", "ouro"];
+// Lists without a chosen color cycle through these (the warm ones first).
+const AUTO_COLORS = ["vermelho", "coral", "rosa", "laranja", "lilas", "ouro"];
+// Colors saved before that left the palette (2.53.0): by their fill, to find the nearest one
+const OLD_COLORS = { framboesa: "#E8508A" };
 
-export const colorById = (id) => PALETTE.find((c) => c.id === id);
+const rgb = (hex) => {
+  const n = parseInt(hex.replace("#", ""), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+};
+
+/** The color of the palette nearest to a hex color (by the distance of red, green and blue). */
+export function nearestColor(hex) {
+  const [r, g, b] = rgb(hex);
+  let best = PALETTE[0];
+  let dist = Infinity;
+  for (const c of PALETTE) {
+    const [r2, g2, b2] = rgb(c.fill);
+    const d = (r - r2) ** 2 + (g - g2) ** 2 + (b - b2) ** 2;
+    if (d < dist) [best, dist] = [c, d];
+  }
+  return best;
+}
+
+/** A color of the palette by its id; a saved color that is no longer in it (or a hex) becomes the nearest one. */
+export const colorById = (id) => {
+  const c = PALETTE.find((x) => x.id === id);
+  if (c || typeof id !== "string") return c;
+  const hex = OLD_COLORS[id] || (/^#[0-9a-f]{6}$/i.test(id) ? id : null);
+  return hex ? nearestColor(hex) : undefined;
+};
 export const autoColor = (index) => colorById(AUTO_COLORS[index % AUTO_COLORS.length]);
 
 export function hexToRgba(hex, alpha) {

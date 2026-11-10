@@ -683,3 +683,30 @@ describe("Store: saving and versions", () => {
     assert.doesNotThrow(() => store.trimVersions());
   });
 });
+
+describe("Store: Começar do zero (2.53.0)", () => {
+  it("what the app keeps of the tasks goes; the settings stay; a copy first, in Versões anteriores", (t) => {
+    const { store, onDisk, versions, dir } = newStore(t, { now: local(2026, 11, 9, 10, 0, 0) });
+    store.setListPrefs("todo.casa", { name: "Casa da Ana", color: "menta" });
+    store.setAppPrefs({ accent: "rosa", points_on: true });
+    store.setPoints("todo.casa", "Lavar a louça", 10);
+    store.setPoints("todo.casa", "Varrer", 5);
+    store.setRoom("todo.casa", "Varrer", "sala");
+    store.setEquip("todo.casa", "Trocar filtro", ["filtro_1"]);
+    store.setExternal("todo.casa", "Pintar a parede", "Pintor");
+    store.data.rules.r1 = { id: "r1", entity_id: "todo.casa", summary: "Varrer", days: 7 };
+    store.flush();
+    const out = store.erase();
+    assert.deepEqual(out, { rules: 1, points: 2, rooms: 1, equips: 1, ext: 1 });
+    const d = onDisk();
+    assert.deepEqual([d.rules, d.points, d.rooms, d.equips, d.ext], [{}, {}, {}, {}, {}]);
+    assert.equal(d.prefs.lists["todo.casa"].name, "Casa da Ana");
+    assert.equal(d.prefs.app.accent, "rosa");
+    assert.deepEqual([store.rules, store.points], [{}, {}]);
+    const v = versions();
+    assert.deepEqual(v, ["resolvia-20261109-100000000-antes-de-apagar.json"]);
+    const copy = JSON.parse(fs.readFileSync(path.join(dir, "versoes", v[0]), "utf8"));
+    assert.equal(copy.points["todo.casa"]["lavar a louca"], 10, "the copy has what was erased");
+    assert.deepEqual(store.erase(), { rules: 0, points: 0, rooms: 0, equips: 0, ext: 0 }, "nothing more to erase");
+  });
+});

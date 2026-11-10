@@ -41,10 +41,10 @@ async def main():
         await pg.locator(".tab", has_text="Mais").click(); await pg.wait_for_timeout(300)
         await pg.locator(".more-row", has_text="Configurações").click(); await pg.wait_for_timeout(300); await pg.get_by_role("tab", name="Opções", exact=True).click(); await pg.wait_for_timeout(500)
         txt = await pg.locator("main .page").inner_text()
-        check("Não voltam mais sozinhas" in txt and await pg.locator(".btn.danger", has_text="Excluir 2 repetições").count() == 1, "leftovers: a button to delete them")
+        check("Não voltam mais sozinhas" in txt and await pg.locator(".btn.danger", has_text="Apagar 2 repetições").count() == 1, "leftovers: a button to delete them")
         await pg.screenshot(path=f"{SP}/shots/rvl-leftover.png")
-        await pg.locator(".btn.danger", has_text="Excluir 2 repetições").click(); await pg.wait_for_timeout(400)
-        check("Excluir as repetições?" in await pg.locator(".sheet").inner_text(), "it asks first")
+        await pg.locator(".btn.danger", has_text="Apagar 2 repetições").click(); await pg.wait_for_timeout(400)
+        check("Apagar as repetições?" in await pg.locator(".sheet").inner_text(), "it asks first")
         await pg.locator(".sheet .btn.primary").click()
         for _ in range(20):
             if not stored()["rules"]: break

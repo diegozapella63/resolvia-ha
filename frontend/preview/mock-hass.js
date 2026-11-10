@@ -247,6 +247,12 @@ export function createMockHass(onChange) {
           await new Promise((r) => setTimeout(r, 300));
           return { lists: Object.keys(prefs.lists).length, rules: rules.length };
         },
+        async erase() {
+          await new Promise((r) => setTimeout(r, 300));
+          const n = rules.length;
+          rules.length = 0;
+          return { rules: n, points: 0, rooms: 0, equips: 0, ext: 0 };
+        },
         async backups() {
           return { available: true, folder: "share/resolvia", backups: backups.map((b) => ({ ...b })) };
         },
@@ -282,7 +288,7 @@ export function createMockHass(onChange) {
         if (data.status) item.status = data.status;
         applyFields(l, item, data);
       } else if (service === "remove_item") {
-        if (!has(l.features, F.DELETE)) fail("não suporta excluir");
+        if (!has(l.features, F.DELETE)) fail("não suporta apagar");
         const keys = [].concat(data.item);
         l.items = l.items.filter((i) => !keys.includes(i.uid));
       } else if (service === "remove_completed_items") {

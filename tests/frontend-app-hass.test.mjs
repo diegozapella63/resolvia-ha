@@ -123,6 +123,7 @@ describe("app-hass: calls", () => {
     hass.resolvia.data.backups();
     hass.resolvia.data.createBackup();
     hass.resolvia.data.restoreBackup("b.zip");
+    hass.resolvia.data.erase();
     assert.deepEqual(ws.sent.slice(2).map(({ id, ...m }) => m), [
       { type: "resolvia/ai/status" },
       { type: "resolvia/voice/status" },
@@ -132,6 +133,7 @@ describe("app-hass: calls", () => {
       { type: "resolvia/backups/list" },
       { type: "resolvia/backups/create" },
       { type: "resolvia/backups/restore", name: "b.zip" },
+      { type: "resolvia/data/erase" },
     ]);
     assert.equal(hass.resolvia.data.url("csv"), "https://casa.example/api/hassio_ingress/abc/api/export/csv");
   });

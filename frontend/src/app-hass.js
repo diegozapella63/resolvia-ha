@@ -246,6 +246,7 @@ export async function createAppHass(onChange) {
         backups: () => conn.sendMessagePromise({ type: "resolvia/backups/list" }),
         createBackup: () => conn.sendMessagePromise({ type: "resolvia/backups/create" }),
         restoreBackup: (name) => conn.sendMessagePromise({ type: "resolvia/backups/restore", name }),
+        erase: () => conn.sendMessagePromise({ type: "resolvia/data/erase" }),
       },
     },
     connection: conn,

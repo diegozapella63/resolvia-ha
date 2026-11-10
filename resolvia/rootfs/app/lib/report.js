@@ -9,10 +9,12 @@ import { Pdf, wrap, textWidth } from "./pdf.js";
 // The colors of the lists, the same as frontend/src/util.js (PALETTE and AUTO_COLORS): a list without a chosen
 // color takes the warm ones in turn, in the order of the app (by device, then by name).
 const PALETTE = {
-  vermelho: "#FF5A4F", coral: "#FF8A65", rosa: "#FF77A9", framboesa: "#E8508A", laranja: "#FFA23E",
-  ouro: "#F2C14E", lilas: "#B99BFF", azul: "#62B5FF", menta: "#4ED3A6", grafite: "#B9ADAE",
+  vermelho: "#FF5A4F", coral: "#FF8A65", laranja: "#FFA23E", ouro: "#F2C14E", verde: "#8BD45F", menta: "#4ED3A6",
+  turquesa: "#3CCBDA", azul: "#62B5FF", indigo: "#8F9BFF", lilas: "#B99BFF", rosa: "#FF77A9", grafite: "#B5B9C2",
+  // saved before 2.53.0, out of the palette now: the nearest one (as colorById in the app)
+  framboesa: "#FF77A9",
 };
-const AUTO_COLORS = ["vermelho", "coral", "rosa", "laranja", "framboesa", "ouro"];
+const AUTO_COLORS = ["vermelho", "coral", "rosa", "laranja", "lilas", "ouro"];
 
 /**
  * The name and the color of each list as the app shows them (listMeta and _computeLists in the app): the name without

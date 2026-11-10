@@ -55,7 +55,9 @@ async def main():
         ia = await chat.locator(".chat-msg.ia .chat-bubble").last.inner_text()
         check("Pagar conta de luz" in ia, f"about the lists: what is late ({ia!r})")
         check(await chat.locator(".chat-msg.me", has_text="O que está atrasado?").count() == 1, "the question shows as the person's")
-        await sheet.locator(".chat-head .icon-btn[aria-label='Fechar']").click(); await pg.wait_for_timeout(300)
+        # the Back of the phone closes the Conversa (a rule of every app), and the screen stays
+        await pg.go_back(); await pg.wait_for_timeout(400)
+        check(await chat.count() == 0 and await a.locator(".page-title", has_text="Minhas listas").count() == 1, "Back closes the Conversa, on the same screen")
         # in a list: the screen goes along, the conversation is kept
         await a.evaluate("(el) => el._go('/lista/todo.casa')"); await pg.wait_for_timeout(700)
         await a.locator(".detail-head .chat-top").click(); await pg.wait_for_timeout(400)
@@ -93,8 +95,9 @@ async def main():
         await wait_for(lambda: answered(5), "what was heard goes to the AI")
         me = await chat.locator(".chat-msg.me .chat-bubble").last.inner_text()
         check("Comprar pilhas" in me, f"the words heard as the person's message ({me!r})")
-        # Nova: a clean conversation
-        await chat.locator(".chat-head .text-btn", has_text="Nova").click(); await pg.wait_for_timeout(300)
+        # Nova conversa: a clean conversation (the same words in every app)
+        check((await chat.locator(".chat-head .text-btn").inner_text()).strip() == "Nova conversa", "Nova conversa")
+        await chat.locator(".chat-head .text-btn", has_text="Nova conversa").click(); await pg.wait_for_timeout(300)
         check(await chat.locator(".chat-msg").count() == 0, "Nova clears the conversation")
         await sheet.locator(".chat-head .icon-btn[aria-label='Fechar']").click(); await pg.wait_for_timeout(300)
         # Uso da IA counts it
@@ -103,7 +106,7 @@ async def main():
         await pg.evaluate(WS, [{"type": "resolvia/prefs/set_app", "prefs": {"due_off": True}}])
         await pg.reload(); await pg.wait_for_timeout(1800)
         await a.locator(".chat-top").first.click(); await pg.wait_for_timeout(400)
-        if await chat.locator(".chat-head .text-btn", has_text="Nova").count(): await chat.locator(".chat-head .text-btn", has_text="Nova").click(); await pg.wait_for_timeout(300)
+        if await chat.locator(".chat-head .text-btn", has_text="Nova conversa").count(): await chat.locator(".chat-head .text-btn", has_text="Nova conversa").click(); await pg.wait_for_timeout(300)
         ex = [t.strip() for t in await chat.locator(".chat-ex .pick").all_inner_texts()]
         check(ex == ["Por onde eu começo hoje?", "Adiciona leite na lista de compras"], f"Controlar prazos off: no 'O que está atrasado?' ({ex})")
         await sheet.locator(".chat-head .icon-btn[aria-label='Fechar']").click(); await pg.wait_for_timeout(300)

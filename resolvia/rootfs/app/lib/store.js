@@ -268,6 +268,21 @@ export class Store {
     return this.data;
   }
 
+  /**
+   * Mais › Configurações › Dados › Começar do zero: what the app keeps of the tasks goes (repetitions, points, rooms,
+   * equipment and who does it); the settings stay (lists and app), and the items are in Home Assistant. A copy first,
+   * in /data/versoes. Returns how many of each went.
+   */
+  erase() {
+    const count = (o) => Object.values(o || {}).reduce((n, m) => n + (m && typeof m === "object" ? Object.keys(m).length : 0), 0);
+    const out = { rules: Object.keys(this.data.rules).length, points: count(this.data.points), rooms: count(this.data.rooms), equips: count(this.data.equips), ext: count(this.data.ext) };
+    if (this.timer) this.flush({ version: false });
+    this.version("antes-de-apagar", true);
+    this.data = { ...this.data, rules: {}, points: {}, rooms: {}, equips: {}, ext: {} };
+    this.flush({ version: false });
+    return out;
+  }
+
   /** Keeps only the newest MAX_VERSIONS copies in /data/versoes. */
   trimVersions() {
     try {

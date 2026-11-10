@@ -1,5 +1,5 @@
-# ResolvIA 2.41.0: Opções › Prazos › Avisar o que vence hoje. Off by default; on: 08:00, the time and Testar
-# side by side, the same size; Testar sends what is due today to my phone (the simulated Home Assistant keeps
+# ResolvIA 2.41.0: Opções › Prazos › Avisar o que vence hoje. Off by default; on: 08:00, the time, Quem recebe and
+# Testar no meu celular (2.53.0); Testar sends what is due today to my phone (the simulated Home Assistant keeps
 # it); the time is saved; with Controlar prazos off, the alert goes away. 320 px to the computer, light and dark.
 # 2.42.0: Personalizar › De quem é (Todos or a person): the alert of that list goes only to that person's phone.
 # 2.43.0: no phones to pick: Quem recebe shows each person and their phone (only shown).
@@ -67,7 +67,11 @@ async def main():
             check(await prazos.locator("input[type=time]").count() == 0, f"{tag}: no clock of the phone")
             check(await t.input_value() == ("08:00" if k == 0 else "07:30"), f"{tag}: the time ({await t.input_value()})")
             bt, bb = await t.bounding_box(), await tb.bounding_box()
-            check(abs(bt["height"] - bb["height"]) <= 1 and abs(bt["width"] - bb["width"]) <= 1 and abs(bt["y"] - bb["y"]) <= 1, f"{tag}: the time and Testar side by side, the same size ({bt['width']:.0f}x{bt['height']:.0f} / {bb['width']:.0f}x{bb['height']:.0f})")
+            # 2.53.0: Testar no meu celular (the words of every app), after Quem recebe; the time, a box like the others
+            fb = await t.evaluate("(s) => { const r = s.parentElement.getBoundingClientRect(); return [r.x, r.width]; }")
+            who_b = await prazos.locator(".due-who").bounding_box()
+            check((await tb.inner_text()).strip() == "Testar no meu celular" and bb["y"] > who_b["y"] + who_b["height"] - 1, f"{tag}: Testar no meu celular, after Quem recebe ({(await tb.inner_text()).strip()})")
+            check(abs(bt["x"] - fb[0]) <= 1 and abs(bt["width"] - fb[1]) <= 1 and bt["height"] >= 44, f"{tag}: the time, the whole width of its field, like the other boxes ({bt['width']:.0f}x{bt['height']:.0f})")
             look = await t.evaluate("(s) => { const c = getComputedStyle(s); return [c.appearance, c.borderTopLeftRadius, c.backgroundImage.includes('gradient'), c.pointerEvents]; }")
             check(look == ["none", "14px", True, "none"], f"{tag}: closed like the other boxes, its own arrow, and the tap is for the sheet ({look})")
             if k == 0:

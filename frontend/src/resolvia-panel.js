@@ -55,7 +55,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.52.0";
+const VERSION = "2.53.0";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -984,7 +984,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     return this._aiState || (this.hass && this.hass.resolvia && this.hass.resolvia.ai) || { ready: false, images: false, entities: [] };
   }
 
-  /** Mais › Configurações › Integrações › Leitura por IA: which AI Home Assistant gives the app, and if it is ready. */
+  /** Mais › Configurações › Integrações › IA do Home Assistant: which AI Home Assistant gives the app, and if it is ready. */
   async _refreshAi(force = true) {
     const r = this.hass && this.hass.resolvia;
     if (!r || !r.aiStatus) return;
@@ -1717,7 +1717,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     const due = parseDue(item.due);
     // Desfazer adds it again: only where the list takes new items
     this._showToast(
-      "Item excluído",
+      "Item apagado",
       has(list.features, F.CREATE)
         ? {
             label: "Desfazer",
@@ -2226,7 +2226,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
           ? html`
               <div class="done-head">
                 <button class="done-toggle ${doneOpen ? "open" : ""}" @click=${() => (this._doneOpen = { ...this._doneOpen, [id]: !doneOpen })} aria-expanded=${doneOpen ? "true" : "false"}>
-                  Concluídos <span class="count">· ${done.length}</span>${icon("chevron-down")}
+                  Concluídos <span class="count">(${done.length})</span>${icon("chevron-down")}
                 </button>
                 ${canDelete ? html`<button class="text-btn" @click=${() => this._confirmClearDone(l)}>Limpar</button>` : nothing}
               </div>
@@ -2981,7 +2981,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
 
   /**
    * Inativos no fim, recolhidos (a rule of every app of the family): what is off goes in a section at the end of the
-   * list, folded at first, with its name and how many; a tap opens it. `key` tells the sections apart (each stays as
+   * list, folded at first, with its name and how many, Nome (n); a tap opens it. `key` tells the sections apart (each stays as
    * it was while the app is open); `row` draws each one.
    */
   _renderFold(key, things, row, label = "Inativas") {
@@ -2989,7 +2989,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     const open = !!this._folds[key];
     return html`<button class="row inact-head ${open ? "open" : ""}" data-fold=${key} aria-expanded=${open ? "true" : "false"} @click=${() => (this._folds = { ...this._folds, [key]: !open })}>
         <span class="tile muted">${icon("eye-off")}</span>
-        <span class="grow"><div class="label">${label} <span class="count">${things.length}</span></div></span>
+        <span class="grow"><div class="label">${label} <span class="count">(${things.length})</span></div></span>
         ${icon("chevron-down", "chev")}
       </button>
       ${open ? repeat(things, (l) => l.id, row) : nothing}`;
@@ -3025,7 +3025,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
                 ${icon("chevron-right")}
               </button>
               <button class="row" @click=${() => this._openInHA("/todo")}>
-                <span class="tile" style=${colorVars(PALETTE[9], this._dark)}>${icon("external-link")}</span>
+                <span class="tile" style=${colorVars(colorById("grafite"), this._dark)}>${icon("external-link")}</span>
                 <span class="grow"><div class="label">Abrir listas padrão do HA</div><div class="hint">A tela original de tarefas</div></span>
                 ${icon("chevron-right")}
               </button>
@@ -3056,8 +3056,8 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
               : html`<div class="panel ${on ? "" : "paused"}">
               ${this._secHead("rotate-ccw", "Tarefas que se repetem")}
               ${!on && this._rules.length
-                ? html`<p class="panel-lead">Não voltam mais sozinhas. Exclua para limpar.</p>
-                    <div class="btn-row sec-actions"><button class="btn danger sm" @click=${() => this._confirmClearRules(false)}>${icon("trash")}Excluir ${plural(this._rules.length, "repetição", "repetições")}</button></div>`
+                ? html`<p class="panel-lead">Não voltam mais sozinhas. Apague para limpar.</p>
+                    <div class="btn-row sec-actions"><button class="btn danger sm" @click=${() => this._confirmClearRules(false)}>${icon("trash")}Apagar ${plural(this._rules.length, "repetição", "repetições")}</button></div>`
                 : nothing}
               ${this._rules.length
                 ? this._rules.map((r) => {
@@ -3087,16 +3087,16 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
   _confirmClearRules(turnOff) {
     const n = this._rules.length;
     this._openSheet("confirm", {
-      title: turnOff ? "Desligar a repetição?" : "Excluir as repetições?",
-      text: `${plural(n, "tarefa se repete", "tarefas se repetem")}. ${turnOff ? "Ao desligar, essas repetições são excluídas" : "Elas serão excluídas"}: os itens continuam nas listas, mas não voltam mais sozinhos depois de concluídos.`,
-      label: turnOff ? `Excluir e desligar` : `Excluir ${plural(n, "repetição", "repetições")}`,
+      title: turnOff ? "Desligar a repetição?" : "Apagar as repetições?",
+      text: `${plural(n, "tarefa se repete", "tarefas se repetem")}. ${turnOff ? "Ao desligar, essas repetições são apagadas" : "Elas serão apagadas"}: os itens continuam nas listas, mas não voltam mais sozinhos depois de concluídos.`,
+      label: turnOff ? `Apagar e desligar` : `Apagar ${plural(n, "repetição", "repetições")}`,
       run: async () => {
         this._closeSheet();
         try {
           await this.hass.callWS({ type: "resolvia/recurring/clear" });
           if (turnOff) await this._saveAppPrefs({ repeat_on: false });
           this._haptic("warning");
-          this._showToast(`${plural(n, "repetição excluída", "repetições excluídas")}${turnOff ? " · repetição desligada" : ""}`);
+          this._showToast(`${plural(n, "repetição apagada", "repetições apagadas")}${turnOff ? " · repetição desligada" : ""}`);
         } catch (err) {
           this._showToast(`Não consegui: ${err.message}`);
         }
@@ -3142,7 +3142,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
   /**
    * Prazos › Avisar o que vence hoje: once a day, at the time chosen, each person gets on their phone what is
    * due today on their lists (Personalizar › De quem é) and on everyone's. The app looks at the person, never at a
-   * device: the phones are the ones tied to each person in Home Assistant. Testar sends it now to my phones.
+   * device: the phones are the ones tied to each person in Home Assistant. Testar no meu celular sends it now to my phones.
    */
   _renderDueAlert(sw) {
     const on = this._app("due_alert", false) === true;
@@ -3161,12 +3161,9 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
         ? html`<div class="due-alert">
             <div class="field">
               <span class="flabel">Horário</span>
-              <div class="remind-row">
-                <select class="select remind-time" aria-label="Horário do aviso" .value=${live(time)} @change=${(e) => /^\d{2}:\d{2}$/.test(e.target.value) && this._saveAppPrefs({ due_alert_time: e.target.value })}>
-                  ${timeSlots(time).map((t) => html`<option value=${t} ?selected=${t === time}>${t}</option>`)}
-                </select>
-                <button class="btn outline remind-test" ?disabled=${!me || !me.phone} title=${why} aria-label="Testar no meu celular" @click=${() => this._testDueAlert()}>${icon("send")}Testar</button>
-              </div>
+              <select class="select remind-time" aria-label="Horário do aviso" .value=${live(time)} @change=${(e) => /^\d{2}:\d{2}$/.test(e.target.value) && this._saveAppPrefs({ due_alert_time: e.target.value })}>
+                ${timeSlots(time).map((t) => html`<option value=${t} ?selected=${t === time}>${t}</option>`)}
+              </select>
             </div>
             <div class="field">
               <span class="flabel">Quem recebe</span>
@@ -3179,6 +3176,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
                     ${without.length ? html`<p class="field-hint">${icon("info")}<span>Sem celular para ${list(without)}: ligue o celular à pessoa no Home Assistant.</span></p>` : nothing}`
                   : html`<p class="field-hint">${icon("info")}<span>Nenhuma pessoa da casa no Home Assistant.</span></p>`}
             </div>
+            <div class="ai-actions"><button class="btn outline remind-test" ?disabled=${!me || !me.phone} title=${why} @click=${() => this._testDueAlert()}>${icon("send")}Testar no meu celular</button></div>
           </div>`
         : nothing}`;
   }
@@ -3209,7 +3207,8 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
   /** Mais › Configurações › Aparência: theme and color. */
   _renderAppearanceTab() {
     const daily = this._accentDaily();
-    const accent = daily ? this._accent().id : this._app("accent", "vermelho");
+    // a color saved before that left the palette shows as the nearest one (the saved choice stays)
+    const accent = daily ? this._accent().id : (colorById(this._app("accent", "vermelho")) || PALETTE[0]).id;
     return html`
         <div class="panel">
           ${this._secHead("contrast", "Tema", "Cada aparelho guarda a sua escolha.")}
@@ -3251,7 +3250,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
       </div>`;
     if (!on) {
       return html`<div class="panel" id="leitura-ia">
-        ${this._secHead("sparkles", "Leitura por IA", "Separa os itens de mensagens, prints e fotos.")}
+        ${this._secHead("sparkles", "IA do Home Assistant", "Separa os itens de mensagens, prints e fotos.")}
         ${sw}
       </div>`;
     }
@@ -3267,7 +3266,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     }
     if (ai.reason) detail = `${detail} ${ai.reason}`.trim();
     return html`<div class="panel" id="leitura-ia">
-      ${this._secHead("sparkles", "Leitura por IA", "Separa os itens de mensagens, prints e fotos, com a IA do Home Assistant.")}
+      ${this._secHead("sparkles", "IA do Home Assistant", "Separa os itens de mensagens, prints e fotos.")}
       ${sw}
       <div class="ai-state ${tone}"><span class="dot"></span><div><b>${title}</b>${detail ? html`<span>${detail}</span>` : nothing}</div></div>
       ${ents.length || sel
@@ -3353,7 +3352,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
       </div>
       <p class="sheet-note with-icon">${icon("calendar-clock")}<span>Vem do CronologIA: concluir aqui marca como feito lá${pts ? ` (${pts} pontos)` : ""}. Para editar, use o CronologIA.</span></p>
       <div class="sheet-actions">
-        ${canDelete ? html`<button class="btn danger" @click=${() => this._deleteItem()} aria-label="Excluir">${icon("trash")}</button>` : nothing}
+        ${canDelete ? html`<button class="btn danger" @click=${() => this._deleteItem()} aria-label="Apagar">${icon("trash")}</button>` : nothing}
         <button class="btn primary" @click=${() => this._closeSheet()}>Fechar</button>
       </div>
     `;
@@ -3509,7 +3508,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
           </div>`
         : nothing}
       <div class="sheet-actions">
-        ${canDelete ? html`<button class="btn danger" @click=${() => this._deleteItem()} aria-label="Excluir">${icon("trash")}</button>` : nothing}
+        ${canDelete ? html`<button class="btn danger" @click=${() => this._deleteItem()} aria-label="Apagar">${icon("trash")}</button>` : nothing}
         <button class="btn primary" @click=${() => this._saveItem()}>${f.mode === "add" ? "Adicionar" : f.target !== f.listId ? "Mover" : "Salvar"}</button>
       </div>
     `;
@@ -3537,7 +3536,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
             ? html`<p class="imp-help">No app do Home Assistant, a galeria manda uma foto por vez.</p>`
             : nothing}
       </div>
-      ${ai.ready ? nothing : html`<div class="ai-box">${icon("scan-text")}<span>Sem IA configurada, a mensagem é separada por linhas e vírgulas. Para ler fotos, configure a Leitura por IA em Mais › Configurações › Integrações.</span></div>`}`;
+      ${ai.ready ? nothing : html`<div class="ai-box">${icon("scan-text")}<span>Sem IA configurada, a mensagem é separada por linhas e vírgulas. Para ler fotos, configure a IA do Home Assistant em Mais › Configurações › Integrações.</span></div>`}`;
   }
 
   _renderImportSheet() {
@@ -3700,7 +3699,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
       )}
       ${!ai.images
         ? html`<div class="imp-error soft">${icon("sparkles")}<span>${ai.reason || "Para ler fotos, o Home Assistant precisa de uma integração de IA com tarefa de IA que entenda imagens."}
-            <button class="text-btn inline" @click=${() => this._goAiSettings()}>Ver Leitura por IA</button></span></div>`
+            <button class="text-btn inline" @click=${() => this._goAiSettings()}>Ver IA do Home Assistant</button></span></div>`
         : nothing}
       ${error}
     `;

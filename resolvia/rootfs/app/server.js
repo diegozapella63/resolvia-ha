@@ -25,7 +25,7 @@ import { DueAlert } from "./lib/duealert.js";
 import { Correria, ROTA as ROTA_CORRERIA } from "./lib/correria.js";
 import { Ferramentas, INSTRUCOES } from "./lib/ferramentas.js";
 
-const VERSION = "2.52.0";
+const VERSION = "2.53.0";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const WWW = path.join(HERE, "www");
 const DEV = process.env.RESOLVIA_DEV === "1";
@@ -575,7 +575,7 @@ class Session {
 
       case "resolvia/recurring/clear": {
         const n = recurring.clearAll();
-        log.info(`Repetições excluídas: ${n}`);
+        log.info(`Repetições apagadas: ${n}`);
         publishPresence();
         return this.result(id, { removed: n });
       }
@@ -688,6 +688,15 @@ class Session {
       case "resolvia/versions/restore": {
         const raw = readVersion(store.versionsDir, String(msg.name || ""));
         return this.result(id, await restoreAll(raw, "antes-de-restaurar", { items: false }));
+      }
+
+      // Começar do zero: the data of the tasks go, the settings and the items stay (a copy in Versões anteriores)
+      case "resolvia/data/erase": {
+        const out = store.erase();
+        log.info(`Começar do zero: ${out.rules} repetições, ${out.points} pontos, ${out.rooms} cômodos, ${out.equips} equipamentos e ${out.ext} serviços externos apagados`);
+        recurring.emit("change");
+        publishPresence();
+        return this.result(id, out);
       }
 
       case "resolvia/backups/list":

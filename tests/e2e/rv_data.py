@@ -240,6 +240,29 @@ async def main():
         r = await ws({"type": "resolvia/versions/restore", "name": "../resolvia.json"})
         check("__error" in r, "version name is validated")
 
+        # ---- 2.53.0: the sections of Dados in the order of every app, and Começar do zero last
+        heads = [t.strip() for t in await pg.locator("#dados .panel .mais-head").all_inner_texts()]
+        heads = [h.split("\n")[0] for h in heads]
+        check(heads == ["Exportar", "Backup na pasta share", "Importar", "Versões anteriores", "Onde ficam os dados", "Começar do zero"], f"Dados in the order of every app ({heads})")
+        await ws({"type": "resolvia/points/set", "entity_id": "todo.casa", "summary": "Regar plantas", "points": 5})
+        n_items = len((await items("todo.casa"))["items"])
+        zerar = pg.locator("#zerar")
+        await zerar.scroll_into_view_if_needed()
+        await pg.screenshot(path=f"{SP}/shots/rv-zerar.png")
+        await zerar.locator(".btn.danger", has_text="Apagar tudo").click(); await pg.wait_for_timeout(300)
+        check((await pg.locator(".sheet h3").inner_text()).strip() == "Começar do zero?", "Começar do zero asks first")
+        await pg.locator(".sheet .btn.primary", has_text="Apagar tudo").click(); await pg.wait_for_timeout(1200)
+        check("começando do zero" in await pg.locator(".toast span").inner_text(), "the toast says it")
+        check(len(await pg.evaluate(RULES)) == 0, "no repetition")
+        pts = await ws({"type": "resolvia/points/get"})
+        check(not any(pts["points"].values()), f"no points ({pts['points']})")
+        prefs = await ws({"type": "resolvia/prefs/get"})
+        check(prefs["lists"].get("todo.casa", {}).get("name") == "Casa importada", "the settings stay")
+        check(len((await items("todo.casa"))["items"]) == n_items, "the items stay in Home Assistant")
+        await pg.locator("#dados .btn", has_text="Ver versões").click(); await pg.wait_for_timeout(700)
+        check("antes de apagar" in await pg.locator(".sheet .data-item").first.inner_text(), "a copy in Versões anteriores, antes de apagar")
+        await pg.locator(".sheet .icon-btn[aria-label='Fechar']").click(); await pg.wait_for_timeout(300)
+
         check(not errs, f"no console errors {errs}")
         await b.close()
 

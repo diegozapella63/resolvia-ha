@@ -13,11 +13,39 @@ describe("features and colors", () => {
     assert.equal(U.has(undefined, U.F.CREATE), false);
   });
 
-  it("lists without a color cycle through the six warm colors", () => {
-    assert.deepEqual([0, 1, 2, 3, 4, 5, 6, 7].map((i) => U.autoColor(i).id), ["vermelho", "coral", "rosa", "laranja", "framboesa", "ouro", "vermelho", "coral"]);
+  it("lists without a color cycle through six colors, the warm ones first", () => {
+    assert.deepEqual([0, 1, 2, 3, 4, 5, 6, 7].map((i) => U.autoColor(i).id), ["vermelho", "coral", "rosa", "laranja", "lilas", "ouro", "vermelho", "coral"]);
     assert.equal(U.colorById("azul").ink, "#0B67A8");
     assert.equal(U.colorById("nope"), undefined);
     assert.equal(new Set(U.PALETTE.map((c) => c.id)).size, U.PALETTE.length);
+  });
+
+  it("2.53.0: the palette of the family, 12 colors in this order, with these names (the one of the CronologIA)", () => {
+    assert.deepEqual(
+      U.PALETTE.map((c) => `${c.label} ${c.fill} ${c.ink}`),
+      [
+        "Vermelho #FF5A4F #C42A1F",
+        "Coral #FF8A65 #C2410C",
+        "Laranja #FFA23E #B45309",
+        "Ouro #F2C14E #8A6100",
+        "Verde #8BD45F #3F7A17",
+        "Menta #4ED3A6 #0E7A57",
+        "Turquesa #3CCBDA #0B7285",
+        "Azul #62B5FF #0B67A8",
+        "Índigo #8F9BFF #3D4BC2",
+        "Lilás #B99BFF #6D3FD6",
+        "Rosa #FF77A9 #BE185D",
+        "Grafite #B5B9C2 #4E5560",
+      ],
+    );
+  });
+
+  it("a color saved before that left the palette becomes the nearest one (the choice is not lost)", () => {
+    assert.equal(U.colorById("framboesa").id, "rosa");
+    assert.equal(U.colorById("#00FF00").id, "verde");
+    assert.equal(U.nearestColor("#FF5A50").id, "vermelho");
+    assert.equal(U.colorById("nada"), undefined);
+    assert.equal(U.colorById(undefined), undefined);
   });
 
   it("hexToRgba reads 6 and 3 digit colors", () => {

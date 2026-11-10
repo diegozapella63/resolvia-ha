@@ -128,7 +128,7 @@ async def main():
         await pg.locator(".items .item", has_text="Leite desnatado").locator(".it-body").click(); await pg.wait_for_timeout(300)
         await pg.locator(".sheet .btn.danger").click(); await pg.wait_for_timeout(600)
         check(await item(ALEXA, "Leite desnatado") is None, "Alexa: deleted")
-        check(await pg.locator(".toast span").inner_text() == "Item excluído" and await pg.locator(".toast button", has_text="Desfazer").count() == 1, "with Desfazer (the list takes it back)")
+        check(await pg.locator(".toast span").inner_text() == "Item apagado" and await pg.locator(".toast button", has_text="Desfazer").count() == 1, "with Desfazer (the list takes it back)")
         await pg.screenshot(path=f"{SP}/shots/rvf-alexa.png")
 
         # ---- read only
@@ -168,7 +168,7 @@ async def main():
         await pg.locator(".item.done", has_text="Ligar para o síndico").locator(".it-body").click(); await pg.wait_for_timeout(300)
         await pg.locator(".sheet .btn.danger").click(); await pg.wait_for_timeout(700)
         check(await item(CHAMADOS, "Ligar para o síndico") is None, "deleted in Home Assistant")
-        check(await pg.locator(".toast span").inner_text() == "Item excluído" and await pg.locator(".toast button").count() == 0, "no Desfazer: the list could not take it back")
+        check(await pg.locator(".toast span").inner_text() == "Item apagado" and await pg.locator(".toast button").count() == 0, "no Desfazer: the list could not take it back")
         txt = await pg.locator(".page").inner_text()
         check("Lista vazia" in txt and "Esta lista não aceita itens novos por aqui." in txt, "empty: it says it takes no new items here")
         await pg.screenshot(path=f"{SP}/shots/rvf-sem-novos.png")

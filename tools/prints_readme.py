@@ -60,7 +60,7 @@ VIAGEM = "todo.viagem_de_julho"
 PETS = "todo.pets"
 ALEXA_COMPRAS = "todo.notas_e_rotinas_do_alexa_shopping_list"
 ALEXA_TAREFAS = "todo.notas_e_rotinas_do_alexa_to_do_list"
-F_SHOP = 1 | 2 | 4 | 8  # adicionar, excluir, editar e reordenar, sem prazo nem notas (como a Shopping list)
+F_SHOP = 1 | 2 | 4 | 8  # adicionar, apagar, editar e reordenar, sem prazo nem notas (como a Shopping list)
 
 # Casa: [item, {prazo, horário, notas}] na ordem da lista
 CASA_ITEMS = [

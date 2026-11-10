@@ -1,4 +1,16 @@
-# Changelog
+# Mudanças
+
+## 2.53.0
+
+O mesmo jeito em todos os apps da família:
+
+- **Mais › Configurações › Dados** ganha **Começar do zero**, por último: **Apagar tudo** apaga as repetições, os pontos, os cômodos, os equipamentos e quem faz de cada tarefa. Os itens das listas e os ajustes continuam, e uma cópia fica em **Versões anteriores**.
+- **Aparência**: a paleta dos apps, com 12 cores (Vermelho, Coral, Laranja, Ouro, Verde, Menta, Turquesa, Azul, Índigo, Lilás, Rosa e Grafite), para a cor do app e a das listas. Uma cor escolhida antes que saiu (Framboesa) vira a mais próxima (Rosa). A **Cor do dia** é a mesma em todos os apps no mesmo dia.
+- **Excluir** virou **Apagar** em todo lugar (item, repetições).
+- **Avisar o que vence hoje**: o botão é **Testar no meu celular**, embaixo de **Quem recebe**.
+- **Integrações**: o cartão da IA se chama **IA do Home Assistant**.
+- **Conversa**: **Nova** virou **Nova conversa**.
+- As partes recolhidas mostram a contagem entre parênteses: **Inativas (2)**, **Concluídos (3)**.
 
 ## 2.52.0
 

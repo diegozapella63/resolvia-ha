@@ -55,7 +55,7 @@ async def run(app):
                     labels = [t.strip() for t in await root.locator(".seg.themes button").all_inner_texts()]
                     check(labels == ["Automático", "Claro", "Escuro"] and await root.locator(".seg.themes button.on", has_text="Automático").count() == 1, f"{name}: theme buttons, Automático chosen")
                     n = await root.locator(".tag-swatches .tsw").count()
-                    check(n == (12 if app == "cronologia" else 10) and await root.locator(".tsw.on").count() == 1, f"{name}: {n} tag swatches, one chosen")
+                    check(n == 12 and await root.locator(".tsw.on").count() == 1, f"{name}: {n} tag swatches (the palette of the family), one chosen")
                     daily = root.locator('input[aria-label="Cor do dia"]')
                     today = await host(pg).evaluate("(el) => el._accent().label")
                     on_now = (await root.locator(".tsw.on").inner_text()).strip()

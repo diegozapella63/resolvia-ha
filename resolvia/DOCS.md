@@ -12,10 +12,10 @@ Nada é copiado: o ResolvIA mostra e edita as mesmas listas que o HA já tem.
 
 O **Mais** (os três pontos na barra) é um menu, como no InventarIA. Cada linha abre a sua tela, com **‹ Mais** no alto para voltar (o Voltar do celular e arrastar para a direita também voltam):
 
-- **Listas**: nome, cor, ícone, mostrar/ocultar e criar lista; as desligadas ficam por último, recolhidas em **Inativas**.
+- **Listas**: nome, cor, ícone, mostrar/ocultar e criar lista; as desligadas ficam por último, recolhidas em **Inativas (n)**.
 - **Gráficos**: onde estão as pendências das listas que aparecem (as ocultas e os concluídos ficam fora), em barras: **Por lista** (as 6 com mais; "+N listas" mostra as outras), **Por cômodo** e **Por equipamento** (só com **Usar cômodos** e **Usar equipamentos** ligados; uma tarefa com dois equipamentos conta nos dois e nos cômodos deles), **Por prazo** (atrasados, hoje, próximos 7 dias, mais adiante e sem prazo, nas listas com prazo e com **Controlar prazos** ligado) e **Quem faz** (nós mesmos × serviço externo, quando alguma tarefa é de fora e com **Serviços externos** ligado). Tocar numa lista abre a lista; num cômodo, num equipamento ou em Serviço externo, abre o **Buscar** com ele; num prazo, abre as **Sugestões**.
 - **Relatório de pendências**: as tarefas abertas das listas marcadas, numa página para ver e baixar em PDF (**Baixar PDF**: o celular abre o arquivo, de onde dá para imprimir ou compartilhar; o app do Home Assistant não imprime uma página). No alto, um cabeçalho com o app, o que é o relatório, quando foi gerado e quais listas; depois os números (pendentes, atrasadas, para hoje, sem prazo), os gráficos da aba **Gráficos** (por lista, cada uma na sua cor; por prazo; e, quando há, por cômodo, por equipamento e quem faz) e uma parte por lista, com o dono, as atrasadas primeiro (em vermelho) e o que estiver ligado (repetição, pontos, cômodos, equipamentos, serviço externo). No fim, a marca da **CorrerIA Code**, como no **Sobre**. Dá para trocar para uma lista só (as ocultas não entram). A página abre no tema e na cor do app; o PDF sai sempre claro, com o mesmo cabeçalho, os gráficos e, no pé de cada página, a marca e o número da página.
-- **Configurações**, em abas: **Integrações** (recompensas do CronologIA, InventarIA, leitura por IA, Falar, uso da IA e sensores), **Dados** (exportar, backup, importar, versões), **Aparência** (tema e cor; com **Cor do dia**, ligada no começo, a cor muda todo dia sozinha, e escolher uma cor deixa fixa nela) e **Opções** (**Prazos**: controlar prazos; **Exibição**: agrupar por dispositivo, concluídos abertos, notas; **Quem faz**: serviços externos; **Repetição**: ligar ou desligar e as tarefas que voltam sozinhas).
+- **Configurações**, em abas: **Integrações** (recompensas do CronologIA, InventarIA, CorrerIA, **IA do Home Assistant**, Falar, uso da IA e sensores), **Dados** (exportar, backup na pasta share, importar, versões anteriores, onde ficam os dados e começar do zero), **Aparência** (o tema vale só neste aparelho e começa em **Automático**; a cor do app vale para a casa toda, numa paleta de 12 cores, a mesma dos outros apps; com **Cor do dia**, ligada no começo, a cor muda todo dia sozinha, igual em todos os apps, e escolher uma cor deixa fixa nela) e **Opções** (**Prazos**: controlar prazos; **Exibição**: agrupar por dispositivo, concluídos abertos, notas; **Quem faz**: serviços externos; **Repetição**: ligar ou desligar e as tarefas que voltam sozinhas).
 - **Sobre**, por último: quem faz o app (**CorrerIA Code**), os outros apps da família, cada um com uma linha e o link para o GitHub, e **Meu GitHub**.
 
 A barra de baixo tem **Sugestões** (a primeira, onde o app abre), **Buscar**, **Adicionar**, **Listas** e **Mais**. No celular, arrastar para o lado troca de aba, na mesma ordem.
@@ -28,8 +28,8 @@ Com a tela larga (1000 pixels ou mais, como no InventarIA), as abas de baixo vir
 
 ## Listas e itens
 
-- No início, as listas com mais pendências vêm primeiro, agrupadas pelo dispositivo de onde vêm ("Notas e Rotinas do Alexa To-do list" vira **To-do list** no grupo *Notas e Rotinas do Alexa*); as outras ficam em **Listas locais**. As ocultas (**Ocultar do início**) ficam no fim, recolhidas em **Inativas**, com quantas são: um toque abre, e dali dá para abrir a lista.
-- Numa lista, escreva no campo do alto e toque em **+** (colar várias linhas cria um item por linha). Tocar no quadrado conclui, com **Desfazer** no aviso de baixo; a alça à direita arrasta para reordenar; os concluídos ficam recolhidos no fim, com **Limpar**.
+- No início, as listas com mais pendências vêm primeiro, agrupadas pelo dispositivo de onde vêm ("Notas e Rotinas do Alexa To-do list" vira **To-do list** no grupo *Notas e Rotinas do Alexa*); as outras ficam em **Listas locais**. As ocultas (**Ocultar do início**) ficam no fim, recolhidas em **Inativas (n)**: um toque abre, e dali dá para abrir a lista.
+- Numa lista, escreva no campo do alto e toque em **+** (colar várias linhas cria um item por linha). Tocar no quadrado conclui, com **Desfazer** no aviso de baixo; a alça à direita arrasta para reordenar; os concluídos ficam recolhidos no fim, em **Concluídos (n)**, com **Limpar**.
 - Tocar num item abre **Editar item**: texto, **Notas**, **Prazo** (Hoje, Amanhã, Sábado, Próx. semana ou **Outra data**, que abre o mês logo abaixo: **‹** e **›** trocam o mês e um toque no dia escolhe) e, quando a lista aceita, **Horário** (**Dia todo**, **08:00** ou **Outro horário**, de meia em meia hora), **Repetir depois de concluir**, **Cômodo** e **Equipamento** (com o InventarIA), **Quem faz** (com **Serviços externos** ligado), **Pontos para quem concluir** (com as Recompensas) e **Lista**, para mover. Só aparece o que a lista e as opções ligadas permitem.
 - **Notas** pode ser desligado em **Mais › Configurações › Opções › Exibição**: o campo some do **Novo item** e do **Editar item**, a não ser num item que já tem notas (para ver ou apagar). As notas que já existem continuam aparecendo nas listas.
 - Um link vira uma etiqueta curta: `Ver sobre: https://github.com/fulano/projeto` mostra `fulano/projeto`.
@@ -56,7 +56,7 @@ O **microfone** no alto da tela, à direita (no início, nas outras telas e dent
 
 O botão de balão, ao lado do microfone, abre uma conversa com a IA. Pergunte sobre a tela em que está ("o que é mais urgente aqui?"), sobre as listas ("o que está atrasado?") ou sobre qualquer outro assunto; dá para escrever ou tocar no microfone e falar. Ela conhece as listas visíveis e os itens pendentes, com prazo, pontos, cômodo e equipamento.
 
-Pedindo para mexer nas listas ("adiciona pilhas e lâmpada na lista Casa", "conclui passar pano"), ela mostra cada ação num cartão e só faz quando você toca em **Fazer** (ou **Fazer todas**). A conversa continua ao fechar e abrir a janela; **Nova** começa outra. Com **Usar IA** desligado, o botão não aparece. Cada mensagem conta em **Uso da IA** como Conversa.
+Pedindo para mexer nas listas ("adiciona pilhas e lâmpada na lista Casa", "conclui passar pano"), ela mostra cada ação num cartão e só faz quando você toca em **Fazer** (ou **Fazer todas**). A conversa continua ao fechar e abrir a janela (o Voltar do celular fecha); **Nova conversa** começa outra. Com **Usar IA** desligado, o botão não aparece. Cada mensagem conta em **Uso da IA** como Conversa.
 
 ## Importar de mensagem ou foto
 
@@ -68,9 +68,9 @@ No botão **Adicionar** (ou no ícone ao lado do campo de adicionar de uma lista
 
 Você revisa os itens (dá para corrigir, desmarcar ou incluir linhas). Embaixo de cada um fica a lista para onde ele vai, sugerida pela IA (comprar leite → a lista de compras, consertar a pia → Casa), e, com o InventarIA, o cômodo e o equipamento; toque para trocar. **Todos em** manda todos para uma lista só.
 
-### Leitura por IA
+### IA do Home Assistant
 
-**Usar IA** (em **Mais › Configurações › Integrações › Leitura por IA**) liga ou desliga tudo o que usa IA. Desligada, somem o **Colar mensagem**, o **Escolher fotos** e o **Digitalizar com IA** (no Adicionar e no botão ao lado do campo de cada lista), o **Falar**, a **Conversa**, o **Sugerir com IA** e o **Uso da IA**, e o app não chama a IA. Colar várias linhas no campo de adicionar continua criando um item por linha. Começa ligada.
+**Usar IA** (em **Mais › Configurações › Integrações › IA do Home Assistant**) liga ou desliga tudo o que usa IA. Desligada, somem o **Colar mensagem**, o **Escolher fotos** e o **Digitalizar com IA** (no Adicionar e no botão ao lado do campo de cada lista), o **Falar**, a **Conversa**, o **Sugerir com IA** e o **Uso da IA**, e o app não chama a IA. Colar várias linhas no campo de adicionar continua criando um item por linha. Começa ligada.
 
 **Uso da IA** (logo abaixo, em Mais › Configurações › Integrações): cada mensagem, foto, sugestão ou conversa é uma chamada para a IA do Home Assistant. Como o Home Assistant não informa tokens nem custo, o ResolvIA conta as chamadas e estima os tokens pelo tamanho do texto (uns 4 caracteres por token). Mostra hoje, os últimos 7 dias e o mês, um gráfico por dia (toque numa barra para ver o dia), os tipos de chamada e as últimas chamadas, com o link para o consumo exato no painel do provedor (Google, OpenAI ou Anthropic). Os números ficam em `/data/uso_ia.json` (120 dias).
 
@@ -89,7 +89,7 @@ Para configurar:
 
 1. Em **Configurações > Dispositivos e serviços > Adicionar integração**, escolha a integração e siga os passos.
 2. Na página da integração, adicione uma **tarefa de IA** (AI Task). Para ler fotos, escolha um modelo que entenda imagens.
-3. No ResolvIA, abra **Mais › Configurações › Integrações › Leitura por IA** e escolha essa IA. "Padrão do Home Assistant" usa a IA preferida definida em **Configurações > Sistema > Geral**. Toque em **Verificar de novo** para conferir se ela está pronta.
+3. No ResolvIA, abra **Mais › Configurações › Integrações › IA do Home Assistant** e escolha essa IA. "Padrão do Home Assistant" usa a IA preferida definida em **Configurações > Sistema > Geral**. Toque em **Verificar de novo** para conferir se ela está pronta.
 
 Na hora da leitura, o app copia a foto por alguns segundos para `media/resolvia/ia-temp`, chama a IA pelo Home Assistant e apaga a cópia em seguida.
 
@@ -99,7 +99,7 @@ Sem IA configurada, a mensagem colada é separada por linhas, vírgulas e "e"; s
 
 Ligue em **Mais › Configurações › Opções › Repetição › Repetir depois de concluir** (numa instalação nova começa desligado; quem já tinha repetições continua com ela ligada). Depois, abra um item e escolha **Repetir depois de concluir** (todo dia, 2 ou 3 dias, 1 ou 2 semanas, 1 mês ou outro número de dias).
 
-Para desligar com repetições já criadas, o app avisa quantas são e que **serão excluídas**; confirmando, ele apaga todas e desliga (os itens continuam nas listas, só não voltam mais sozinhos). Repetições que ficaram "pausadas" de versões anteriores aparecem em Mais › Configurações › Opções › Repetição com o botão **Excluir**. Para o que se repete com dia certo, ou N dias depois de feito com pontos, dá para usar a **Rotina da casa** do CronologIA (1.11.0 ou mais novo, frequência **Depois de feita**).
+Para desligar com repetições já criadas, o app avisa quantas são e que **serão apagadas**; confirmando, ele apaga todas e desliga (os itens continuam nas listas, só não voltam mais sozinhos). Repetições que ficaram "pausadas" de versões anteriores aparecem em Mais › Configurações › Opções › Repetição com o botão **Apagar**. Para o que se repete com dia certo, ou N dias depois de feito com pontos, dá para usar a **Rotina da casa** do CronologIA (1.11.0 ou mais novo, frequência **Depois de feita**).
 
 Exemplo: "Passar pano" com **3 dias**. Você marca como feito no domingo e ele volta como pendente na quarta, logo no começo do dia. Se a lista aceita datas, ele volta com prazo **Hoje**.
 
@@ -112,7 +112,7 @@ Exemplo: "Passar pano" com **3 dias**. Você marca como feito no domingo e ele v
 
 ## O que dá para fazer em cada lista
 
-Depende da integração da lista. A Lista de tarefas local aceita tudo (prazo, horário, notas, reordenar). A Shopping list aceita reordenar mas não prazos. As listas da Alexa aceitam adicionar, editar e excluir. O ResolvIA mostra só o que cada lista suporta.
+Depende da integração da lista. A Lista de tarefas local aceita tudo (prazo, horário, notas, reordenar). A Shopping list aceita reordenar mas não prazos. As listas da Alexa aceitam adicionar, editar e apagar. O ResolvIA mostra só o que cada lista suporta.
 
 ## Recompensas (pontos)
 
@@ -155,7 +155,7 @@ No CronologIA 1.10.0 ou mais novo, **Mais › Integrações › Tarefas do Resol
 
 - **Concluir** aqui vale como Feito no CronologIA: os pontos vão para quem concluiu (ou para quem você escolher em **Quem fez?**), com o **Foi…** do aviso para trocar. Logo depois a tarefa volta pendente com a data seguinte.
 - **Desmarcar** (ou **Desfazer**) desfaz no CronologIA também.
-- Tocar na tarefa mostra o nome, a data, os pontos (quando valem: **Recompensas** e placar ligados) e as notas, só para ver: o nome, a data, as notas e os pontos se mudam no CronologIA, que reescreve a tarefa. **Excluir** tira da lista até a próxima data.
+- Tocar na tarefa mostra o nome, a data, os pontos (quando valem: **Recompensas** e placar ligados) e as notas, só para ver: o nome, a data, as notas e os pontos se mudam no CronologIA, que reescreve a tarefa. **Apagar** tira da lista até a próxima data.
 - Nas notas vai uma marcação técnica, `[cr:…]`, que liga a tarefa à do CronologIA. O app a esconde.
 
 ## CorrerIA (WhatsApp, Claude e Gemini)
@@ -184,7 +184,7 @@ Prazo é só o que você define. Algumas integrações preenchem sozinhas a data
 
 Nas listas em que você define prazo, dá para desligar os prazos em **⋯ › Personalizar › Prazos**.
 
-**Avisar o que vence hoje** (em **Mais › Configurações › Opções › Prazos**, desligado por padrão): uma vez por dia, no horário escolhido (de meia em meia hora; 08:00 de início), cada pessoa da casa recebe no celular o que vence hoje nas listas dela (**⋯ › Personalizar › De quem é**) e nas de todos: um por linha, com o horário quando tem, e quantos estão atrasados. Tocar no aviso abre o app nas **Sugestões**. O aviso vai para a pessoa, nos celulares ligados a ela no Home Assistant (o app do Home Assistant no celular, em **Configurações › Pessoas**): **Quem recebe** mostra as pessoas, e quem não tem celular ligado aparece como "sem celular". **Testar** manda o aviso de hoje para o seu celular. Se nada vence no dia para alguém, não chega aviso para essa pessoa. Valem as listas que aparecem e que têm prazo; com **Controlar prazos** desligado, não há aviso.
+**Avisar o que vence hoje** (em **Mais › Configurações › Opções › Prazos**, desligado por padrão): uma vez por dia, no horário escolhido (de meia em meia hora; 08:00 de início), cada pessoa da casa recebe no celular o que vence hoje nas listas dela (**⋯ › Personalizar › De quem é**) e nas de todos: um por linha, com o horário quando tem, e quantos estão atrasados. Tocar no aviso abre o app nas **Sugestões**. O aviso vai para a pessoa, nos celulares ligados a ela no Home Assistant (o app do Home Assistant no celular, em **Configurações › Pessoas**): **Quem recebe** mostra as pessoas, e quem não tem celular ligado aparece como "sem celular". **Testar no meu celular** (embaixo de Quem recebe) manda o aviso de hoje para o seu celular. Se nada vence no dia para alguém, não chega aviso para essa pessoa. Valem as listas que aparecem e que têm prazo; com **Controlar prazos** desligado, não há aviso.
 
 As tarefas com prazo também aparecem no CronologIA, na **Agora** e no calendário, quando a integração com o ResolvIA está ligada lá (as listas com prazos desligados ficam de fora). O aviso de prazos vem só daqui.
 
@@ -221,7 +221,9 @@ Em **Mais › Configurações › Dados**:
   - Os itens **pendentes** que não estiverem nas listas voltam, com prazo e notas, sem duplicar o que já existe (compara pelo nome). Os concluídos ficam só no arquivo.
   - Num Home Assistant novo, as listas são encontradas pelo nome. Lista que não existir aparece no aviso ("Lista não encontrada"); crie a lista e importe de novo.
   - Lista que não aceita itens novos (ou só aceita prazo sem horário) recebe o que for possível.
-- **Versões anteriores**: uma cópia dos ajustes e das repetições a cada 10 minutos de uso e antes de importar ou restaurar. Ficam as 3 mais recentes. **Restaurar** volta os ajustes e as repetições; os itens das listas não mudam.
+- **Versões anteriores**: uma cópia dos ajustes e das repetições a cada 10 minutos de uso e antes de importar, restaurar ou apagar. Ficam as 3 mais recentes. **Restaurar** volta os ajustes e as repetições; os itens das listas não mudam.
+- **Onde ficam os dados**: veja acima.
+- **Começar do zero**: **Apagar tudo** apaga o que o app guarda das tarefas: as repetições, os pontos, os cômodos, os equipamentos e quem faz. Os itens das listas (no Home Assistant) e os ajustes (nomes, cores, ícones, opções) continuam. Antes, o app guarda uma cópia em **Versões anteriores**.
 
 ## Segurança
 

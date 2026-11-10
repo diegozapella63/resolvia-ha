@@ -112,9 +112,9 @@ async def main():
 
         # ---- deleting an item, with Desfazer
         await a.locator(".items .item", has_text="Trocar filtro").locator(".it-body").click(); await pg.wait_for_timeout(400)
-        await sheet.get_by_label("Excluir").click(); await pg.wait_for_timeout(700)
+        await sheet.get_by_label("Apagar").click(); await pg.wait_for_timeout(700)
         check(await a.locator(".items .item", has_text="Trocar filtro").count() == 0, "deleted")
-        check("Item excluído" in await a.locator(".toast").inner_text(), "Item excluído, with Desfazer")
+        check("Item apagado" in await a.locator(".toast").inner_text(), "Item apagado, with Desfazer")
         await a.locator(".toast button", has_text="Desfazer").click(); await pg.wait_for_timeout(1200)
         back = a.locator(".items .item", has_text="Trocar filtro")
         check(await back.count() == 1, "Desfazer adds it again")

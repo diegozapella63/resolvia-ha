@@ -9,6 +9,7 @@ import { usagePanel, kTokens, usageStyles } from "../frontend/src/usage-panel.js
 import { themePicker, colorPicker, lookStyles, colorOfDay } from "../frontend/src/look.js";
 import { swipeStart, swipeEnd, slideIn } from "../frontend/src/swipe.js";
 import { DataMixin } from "../frontend/src/datapanel.js";
+import { PALETTE } from "../frontend/src/util.js";
 import { local } from "./_helpers.mjs";
 
 const NOW = local(2026, 11, 2, 15, 30); // a Monday
@@ -142,6 +143,15 @@ describe("look: Aparência", () => {
       assert.equal(day(2026, 11, 4), "rosa");
       assert.equal(colorOfDay(palette).id.length > 0, true, "today by default");
     });
+    it("2.53.0: with the palette of the family, the same color as every app on the same day (the 11 without Grafite)", () => {
+      const eleven = ["vermelho", "coral", "laranja", "ouro", "verde", "menta", "turquesa", "azul", "indigo", "lilas", "rosa"];
+      const of = (y, m, d) => colorOfDay(PALETTE, new Date(y, m - 1, d, 21, 30)).id;
+      for (const [y, m, d] of [[1970, 1, 1], [2026, 11, 9], [2026, 11, 10], [2027, 2, 28], [2030, 6, 15]]) {
+        assert.equal(of(y, m, d), eleven[Math.floor(Date.UTC(y, m - 1, d) / 86400000) % 11], `${d}/${m}/${y}`);
+      }
+      assert.equal(of(1970, 1, 1), "vermelho");
+      assert.equal(of(2026, 11, 9), "lilas", "9/11/2026 is day 20766; 20766 % 11 = 9");
+    });
   });
 });
 
@@ -240,6 +250,7 @@ describe("data panel: Mais › Configurações › Dados", () => {
     restoreBackup: async () => ({ added: 0, rules: 3 }),
     versions: async () => [{ name: "v1", when: local(2026, 11, 2, 8, 0).getTime(), lists: 2, rules: 1, reason: "antes-de-importar" }, { name: "v2", when: local(2026, 11, 1, 8, 0).getTime(), lists: 1, rules: 0, reason: "x" }],
     restoreVersion: async () => ({}),
+    erase: async () => ({ rules: 2, points: 1, rooms: 0, equips: 0, ext: 0 }),
     ...over,
   });
   const P = (a = api()) => new Base(a);
@@ -357,6 +368,33 @@ describe("data panel: Mais › Configurações › Dados", () => {
     r._confirmRestoreVersion({ name: "v", when: 0 });
     await r._form.run();
     assert.equal(r.toasts.at(-1), "não deu");
+  });
+  it("2.53.0: the sections in the order of every app, Começar do zero last", () => {
+    const t = text(P()._renderDataPanel());
+    const at = ["Exportar", "Backup na pasta share", "Importar", "Versões anteriores", "Onde ficam os dados", "Começar do zero"].map((h) => t.indexOf(h));
+    assert.ok(at.every((x, i) => x >= 0 && (i === 0 || x > at[i - 1])), `in order (${at})`);
+    assert.match(t, /Começar do zero Apaga as repetições, os pontos, os cômodos, os equipamentos e quem faz\. Os itens das listas e os ajustes continuam\. Apagar tudo$/);
+  });
+  it("Começar do zero asks first, then erases and reloads; an error says it", async () => {
+    let erased = 0;
+    const p = P(api({ erase: async () => (erased++, {}) }));
+    click(p._renderDataPanel(), /Apagar tudo/);
+    assert.equal(p._sheet, "confirm");
+    assert.equal(p._form.title, "Começar do zero?");
+    assert.match(p._form.text, /Os itens das listas e os ajustes continuam\. Antes, o app guarda uma cópia em Versões anteriores\./);
+    assert.equal(p._form.label, "Apagar tudo");
+    assert.equal(erased, 0, "nothing before confirming");
+    await p._form.run();
+    assert.deepEqual([erased, p.loaded, p.toasts.at(-1)], [1, 1, "Pronto: começando do zero. A cópia está em Versões anteriores."]);
+    const q = P(api({ erase: async () => Promise.reject(new Error("sem disco")) }));
+    q._confirmErase();
+    await q._form.run();
+    assert.equal(q.toasts.at(-1), "Não consegui apagar. sem disco");
+  });
+  it("a version kept before erasing says so", async () => {
+    const p = P(api({ versions: async () => [{ name: "v", when: local(2026, 11, 2, 8, 0).getTime(), lists: 1, rules: 0, reason: "antes-de-apagar" }] }));
+    await p._openVersions();
+    assert.match(text(p._renderVersions()), /antes de apagar/);
   });
   it("the list of versions arriving after the sheet closed is dropped", async () => {
     let done;

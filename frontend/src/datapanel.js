@@ -9,7 +9,7 @@ const icon = (name, cls = "") =>
   html`<svg class="i ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${unsafeSVG(ICONS[name] || ICONS["list-checks"])}</svg>`;
 
 const size = (n) => (n > 1048576 ? `${(n / 1048576).toFixed(1).replace(".", ",")} MB` : `${Math.max(1, Math.round(n / 1024))} KB`);
-const WHY = { "antes-de-importar": "antes de importar", "antes-de-restaurar": "antes de restaurar" };
+const WHY = { "antes-de-importar": "antes de importar", "antes-de-restaurar": "antes de restaurar", "antes-de-apagar": "antes de apagar" };
 
 export const DataMixin = (Base) =>
   class extends Base {
@@ -119,6 +119,26 @@ export const DataMixin = (Base) =>
       });
     }
 
+    /** Começar do zero: asks first; then what the app keeps of the tasks goes (the lists and the settings stay). */
+    _confirmErase() {
+      this._openSheet("confirm", {
+        title: "Começar do zero?",
+        text: "Apaga as repetições, os pontos, os cômodos, os equipamentos e quem faz de cada tarefa. Os itens das listas e os ajustes continuam. Antes, o app guarda uma cópia em Versões anteriores.",
+        label: "Apagar tudo",
+        run: async () => {
+          this._closeSheet();
+          try {
+            await this._data().erase();
+            await this._loadPrefs();
+            this._haptic("warning");
+            this._showToast("Pronto: começando do zero. A cópia está em Versões anteriores.");
+          } catch (err) {
+            this._showToast(`Não consegui apagar. ${err.message}`);
+          }
+        },
+      });
+    }
+
     async _openVersions() {
       this._openSheet("versions", { list: null, error: null });
       try {
@@ -212,11 +232,15 @@ export const DataMixin = (Base) =>
           <div class="btn-row sec-actions"><button class="btn outline sm" @click=${() => this._pickDataImport()}>${icon("upload")}Escolher arquivo</button></div>
         </div>
         <div class="panel">
-          ${this._secHead("archive-restore", "Versões anteriores", "Uma cópia dos ajustes e das repetições a cada 10 minutos de uso e antes de importar ou restaurar. Ficam as 3 mais recentes.")}
+          ${this._secHead("archive-restore", "Versões anteriores", "Uma cópia dos ajustes e das repetições a cada 10 minutos de uso e antes de importar, restaurar ou apagar. Ficam as 3 mais recentes.")}
           <div class="btn-row sec-actions"><button class="btn outline sm" @click=${() => this._openVersions()}>${icon("archive-restore")}Ver versões</button></div>
         </div>
         <div class="panel">
           ${this._secHead("database", "Onde ficam os dados", html`Os itens ficam nas listas do Home Assistant; os ajustes, em <code>/data/resolvia.json</code>.`)}
+        </div>
+        <div class="panel" id="zerar">
+          ${this._secHead("trash", "Começar do zero", "Apaga as repetições, os pontos, os cômodos, os equipamentos e quem faz. Os itens das listas e os ajustes continuam.")}
+          <div class="btn-row sec-actions"><button class="btn danger sm" @click=${() => this._confirmErase()}>${icon("trash")}Apagar tudo</button></div>
         </div>
         <input id="rv-data-import" class="sr" type="file" accept=".zip,.json,application/zip,application/json" tabindex="-1" aria-hidden="true" @change=${(e) => this._onDataImport(e)} />
       </div>`;

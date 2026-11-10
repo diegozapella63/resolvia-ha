@@ -123,7 +123,7 @@ async def main():
         check(await depth() == 2, "the tabs replace each other in the history")
         await a.get_by_role("tab", name="Dados", exact=True).click(); await pg.wait_for_timeout(600)
         vers = await a.locator(".panel", has_text="Versões anteriores").locator(".panel-lead").inner_text()
-        check(vers == "Uma cópia dos ajustes e das repetições a cada 10 minutos de uso e antes de importar ou restaurar. Ficam as 3 mais recentes.", f"Versões anteriores: like the InventarIA ({vers})")
+        check(vers == "Uma cópia dos ajustes e das repetições a cada 10 minutos de uso e antes de importar, restaurar ou apagar. Ficam as 3 mais recentes.", f"Versões anteriores: like the InventarIA ({vers})")
         await pg.go_back(); await pg.wait_for_timeout(450)
         check(await view() == "more", "Back from a tab of Configurações: the menu, not the tab before")
 

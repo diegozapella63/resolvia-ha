@@ -64,7 +64,7 @@ async def main():
         await A.get_by_role("tab", name="Integrações", exact=True).click(); await A.wait_for_timeout(600)
         rp = await A.locator("#recompensas").inner_text()
         check("Usar recompensas" in rp and "Conectado" not in rp and "Desligado" in rp, "Recompensas starts off: only the switch (ResolvIA 2.13.0)")
-        check(await A.locator("#leitura-ia").count() == 1, "Leitura por IA in the same tab")
+        check(await A.locator("#leitura-ia").count() == 1, "IA do Home Assistant in the same tab")
         sw = A.locator("#recompensas .switch input")
         check(not await sw.is_checked(), "points start off")
         await sw.check(); await A.wait_for_timeout(700)

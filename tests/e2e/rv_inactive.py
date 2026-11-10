@@ -45,7 +45,7 @@ async def main():
         check("Casa" not in [n for n, _ in st], "Casa is not among them")
         check(await head.count() == 1 and "Inativas" in await head.inner_text(), "Inativas at the end")
         n_off = len(off0) + 1
-        check(await head.locator(".count").inner_text() == str(n_off), f"with how many ({await head.locator('.count').inner_text()})")
+        check(await head.locator(".count").inner_text() == f"({n_off})" and (await head.locator(".label").inner_text()).strip() == f"Inativas ({n_off})", f"with how many, Inativas (n) ({await head.locator('.label').inner_text()})")
         last = await panel.evaluate("(p) => { const kids = [...p.children]; return kids[kids.length - 1].className; }")
         check("inact-head" in last, f"folded: Inativas is the last thing ({last})")
         await pg.screenshot(path=f"{SP}/shots/rvi-closed.png")
@@ -91,7 +91,7 @@ async def main():
         cards = await a.locator(".groups .list-card .lc-title").all_inner_texts()
         check(cards and "Casa" not in cards, f"Listas: Casa not among the active ones ({cards})")
         head = a.locator(".inact-grp .inact-head")
-        check(await head.count() == 1 and (await head.locator(".label").inner_text()).split() == ["Inativas", str(len(off0) + 1)], f"Listas: Inativas with how many ({await head.inner_text() if await head.count() else ''})")
+        check(await head.count() == 1 and (await head.locator(".label").inner_text()).strip() == f"Inativas ({len(off0) + 1})", f"Listas: Inativas with how many ({await head.inner_text() if await head.count() else ''})")
         order = await a.evaluate("(el) => [...el.renderRoot.querySelector('section.page').children].map((k) => k.className.split(' ')[0] + (k.classList.contains('inact-grp') ? '+inact' : ''))")
         check(order.index("panel+inact") == order.index("groups") + 1 and order.index("panel+inact") >= len(order) - 2, f"Listas: at the end, after the lists ({order})")
         check(await head.get_attribute("aria-expanded") == "false" and await a.locator(".inact-grp .list-card").count() == 0, "Listas: folded at first")
