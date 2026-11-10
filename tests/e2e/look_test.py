@@ -53,7 +53,7 @@ async def run(app):
                 if scheme == "dark":
                     check(heads == ["Tema", "Cor do app"], f"{name}: Aparência headings ({heads})")
                     labels = [t.strip() for t in await root.locator(".seg.themes button").all_inner_texts()]
-                    check(labels == ["Automático", "Claro", "Escuro"] and await root.locator(".seg.themes button.on", has_text="Automático").count() == 1, f"{name}: theme buttons, Automático chosen")
+                    check(labels == ["Sistema", "Claro", "Escuro"] and await root.locator(".seg.themes button.on", has_text="Sistema").count() == 1, f"{name}: theme buttons, Sistema chosen")
                     n = await root.locator(".tag-swatches .tsw").count()
                     check(n == 12 and await root.locator(".tsw.on").count() == 1, f"{name}: {n} tag swatches (the palette of the family), one chosen")
                     daily = root.locator('input[aria-label="Cor do dia"]')
@@ -72,7 +72,7 @@ async def run(app):
                     await root.locator(".seg.themes button", has_text="Claro").click(); await pg.wait_for_timeout(300)
                     dark_attr = await (pg.locator("cronologia-app") if app == "cronologia" else pg.locator("resolvia-panel")).evaluate("(el) => el.hasAttribute('dark')")
                     check(not dark_attr and await root.locator(".seg.themes button.on", has_text="Claro").count() == 1, f"{name}: Claro turns the light theme on")
-                    await root.locator(".seg.themes button", has_text="Automático").click(); await pg.wait_for_timeout(300)
+                    await root.locator(".seg.themes button", has_text="Sistema").click(); await pg.wait_for_timeout(300)
                 await root.locator(".more-tabs").scroll_into_view_if_needed()
                 await pg.screenshot(path=f"{SP}/shots/look-{app}-{scheme}.png")
                 if app == "cronologia" and scheme == "dark":

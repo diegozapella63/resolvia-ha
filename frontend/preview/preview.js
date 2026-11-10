@@ -11,7 +11,7 @@ el.hass = createMockHass((next) => {
 });
 document.getElementById("app").appendChild(el);
 
-// Let the preview follow the device's light/dark setting in "Automático".
+// Let the preview follow the device's light/dark setting in "Sistema".
 const mq = window.matchMedia("(prefers-color-scheme: dark)");
 const sync = () => {
   el.hass = { ...el.hass, themes: { ...el.hass.themes, darkMode: mq.matches } };

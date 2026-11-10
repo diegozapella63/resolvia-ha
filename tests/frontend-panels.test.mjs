@@ -97,7 +97,7 @@ describe("look: Aparência", () => {
   it("three themes, the chosen one marked; a tap says which", () => {
     let got = null;
     const v = themePicker({ theme: "dark", onTheme: (k) => (got = k), icon });
-    assert.deepEqual(labels(v), ["Automático", "Claro", "Escuro"]);
+    assert.deepEqual(labels(v), ["Sistema", "Claro", "Escuro"]);
     const c = controls(v);
     assert.deepEqual(c.map((x) => /aria-checked="true"/.test(x.attrs)), [false, false, true]);
     assert.match(c[2].attrs, /class="on"/);

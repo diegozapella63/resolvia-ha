@@ -205,7 +205,7 @@ O Home Assistant não guarda quando um item foi criado, então o ResolvIA anota 
 - As tarefas continuam nas próprias listas do Home Assistant.
 - Nome, cor e ícone de cada lista, listas ocultas, os ajustes do app, as regras de repetição e, de cada tarefa, os pontos, os cômodos, os equipamentos e quem faz ficam em `/data/resolvia.json` dentro do app (entram no backup do Home Assistant).
 - Desde quando cada item pendente está na lista (para as Sugestões) fica em `/data/idades.json`, o Uso da IA em `/data/uso_ia.json` e, com o CorrerIA, a chave da conexão em `/data/correria.key` (fora do exportar e dos backups da pasta share) e o último uso em `/data/correria_uso.json`.
-- O tema (automático, claro ou escuro) é escolhido por aparelho; a conversa com a IA fica no aparelho, enquanto o app está aberto.
+- O tema (Sistema, Claro ou Escuro) é escolhido por aparelho; a conversa com a IA fica no aparelho, enquanto o app está aberto.
 
 ## Dados: exportar, backup e importar
 

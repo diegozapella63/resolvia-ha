@@ -1,5 +1,9 @@
 # Mudanças
 
+## 2.56.1
+
+- **Tema**: **Automático** agora se chama **Sistema** (segue o claro ou escuro do Home Assistant, como antes). O nome cabe ao lado do ícone e é o mesmo em todos os apps da família.
+
 ## 2.56.0
 
 - **Uma altura só**: botões, campos, caixas de seleção, botões de escolha (as abas de Configurações, o Tema, os filtros) e as escolhas do Prazo têm a mesma altura, a mesma de todos os apps da família. O **Restaurar** das versões e o **Adicionar item…** da lista também. O Tema ficou com o ícone ao lado do nome.
