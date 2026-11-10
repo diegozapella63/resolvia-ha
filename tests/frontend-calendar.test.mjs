@@ -7,7 +7,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { html } from "../frontend/vendor/lit-all.min.js";
 import { text, click, labels, controls } from "./_lit.mjs";
-import { monthOf, shiftMonth, monthTitle, longDate, monthCells, renderCalendar, WEEK_INITIALS, calendarStyles } from "../frontend/src/calendar.js";
+import { monthOf, shiftMonth, monthTitle, longDate, monthCells, renderCalendar, WEEK_INITIALS, calendarStyles, quickPicks, MONTH_SHORT } from "../frontend/src/calendar.js";
 import { timeSlots } from "../frontend/src/util.js";
 import { FRONT, local } from "./_helpers.mjs";
 
@@ -82,6 +82,49 @@ describe("renderCalendar", () => {
     const { v } = view({ month: "2027-01" });
     assert.match(text(v), /^Janeiro de 2027 /);
     assert.equal(controls(v).filter((c) => /aria-pressed="true"|aria-current="date"/.test(c.attrs)).length, 0);
+  });
+  it("a tap on the name of the month shows the months of the year, and a month goes back to its days", () => {
+    const got = { months: null, month: null };
+    const days = renderCalendar({ icon, month: "2026-11", value: "2026-11-20", today: "2026-11-09", onPick: () => {}, onMonth: (m) => (got.month = m), onMonths: (on) => (got.months = on) });
+    assert.deepEqual(labels(days).slice(0, 3), ["Mês anterior", "Novembro de 2026", "Próximo mês"]);
+    click(days, "Novembro de 2026: escolher o mês");
+    assert.equal(got.months, true);
+    const months = renderCalendar({ icon, month: "2026-11", value: "2026-11-20", today: "2026-11-09", onPick: () => {}, onMonth: (m) => (got.month = m), months: true, onMonths: (on) => (got.months = on) });
+    assert.match(text(months), /^2026 jan fev mar abr mai jun jul ago set out nov dez$/);
+    assert.deepEqual(MONTH_SHORT.length, 12);
+    const on = controls(months).filter((c) => /aria-pressed="true"/.test(c.attrs));
+    assert.deepEqual(on.map((c) => c.text), ["nov"], "the month of the date");
+    click(months, "Próximo ano");
+    assert.equal(got.month, "2027-11");
+    click(months, "Ano anterior");
+    assert.equal(got.month, "2025-11");
+    got.months = null;
+    controls(months).find((c) => c.text === "mai").on.click({});
+    assert.deepEqual([got.month, got.months], ["2026-05", false]);
+  });
+  it("min and max: the days out of them can not be picked, nor the months beyond them", () => {
+    const v = renderCalendar({ icon, month: "2026-11", value: null, today: "2026-11-09", onPick: () => {}, onMonth: () => {}, max: "2026-11-09" });
+    const days = controls(v).filter((c) => /cal-day/.test(c.attrs));
+    assert.equal(days.filter((c) => / disabled/.test(c.attrs)).length, 21, "10 to 30 November");
+    assert.match(controls(v).find((c) => c.aria === "Próximo mês").attrs, / disabled/);
+    assert.doesNotMatch(controls(v).find((c) => c.aria === "Mês anterior").attrs, / disabled/);
+    const w = renderCalendar({ icon, month: "2026-11", value: null, today: "2026-11-09", onPick: () => {}, onMonth: () => {}, min: "2026-11-05", months: true, onMonths: () => {} });
+    assert.equal(controls(w).filter((c) => /cal-month/.test(c.attrs) && / disabled/.test(c.attrs)).length, 10, "January to October 2026");
+    assert.match(controls(w).find((c) => c.aria === "Ano anterior").attrs, / disabled/);
+  });
+  it("the week from Monday (weekStart 1), when the app is set so", () => {
+    assert.match(text(renderCalendar({ icon, month: "2026-11", value: null, today: "", onPick: () => {}, onMonth: () => {}, weekStart: 1 })), /^Novembro de 2026 S T Q Q S S D +1 2 3 /);
+    assert.equal(monthCells("2026-11", 1).indexOf("2026-11-01"), 6, "1 Nov 2026, a Sunday, at the end of the first week");
+  });
+  it("quickPicks: the shortcuts of each kind of date", () => {
+    const mon = local(2026, 11, 2);
+    assert.deepEqual(quickPicks("futuro", mon).map((p) => `${p.label} ${p.date}`), ["Hoje 2026-11-02", "Amanhã 2026-11-03", "Sábado 2026-11-07", "Próx. semana 2026-11-09"]);
+    assert.deepEqual(quickPicks("futuro", local(2026, 11, 6)).map((p) => p.label), ["Hoje", "Amanhã", "Próx. semana"], "on Friday, Saturday is tomorrow");
+    assert.deepEqual(quickPicks("futuro", local(2026, 11, 8)).map((p) => p.label), ["Hoje", "Amanhã", "Sábado"], "on Sunday, the next week is tomorrow");
+    assert.deepEqual(quickPicks("passado", mon).map((p) => `${p.label} ${p.date}`), ["Hoje 2026-11-02", "Ontem 2026-11-01"]);
+    assert.deepEqual(quickPicks("livre", mon).map((p) => p.label), ["Hoje", "Ontem", "Amanhã"]);
+    assert.deepEqual(quickPicks(undefined, mon).map((p) => p.label), ["Hoje", "Amanhã", "Sábado", "Próx. semana"]);
+    assert.ok(quickPicks().length >= 3, "today, by default");
   });
   it("styles in the colors of the app", () => {
     assert.match(calendarStyles, /\.cal-day\.on \{[^}]*var\(--rv-accent\)/);

@@ -3604,4 +3604,48 @@ export const styles = css`
   .detail-head .mic-top {
     margin: 0;
   }
+  /* ---------- one height, the same in every app of the family (50 px): buttons, fields, boxes of choice and the
+     choices in buttons (the tabs of Configurações, Tema, the Prazo and the filters). Out of it: the buttons with only
+     an icon, the tiles of the AI, the rows of the lists, the switches and the colors. */
+  .btn,
+  .btn.sm {
+    min-height: 50px;
+  }
+  .select,
+  .field input[type="text"],
+  .field input.num,
+  .search-box {
+    min-height: 50px;
+  }
+  .seg {
+    min-height: 50px;
+    align-items: stretch;
+  }
+  .seg button {
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+  .pick,
+  .chip-row.grid .pick,
+  .filters .pick {
+    min-height: 50px;
+  }
+  .chip-row.grid .pick {
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+  /* Adicionar item…: the box of 50, with the + inside */
+  .quick form {
+    min-height: 50px;
+    padding: 3px 4px 3px 16px;
+  }
+  .quick input {
+    padding: 0;
+    align-self: stretch;
+  }
+  .quick .add-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+  }
 `;

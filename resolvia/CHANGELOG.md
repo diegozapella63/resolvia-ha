@@ -1,5 +1,10 @@
 # Mudanças
 
+## 2.56.0
+
+- **Uma altura só**: botões, campos, caixas de seleção, botões de escolha (as abas de Configurações, o Tema, os filtros) e as escolhas do Prazo têm a mesma altura, a mesma de todos os apps da família. O **Restaurar** das versões e o **Adicionar item…** da lista também. O Tema ficou com o ícone ao lado do nome.
+- **Outra data**: tocar no nome do mês mostra os meses do ano, para ir longe sem passar mês a mês.
+
 ## 2.55.0
 
 - **Mais › Configurações › Dados**: os botões no padrão dos outros apps da família: na largura do cartão no celular, da mesma altura. **Apagar tudo** fica vermelho.

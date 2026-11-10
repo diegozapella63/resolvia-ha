@@ -3390,7 +3390,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
   _toggleCal() {
     const f = this._form;
     if (!f) return;
-    this._setForm({ cal: f.cal ? null : monthOf(f.date) });
+    this._setForm({ cal: f.cal ? null : monthOf(f.date), calMonths: false });
     // the month comes into view, inside the sheet
     if (this._form.cal)
       this.updateComplete.then(() => {
@@ -3400,7 +3400,8 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
   }
 
   _renderCal(value, onPick) {
-    return renderCalendar({ icon, month: this._form.cal, value, today: ymd(new Date()), onPick, onMonth: (m) => this._setForm({ cal: m }) });
+    const f = this._form;
+    return renderCalendar({ icon, month: f.cal, value, today: ymd(new Date()), onPick, onMonth: (m) => this._setForm({ cal: m }), months: !!f.calMonths, onMonths: (on) => this._setForm({ calMonths: on }) });
   }
 
   /**
