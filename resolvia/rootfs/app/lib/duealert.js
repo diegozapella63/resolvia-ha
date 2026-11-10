@@ -33,9 +33,10 @@ export function listFor(prefs, whom) {
 }
 
 
-/** Address of this app in Home Assistant, for the alert's "open": /app/<slug> since HA 2026.2 (the old
- * /hassio/ingress/<slug> now opens the default dashboard). Hostname a1b2c3d4-resolvia -> /app/a1b2c3d4_resolvia. */
-export function ingressUrl(host = os.hostname()) {
+/** Address of this app in Home Assistant, for the alert's "open" and Opções › Atalho no celular: /app/<slug> since HA
+ * 2026.2 (the old /hassio/ingress/<slug> now opens the default dashboard). Hostname a1b2c3d4-resolvia ->
+ * /app/a1b2c3d4_resolvia (RESOLVIA_HOST takes the place of the hostname in the tests); outside Home Assistant, null. */
+export function ingressUrl(host = process.env.RESOLVIA_HOST || os.hostname()) {
   return /^[a-z0-9]+-resolvia$/.test(host) ? `/app/${host.replace("-", "_")}` : null;
 }
 

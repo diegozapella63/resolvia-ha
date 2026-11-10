@@ -78,6 +78,14 @@ describe("alertSettings", () => {
     assert.equal(ingressUrl("a1b2c3d4-resolvia"), "/app/a1b2c3d4_resolvia", "the app panel since HA 2026.2");
     assert.equal(ingressUrl("my-laptop"), null);
   });
+  it("2.57.0: RESOLVIA_HOST takes the place of the hostname (the tests of Atalho no celular)", () => {
+    process.env.RESOLVIA_HOST = "local-resolvia";
+    try {
+      assert.equal(ingressUrl(), "/app/local_resolvia");
+    } finally {
+      delete process.env.RESOLVIA_HOST;
+    }
+  });
 });
 
 describe("store: the preferences of the alert", () => {

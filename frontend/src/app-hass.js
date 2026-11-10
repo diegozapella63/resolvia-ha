@@ -195,6 +195,7 @@ export async function createAppHass(onChange) {
     version: boot.version,
     resolvia: {
       ai: boot.ai || { ready: false, images: false, entities: [] },
+      atalho: boot.atalho || null,
       aiStatus: () => conn.sendMessagePromise({ type: "resolvia/ai/status" }),
       // Falar: the speech-to-text of Home Assistant
       voiceStatus: (fresh = false) => conn.sendMessagePromise({ type: "resolvia/voice/status", ...(fresh ? { fresh: true } : {}) }),

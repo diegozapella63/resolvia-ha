@@ -169,6 +169,28 @@ describe("the integration file (share/resolvia/integracao.json)", () => {
   });
 });
 
+describe("the lists in the integration file (listas, for the Nova tarefa of the InventarIA)", () => {
+  it("the lists that take a new task, with the name and the color of the app and whether they take a deadline", async () => {
+    const p = await waitFor(() => stack.presence().listas.find((l) => l.id === SHOP && l.nome === "Shopping list") && stack.presence(), { what: "listas" });
+    const casa = p.listas.find((l) => l.id === CASA);
+    assert.deepEqual(casa, { id: CASA, nome: "Minha Casa", cor: "#4ED3A6", prazo: true });
+    assert.equal(p.listas.find((l) => l.id === SHOP).prazo, false, "a list without dates takes no deadline");
+    assert.ok(p.listas.every((l) => /^todo\./.test(l.id) && l.nome && /^#[0-9A-F]{6}$/i.test(l.cor)));
+  });
+
+  it("follows Controlar prazos, unmarking a list and its name", async () => {
+    await c.call("resolvia/prefs/set_app", { prefs: { due_off: true } });
+    await waitFor(() => stack.presence().listas.find((l) => l.id === CASA).prazo === false, { what: "no deadline with Controlar prazos off" });
+    await c.call("resolvia/prefs/set_app", { prefs: { due_off: false } });
+    await c.call("resolvia/prefs/set_list", { entity_id: CASA, prefs: { hidden: true } });
+    await waitFor(() => !stack.presence().listas.some((l) => l.id === CASA), { what: "an unmarked list goes away" });
+    await c.call("resolvia/prefs/set_list", { entity_id: CASA, prefs: { hidden: null, name: "Casa toda" } });
+    await waitFor(() => (stack.presence().listas.find((l) => l.id === CASA) || {}).nome === "Casa toda", { what: "the new name" });
+    await c.call("resolvia/prefs/set_list", { entity_id: CASA, prefs: { name: "Minha Casa" } });
+    await waitFor(() => stack.presence().listas.find((l) => l.id === CASA).nome === "Minha Casa", { what: "the name back" });
+  });
+});
+
 describe("repetitions", () => {
   it("a completed task with a rule comes back the next 'day', due today, and the file says how often it repeats", async () => {
     const task = await byName(CASA, "Passar pano na casa");

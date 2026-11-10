@@ -141,6 +141,8 @@ Com o **InventarIA** (1.14.0 ou mais novo) no mesmo Home Assistant, ligue **Mais
 
 Com **Usar equipamentos** ligado (InventarIA 1.15.0 ou mais novo), cada tarefa pode apontar também para itens do InventarIA (equipamentos, móveis), um ou vários (**Outro equipamento**), buscados entre os do cômodo e os dos outros. Com equipamento, o cômodo fica bloqueado: é o dos equipamentos, um ou vários. Na lista, com um equipamento aparecem o cômodo e o equipamento; com vários, uma etiqueta só, **Vários equipamentos** (e, com vários cômodos, **Vários cômodos**); quais são, abrindo a tarefa. A IA sugere o equipamento na leitura e o considera no Sugerir com IA, e o CronologIA mostra e pede o equipamento no Novo › Tarefa.
 
+No **InventarIA** (1.48.0 ou mais novo), a ficha de cada item mostra as tarefas abertas ligadas a ele e cria uma nova (**Nova tarefa**), já ligada ao item: as listas aparecem como aqui (os mesmos nomes e cores, sem as desmarcadas em Mais › Listas) e o prazo só é pedido com **Controlar prazos** ligado e numa lista que aceita data.
+
 No **Buscar**, digitar o cômodo ou o equipamento (o nome ou a zona) traz as tarefas ligadas a eles; em **Incluir**, os botões **Cômodos** e **Equipamentos** ligam e desligam isso (só aparecem com a opção ligada).
 
 Os cômodos e os itens vêm do InventarIA (só leitura, pela rede interna dos apps, com a chave que ele grava em `share/inventario`). O ResolvIA guarda os cômodos e os equipamentos de cada tarefa pelo nome dela, junto com os pontos, e eles entram no exportar e no backup.
@@ -199,6 +201,10 @@ A primeira aba e a tela onde o app abre, para já saber o que fazer: com **Contr
 - **Sugerir com IA** (no fim do Comece por aqui, só com **Usar IA** ligado): a IA do Home Assistant olha os itens pendentes (com cômodos, equipamentos e quem faz) e troca o Comece por aqui pelos que ela escolheu, com o porquê embaixo de cada um. Só roda quando você toca e entra no **Uso da IA**. A escolha fica guardada; **Sugerir de novo** pede outra e **Voltar ao automático** volta para a escolha do app.
 
 O Home Assistant não guarda quando um item foi criado, então o ResolvIA anota a primeira vez que vê cada item pendente (`/data/idades.json`). Os itens que já estavam nas listas contam a partir do dia em que você atualizou para a versão 2.14.0.
+
+## Atalho no celular
+
+Para abrir o ResolvIA direto da tela inicial do celular (Android), sem passar pelo menu do Home Assistant: em **Mais › Configurações › Opções › Atalho no celular**, toque em **Copiar** embaixo do **Caminho** (algo como `/app/a1b2c3d4_resolvia`). No app do Home Assistant, abra **Configurações › Aplicativo complementar › Gerenciar atalhos** e, em **Atalho fixado**, escolha o tipo **Painel**, cole o caminho e dê um nome. O ícone vai para a tela inicial e abre o app direto. Fora do Home Assistant (no computador, em desenvolvimento) o cartão não aparece.
 
 ## Onde ficam os dados
 

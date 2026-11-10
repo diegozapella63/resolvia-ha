@@ -2700,6 +2700,31 @@ export const styles = css`
     }
   }
   /* ---------- IA do Home Assistant ---------- */
+  /* Opções › Atalho no celular: the steps and the path with Copiar beside it */
+  .shortcut .steps {
+    margin: 0 0 14px;
+    padding-left: 22px;
+    color: var(--rv-text-2);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .shortcut .steps b {
+    color: var(--rv-text);
+    font-weight: 600;
+  }
+  .shortcut .field {
+    margin-bottom: 0;
+  }
+  /* the path on the whole width (never cut, also at 320 px), Copiar under it */
+  .copy-row {
+    display: grid;
+    gap: 8px;
+  }
+  .copy-row input[type="text"] {
+    min-width: 0;
+    font-family: ui-monospace, monospace;
+    font-size: 14px;
+  }
   .panel-lead {
     margin: 0 0 14px;
     font-size: 14px;

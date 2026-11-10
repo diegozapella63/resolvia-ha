@@ -21,7 +21,7 @@ import { Placar } from "./lib/placar.js";
 import { Inventario } from "./lib/inventario.js";
 import { Voice, readRaw, MAX_VOICE_BYTES } from "./lib/voice.js";
 import { snapshot, toCSV, backupZip, parseImport, Backups, listVersions, readVersion, fileStamp } from "./lib/data.js";
-import { DueAlert } from "./lib/duealert.js";
+import { DueAlert, ingressUrl } from "./lib/duealert.js";
 import { Correria, ROTA as ROTA_CORRERIA } from "./lib/correria.js";
 import { Ferramentas, INSTRUCOES } from "./lib/ferramentas.js";
 import { VERSION } from "./lib/version.js"; // from resolvia/config.yaml, by the build
@@ -274,6 +274,7 @@ const isTodo = (id) => typeof id === "string" && /^todo\.[a-z0-9_]+$/.test(id);
 function setTodoState(entityId, state) {
   if (state) todoStates.set(entityId, state);
   else todoStates.delete(entityId);
+  if (lastLists && JSON.stringify(publishedLists()) !== lastLists) publishPresence();
   for (const w of listWatchers) w.session.event(w.id, { entity_id: entityId, new_state: state || null });
 }
 
@@ -519,6 +520,8 @@ class Session {
           ai: aiStatus,
           user: this.user,
           time_zone: process.env.TZ || null,
+          // Opções › Atalho no celular: the path of the panel (null outside Home Assistant)
+          atalho: ingressUrl(),
           states: Object.fromEntries(todoStates),
           entities: reg.entities,
           devices: reg.devices,
@@ -601,7 +604,8 @@ class Session {
         return this.result(id, await dueAlert.test(this.user.id));
       case "resolvia/prefs/set_list": {
         const prefs = store.setListPrefs(msg.entity_id, msg.prefs);
-        if ("dates_info" in (msg.prefs || {}) || "owner" in (msg.prefs || {})) publishPresence();
+        // dates_info, owner, name, color, hidden: what goes to the other apps (sem_prazo, donos, listas)
+        publishPresence();
         return this.result(id, prefs);
       }
       case "resolvia/prefs/set_app": {
@@ -1060,7 +1064,25 @@ server.on("upgrade", (req, socket, head) => {
  * CronologIA doesn't show them as overdue tasks either).
  */
 let publishWarned = false;
+const TODO_CREATE = 1; // TodoListEntityFeature.CREATE_TODO_ITEM
+let lastLists = "";
+/** The lists for share/resolvia/integracao.json: [{id, nome, cor, prazo}] (cor: the fill of the color of the list). */
+function publishedLists() {
+  const looks = listLooks({ states: todoStates, entities: registries.entities, devices: registries.devices, prefs: store.prefs.lists || {} });
+  const dueOn = store.prefs.app.due_off !== true;
+  const out = [];
+  for (const [id, look] of looks) {
+    const st = todoStates.get(id);
+    const prefs = store.prefs.lists[id] || {};
+    const features = Number(st && st.attributes && st.attributes.supported_features) || 0;
+    if (!(features & TODO_CREATE) || prefs.hidden || !st || st.state === "unavailable" || st.state === "unknown") continue;
+    out.push({ id, nome: look.name, cor: look.color, prazo: dueOn && !datesInfo(prefs, features) });
+  }
+  return out;
+}
 function publishPresence() {
+  // the names of the lists without the device in front need the registries (read again every 5 minutes)
+  if (Date.now() - registries.at > 5 * 60000) lookOfLists().then(() => JSON.stringify(publishedLists()) !== lastLists && publishPresence()).catch(() => {});
   try {
     const dir = path.join(SHARE_DIR, "resolvia");
     fs.mkdirSync(dir, { recursive: true });
@@ -1078,9 +1100,13 @@ function publishPresence() {
     const equipamentos = equipsOn() && inventario.state.itens.length ? { lista: inventario.state.itens.map((i) => ({ id: i.id, nome: i.nome, comodo: inventario.nameOf(i.comodo) || "" })), tarefas: store.equips } : null;
     // donos: whose each list is (De quem é, 2.42.0+): the CronologIA shows it only to that person
     const donos = store.owners;
+    // listas: the lists that take a new task, as Nova tarefa here shows them (the name and the color of the app, in its
+    // order; not the ones unmarked in Mais › Listas) and whether they take a deadline: the InventarIA creates tasks with it
+    const listas = publishedLists();
+    lastLists = JSON.stringify(listas);
     // the start is the same in every app of the family (app, nome, versao, gravado_em); app is still the name here, for the
     // CronologIA of before 1.66 (it checks it): the id ("resolvia") comes in a next version, the readers already take both
-    fs.writeFileSync(tmp, JSON.stringify({ app: "ResolvIA", nome: "ResolvIA", versao: VERSION, gravado_em: new Date().toISOString(), prazos, sem_prazo: semPrazo, pontos, repete, donos, ...(comodos ? { comodos } : {}), ...(equipamentos ? { equipamentos } : {}) }, null, 1));
+    fs.writeFileSync(tmp, JSON.stringify({ app: "ResolvIA", nome: "ResolvIA", versao: VERSION, gravado_em: new Date().toISOString(), prazos, sem_prazo: semPrazo, pontos, repete, donos, listas, ...(comodos ? { comodos } : {}), ...(equipamentos ? { equipamentos } : {}) }, null, 1));
     fs.renameSync(tmp, path.join(dir, "integracao.json"));
     publishWarned = false;
   } catch (err) {

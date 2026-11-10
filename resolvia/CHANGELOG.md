@@ -1,5 +1,10 @@
 # Mudanças
 
+## 2.57.0
+
+- **Atalho no celular**, em **Mais › Configurações › Opções**: o caminho do ResolvIA no Home Assistant, com **Copiar**, e como criar um ícone na tela inicial do celular que abre o app direto (no app do Home Assistant: Configurações › Aplicativo complementar › Gerenciar atalhos). O mesmo vale em todos os apps da família.
+- **InventarIA**: o **Nova tarefa** da ficha do item mostra as listas como aqui (os mesmos nomes e cores, sem as desmarcadas) e só pede prazo com **Controlar prazos** ligado.
+
 ## 2.56.2
 
 - **Avisos no celular**: o título começa com **ResolvIA** ("ResolvIA · 📅 Vence hoje") e o ícone pequeno é o do app. Como todos os apps chegam como Home Assistant, agora dá para ver de qual app é cada aviso. Vale para todos os apps da família.
