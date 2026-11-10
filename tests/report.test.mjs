@@ -111,6 +111,7 @@ describe("the PDF (2.45.1)", () => {
     const s = reportPdf(rep, { cor: "#ff5a4f" }).toString("latin1");
     const has = (t) => assert.ok(s.includes(t), t);
     has("(Relat\\363rio de pend\\352ncias) Tj");
+    has("/Producer (ResolvIA)"); // the writer is the MemorIA's too (tools/iguais.py): the name goes in producer
     has("(\\267 listas de tarefas) Tj");
     // 2.47: the charts and, at the foot, the mark of CorrerIA Code
     has("(Por lista) Tj");

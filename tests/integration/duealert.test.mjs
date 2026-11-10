@@ -79,6 +79,9 @@ describe("De quem é (2.42.0)", () => {
     }, { what: "the owner taken from the CronologIA" });
     assert.equal(prefs.lists["todo.google_tasks"].owner, "Ana");
     await waitFor(() => (stack.presence().donos || {})["todo.google_tasks"] === "Ana", { what: "donos published" });
+    const p = stack.presence();
+    assert.deepEqual(Object.keys(p).slice(0, 4), ["app", "nome", "versao", "gravado_em"], "the start of every app of the family");
+    assert.deepEqual([p.app, p.nome], ["ResolvIA", "ResolvIA"], "app still the name, for the CronologIA of before 1.66");
   });
 
   it("a list of Beto: Ana's Testar no longer has it", async () => {

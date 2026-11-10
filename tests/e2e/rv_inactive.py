@@ -77,6 +77,8 @@ async def main():
         print("WIDTHS:", ws, "XS:", xs)
         check(len(boxes) >= 6 and max(ws) - min(ws) <= 1, f"all the same width ({ws})")
         check(max(xs) - min(xs) <= 1, f"all lined up ({xs})")
+        hs = [round(x["height"]) for x in boxes]
+        check(min(hs) >= 48 and max(hs) - min(hs) <= 1 and min(ws) >= 300, f"2.55: like the GerencIA, the width of the card on the phone and the same height ({ws[0]}x{hs})")
         await a.locator("#dados .opts").scroll_into_view_if_needed()
         await pg.screenshot(path=f"{SP}/shots/rvi-dados.png")
         await pg.set_viewport_size({"width": 1280, "height": 900}); await pg.wait_for_timeout(600)

@@ -388,7 +388,7 @@ export function reportPdf(rep, { cor = "#ff8a65" } = {}) {
   const A = /^#[0-9a-f]{6}$/i.test(cor || "") ? cor : "#ff8a65";
   const C = { fg: "#141a22", mut: "#5b6573", line: "#e3e7ec", line2: "#eef1f4", box: "#d6dbe2", late: "#d92d20", pts: "#b7791f", card: "#f6f7f9" };
   const PARTS = { late: C.late, today: "#f59e0b", week: "#7b8590", later: "#aab3bd", none: "#d5dbe2", house: "#aab3bd", ext: "#4f46e5", rest: "#aab3bd" };
-  const pdf = new Pdf({ title: "Relatório de pendências · ResolvIA" });
+  const pdf = new Pdf({ title: "Relatório de pendências · ResolvIA", producer: "ResolvIA" });
   const M = 40;
   const W = pdf.W - 2 * M;
   const BOTTOM = pdf.H - 64; // the foot: a line and the mark of CorrerIA Code

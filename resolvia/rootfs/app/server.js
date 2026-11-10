@@ -154,7 +154,7 @@ function pointsState(userId) {
 async function restoreAll(raw, reason, opts) {
   const out = await restore.run(raw, reason, opts);
   publishPresence();
-  correria.publicar(); // the switch of the CorrerIA may have come with the backup
+  correria.publish(); // the switch of the CorrerIA may have come with the backup
   return out;
 }
 const HA_REST = process.env.HA_REST_URL || "http://supervisor/core/api";
@@ -179,7 +179,11 @@ const dueAlert = new DueAlert({ ha, store, lists: dueLists, items: recurring.ite
 // Mais › Configurações › Integrações › CorrerIA (off by default; it does not need Usar IA): the WhatsApp, the Claude and
 // the Gemini read and change the lists through the tools (lib/ferramentas.js), with the key of share/resolvia/correria.json
 const correriaOn = () => store.prefs.app.correria_on === true;
-const correria = new Correria({ dataDir: DATA_DIR, shareDir: SHARE_DIR, port: PORT, version: VERSION, log, enabled: correriaOn, url: process.env.RESOLVIA_URL_INTERNA || "" });
+const correria = new Correria({
+  about: { app: "resolvia", nome: "ResolvIA", assunto: "listas de tarefas da casa: o que fazer, prazos, compras, repetição e pontos" },
+  dir: path.join(SHARE_DIR, "resolvia"), dataDir: DATA_DIR, port: PORT, version: VERSION, log, enabled: correriaOn,
+  url: process.env.RESOLVIA_URL_INTERNA || "",
+});
 /** The lists for the tools, in the order of the app, with the names and what each one takes. */
 async function toolLists() {
   const looks = await lookOfLists();
@@ -612,13 +616,13 @@ class Session {
           publishPresence();
         }
         // CorrerIA: on writes share/resolvia/correria.json, off removes it (and the key stops working)
-        if ("correria_on" in (msg.prefs || {})) correria.publicar();
+        if ("correria_on" in (msg.prefs || {})) correria.publish();
         return this.result(id, prefs);
       }
 
       // Mais › Configurações › Integrações › CorrerIA: on, and who used it last ({cliente, em, nome})
       case "resolvia/correria/get":
-        return this.result(id, { on: correriaOn(), ultimo: correria.ultimo });
+        return this.result(id, { on: correriaOn(), ultimo: correria.last });
 
       // ---- Recompensas: points per task, given to the CronologIA scoreboard
       // ---- Cômodos do InventarIA
@@ -963,7 +967,7 @@ async function handleReport(url, res, pdf = false) {
  * (400 {erro}: a wrong argument, saying what is accepted; 404: no such tool). Off or a wrong key: 401.
  */
 async function handleTools(req, res) {
-  if (!correria.autorizado(req.headers)) return sendJson(res, 401, { erro: "Chave inválida ou CorrerIA desligado no ResolvIA." });
+  if (!correria.authorized(req.headers)) return sendJson(res, 401, { erro: "Chave inválida ou CorrerIA desligado no ResolvIA." });
   if (req.method === "GET") return sendJson(res, 200, { versao: VERSION, instrucoes: INSTRUCOES, ferramentas: ferramentas.lista() });
   if (req.method !== "POST") return sendJson(res, 405, { erro: "Use GET ou POST." });
   let body;
@@ -980,7 +984,7 @@ async function handleTools(req, res) {
   try {
     await ha.whenReady();
     const texto = await ferramentas.chamar(nome, body.argumentos, { pessoa });
-    correria.usado(cliente, nome);
+    correria.used(cliente, nome);
     if (ferramentas.lista().some((t) => t.nome === nome && t.grava)) log.info(`CorrerIA: ${cliente}${pessoa && pessoa.nome ? ` (${String(pessoa.nome).slice(0, 40)})` : ""} ${nome} → ${texto.split("\n")[0].slice(0, 160)}`);
     return sendJson(res, 200, { texto });
   } catch (err) {
@@ -1074,7 +1078,9 @@ function publishPresence() {
     const equipamentos = equipsOn() && inventario.state.itens.length ? { lista: inventario.state.itens.map((i) => ({ id: i.id, nome: i.nome, comodo: inventario.nameOf(i.comodo) || "" })), tarefas: store.equips } : null;
     // donos: whose each list is (De quem é, 2.42.0+): the CronologIA shows it only to that person
     const donos = store.owners;
-    fs.writeFileSync(tmp, JSON.stringify({ app: "ResolvIA", versao: VERSION, gravado_em: new Date().toISOString(), prazos, sem_prazo: semPrazo, pontos, repete, donos, ...(comodos ? { comodos } : {}), ...(equipamentos ? { equipamentos } : {}) }, null, 1));
+    // the start is the same in every app of the family (app, nome, versao, gravado_em); app is still the name here, for the
+    // CronologIA of before 1.66 (it checks it): the id ("resolvia") comes in a next version, the readers already take both
+    fs.writeFileSync(tmp, JSON.stringify({ app: "ResolvIA", nome: "ResolvIA", versao: VERSION, gravado_em: new Date().toISOString(), prazos, sem_prazo: semPrazo, pontos, repete, donos, ...(comodos ? { comodos } : {}), ...(equipamentos ? { equipamentos } : {}) }, null, 1));
     fs.renameSync(tmp, path.join(dir, "integracao.json"));
     publishWarned = false;
   } catch (err) {
@@ -1086,8 +1092,8 @@ publishPresence();
 setInterval(publishPresence, 15 * 60 * 1000);
 // CorrerIA: the file is written again at the start and every 15 minutes while on (the address may change); off, a file
 // left from before goes away
-correria.publicar();
-setInterval(() => correria.publicar(), 15 * 60 * 1000);
+correria.publish();
+setInterval(() => correria.publish(), 15 * 60 * 1000);
 // the owners of the lists of the CronologIA (before 1.53.0), taken once it publishes them
 // (every minute until then; afterwards it returns at once)
 setTimeout(adoptOwners, 3000);

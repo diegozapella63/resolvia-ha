@@ -29,7 +29,7 @@ export class Placar {
     try {
       const j = JSON.parse(fs.readFileSync(this.file, "utf8"));
       const t = Date.parse(j && j.gravado_em);
-      if (j && j.app === "CronologIA" && Number.isFinite(t) && now - t < FRESH_MS) {
+      if (j && (j.app === "cronologia" || j.app === "CronologIA") && Number.isFinite(t) && now - t < FRESH_MS) { // the id, or the name of before
         const p = (j.placar && typeof j.placar === "object") ? j.placar : {};
         const participantes = Array.isArray(p.participantes) ? p.participantes.filter((x) => typeof x === "string" && x.trim()).map((x) => x.slice(0, 40)) : [];
         const usuarios = {};

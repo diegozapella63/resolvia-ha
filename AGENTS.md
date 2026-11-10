@@ -51,12 +51,23 @@ Os dados de cada tarefa (pontos, cômodo, equipamento) ficam no app, pela chave 
 - Cobertura: veja "Cobertura" no `tests/README.md`.
 - Nos unitários, nunca dependa do relógio real (passe a data ou use `mock.timers`). A versão esperada nos testes vem do `config.yaml`.
 
+## Arquivos iguais em todos os apps
+
+A lista dos arquivos que são iguais nos apps da família fica em `tools/iguais.py` (ele também é igual em todos):
+`python3 tools/iguais.py` confere os daqui com os dos apps ao lado (`../resolvia-ha`, ...), e o GitHub confere a cada
+push (job **Arquivos iguais aos dos outros apps**, que baixa os outros apps). Mudou um arquivo da lista? Copie para os
+outros apps do grupo e publique todos. Um arquivo que passa a ser igual entra em `GRUPOS`, aqui e nas cópias.
+
+`share/<app>/integracao.json` começa igual em todos os apps: `app` (o id, como no `correria.json`), `nome`, `versao` e
+`gravado_em` (ISO 8601 com o fuso), depois os campos de cada app. O ResolvIA e o CronologIA ainda gravam o nome em
+`app` (as versões de antes conferem por ele) e quem lê aceita os dois; o id entra numa próxima versão.
+
 ## Arquivos idênticos na CronologIA
 
 Estes arquivos têm cópia igual no `cronologia-ha`. Ao mudar um, mude o outro (e rode os testes dos dois):
 
 - `frontend/src/equip-picker.js`, `frontend/src/chat.js` (a janela da Conversa), `frontend/src/voice.js`, `frontend/src/look.js`, `frontend/src/swipe.js`, `frontend/src/about.js` (Mais › Sobre), `frontend/src/selectsheet.js` (as caixas de seleção; igual também na MemorIA, GerencIA, InventarIA e EconomIA)
-- `resolvia/rootfs/app/lib/voice.js`, `ws.js`, `zip.js`, `ha.js`, `usage.js`, `phones.js` (os celulares de cada pessoa) (na CronologIA, em `cronologia/rootfs/app/lib/`)
+- `resolvia/rootfs/app/lib/voice.js`, `ws.js`, `zip.js`, `ha.js`, `usage.js`, `phones.js` (os celulares de cada pessoa), `correria.js` (a ligação com o CorrerIA, igual também no MemorIA) (na CronologIA, em `cronologia/rootfs/app/lib/`); `pdf.js` é igual ao do MemorIA
 
 ## Como os apps conversam
 

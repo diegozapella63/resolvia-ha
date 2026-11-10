@@ -1,5 +1,10 @@
 # Mudanças
 
+## 2.55.0
+
+- **Mais › Configurações › Dados**: os botões no padrão dos outros apps da família: na largura do cartão no celular, da mesma altura. **Apagar tudo** fica vermelho.
+- O CorrerIA e o Relatório em PDF usam o mesmo código do CronologIA e do MemorIA (nada muda na tela).
+
 ## 2.54.2
 
 - **Documentação** revista: a aba **Listas** (o caderno, o Buscar e as listas, com as ocultas em **Inativas**), o que fica em cada aba de **Configurações** e as telas do README, com a barra de baixo de agora.

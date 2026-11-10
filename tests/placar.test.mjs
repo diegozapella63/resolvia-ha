@@ -44,6 +44,11 @@ describe("Placar.read: the CronologIA scoreboard", () => {
     assert.deepEqual([v.versao, v.ativo, v.desligado, v.periodo], ["1.40.0", true, false, "quinzena"]);
   });
 
+  it("the app by its id too (the start of integracao.json the same in every app: app, nome, versao, gravado_em)", () => {
+    assert.ok(placar(file({ app: "cronologia", nome: "CronologIA" })).p.read(NOW), "the id of the next versions");
+    assert.ok(placar(file({ nome: "CronologIA" })).p.read(NOW), "the name of before");
+    assert.equal(placar(file({ app: "resolvia" })).p.read(NOW), null, "another app");
+  });
   it("donos_listas (1.53.0+): whose each list was there; none before", () => {
     assert.deepEqual(placar(file({ donos_listas: { "todo.casa": "Ana" } })).p.read(NOW).donos, { "todo.casa": "Ana" });
     assert.equal(placar(file()).p.read(NOW).donos, null);
