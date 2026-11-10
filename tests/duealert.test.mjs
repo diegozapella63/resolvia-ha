@@ -64,10 +64,15 @@ describe("dueText", () => {
 
 describe("alertSettings", () => {
   it("off unless turned on; never with Controlar prazos off; 08:00 by default", () => {
-    assert.deepEqual(alertSettings({}), { on: false, time: "08:00" });
-    assert.deepEqual(alertSettings({ due_alert: true, due_alert_time: "19:30", due_alert_to: ["mobile_app_pixel_8"] }), { on: true, time: "19:30" });
+    assert.deepEqual(alertSettings({}), { on: false, time: "08:00", people: null });
+    assert.deepEqual(alertSettings({ due_alert: true, due_alert_time: "19:30", due_alert_to: ["mobile_app_pixel_8"] }), { on: true, time: "19:30", people: null });
     assert.equal(alertSettings({ due_alert: true, due_off: true }).on, false);
     assert.equal(alertSettings({ due_alert: true, due_alert_time: "25:00" }).time, "08:00");
+  });
+  it("2.54.0: Quem recebe: the persons chosen (only person.*); unset: every person of the house", () => {
+    assert.deepEqual(alertSettings({ due_alert_people: ["person.ana", "light.x", 3] }).people, ["person.ana"]);
+    assert.deepEqual(alertSettings({ due_alert_people: [] }).people, [], "nobody chosen: nobody");
+    assert.equal(alertSettings({ due_alert_people: "person.ana" }).people, null);
   });
   it("the link of the alert: the app on Prazos (only inside Home Assistant)", () => {
     assert.equal(ingressUrl("a1b2c3d4-resolvia"), "/app/a1b2c3d4_resolvia", "the app panel since HA 2026.2");
@@ -85,6 +90,15 @@ describe("store: the preferences of the alert", () => {
     assert.deepEqual(store.prefs.app.due_alert_to, ["mobile_app_pixel_8"]);
     store.setAppPrefs({ due_alert_time: "07:15" });
     assert.equal(store.prefs.app.due_alert_time, "07:15");
+  });
+  it("Quem recebe: only persons, once each; null goes back to everyone", () => {
+    store.setAppPrefs({ due_alert_people: ["person.ana", "person.ana", "person.beto", "mobile_app_x", "person.Bad"] });
+    assert.deepEqual(store.prefs.app.due_alert_people, ["person.ana", "person.beto"]);
+    store.setAppPrefs({ due_alert_people: [] });
+    assert.deepEqual(store.prefs.app.due_alert_people, []);
+    store.setAppPrefs({ due_alert_people: null });
+    assert.equal(store.prefs.app.due_alert_people, undefined);
+    assert.deepEqual(normalize({ prefs: { app: { due_alert_people: ["person.cida", "x"] } } }, true).prefs.app, { due_alert_people: ["person.cida"] });
   });
   it("the day it went out is kept (and comes back from the file); an import checks it", () => {
     store.markAlert("prazos", "2026-11-06");
@@ -129,9 +143,9 @@ describe("DueAlert", () => {
   it("recipients: each person of Home Assistant with the phones tied to them there (only the mobile apps)", async () => {
     const { da } = house({});
     assert.deepEqual(await da.recipients(), [
-      { name: "Ana", user_id: "u-ana", phones: ["mobile_app_pixel_8"] },
-      { name: "Beto", user_id: "u-beto", phones: ["mobile_app_galaxy", "mobile_app_tablet"] },
-      { name: "Cida", user_id: "u-cida", phones: [] },
+      { id: "person.ana", name: "Ana", user_id: "u-ana", phones: ["mobile_app_pixel_8"] },
+      { id: "person.beto", name: "Beto", user_id: "u-beto", phones: ["mobile_app_galaxy", "mobile_app_tablet"] },
+      { id: "person.cida", name: "Cida", user_id: "u-cida", phones: [] },
     ]);
   });
 
@@ -148,6 +162,16 @@ describe("DueAlert", () => {
     assert.equal(sent.prazos, ymd(at(8, 0)));
     assert.equal(await da.tick(at(8, 1)), false, "once a day");
     assert.equal(notes().length, 3);
+  });
+
+  it("2.54.0: Quem recebe: only the persons chosen get it; Testar still goes to mine", async () => {
+    const { da, notes } = house({ due_alert: true, due_alert_people: ["person.ana"] });
+    assert.equal(await da.tick(at(8, 0)), true);
+    assert.deepEqual(notes().map((n) => n.service), ["mobile_app_pixel_8"], "only Ana's phone");
+    assert.deepEqual(await da.test("u-beto", at(20, 0)), { sent: 2, today: 1 }, "Beto tests on his phones even when not chosen");
+    const nobody = house({ due_alert: true, due_alert_people: [] });
+    assert.equal(await nobody.da.tick(at(8, 0)), false);
+    assert.equal(nobody.notes().length, 0, "nobody chosen: nothing goes");
   });
 
   it("nothing due today, off, or Home Assistant away: nothing goes", async () => {

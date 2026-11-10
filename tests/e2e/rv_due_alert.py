@@ -1,5 +1,5 @@
 # ResolvIA 2.41.0: Opções › Prazos › Avisar o que vence hoje. Off by default; on: 08:00, the time, Quem recebe and
-# Testar no meu celular (2.53.0); Testar sends what is due today to my phone (the simulated Home Assistant keeps
+# Testar no meu celular (2.53.0); 2.54.0: Quem recebe chooses (a button for each person), as in every app; Testar sends what is due today to my phone (the simulated Home Assistant keeps
 # it); the time is saved; with Controlar prazos off, the alert goes away. 320 px to the computer, light and dark.
 # 2.42.0: Personalizar › De quem é (Todos or a person): the alert of that list goes only to that person's phone.
 # 2.43.0: no phones to pick: Quem recebe shows each person and their phone (only shown).
@@ -67,11 +67,16 @@ async def main():
             check(await prazos.locator("input[type=time]").count() == 0, f"{tag}: no clock of the phone")
             check(await t.input_value() == ("08:00" if k == 0 else "07:30"), f"{tag}: the time ({await t.input_value()})")
             bt, bb = await t.bounding_box(), await tb.bounding_box()
-            # 2.53.0: Testar no meu celular (the words of every app), after Quem recebe; the time, a box like the others
-            fb = await t.evaluate("(s) => { const r = s.parentElement.getBoundingClientRect(); return [r.x, r.width]; }")
+            # 2.54.0: the piece of every app (the model is the GerencIA): the time in the first of two halves, a button
+            # for each person (the same size, side by side, all chosen at first) and Testar no meu celular under them,
+            # with the whole width
+            fb = await prazos.locator(".alert-when").bounding_box()
             who_b = await prazos.locator(".due-who").bounding_box()
-            check((await tb.inner_text()).strip() == "Testar no meu celular" and bb["y"] > who_b["y"] + who_b["height"] - 1, f"{tag}: Testar no meu celular, after Quem recebe ({(await tb.inner_text()).strip()})")
-            check(abs(bt["x"] - fb[0]) <= 1 and abs(bt["width"] - fb[1]) <= 1 and bt["height"] >= 44, f"{tag}: the time, the whole width of its field, like the other boxes ({bt['width']:.0f}x{bt['height']:.0f})")
+            check((await tb.inner_text()).strip() == "Testar no meu celular" and bb["y"] > who_b["y"] + who_b["height"] - 1 and abs(bb["width"] - fb["width"]) <= 1, f"{tag}: Testar no meu celular, the whole width, under Quem recebe ({bb['width']:.0f} / {fb['width']:.0f})")
+            check(abs(bt["x"] - fb["x"]) <= 1 and abs(bt["width"] - (fb["width"] - 8) / 2) <= 1.5 and bt["height"] >= 44, f"{tag}: the time, the first half, as tall as the other boxes ({bt['width']:.0f}x{bt['height']:.0f})")
+            pb = [await prazos.locator(".due-who .dw").nth(i).bounding_box() for i in range(2)]
+            check(abs(pb[0]["width"] - pb[1]["width"]) <= 1 and abs(pb[0]["y"] - pb[1]["y"]) <= 1 and pb[1]["x"] > pb[0]["x"], f"{tag}: the people side by side, the same size ({[(round(x['x']), round(x['width'])) for x in pb]})")
+            check(await prazos.locator(".due-who .dw.on").count() == 2 and await prazos.locator(".due-who .dw[aria-pressed=true]").count() == 2, f"{tag}: everyone gets it at first")
             look = await t.evaluate("(s) => { const c = getComputedStyle(s); return [c.appearance, c.borderTopLeftRadius, c.backgroundImage.includes('gradient'), c.pointerEvents]; }")
             check(look == ["none", "14px", True, "none"], f"{tag}: closed like the other boxes, its own arrow, and the tap is for the sheet ({look})")
             if k == 0:
@@ -96,8 +101,17 @@ async def main():
                 check([n["service"] for n in got] == ["mobile_app_pixel_8"] and "Trocar filtro do ar" in got[0]["message"], f"{tag}: Testar: what is due today, on my phone ({[(n['service'], n['message']) for n in got]})")
                 toast = await a.locator(".toast").inner_text() if await a.locator(".toast").count() else ""
                 check(toast.startswith("Aviso enviado para o seu celular.") and "Toque nele para abrir Sugestões" in toast and "Pixel" not in toast, f"{tag}: the toast, no device name ({toast})")
+                # 2.54.0: Quem recebe chooses: a tap takes Beto out (saved), another brings him back (everyone again)
+                await prazos.locator(".due-who .dw", has_text="Beto").click(); await pg.wait_for_timeout(700)
+                check(app_prefs().get("due_alert_people") == ["person.ana"] and await prazos.locator(".due-who .dw.on").all_inner_texts() == ["Ana"], f"{tag}: Beto out of Quem recebe ({app_prefs().get('due_alert_people')})")
+                await pg.screenshot(path=f"{SP}/shots/rvda-quem.png")
+                await prazos.locator(".due-who .dw", has_text="Ana").click(); await pg.wait_for_timeout(700)
+                check(app_prefs().get("due_alert_people") == [] and (await prazos.locator(".due-alert .field-hint").inner_text()).strip() == "Escolha quem recebe.", f"{tag}: nobody: Escolha quem recebe.")
+                await prazos.locator(".due-who .dw", has_text="Ana").click(); await pg.wait_for_timeout(500)
+                await prazos.locator(".due-who .dw", has_text="Beto").click(); await pg.wait_for_timeout(700)
+                check("due_alert_people" not in app_prefs() and await prazos.locator(".due-who .dw.on").count() == 2, f"{tag}: everyone again: back to every person of the house ({app_prefs().get('due_alert_people')})")
                 # someone without a phone: "sem celular", and where to tie one (Home Assistant), even with the CronologIA
-                await a.evaluate("(el) => { el._alertPeople = [...el._alertPeople, { name: 'Cida', phone: false, me: false }]; el._pts = { ...(el._pts || {}), placar: { versao: '1.53.5', ativo: true, participantes: ['Ana'] } }; el.requestUpdate(); }"); await pg.wait_for_timeout(300)
+                await a.evaluate("(el) => { el._alertPeople = [...el._alertPeople, { id: 'person.cida', name: 'Cida', phone: false, me: false }]; el._pts = { ...(el._pts || {}), placar: { versao: '1.53.5', ativo: true, participantes: ['Ana'] } }; el.requestUpdate(); }"); await pg.wait_for_timeout(300)
                 who = [" ".join(t.split()) for t in await prazos.locator(".due-who .dw").all_inner_texts()]
                 check(who == ["Ana", "Beto", "Cida sem celular"] and await prazos.locator(".due-who .dw.off").count() == 1, f"{tag}: no phone: sem celular ({who})")
                 hint = (await prazos.locator(".due-alert .field-hint").inner_text()).strip()

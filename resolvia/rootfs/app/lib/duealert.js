@@ -82,11 +82,15 @@ export function dueText({ today, late }) {
   return { title: n === 1 ? "📅 Vence hoje" : `📅 Vencem hoje: ${n}`, message: lines.join("\n") };
 }
 
-/** The settings as kept in the preferences, checked: on and the time. */
+/**
+ * The settings as kept in the preferences, checked: on, the time and who gets it (Quem recebe: the person.* chosen,
+ * or null for every person of the house, as before 2.54.0).
+ */
 export function alertSettings(app = {}) {
   return {
     on: app.due_alert === true && app.due_off !== true,
     time: TIME_RE.test(app.due_alert_time || "") ? app.due_alert_time : DEFAULT_TIME,
+    people: Array.isArray(app.due_alert_people) ? app.due_alert_people.filter((p) => /^person\.[a-z0-9_]+$/.test(p)) : null,
   };
 }
 
@@ -102,7 +106,7 @@ export class DueAlert {
 
   /**
    * Who gets the alert: the persons of Home Assistant, each with the phones tied to them there (the mobile
-   * apps among their device trackers, named after the device, lib/phones.js): [{name, user_id, phones}], by name.
+   * apps among their device trackers, named after the device, lib/phones.js): [{id, name, user_id, phones}], by name.
    */
   async recipients() {
     const [states, services, devices] = await Promise.all([this.ha.send({ type: "get_states" }), this.ha.send({ type: "get_services" }), trackerDevices(this.ha)]);
@@ -112,7 +116,7 @@ export class DueAlert {
       if (!/^person\.[a-z0-9_]+$/.test(st.entity_id || "")) continue;
       const a = st.attributes || {};
       const phones = trackerPhones(a.device_trackers, notify, devices);
-      out.push({ name: a.friendly_name || st.entity_id.slice(7), user_id: a.user_id || null, phones });
+      out.push({ id: st.entity_id, name: a.friendly_name || st.entity_id.slice(7), user_id: a.user_id || null, phones });
     }
     return out.sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
   }
@@ -137,10 +141,14 @@ export class DueAlert {
     return sent;
   }
 
-  /** Each phone with the people it belongs to and what is due today for them: [{target, names, due}]. */
+  /** Each phone of the people who get it (Quem recebe) with whom it belongs to and what is due today for them: [{target, names, due}]. */
   async perPhone(now) {
+    const { people } = alertSettings(this.store.prefs.app);
     const byPhone = new Map();
-    for (const r of await this.recipients()) for (const ph of r.phones) byPhone.set(ph, [...(byPhone.get(ph) || []), r.name]);
+    for (const r of await this.recipients()) {
+      if (people && !people.includes(r.id)) continue;
+      for (const ph of r.phones) byPhone.set(ph, [...(byPhone.get(ph) || []), r.name]);
+    }
     const lists = this.lists();
     return [...byPhone].map(([target, names]) => ({ target, names, due: dueToday(lists, this.items, now, names) }));
   }

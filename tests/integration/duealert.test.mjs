@@ -29,9 +29,15 @@ after(() => stack && stack.stop());
 describe("Avisar o que vence hoje", () => {
   it("who gets it: each person of Home Assistant and whether a phone is tied to them; me marked; no device names", async () => {
     assert.deepEqual(await ana.call("resolvia/due_alert/people"), [
-      { name: "Ana", phone: true, me: true },
-      { name: "Beto", phone: true, me: false },
+      { id: "person.ana", name: "Ana", phone: true, me: true },
+      { id: "person.beto", name: "Beto", phone: true, me: false },
     ]);
+  });
+
+  it("2.54.0: Quem recebe is kept with the app (only persons); null goes back to everyone", async () => {
+    const p = await ana.call("resolvia/prefs/set_app", { prefs: { due_alert_people: ["person.beto", "notify.x"] } });
+    assert.deepEqual(p.app.due_alert_people, ["person.beto"]);
+    assert.equal((await ana.call("resolvia/prefs/set_app", { prefs: { due_alert_people: null } })).app.due_alert_people, undefined);
   });
 
   it("Testar: what is due today, now, on my phone; someone who isn't a person of the house: why not", async () => {

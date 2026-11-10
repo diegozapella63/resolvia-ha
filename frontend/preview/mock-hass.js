@@ -321,7 +321,7 @@ export function createMockHass(onChange) {
       }
       if (msg.type === "resolvia/prefs/get") return JSON.parse(JSON.stringify(prefs));
       // Avisar o que vence hoje: who gets it (each person and their phone); Testar answers as if it went to mine
-      if (msg.type === "resolvia/due_alert/people") return [{ name: "Ana", phone: true, me: true }, { name: "Beto", phone: true, me: false }];
+      if (msg.type === "resolvia/due_alert/people") return [{ id: "person.ana", name: "Ana", phone: true, me: true }, { id: "person.beto", name: "Beto", phone: true, me: false }];
       if (msg.type === "resolvia/people") return ["Ana", "Beto"];
       if (msg.type === "resolvia/due_alert/test") return { sent: 1, today: 1 };
       if (msg.type === "resolvia/prefs/set_list") {

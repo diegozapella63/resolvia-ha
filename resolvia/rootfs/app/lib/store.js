@@ -58,6 +58,8 @@ const APP_FIELDS = {
   due_alert: ["boolean"],
   due_alert_time: ["string", 5],
   due_alert_to: ["list", 20],
+  // … › Quem recebe (2.54.0): the persons of Home Assistant who get it (person.*); unset = every person of the house
+  due_alert_people: ["list", 30],
   // Mais > Configurações > Integrações > Sensores no Home Assistant: true = on (off unless turned on)
   sensors_on: ["boolean"],
   // Mais > Configurações > Integrações > Cômodos do InventarIA: true = each task can have a room (off unless turned on)
@@ -78,6 +80,7 @@ const APP_FIELDS = {
 function checkAlert(p) {
   if (typeof p.due_alert_time === "string" && !/^([01]\d|2[0-3]):[0-5]\d$/.test(p.due_alert_time)) p.due_alert_time = null;
   if (Array.isArray(p.due_alert_to)) p.due_alert_to = [...new Set(p.due_alert_to.filter((t) => /^mobile_app_[a-z0-9_]+$/.test(t)))];
+  if (Array.isArray(p.due_alert_people)) p.due_alert_people = [...new Set(p.due_alert_people.filter((t) => /^person\.[a-z0-9_]+$/.test(t)))];
 }
 
 /** A repeating task from a file (import, restore): only the known fields, sane values. */

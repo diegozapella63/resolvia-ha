@@ -55,7 +55,7 @@ import {
   prepareImage,
 } from "./util.js";
 
-const VERSION = "2.53.0";
+const VERSION = "2.54.0";
 const THEME_KEY = "resolvia.theme";
 const LOCAL_PREFS_KEY = "resolvia.prefs";
 const LAST_LIST_KEY = "resolvia.lastList";
@@ -3140,9 +3140,11 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
   }
 
   /**
-   * Prazos › Avisar o que vence hoje: once a day, at the time chosen, each person gets on their phone what is
-   * due today on their lists (Personalizar › De quem é) and on everyone's. The app looks at the person, never at a
-   * device: the phones are the ones tied to each person in Home Assistant. Testar no meu celular sends it now to my phones.
+   * Prazos › Avisar o que vence hoje: once a day, at the time chosen, each person chosen in Quem recebe gets on their
+   * phone what is due today on their lists (Personalizar › De quem é) and on everyone's. The app looks at the person,
+   * never at a device: the phones are the ones tied to each person in Home Assistant. The same piece as in every app
+   * of the family (the model is the GerencIA): the time in a box of the app (no AM/PM), a button for each person of
+   * the house (the same size, side by side) and, under them, Testar no meu celular (the whole width).
    */
   _renderDueAlert(sw) {
     const on = this._app("due_alert", false) === true;
@@ -3151,7 +3153,9 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     if (on && people === undefined) this._loadAlertPeople();
     const me = (people || []).find((p) => p.me);
     const list = (ns) => (ns.length > 1 ? `${ns.slice(0, -1).join(", ")} e ${ns.at(-1)}` : ns[0]);
-    const without = (people || []).filter((p) => !p.phone).map((p) => p.name);
+    const chosen = this._alertChosen();
+    const isOn = (p) => !chosen || chosen.includes(p.id);
+    const without = (people || []).filter((p) => isOn(p) && !p.phone).map((p) => p.name);
     const why = !people ? "" : !me ? "Você não é uma pessoa da casa no Home Assistant." : !me.phone ? "Sem celular ligado a você no Home Assistant." : "";
     return html`<div class="row">
         <div class="grow"><div class="label">Avisar o que vence hoje</div><div class="hint" style="white-space:normal">${on ? "Cada pessoa recebe as listas dela e as de todos." : "Desligado."}</div></div>
@@ -3159,29 +3163,51 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
       </div>
       ${on
         ? html`<div class="due-alert">
-            <div class="field">
-              <span class="flabel">Horário</span>
-              <select class="select remind-time" aria-label="Horário do aviso" .value=${live(time)} @change=${(e) => /^\d{2}:\d{2}$/.test(e.target.value) && this._saveAppPrefs({ due_alert_time: e.target.value })}>
-                ${timeSlots(time).map((t) => html`<option value=${t} ?selected=${t === time}>${t}</option>`)}
-              </select>
+            <div class="alert-when">
+              <label class="field">
+                <span class="flabel">Horário</span>
+                <select class="select remind-time" aria-label="Horário do aviso" .value=${live(time)} @change=${(e) => /^\d{2}:\d{2}$/.test(e.target.value) && this._saveAppPrefs({ due_alert_time: e.target.value })}>
+                  ${timeSlots(time).map((t) => html`<option value=${t} ?selected=${t === time}>${t}</option>`)}
+                </select>
+              </label>
             </div>
             <div class="field">
               <span class="flabel">Quem recebe</span>
               ${people === undefined || people === null
                 ? html`<p class="field-hint">${people === null ? "Não consegui ver as pessoas da casa." : "Procurando as pessoas da casa…"}</p>`
                 : people.length
-                  ? html`<div class="due-who">${people.map(
-                      (p) => html`<div class="dw ${p.phone ? "" : "off"}">${icon("user-round")}<b>${p.name}</b>${p.phone ? nothing : html`<span>sem celular</span>`}</div>`,
+                  ? html`<div class="due-who" role="group" aria-label="Quem recebe">${people.map(
+                      (p) => html`<button type="button" class="dw ${isOn(p) ? "on" : ""} ${p.phone ? "" : "off"}" aria-pressed=${isOn(p) ? "true" : "false"} @click=${() => this._toggleAlertPerson(p)}>${icon("user-round")}<b>${p.name}</b>${p.phone ? nothing : html`<span>sem celular</span>`}</button>`,
                     )}</div>
-                    ${without.length ? html`<p class="field-hint">${icon("info")}<span>Sem celular para ${list(without)}: ligue o celular à pessoa no Home Assistant.</span></p>` : nothing}`
+                    ${without.length
+                      ? html`<p class="field-hint">${icon("info")}<span>Sem celular para ${list(without)}: ligue o celular à pessoa no Home Assistant.</span></p>`
+                      : chosen && !people.some(isOn)
+                        ? html`<p class="field-hint">${icon("info")}<span>Escolha quem recebe.</span></p>`
+                        : nothing}`
                   : html`<p class="field-hint">${icon("info")}<span>Nenhuma pessoa da casa no Home Assistant.</span></p>`}
             </div>
-            <div class="ai-actions"><button class="btn outline remind-test" ?disabled=${!me || !me.phone} title=${why} @click=${() => this._testDueAlert()}>${icon("send")}Testar no meu celular</button></div>
+            <button class="btn outline remind-test" ?disabled=${!me || !me.phone} title=${why} @click=${() => this._testDueAlert()}>${icon("send")}Testar no meu celular</button>
           </div>`
         : nothing}`;
   }
 
-  /** Who gets the alert of Prazos: [{name, phone: has a phone, me}]; undefined while looking, null when it failed. */
+  /** Quem recebe: the persons chosen (person.*), or null when nobody was chosen by hand (every person of the house). */
+  _alertChosen() {
+    const v = this._app("due_alert_people", null);
+    return Array.isArray(v) ? v : null;
+  }
+
+  /** A tap on a person: in or out of Quem recebe. The first tap writes the list (until then, everyone). */
+  _toggleAlertPerson(p) {
+    const all = (this._alertPeople || []).map((x) => x.id).filter(Boolean);
+    const chosen = this._alertChosen() || all;
+    const next = chosen.includes(p.id) ? chosen.filter((id) => id !== p.id) : [...chosen, p.id];
+    this._haptic("light");
+    // everyone again: back to "every person of the house" (a new person gets it too)
+    this._saveAppPrefs({ due_alert_people: all.every((id) => next.includes(id)) ? null : next });
+  }
+
+  /** Who gets the alert of Prazos: [{id, name, phone: has a phone, me}]; undefined while looking, null when it failed. */
   async _loadAlertPeople() {
     if (this._alertPeopleLoading) return this._alertPeople;
     this._alertPeopleLoading = true;

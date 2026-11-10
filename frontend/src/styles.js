@@ -1295,54 +1295,75 @@ export const styles = css`
     grid-column: 1 / -1;
   }
 
-  /* Opções › Prazos › Avisar o que vence hoje: the time (a box of the app, half to half an hour, no AM/PM), the
-     people, then Testar no meu celular (as in the other apps) */
+  /* Opções › Prazos › Avisar o que vence hoje, the piece of every app of the family (the model is the GerencIA):
+     the time in a box of the app (half to half an hour, no AM/PM) in the first of two equal halves (the second is for
+     "A cada", where an app has it), a button for each person of the house (the same size, side by side) and Testar no
+     meu celular with the whole width under them */
   .due-alert {
     padding: 4px 0 6px;
   }
   .due-alert .field {
     margin: 10px 0 0;
   }
-  .due-alert .ai-actions {
-    margin: 14px 0 0;
+  .alert-when {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
   }
-  /* Quem recebe: each person of the house (the phones are the ones tied to them in Home Assistant) */
+  .alert-when > * {
+    min-width: 0;
+  }
+  .due-alert .remind-test {
+    width: 100%;
+    margin-top: 14px;
+  }
   .due-who {
     display: grid;
-    gap: 6px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
   }
   .due-who .dw {
     display: flex;
     align-items: center;
-    gap: 8px;
-    min-height: 40px;
-    padding: 6px 12px;
-    border-radius: 12px;
-    background: var(--rv-surface-2, var(--rv-accent-soft));
+    justify-content: center;
+    gap: 7px;
+    min-width: 0;
+    min-height: 44px;
+    padding: 8px 12px;
+    border-radius: 14px;
+    border: 1.5px solid var(--rv-line-strong);
+    background: var(--rv-surface-2);
+    color: var(--rv-text);
     font-size: 15px;
+    text-align: center;
   }
   .due-who .dw .i {
     width: 17px;
     height: 17px;
     flex: none;
-    color: var(--rv-accent-ink);
+    color: var(--rv-muted);
   }
   .due-who .dw b {
-    font-weight: 600;
-  }
-  .due-who .dw span {
-    margin-left: auto;
-    color: var(--rv-muted);
-    font-size: 13.5px;
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    font-weight: 600;
   }
-  .due-who .dw.off {
-    opacity: 0.6;
-  }
-  .due-who .dw.off .i {
+  .due-who .dw span {
     color: var(--rv-muted);
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  .due-who .dw.on {
+    border-color: var(--rv-accent);
+    background: color-mix(in srgb, var(--rv-accent) 16%, var(--rv-surface-2));
+  }
+  .due-who .dw.on .i {
+    color: var(--rv-accent-ink);
+  }
+  .due-who .dw.off b {
+    opacity: 0.75;
   }
 
   /* ---------- chips / pickers ---------- */

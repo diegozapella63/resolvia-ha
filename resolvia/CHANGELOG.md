@@ -1,5 +1,10 @@
 # Mudanças
 
+## 2.54.0
+
+- **Avisar o que vence hoje** (Mais › Configurações › Opções › Prazos) fica igual ao aviso dos outros apps da família: o **Horário** na metade da linha, um botão para cada pessoa em **Quem recebe** (lado a lado, do mesmo tamanho) e **Testar no meu celular** com a largura toda, embaixo.
+- **Quem recebe** agora escolhe: toque numa pessoa para tirar ou pôr de volta. De início, todos recebem (como antes); sem ninguém escolhido, o app pede para escolher.
+
 ## 2.53.0
 
 O mesmo jeito em todos os apps da família:

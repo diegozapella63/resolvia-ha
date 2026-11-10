@@ -25,7 +25,7 @@ import { DueAlert } from "./lib/duealert.js";
 import { Correria, ROTA as ROTA_CORRERIA } from "./lib/correria.js";
 import { Ferramentas, INSTRUCOES } from "./lib/ferramentas.js";
 
-const VERSION = "2.53.0";
+const VERSION = "2.54.0";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const WWW = path.join(HERE, "www");
 const DEV = process.env.RESOLVIA_DEV === "1";
@@ -589,7 +589,7 @@ class Session {
         return this.result(id, store.prefs);
       // Avisar o que vence hoje: who gets it (each person; phone: has one tied in Home Assistant; me: the one using the app), and Testar on mine
       case "resolvia/due_alert/people":
-        return this.result(id, (await dueAlert.recipients()).map((r) => ({ name: r.name, phone: r.phones.length > 0, me: !!(this.user.id && r.user_id === this.user.id) })));
+        return this.result(id, (await dueAlert.recipients()).map((r) => ({ id: r.id, name: r.name, phone: r.phones.length > 0, me: !!(this.user.id && r.user_id === this.user.id) })));
       // De quem é (Personalizar): the people of the house and those of the scoreboard of the CronologIA
       case "resolvia/people":
         return this.result(id, await peopleNames());
