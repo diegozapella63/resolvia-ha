@@ -77,6 +77,14 @@ Você revisa os itens (dá para corrigir, desmarcar ou incluir linhas). Embaixo 
 
 **Sensores no Home Assistant** (no fim de Integrações, desligado por padrão): ligado, o app cria o `sensor.resolvia_ia_hoje`, com as chamadas de hoje, os erros, a cota e os tokens estimados, para um painel ou uma automação. Desligado, o app apaga o sensor.
 
+Com os sensores ligados, também (2.64.0):
+
+- `sensor.resolvia_atrasados`: quantas tarefas estão atrasadas, com cada uma (a tarefa, a lista e o prazo) nos atributos;
+- `sensor.resolvia_vence_hoje`: quantas vencem hoje, com o horário de cada uma;
+- `binary_sensor.resolvia_compras`: ligado quando uma lista de compras (a de ícone de carrinho, ou com compra, mercado ou feira no nome) tem algo para comprar, com os itens nos atributos.
+
+Valem as listas que aparecem (as ocultas e as de datas só como informação ficam de fora); com **Controlar prazos** desligado, nada fica atrasado nem vence hoje. Exemplos de automação: ao chegar em casa, se `sensor.resolvia_atrasados` for maior que 0, a Alexa avisa quantos são; ao entrar na zona do mercado, com `binary_sensor.resolvia_compras` ligado, o celular recebe os itens (`{{ state_attr('binary_sensor.resolvia_compras', 'itens') | map(attribute='item') | join(', ') }}`).
+
 O ResolvIA não tem IA própria e não guarda chave de API. Ele usa a ação `ai_task.generate_data` do Home Assistant, então funciona com a integração de IA que você configurar lá, e dá para trocar quando quiser:
 
 | Integração | Observação |

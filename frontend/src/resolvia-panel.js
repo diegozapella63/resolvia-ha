@@ -3303,7 +3303,16 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
         <div class="grow"><div class="label">Criar sensores</div><div class="hint" style="white-space:normal">${on ? "Ligado." : "Desligado: nenhum sensor no Home Assistant."}</div></div>
         <label class="switch"><input type="checkbox" role="switch" .checked=${on} @change=${(e) => this._saveAppPrefs({ sensors_on: e.target.checked ? true : null })} aria-label="Criar sensores" /><span class="track"></span></label>
       </div>
-      ${on ? html`<div class="sensor-list"><div class="sensor-row"><code>sensor.resolvia_ia_hoje</code><span>chamadas de IA hoje, com erros, cota e tokens estimados</span></div></div>` : nothing}
+      ${on
+        ? html`<div class="sensor-list">
+            ${[
+              ["sensor.resolvia_atrasados", "tarefas atrasadas, com cada uma nos atributos"],
+              ["sensor.resolvia_vence_hoje", "o que vence hoje, com o horário"],
+              ["binary_sensor.resolvia_compras", "ligado com algo para comprar, com os itens"],
+              ["sensor.resolvia_ia_hoje", "chamadas de IA hoje, com erros, cota e tokens estimados"],
+            ].map(([id, what]) => html`<div class="sensor-row"><code>${id}</code><span>${what}</span></div>`)}
+          </div>`
+        : nothing}
     </div>`;
   }
 

@@ -1,5 +1,9 @@
 # Mudanças
 
+## 2.64.0
+
+- **Sensores novos no Home Assistant** (com **Sensores no Home Assistant** ligado): `sensor.resolvia_atrasados` e `sensor.resolvia_vence_hoje` (quantas tarefas, com cada uma nos atributos) e `binary_sensor.resolvia_compras` (ligado quando a lista de compras tem algo para comprar, com os itens). Servem para painéis e automações: a Alexa avisar os atrasados quando você chega, ou a lista de compras no celular ao chegar no mercado.
+
 ## 2.63.0
 
 - **Revisar itens mostra o texto todo**: na leitura por IA (mensagem, foto ou Falar), o texto de cada item cresce com ele, sem ficar cortado.

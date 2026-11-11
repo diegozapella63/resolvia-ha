@@ -11,6 +11,7 @@ import { fileURLToPath } from "node:url";
 import { acceptUpgrade } from "./lib/ws.js";
 import { HAClient } from "./lib/ha.js";
 import { Store, datesInfo, taskKey } from "./lib/store.js";
+import { TaskSensors } from "./lib/sensors.js";
 import { pendencias, reportHtml, reportPdf, pdfName, listLooks } from "./lib/report.js";
 import { Recurring } from "./lib/recurring.js";
 import { AI } from "./lib/ai.js";
@@ -92,6 +93,7 @@ function pushDues(id) {
   recurring.items.set(id, items);
   for (const w of itemWatchers) if (w.entity === id) w.session.event(w.id, { items });
   publishPresence();
+  taskSensors.schedule();
 }
 /** ha.send for the parts that change tasks: the date of a list without dates stays in the app. */
 async function appSend(msg, timeout) {
@@ -250,6 +252,8 @@ const dueLists = () => {
 };
 // it goes to each person of Home Assistant, on the phones tied to them there
 const dueAlert = new DueAlert({ ha, store, lists: dueLists, items: recurring.items, log });
+// Sensores no Home Assistant (2.64.0): atrasados, vence hoje e compras, with the same switch of sensor.resolvia_ia_hoje
+const taskSensors = new TaskSensors({ rest: HA_REST, token: TOKEN, log, enabled: () => store.prefs.app.sensors_on === true, lists: dueLists, items: recurring.items, dueOn: () => store.prefs.app.due_off !== true });
 
 // Mais › Configurações › Integrações › CorrerIA (off by default; it does not need Usar IA): the WhatsApp, the Claude and
 // the Gemini read and change the lists through the tools (lib/ferramentas.js), with the key of share/resolvia/correria.json
@@ -379,6 +383,7 @@ function syncItemSubs() {
         const items = itemsWithDue(id, raw);
         if (up) ages.track(id, items);
         recurring.process(id, items);
+        taskSensors.schedule();
       },
       (err) => {
         log.warn(`Não consegui acompanhar ${id}: ${err.message}`);
@@ -700,8 +705,9 @@ class Session {
         return this.result(id, await dueAlert.test(this.user.id));
       case "resolvia/prefs/set_list": {
         const prefs = store.setListPrefs(msg.entity_id, msg.prefs);
-        // dates_info, owner, name, color, hidden: what goes to the other apps (sem_prazo, donos, listas)
+        // dates_info, owner, name, color, hidden: what goes to the other apps (sem_prazo, donos, listas) and the sensors
         publishPresence();
+        taskSensors.schedule();
         return this.result(id, prefs);
       }
       case "resolvia/prefs/set_app": {
@@ -709,7 +715,12 @@ class Session {
         if ("points_on" in (msg.prefs || {}) || "due_off" in (msg.prefs || {})) publishPresence();
         if ("rooms_on" in (msg.prefs || {}) || "equips_on" in (msg.prefs || {})) inventario.refresh().then(() => publishPresence()).catch(() => {});
         // Sensores no Home Assistant: on creates the sensor now, off removes it
-        if ("sensors_on" in (msg.prefs || {})) (store.prefs.app.sensors_on === true ? usage.publish() : usage.remove()).catch(() => {});
+        if ("sensors_on" in (msg.prefs || {})) {
+          (store.prefs.app.sensors_on === true ? usage.publish() : usage.remove()).catch(() => {});
+          (store.prefs.app.sensors_on === true ? taskSensors.publish() : taskSensors.remove()).catch(() => {});
+        }
+        // Controlar prazos or a list hidden/shown: the sensors follow
+        if ("due_off" in (msg.prefs || {})) taskSensors.schedule();
         if ("repeat_on" in (msg.prefs || {})) {
           // back on: completed items with a rule start counting now; off: nothing comes back
           for (const [eid, items] of recurring.items) recurring.process(eid, items);
@@ -1235,6 +1246,7 @@ function publishPresence() {
 }
 publishPresence();
 setInterval(publishPresence, 15 * 60 * 1000);
+setInterval(() => taskSensors.publish().catch(() => {}), 15 * 60 * 1000); // the day turns: today's tasks become late
 // CorrerIA: the file is written again at the start and every 15 minutes while on (the address may change); off, a file
 // left from before goes away
 correria.publish();

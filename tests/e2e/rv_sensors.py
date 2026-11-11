@@ -60,9 +60,19 @@ async def main():
         await sw.check()
         await wait_for(lambda: json.load(open(f"{DATA}/resolvia.json"))["prefs"]["app"].get("sensors_on") is True, "on: saved")
         await wait_for(lambda: has("sensor.resolvia_ia_hoje"), "on: the sensor is created")
-        check(await panel.locator(".sensor-row").count() == 1, "and listed")
+        # 2.64.0: atrasados, vence hoje and compras too, with the tasks of the lists
+        for e in ("sensor.resolvia_atrasados", "sensor.resolvia_vence_hoje", "binary_sensor.resolvia_compras"):
+            await wait_for(lambda e=e: has(e), f"on: {e}")
+        late = req("GET", "sensor.resolvia_atrasados")
+        check(isinstance(late, dict) and int(late["state"]) >= 1 and late["attributes"]["tarefas"] and late["attributes"]["unit_of_measurement"] == "tarefas", f"atrasados: the late tasks of the house ({late.get('state') if isinstance(late, dict) else late})")
+        shop = req("GET", "binary_sensor.resolvia_compras")
+        check(isinstance(shop, dict) and shop["state"] in ("on", "off") and "itens" in shop["attributes"], f"compras: on or off, with the items ({shop.get('state') if isinstance(shop, dict) else shop})")
+        rows = [t.split("\n")[0] for t in await panel.locator(".sensor-row code").all_inner_texts()]
+        check(rows == ["sensor.resolvia_atrasados", "sensor.resolvia_vence_hoje", "binary_sensor.resolvia_compras", "sensor.resolvia_ia_hoje"], f"and listed ({rows})")
         await sw.uncheck()
         await wait_for(lambda: not has("sensor.resolvia_ia_hoje"), "off: the sensor is removed")
+        for e in ("sensor.resolvia_atrasados", "sensor.resolvia_vence_hoje", "binary_sensor.resolvia_compras"):
+            await wait_for(lambda e=e: not has(e), f"off: {e} removed")
         extract(); await asyncio.sleep(1.5)
         check(not has("sensor.resolvia_ia_hoje"), "and AI calls do not bring it back")
         check(not errs, f"no page errors {errs[:2]}")
