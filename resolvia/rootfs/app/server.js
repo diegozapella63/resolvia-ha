@@ -1208,7 +1208,7 @@ function publishPresence() {
     // prazos: Mais › Configurações › Opções › Controlar prazos (false: the CronologIA doesn't offer a deadline for new tasks either)
     const prazos = !store.prefs.app.due_off;
     // comodos: the rooms of the InventarIA and the room of each task, so the CronologIA shows and asks for them too
-    const comodos = roomsOn() && inventario.state.comodos.length ? { lista: inventario.state.comodos.map((c) => ({ id: c.id, nome: c.nome })), tarefas: store.rooms } : null;
+    const comodos = roomsOn() && inventario.state.comodos.length ? { lista: inventario.state.comodos.map((c) => ({ id: c.id, nome: c.nome, ...(c.tipo ? { tipo: c.tipo } : {}) })), tarefas: store.rooms } : null;
     // equipamentos: the items of the InventarIA (with their room) and the item of each task
     const equipamentos = equipsOn() && inventario.state.itens.length ? { lista: inventario.state.itens.map((i) => ({ id: i.id, nome: i.nome, comodo: inventario.nameOf(i.comodo) || "" })), tarefas: store.equips } : null;
     // donos: whose each list is (De quem é, 2.42.0+): the CronologIA shows it only to that person

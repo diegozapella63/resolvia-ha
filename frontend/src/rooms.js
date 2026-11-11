@@ -48,6 +48,49 @@ export const RoomsMixin = (Base) =>
       return (this._rooms && this._rooms.comodos) || [];
     }
 
+    // Casa ou Bens (2.62.0): the area Bens of the InventarIA (house, car: what is outside the house) is not a room of the
+    // house. The item first says where (Casa or Bens), and only Casa shows the rooms; each one has its own equipment.
+    /** The id of the area Bens of the InventarIA (or null). */
+    _bensId() {
+      const b = this._roomList().find((c) => c.tipo === "bens");
+      return b ? b.id : null;
+    }
+
+    /** The rooms of the house (without Bens). */
+    _houseRooms() {
+      const b = this._bensId();
+      return this._roomList().filter((c) => c.id !== b);
+    }
+
+    /** The form is about a bem: chosen (f.where), or from its items or its room. */
+    _inBens(f) {
+      const b = this._bensId();
+      if (!b) return false;
+      if (f.where) return f.where === "bens";
+      const ids = this._equipsOn() ? f.equips || [] : [];
+      return ids.length ? this._roomsOfEquips(ids).includes(b) : this._pickedRooms(f).includes(b);
+    }
+
+    /** Casa | Bens, before the rooms: only when the InventarIA has the area Bens. */
+    _renderWhere(f) {
+      const b = this._bensId();
+      if (!b || !(this._roomsOn() || this._equipsOn())) return nothing;
+      const bens = this._inBens(f);
+      const equips = this._equipsOn() ? f.equips || [] : [];
+      const go = (toBens) => {
+        if (toBens === bens) return;
+        // each side keeps only its own items; Bens is the room of a bem
+        const keep = equips.filter((id) => ((this._equipOf(id) || {}).comodo === b) === toBens);
+        this._setForm({ where: toBens ? "bens" : "casa", equips: keep, equipQ: "", equipMore: false, equipAdding: false, ...(toBens ? { room: b, rooms: [b] } : { room: null, rooms: [] }) });
+      };
+      return html`<div class="field where-field">
+        <div class="seg where" role="group" aria-label="Casa ou Bens">
+          <button class=${bens ? "" : "on"} aria-pressed=${bens ? "false" : "true"} @click=${() => go(false)}>${icon("house")}<span>Casa</span></button>
+          <button class=${bens ? "on" : ""} aria-pressed=${bens ? "true" : "false"} @click=${() => go(true)}>${icon("car")}<span>Bens</span></button>
+        </div>
+      </div>`;
+    }
+
     /** Usar equipamentos on, and the InventarIA gave the items. */
     _equipsOn() {
       const r = this._rooms;
@@ -99,9 +142,13 @@ export const RoomsMixin = (Base) =>
       return html`<span class="tag room" title=${es[0].nome}>${icon("package")}${clip(es[0].nome, 26)}</span>`;
     }
 
-    /** The items for the picker: with the name of their room. */
-    _equipItems() {
-      return this._equipList().map((i) => ({ id: i.id, nome: i.nome, zona: i.zona, roomId: i.comodo, roomName: this._roomName(i.comodo) || "" }));
+    /** The items for the picker: with the name of their room; with `f`, only those of its side (Casa or Bens). */
+    _equipItems(f = null) {
+      const b = this._bensId();
+      const all = this._equipList().map((i) => ({ id: i.id, nome: i.nome, zona: i.zona, roomId: i.comodo, roomName: this._roomName(i.comodo) || "" }));
+      if (!f || !b) return all;
+      const bens = this._inBens(f);
+      return all.filter((i) => (i.roomId === b) === bens);
     }
 
     /**
@@ -111,14 +158,16 @@ export const RoomsMixin = (Base) =>
     _renderEquipField(f) {
       if (!this._equipsOn()) return nothing;
       const ids = f.equips || [];
-      // with every room (Todos), the search is the whole house
-      const room = this._roomsOn() ? (ids.length ? this._roomsOfEquips(ids)[0] || null : this._allRooms(this._pickedRooms(f)) ? null : f.room) : null;
+      const bens = this._inBens(f);
+      // with every room (Todos), the search is the whole house; Bens: the bens
+      const room = bens ? this._bensId() : this._roomsOn() ? (ids.length ? this._roomsOfEquips(ids)[0] || null : this._allRooms(this._pickedRooms(f)) ? null : f.room) : null;
       return html`<div class="field">
-        <span class="flabel">${ids.length > 1 ? "Equipamentos" : "Equipamento"}</span>
+        <span class="flabel">${bens ? (ids.length > 1 ? "Bens" : "Bem") : ids.length > 1 ? "Equipamentos" : "Equipamento"}</span>
         ${renderEquipPicker({
           lit: { html, nothing },
           icon,
-          items: this._equipItems(),
+          items: this._equipItems(f),
+          bens,
           room,
           roomName: room ? this._roomName(room) || "" : "",
           value: ids,
@@ -134,7 +183,7 @@ export const RoomsMixin = (Base) =>
             const next = ids.filter((x) => x !== id);
             // the last one out: the room is free again, starting from the one it had
             const back = this._roomsOfEquips(ids);
-            this._setForm({ equips: next, ...(!next.length && this._roomsOn() ? { room: back[0] || f.room || null, rooms: back.length ? back : f.room ? [f.room] : [] } : {}) });
+            this._setForm({ equips: next, ...(bens ? { where: "bens" } : {}), ...(!next.length && this._roomsOn() ? { room: back[0] || f.room || null, rooms: back.length ? back : f.room ? [f.room] : [] } : {}) });
           },
         })}
       </div>`;
@@ -185,9 +234,9 @@ export const RoomsMixin = (Base) =>
       return c ? c.nome : null;
     }
 
-    /** Every room of the house (2 or more) is in ids? (Todos: a task of the whole house.) */
+    /** Every room of the house (2 or more; Bens is not one) is in ids? (Todos: a task of the whole house.) */
     _allRooms(ids) {
-      const list = this._roomList();
+      const list = this._houseRooms();
       return list.length > 1 && list.every((c) => (ids || []).includes(c.id));
     }
 
@@ -210,12 +259,14 @@ export const RoomsMixin = (Base) =>
       const names = ids.map((id) => this._roomName(id)).join(", ");
       if (this._allRooms(ids)) return html`<span class="tag room" title=${names}>${icon("house")}Todos os cômodos</span>`;
       if (ids.length > 1) return html`<span class="tag room" title=${names}>${icon("door-open")}Vários cômodos</span>`;
-      return ids.length ? html`<span class="tag room">${icon("door-open")}${clip(this._roomName(ids[0]), 22)}</span>` : nothing;
+      return ids.length ? html`<span class="tag room">${icon(ids[0] === this._bensId() ? "car" : "door-open")}${clip(this._roomName(ids[0]), 22)}</span>` : nothing;
     }
 
     /** Item sheet: Cômodo (when on). With equipment, the rooms are those of the items, locked. */
     _renderRoomField(f) {
-      if (!this._roomsOn()) return nothing;
+      const where = this._renderWhere(f);
+      // Bens: no rooms (the bem says where it is)
+      if (!this._roomsOn() || this._inBens(f)) return where;
       const locked = this._equipsOn() && (f.equips || []).length > 0;
       const rooms = locked ? this._roomsOfEquips(f.equips) : this._pickedRooms(f);
       // without items, several rooms (a task of the whole house floor, say): each one turns on and off
@@ -224,16 +275,16 @@ export const RoomsMixin = (Base) =>
         this._setForm({ rooms: next, room: next[0] || null });
       };
       // Todos: every room of the house (a task of the whole house); tapped again, none
-      const allIds = this._roomList().map((c) => c.id);
+      const allIds = this._houseRooms().map((c) => c.id);
       const all = !locked && this._allRooms(rooms);
-      return html`<div class="field">
+      return html`${where}<div class="field">
         <span class="flabel">${rooms.length > 1 ? "Cômodos" : "Cômodo"}</span>
         <div class="chip-row grid ${locked ? "locked" : ""}">
           <button class="pick ${!rooms.length ? "on" : ""}" ?disabled=${locked} @click=${() => this._setForm({ room: null, rooms: [] })}>Nenhum</button>
           ${allIds.length > 1
             ? html`<button class="pick room all-rooms ${all ? "on" : ""}" aria-pressed=${all ? "true" : "false"} ?disabled=${locked} @click=${() => this._setForm(all ? { room: null, rooms: [] } : { rooms: allIds, room: allIds[0] })}>${icon("house")}<span>Todos</span></button>`
             : nothing}
-          ${this._roomList().map((c) => html`<button class="pick room ${rooms.includes(c.id) ? "on" : ""}" aria-pressed=${rooms.includes(c.id) ? "true" : "false"} ?disabled=${locked} @click=${() => toggle(c.id)}>${icon("door-open")}<span>${clip(c.nome, 22)}</span></button>`)}
+          ${this._houseRooms().map((c) => html`<button class="pick room ${rooms.includes(c.id) ? "on" : ""}" aria-pressed=${rooms.includes(c.id) ? "true" : "false"} ?disabled=${locked} @click=${() => toggle(c.id)}>${icon("door-open")}<span>${clip(c.nome, 22)}</span></button>`)}
         </div>
         ${locked ? html`<span class="field-hint">${icon("lock")}<span>Vem ${f.equips.length > 1 ? "dos equipamentos" : "do equipamento"}.</span></span>` : nothing}
       </div>`;

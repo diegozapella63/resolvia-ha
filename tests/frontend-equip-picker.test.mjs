@@ -214,6 +214,12 @@ describe("renderEquipPicker with several (2.31)", () => {
     hs[hs.length - 1]();
     assert.equal(calls.add, 1);
   });
+  it("2.62.0: bens (Casa ou Bens): Outro bem, and no room to search elsewhere", () => {
+    const { t } = multi({ value: ["geladeira"], bens: true });
+    assert.match(t, /Outro bem/);
+    assert.doesNotMatch(t, /Outro equipamento/);
+    assert.match(picker({ room: "bens", roomName: "Bens", bens: true, items: [] }).t, /Nenhum bem no InventarIA\./);
+  });
   it("adding: the cards and the search, without the ones already chosen", () => {
     const { t, cards } = multi({ value: ["geladeira"], adding: true, query: "gela" });
     assert.equal(cards, 1);

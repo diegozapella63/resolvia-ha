@@ -2,6 +2,7 @@
 // CronologIA keep the same copy of this file). The items of the chosen room come
 // first; a search looks at the name, the zone and the room, without accents, and
 // shows what it found in other rooms apart. The chosen one becomes a card with ×.
+// bens: the bens of the area Bens of the InventarIA (Casa ou Bens, ResolvIA 2.62.0 and CronologIA 1.76.0): "Outro bem".
 //
 // items: [{id, nome, zona, roomId, roomName}]
 
@@ -55,9 +56,9 @@ function marked(html, text, query) {
  * query, more: the search and "Mostrar mais"; onQuery, onMore.
  * One item: value is its id (or null); onPick(id|null).
  * Several: value is a list of ids; onPick(id) adds one, onRemove(id) takes it out; with some chosen,
- * the search opens with "Outro equipamento" (adding: open; onAdd() opens it).
+ * the search opens with "Outro equipamento" (adding: open; onAdd() opens it). bens: the items are bens ("Outro bem").
  */
-export function renderEquipPicker({ lit, icon, items, room = null, roomName = "", value = null, query = "", more = false, onQuery, onPick, onMore, onRemove, onAdd, adding = false, autofocus = false }) {
+export function renderEquipPicker({ lit, icon, items, room = null, roomName = "", value = null, query = "", more = false, onQuery, onPick, onMore, onRemove, onAdd, adding = false, autofocus = false, bens = false }) {
   const { html, nothing } = lit;
   const card = (sel, remove) => html`<div class="eq-sel">
       <span class="eq-ic">${icon("package")}</span>
@@ -68,7 +69,7 @@ export function renderEquipPicker({ lit, icon, items, room = null, roomName = ""
     const chosen = value.map((id) => items.find((i) => i.id === id)).filter(Boolean);
     const cards = chosen.map((c) => card(c, () => onRemove(c.id)));
     if (chosen.length && !adding) {
-      return html`<div class="eq-pick">${cards}<button type="button" class="eq-more eq-add" @click=${() => onAdd()}>${icon("plus")}Outro equipamento</button></div>`;
+      return html`<div class="eq-pick">${cards}<button type="button" class="eq-more eq-add" @click=${() => onAdd()}>${icon("plus")}${bens ? "Outro bem" : "Outro equipamento"}</button></div>`;
     }
     const rest = items.filter((i) => !value.includes(i.id));
     return html`<div class="eq-pick">${cards}${search(rest, chosen.length > 0 || autofocus)}</div>`;
@@ -89,7 +90,7 @@ export function renderEquipPicker({ lit, icon, items, room = null, roomName = ""
   const hidden = inRoom.length + others.length - shownIn.length - shownOut.length;
   let hint = nothing;
   if (!query && !room) hint = html`<p class="eq-hint">Escolha o cômodo ou busque entre ${items.length} ${items.length === 1 ? "equipamento" : "equipamentos"}.</p>`;
-  else if (!query && room && !inRoom.length) hint = html`<p class="eq-hint">Nenhum equipamento em ${roomName}. Busque nos outros cômodos.</p>`;
+  else if (!query && room && !inRoom.length) hint = html`<p class="eq-hint">${bens ? "Nenhum bem no InventarIA." : `Nenhum equipamento em ${roomName}. Busque nos outros cômodos.`}</p>`;
   else if (query && !inRoom.length && !others.length) hint = html`<p class="eq-hint">Nada com “${query}”.</p>`;
   return html`<div class="eq-pick">
     <label class="eq-search">${icon("search")}<input type="search" .value=${query} placeholder=${room ? `Buscar em ${roomName}…` : "Buscar equipamento…"} aria-label="Buscar equipamento" ?autofocus=${autofocus} @input=${(e) => onQuery(e.target.value)} /></label>

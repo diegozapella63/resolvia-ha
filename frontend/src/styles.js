@@ -417,6 +417,21 @@ export const styles = css`
     background: var(--rv-late-soft);
     color: var(--rv-late);
   }
+  /* Casa ou Bens (2.62.0): before the rooms of an item, two halves of the same size */
+  .seg.where {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .seg.where button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .seg.where .i {
+    width: 18px;
+    height: 18px;
+  }
   /* Agora › Ordem dos cards (2.60.0): the line at the end of Agora and the list in the sheet, like the CronologIA */
   .now-order {
     display: flex;

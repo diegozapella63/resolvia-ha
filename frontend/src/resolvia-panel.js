@@ -1578,7 +1578,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
       if (await this._call("add_item", { item: it.text.trim() }, it.dest)) {
         n++;
         used.add(it.dest);
-        if (it.room && this._roomsOn()) await this._setTaskRoom(it.dest, it.text.trim(), it.room === "*" ? this._roomList().map((c) => c.id) : it.room);
+        if (it.room && this._roomsOn()) await this._setTaskRoom(it.dest, it.text.trim(), it.room === "*" ? this._houseRooms().map((c) => c.id) : it.room);
         if (it.equip && this._equipsOn()) await this._setTaskEquip(it.dest, it.text.trim(), it.equip);
       } else break;
     }
@@ -2703,7 +2703,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     const eqIds = f.setEquips ? f.equips || [] : [];
     const locked = eqOn && eqIds.length > 0;
     const rooms = locked ? this._roomsOfEquips(eqIds) : f.rooms || [];
-    const allIds = this._roomList().map((c) => c.id);
+    const allIds = this._houseRooms().map((c) => c.id);
     const allRooms = !locked && f.setRooms && this._allRooms(rooms);
     const toggleRoom = (id) => {
       const next = rooms.includes(id) ? rooms.filter((x) => x !== id) : [...rooms, id];
@@ -2753,7 +2753,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
               ${allIds.length > 1
                 ? html`<button class="pick room all-rooms ${allRooms ? "on" : ""}" ?disabled=${locked} @click=${() => this._setForm(allRooms ? { setRooms: true, rooms: [] } : { setRooms: true, rooms: allIds })}>${icon("house")}<span>Todos</span></button>`
                 : nothing}
-              ${this._roomList().map(
+              ${this._houseRooms().map(
                 (c) => html`<button class="pick room ${(f.setRooms || locked) && rooms.includes(c.id) ? "on" : ""}" aria-pressed=${(f.setRooms || locked) && rooms.includes(c.id) ? "true" : "false"} ?disabled=${locked} @click=${() => toggleRoom(c.id)}>${icon("door-open")}<span>${clip(c.nome, 22)}</span></button>`,
               )}
             </div>
@@ -3684,8 +3684,8 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
                     ${icon(it.room === "*" ? "house" : "door-open")}<span class="dname">${it.room === "*" ? "Todos os cômodos" : it.room ? clip(this._roomName(it.room) || "", 30) : "Cômodo"}</span>${icon("chevron-down")}
                     <select aria-label="Cômodo de ${it.text}" @change=${(e) => this._setImportItem(i, { room: e.target.value || null })}>
                       <option value="" ?selected=${!it.room}>Nenhum</option>
-                      ${this._roomList().length > 1 ? html`<option value="*" ?selected=${it.room === "*"}>Todos os cômodos</option>` : nothing}
-                      ${this._roomList().map((c) => html`<option value=${c.id} ?selected=${c.id === it.room}>${c.nome}</option>`)}
+                      ${this._houseRooms().length > 1 ? html`<option value="*" ?selected=${it.room === "*"}>Todos os cômodos</option>` : nothing}
+                      ${this._houseRooms().map((c) => html`<option value=${c.id} ?selected=${c.id === it.room}>${c.nome}</option>`)}
                     </select>
                   </label>`
                 : nothing}

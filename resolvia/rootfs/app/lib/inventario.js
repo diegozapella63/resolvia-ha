@@ -66,7 +66,8 @@ export class Inventario {
           const comodos = (Array.isArray(out.comodos) ? out.comodos : [])
             .filter((c) => c && typeof c.id === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(c.id))
             .slice(0, 80)
-            .map((c) => ({ id: c.id, nome: String(c.nome || c.id).slice(0, 60), itens: Number(c.itens) || 0 }));
+            // tipo "bens": the area Bens of the InventarIA (house, car: outside the house), always the last one
+            .map((c) => ({ id: c.id, nome: String(c.nome || c.id).slice(0, 60), itens: Number(c.itens) || 0, ...(c.tipo === "bens" ? { tipo: "bens" } : {}) }));
           let itens = [];
           let erro = null;
           if (this.items()) {

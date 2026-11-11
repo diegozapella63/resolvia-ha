@@ -163,11 +163,12 @@ describe("Inventario.refresh", () => {
     assert.equal(st.comodos.length, 4);
     await s.i.refresh();
     assert.deepEqual(s.log.of("warn"), ["InventarIA: Reiniciando"], "the same error is logged once");
-    routes["/api/integracao/comodos"] = [200, { comodos: [{ id: "sala", nome: "Sala" }] }];
+    // 2.62.0: the area Bens keeps its tipo (Casa ou Bens on the item); another tipo is dropped
+    routes["/api/integracao/comodos"] = [200, { comodos: [{ id: "sala", nome: "Sala", tipo: "x" }, { id: "bens", nome: "Bens", tipo: "bens" }] }];
     const ok = await s.i.refresh();
     assert.equal(ok.erro, null);
     assert.equal(ok.versao, null);
-    assert.deepEqual(ok.comodos, [{ id: "sala", nome: "Sala", itens: 0 }]);
+    assert.deepEqual(ok.comodos, [{ id: "sala", nome: "Sala", itens: 0 }, { id: "bens", nome: "Bens", itens: 0, tipo: "bens" }]);
     routes["/api/integracao/comodos"] = [500, { error: "Reiniciando" }];
     await s.i.refresh();
     assert.equal(s.log.of("warn").length, 2, "after a success, the error is logged again");

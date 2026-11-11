@@ -220,6 +220,63 @@ describe("rooms: on the screen", () => {
   });
 });
 
+describe("rooms: Casa ou Bens (2.62.0)", () => {
+  // the area Bens of the InventarIA (house, car: outside the house) comes as a room with tipo "bens", the last one
+  const BENS = () => {
+    const r = ROOMS();
+    r.comodos.push({ id: "bens", nome: "Bens", tipo: "bens" });
+    r.itens.push({ id: "carro", nome: "Carro", zona: "", comodo: "bens" }, { id: "moto", nome: "Moto", zona: "", comodo: "bens" });
+    r.map["todo.casa"]["revisar carro"] = "bens";
+    return r;
+  };
+  it("without the area Bens: no choice, as before", () => {
+    const p = panel();
+    assert.doesNotMatch(text(p._renderRoomField({})), /Casa.*Bens/);
+    assert.equal(p._bensId(), null);
+  });
+  it("Casa first: the rooms of the house only (no Bens chip), Todos is the house; the equipment of the house", () => {
+    const p = panel(BENS());
+    p._form = { room: null, rooms: [], equips: [] };
+    const f = p._renderRoomField(p._form);
+    assert.deepEqual(labels(f), ["Casa", "Bens", "Nenhum", "Todos", "Cozinha", "Quarto de hóspedes co…"]);
+    assert.match(text(f), /^Casa Bens Cômodo/);
+    click(f, "Todos");
+    assert.deepEqual(p._form.rooms, ["cozinha", "quarto"], "Todos: the rooms of the house, not Bens");
+    assert.equal(p._allRooms(["cozinha", "quarto"]), true);
+    assert.deepEqual(p._equipItems(p._form).map((i) => i.id), ["geladeira", "ar", "escada"], "no bens among the equipment");
+  });
+  it("Bens: no rooms; the bens to pick (Bem), and the task goes to the area Bens", () => {
+    const p = panel(BENS());
+    p._form = { room: "cozinha", rooms: ["cozinha"], equips: ["geladeira"] };
+    click(p._renderRoomField(p._form), "Bens");
+    assert.deepEqual([p._form.where, p._form.rooms, p._form.equips], ["bens", ["bens"], []], "the equipment of the house goes");
+    assert.equal(text(p._renderRoomField(p._form)), "Casa Bens", "no rooms");
+    const e = p._renderEquipField(p._form);
+    assert.match(text(e), /^Bem /);
+    assert.deepEqual(p._equipItems(p._form).map((i) => i.id), ["carro", "moto"]);
+    click(e, /Carro/);
+    assert.deepEqual([p._form.equips, p._formRooms(p._form)], [["carro"], ["bens"]]);
+    // back to Casa: the bem goes, no room
+    click(p._renderRoomField(p._form), "Casa");
+    assert.deepEqual([p._form.where, p._form.rooms, p._form.equips], ["casa", [], []]);
+  });
+  it("a task already in Bens opens in Bens; its tag says Bens", () => {
+    const p = panel(BENS());
+    assert.equal(p._inBens({ rooms: ["bens"] }), true);
+    assert.equal(p._inBens({ equips: ["moto"] }), true);
+    assert.equal(p._inBens({ rooms: ["cozinha"] }), false);
+    assert.equal(text(p._renderRoomTag("todo.casa", { summary: "Revisar carro" })), "Bens");
+  });
+  it("only equipment on (rooms off): the choice still splits the equipment", () => {
+    const p = panel({ ...BENS(), on: false });
+    p._form = { equips: [] };
+    assert.equal(text(p._renderRoomField(p._form)), "Casa Bens");
+    click(p._renderRoomField(p._form), "Bens");
+    assert.deepEqual(p._equipItems(p._form).map((i) => i.id), ["carro", "moto"]);
+    assert.deepEqual(p._formRooms(p._form), [], "rooms off: no room saved");
+  });
+});
+
 describe("rooms: Mais › Configurações › Integrações › InventarIA", () => {
   it("outside the app: nothing", () => {
     const p = panel();

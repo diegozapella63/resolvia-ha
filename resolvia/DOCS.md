@@ -142,6 +142,8 @@ Com o **InventarIA** (1.14.0 ou mais novo) no mesmo Home Assistant, ligue **Mais
 
 Com **Usar equipamentos** ligado (InventarIA 1.15.0 ou mais novo), cada tarefa pode apontar também para itens do InventarIA (equipamentos, móveis), um ou vários (**Outro equipamento**), buscados entre os do cômodo e os dos outros. Com equipamento, o cômodo fica bloqueado: é o dos equipamentos, um ou vários. Na lista, com um equipamento aparecem o cômodo e o equipamento; com vários, uma etiqueta só, **Vários equipamentos** (e, com vários cômodos, **Vários cômodos**); quais são, abrindo a tarefa. A IA sugere o equipamento na leitura e o considera no Sugerir com IA, e o CronologIA mostra e pede o equipamento no Novo › Tarefa.
 
+**Casa ou Bens**: quando o InventarIA tem a área **Bens** (casa, terreno, carro: o que fica fora de casa), o item pergunta primeiro onde: **Casa** mostra os cômodos da casa e os equipamentos dela; **Bens** mostra os bens (**Bem**) e a tarefa fica na área Bens (sem cômodo para escolher). O Bens não aparece como um cômodo da lista, nem no **Todos**. A tarefa de um bem abre em Bens. O CronologIA (1.76.0 ou mais novo) faz o mesmo no **Adicionar › Tarefa**.
+
 No **InventarIA** (1.48.0 ou mais novo), a ficha de cada item mostra as tarefas abertas ligadas a ele e cria uma nova (**Nova tarefa**), já ligada ao item: as listas aparecem como aqui (os mesmos nomes e cores, sem as desmarcadas em Mais › Listas) e o prazo só é pedido com **Controlar prazos** ligado e numa lista que aceita data.
 
 No **Buscar**, digitar o cômodo ou o equipamento (o nome ou a zona) traz as tarefas ligadas a eles; em **Incluir**, os botões **Cômodos** e **Equipamentos** ligam e desligam isso (só aparecem com a opção ligada).

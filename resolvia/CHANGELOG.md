@@ -1,5 +1,9 @@
 # Mudanças
 
+## 2.62.0
+
+- **Casa ou Bens**: no item, antes dos cômodos, escolha **Casa** ou **Bens**. Na Casa aparecem os cômodos da casa (o **Bens** do InventarIA não é mais um cômodo da lista) e os equipamentos dela; em **Bens**, os bens do InventarIA (carro, casa…) e a tarefa fica na área Bens. A tarefa de um bem abre em Bens.
+
 ## 2.61.0
 
 - **Adicionar só com o +**: o botão do meio da barra de baixo fica só com o ícone, sem o texto embaixo, como em todos os apps da família.
