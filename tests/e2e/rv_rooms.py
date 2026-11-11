@@ -109,7 +109,7 @@ async def main():
         for _ in range(40):
             if "Revisar itens" in await sheet.inner_text(): break
             await asyncio.sleep(0.25)
-        rr = await sheet.locator(".imp-row").evaluate_all("(els) => els.map((e) => [e.querySelector('input').value, (e.querySelector('.imp-room .dname') || {}).textContent || ''])")
+        rr = await sheet.locator(".imp-row").evaluate_all("(els) => els.map((e) => [e.querySelector('.imp-text').value, (e.querySelector('.imp-room .dname') || {}).textContent || ''])")
         print("REVIEW:", rr)
         get = lambda w: next((r for t, r in rr if w in t.lower()), None)
         check(get("lâmpada") == "Sala" and get("pia") == "Cozinha" and get("leite") == "Cômodo", f"the AI picks the room (none for the milk) ({rr})")
@@ -191,7 +191,7 @@ async def main():
         for _ in range(40):
             if "Revisar itens" in await sheet.inner_text(): break
             await asyncio.sleep(0.25)
-        rr = await sheet.locator(".imp-row").evaluate_all("(els) => els.map((e) => [e.querySelector('input').value, (e.querySelector('.imp-equip .dname') || {}).textContent || ''])")
+        rr = await sheet.locator(".imp-row").evaluate_all("(els) => els.map((e) => [e.querySelector('.imp-text').value, (e.querySelector('.imp-equip .dname') || {}).textContent || ''])")
         print("REVIEW2:", rr)
         get = lambda w: next((r for t, r in rr if w in t.lower()), None)
         check(get("chuveiro") == "Chuveiro" and get("geladeira") == "Geladeira" and get("pão") == "Equipamento", f"the AI picks the equipment ({rr})")

@@ -60,11 +60,11 @@ async def main():
         await wait_for(review, "the items to check")
         st = await sheet.inner_text()
         check("“Comprar pilhas, trocar a lâmpada da sala e ligar para o encanador”" in st, "what was heard is shown")
-        rows = [t.strip() for t in await sheet.locator(".imp-row input, .imp-row textarea").evaluate_all("(els) => els.map((e) => e.value)")]
+        rows = [t.strip() for t in await sheet.locator(".imp-row .imp-text").evaluate_all("(els) => els.map((e) => e.value)")]
         print("ITEMS:", rows)
         check(len(rows) == 3 and any("pilhas" in r for r in rows) and any("encanador" in r for r in rows), f"3 items separated ({rows})")
         await pg.screenshot(path=f"{SP}/shots/rvv-review.png")
-        dests = await sheet.locator(".imp-row").evaluate_all("(els) => els.map((e) => [e.querySelector('input').value, (e.querySelector('.imp-dest .dname') || {}).textContent || ''])")
+        dests = await sheet.locator(".imp-row").evaluate_all("(els) => els.map((e) => [e.querySelector('.imp-text').value, (e.querySelector('.imp-dest .dname') || {}).textContent || ''])")
         check(any("pilhas" in t and "Shopping" in d for t, d in dests) and any("encanador" in t and d == "Casa" for t, d in dests), f"the AI picks the list of each item ({dests})")
         await sheet.locator(".btn.primary").last.click(); await pg.wait_for_timeout(1500)
         page = await a.locator(".page").first.inner_text()

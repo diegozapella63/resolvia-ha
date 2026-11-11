@@ -3667,7 +3667,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
               const dest = this._list(this._importListOf(it));
               return html`<div class="imp-row ${it.on ? "" : "off"} ${many || this._roomsOn() || this._equipsOn() ? "has-dest" : ""}">
               <button class="check ${it.on ? "on" : ""}" role="checkbox" aria-checked=${it.on ? "true" : "false"} aria-label="Incluir" @click=${() => this._setImportItem(i, { on: !it.on })}>${icon("check")}</button>
-              <input type="text" .value=${it.text} aria-label="Item" @input=${(e) => this._setImportItem(i, { text: e.target.value })} />
+              <textarea class="imp-text" rows="1" data-size="off" .value=${it.text} aria-label="Item" @keydown=${(e) => e.key === "Enter" && !e.shiftKey && e.preventDefault()} @input=${(e) => this._setImportItem(i, { text: e.target.value })}></textarea>
               <button class="icon-btn mini" aria-label="Remover" @click=${() => this._setForm({ items: f.items.filter((_, j) => j !== i) })}>${icon("x")}</button>
               ${many || this._roomsOn() || this._equipsOn()
                 ? html`<div class="imp-chips">

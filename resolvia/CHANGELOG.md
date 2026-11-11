@@ -1,5 +1,9 @@
 # Mudanças
 
+## 2.63.0
+
+- **Revisar itens mostra o texto todo**: na leitura por IA (mensagem, foto ou Falar), o texto de cada item cresce com ele, sem ficar cortado.
+
 ## 2.62.0
 
 - **Casa ou Bens**: no item, antes dos cômodos, escolha **Casa** ou **Bens**. Na Casa aparecem os cômodos da casa (o **Bens** do InventarIA não é mais um cômodo da lista) e os equipamentos dela; em **Bens**, os bens do InventarIA (carro, casa…) e a tarefa fica na área Bens. A tarefa de um bem abre em Bens.

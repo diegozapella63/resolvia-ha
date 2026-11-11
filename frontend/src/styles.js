@@ -2221,16 +2221,22 @@ export const styles = css`
     width: 14px;
     height: 14px;
   }
-  .imp-row input {
+  /* the text of each item: all of it, growing with the text (2.63.0: was one line, cut) */
+  .imp-row .imp-text {
     flex: 1;
     min-width: 0;
     border: 0;
     outline: 0;
     background: none;
+    font: inherit;
     font-size: 16px;
+    line-height: 1.35;
+    color: var(--rv-text);
     padding: 10px 0;
+    resize: none;
+    field-sizing: content;
   }
-  .imp-row.off input {
+  .imp-row.off .imp-text {
     color: var(--rv-faint);
     text-decoration: line-through;
   }

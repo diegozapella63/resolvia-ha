@@ -46,7 +46,7 @@ async def main():
         await wait_for(review, "the items to check")
         await pg.wait_for_timeout(300)
         async def rows():
-            return await sheet.locator(".imp-row").evaluate_all("(els) => els.map((e) => [e.querySelector('input').value, (e.querySelector('.imp-dest .dname') || {}).textContent || ''])")
+            return await sheet.locator(".imp-row").evaluate_all("(els) => els.map((e) => [e.querySelector('.imp-text').value, (e.querySelector('.imp-dest .dname') || {}).textContent || ''])")
         r = await rows(); print("ROWS:", r)
         check(len(r) == 3 and all(d for _, d in r), "every item shows its list")
         leite = [d for t, d in r if "leite" in t.lower()]
@@ -76,8 +76,15 @@ async def main():
         check(await sheet.locator(".chip-row.grid .pick.on").count() == 0, "no chip on when the lists differ")
         check("em 3 listas" in await btn.inner_text(), f"button: 3 lists ({await btn.inner_text()!r})")
         box = await sheet.locator(".imp-dest").first.bounding_box()
-        inp = await sheet.locator(".imp-row input").first.bounding_box()
+        inp = await sheet.locator(".imp-row .imp-text").first.bounding_box()
         check(box and inp and box["y"] > inp["y"] + inp["height"] - 4 and abs(box["x"] - inp["x"]) < 3, f"the list under the text ({box}, {inp})")
+        # 2.63.0: the text of each item shows all of it (a box that grows with it)
+        first = sheet.locator(".imp-row .imp-text").first
+        was = await first.input_value()
+        await first.fill("Trocar a resistência do chuveiro do banheiro de cima antes do inverno chegar de vez")
+        shown = await first.evaluate("(e) => [e.tagName, e.scrollHeight <= e.clientHeight + 2, e.clientHeight > 30]")
+        check(shown == ["TEXTAREA", True, True], f"a long item shows all of it ({shown})")
+        await first.fill(was)
         await pg.screenshot(path=f"{SP}/shots/rvl-mixed.png")
         await btn.click(); await pg.wait_for_timeout(1500)
         toast = await a.locator(".toast").inner_text() if await a.locator(".toast").count() else ""
