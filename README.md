@@ -42,6 +42,7 @@ A primeira instalação leva alguns minutos, porque o app é montado no próprio
 - **Mais** é um menu, como nos outros apps da família: **Listas** (nome, cor, ícone e quais aparecem), **Gráficos** (pendências por lista, cômodo, equipamento, prazo e quem faz), **Relatório de pendências** (página e PDF), **Configurações** (Integrações, Dados, Aparência e Opções) e **Sobre**.
 - **Dados**: exportar em ZIP, CSV ou JSON, backup em `share/resolvia`, importar (repõe os itens que faltarem, sem duplicar), versões anteriores automáticas e **Começar do zero**.
 - **Tema claro e escuro** seguindo o Home Assistant e a **Cor do dia** (a cor do app muda todo dia, a mesma dos outros apps da família, ou fica na que você escolher, numa paleta de 12 cores).
+- **Sensores** no Home Assistant, se quiser: tarefas atrasadas, as que vencem hoje e se há compras na lista do mercado, para avisos e painéis.
 - **No computador**, barra lateral com as listas; no celular, arrastar para o lado troca de aba.
 
 Mais detalhes em [resolvia/DOCS.md](resolvia/DOCS.md).
