@@ -55,7 +55,7 @@ async def main():
 
         await pg.goto(URL); await pg.wait_for_timeout(1200)
         tabs = [t.strip() for t in await pg.locator("nav .tab").all_inner_texts()]
-        check([t.split("\n")[0] for t in tabs] == ["Agora", "Buscar", "Adicionar", "Listas", "Mais"], f"the tabs: Sugestões first, Buscar by it (2.50.0) ({tabs})")
+        check([t.split("\n")[0] for t in tabs] == ["Agora", "Buscar", "", "Listas", "Mais"], f"the tabs: Sugestões first, Buscar by it (2.50.0) ({tabs})")
         check(await pg.locator(".page-title").inner_text() == "Agora" and "on" in await pg.locator("nav .tab").first.get_attribute("class"), "the app opens on Sugestões")
         await add("Levar o carro na revisão", day(1))
         await add("Renovar o seguro", day(3))

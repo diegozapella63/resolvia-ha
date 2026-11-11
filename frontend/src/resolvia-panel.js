@@ -1952,7 +1952,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
         <div class="tabs">
           ${tab("home", "", "Agora", "clock", lateCount)} ${tab("search", "/buscar", "Buscar", "search")}
           <button class="tab fab" @click=${() => this._openAdd(view.name === "list" ? view.id : null)} aria-label="Adicionar item">
-            <span class="pill">${icon("plus")}</span><span>Adicionar</span>
+            <span class="pill">${icon("plus")}</span>
           </button>
           ${tab("lists", "/minhas-listas", "Listas", "list-checks")} ${tab("more", "/mais", "Mais", "ellipsis")}
         </div>
@@ -3587,11 +3587,10 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
 
   /**
    * Colar mensagem / Escolher fotos / Digitalizar com IA as dashed tiles (like the InventarIA),
-   * with the gallery note of the Home Assistant app and what the AI does.
+   * (without notes that only take room, 2.61.0: the gallery of the Home Assistant app sends one photo at a time).
    */
   _renderImportTiles(run, { label = true } = {}) {
     const ai = this._aiInfo();
-    const android = this._isHaAndroid();
     const camOk = this._camOk();
     const tile = (key, ic, text, off = false, note = "") => html`<button type="button" class="imp-tile ${note ? "no-cam" : ""}" ?disabled=${off} @click=${run[key]}>${icon(ic)}<span>${text}</span>${note ? html`<small>${note}</small>` : nothing}</button>`;
     return html`<div class="field imp-field">
@@ -3601,11 +3600,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
           ${tile("photos", "images", "Escolher fotos", !ai.images)}
           ${tile("scan", "scan-text", "Digitalizar com\u00a0IA", !ai.images, camOk ? "" : "Precisa de https")}
         </div>
-        ${ai.images && !camOk
-          ? html`<p class="imp-help">Em http a câmera não abre aqui: tire a foto pelo celular e use Escolher fotos.</p>`
-          : android && ai.images
-            ? html`<p class="imp-help">No app do Home Assistant, a galeria manda uma foto por vez.</p>`
-            : nothing}
+        ${ai.images && !camOk ? html`<p class="imp-help">Em http a câmera não abre aqui: tire a foto pelo celular e use Escolher fotos.</p>` : nothing}
       </div>
       ${ai.ready ? nothing : html`<div class="ai-box">${icon("scan-text")}<span>Sem IA configurada, a mensagem é separada por linhas e vírgulas. Para ler fotos, configure a IA do Home Assistant em Mais › Configurações › Integrações.</span></div>`}`;
   }

@@ -39,7 +39,7 @@ async def main():
         badge = pg.locator(".tab", has_text="Agora").locator(".badge")
         check(await badge.inner_text() == "2", f"Sugestões badge counts only real deadlines ({await badge.inner_text()})")
         tabs = [t.strip().split("\n")[0] for t in await pg.locator("nav .tab").all_inner_texts()]
-        check(tabs == ["Agora", "Buscar", "Adicionar", "Listas", "Mais"], f"2.50.0: Sugestões, Buscar by it, Adicionar, Listas, Mais ({tabs})")
+        check(tabs == ["Agora", "Buscar", "", "Listas", "Mais"], f"2.50.0: Sugestões, Buscar by it, Adicionar, Listas, Mais ({tabs})")
         await pg.screenshot(path=f"{SP}/shots/rvd-nav.png")
         await pg.locator(".list-card", has_text="Problem List").click(); await pg.wait_for_timeout(600)
         item = pg.locator(".item", has_text="Luz do Banheiro")

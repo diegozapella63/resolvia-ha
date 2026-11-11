@@ -61,7 +61,7 @@ async def main():
         check("Desligado" in txt and await pg.locator("#leitura-ia select").count() == 0, "off: AI panel shows only the switch")
         await pg.screenshot(path=f"{SP}/shots/rva-off.png")
         check(extract() == (409, "ai_off"), "off: the server refuses to read with AI")
-        await pg.locator(".tab", has_text="Adicionar").click(); await pg.wait_for_timeout(500)
+        await pg.locator(".tab.fab").click(); await pg.wait_for_timeout(500)
         check(await pg.locator(".sheet .imp-tile").count() == 0 and await pg.locator(".sheet .ai-box").count() == 0, "off: Novo item without the import tiles")
         await pg.locator(".sheet .icon-btn[aria-label='Fechar']").click(); await pg.wait_for_timeout(300)
         for _ in range(3):

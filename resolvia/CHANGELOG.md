@@ -1,5 +1,10 @@
 # Mudanças
 
+## 2.61.0
+
+- **Adicionar só com o +**: o botão do meio da barra de baixo fica só com o ícone, sem o texto embaixo, como em todos os apps da família.
+- **Menos avisos na tela**: saiu "No app do Home Assistant, a galeria manda uma foto por vez" do Trazer de mensagem ou foto.
+
 ## 2.60.0
 
 - **Sugestões agora se chama Agora** (a aba, a barra lateral e o título), como no CronologIA.

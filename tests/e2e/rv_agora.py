@@ -53,7 +53,12 @@ async def main():
 
         # Agora: the tab, the title and the icon
         tabs = [t.strip().split("\n")[0] for t in await a.locator("nav .tab").all_inner_texts()]
-        check(tabs == ["Agora", "Buscar", "Adicionar", "Listas", "Mais"], f"the first tab is Agora ({tabs})")
+        check(tabs == ["Agora", "Buscar", "", "Listas", "Mais"], f"the first tab is Agora ({tabs})")
+        # 2.61.0: Adicionar only with the + (the name in the aria-label), in every app of the family
+        fab = a.locator("nav .tab.fab")
+        check(await fab.get_attribute("aria-label") == "Adicionar item" and await fab.locator("svg").count() == 1, "Adicionar: only the +")
+        fb, tb = await fab.locator(".pill").bounding_box(), await a.locator("nav .tab").first.bounding_box()
+        check(abs((fb["y"] + fb["height"] / 2) - (tb["y"] + tb["height"] / 2)) <= 3, "the + in the middle of the bar")
         check(await a.locator(".page-title").inner_text() == "Agora", "the app opens on Agora")
         check(await a.locator("nav .tab").first.locator("svg path").count() > 0, "Agora with its icon")
         # each card of what is due with its icon; Atrasados in red
@@ -107,12 +112,15 @@ async def main():
 
         # the text fields keep the size the person left them; the box of the Conversa grows by itself
         await a.evaluate("(el) => el._go('')"); await pg.wait_for_timeout(500)
-        await a.locator("nav .tab", has_text="Adicionar").click(); await pg.wait_for_timeout(500)
+        await a.locator("nav .tab.fab").click(); await pg.wait_for_timeout(500)
+        await a.evaluate("(el) => { el._isHaAndroid = () => true; el.requestUpdate(); }"); await pg.wait_for_timeout(300)  # as in the Home Assistant app
+        sheet_txt = await a.locator(".sheet").inner_text()
+        check("uma foto por vez" not in sheet_txt, "no note about the gallery of the Home Assistant app (2.61.0)")
         notes = a.locator(".sheet textarea[placeholder='O que precisa ser resolvido?']")
         check(await notes.evaluate("(e) => getComputedStyle(e).resize") == "vertical", "Item: can be enlarged")
         await notes.evaluate("(e) => { e.style.height = '220px'; }"); await pg.wait_for_timeout(700)
         await pg.go_back(); await pg.wait_for_timeout(400)
-        await a.locator("nav .tab", has_text="Adicionar").click(); await pg.wait_for_timeout(500)
+        await a.locator("nav .tab.fab").click(); await pg.wait_for_timeout(500)
         h = await a.locator(".sheet textarea[placeholder='O que precisa ser resolvido?']").evaluate("(e) => Math.round(parseFloat(e.style.height))")
         check(h == 220, f"opened again, the size it was left ({h})")
         stored = await pg.evaluate("Object.keys(localStorage).filter((k) => k.startsWith('textareas:'))")

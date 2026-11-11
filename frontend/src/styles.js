@@ -1731,19 +1731,20 @@ export const styles = css`
     box-shadow: 0 0 0 2px var(--rv-nav);
     box-sizing: border-box;
   }
+  /* Adicionar: only the + (2.61.0, every app of the family): the button stands out already, no text under it */
   .tab.fab {
     color: var(--rv-text);
     font-weight: 600;
+    justify-content: center;
   }
   .tab.fab .pill {
-    width: 58px;
-    height: 38px;
-    border-radius: 14px;
+    width: 62px;
+    height: 44px;
+    border-radius: 15px;
     background: var(--rv-accent);
     color: var(--rv-on-accent);
     display: grid;
     place-items: center;
-    margin-top: -4px;
     transition: transform 0.12s;
   }
   .tab.fab:active .pill {
