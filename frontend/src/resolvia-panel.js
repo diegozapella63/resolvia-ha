@@ -65,6 +65,8 @@ const LAST_LIST_KEY = "resolvia.lastList";
 const icon = (name, cls = "") =>
   html`<svg class="i ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${unsafeSVG(ICONS[name] || ICONS["list-checks"])}</svg>`;
 
+// 2.65.0 (padrão da família): o título de cada tela com o ícone (o da aba de baixo ou o da linha do Mais), como as seções
+const PAGE_IC = { Agora: "clock", Buscar: "search", "Minhas listas": "list-todo", Mais: "ellipsis", Listas: "list-checks", "Gráficos": "chart-bar", "Configurações": "sliders-horizontal", Sobre: "info" };
 const store = {
   get(key, fallback) {
     try {
@@ -93,6 +95,8 @@ const REPEAT_PICKS = [
   { days: 30, label: "1 mês" },
 ];
 const keyOf = (item) => item.uid || item.summary;
+// 2.65.0 (padrão da família): toda escolha com texto tem o ícone: Hoje, Amanhã, os dias da semana, Próx. semana, Ontem
+const quickIc = (label) => ({ Hoje: "sun", "Amanhã": "sunrise", Ontem: "undo-2" })[label] || "calendar-days";
 // the screens opened from the menu Mais: the bar keeps Mais lit, and "‹ Mais" goes back to the menu
 const IN_MORE = ["listas", "graficos", "config", "sobre"];
 // Novo/Editar item › Horário: Dia todo, this one or another (2.48.0)
@@ -276,8 +280,25 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     this._L = this.hass ? this._computeLists() : [];
   }
 
+  /** 2.65.0 (padrão da família): quando as abas não cabem, a ponta de onde há mais some aos poucos, com uma seta. */
+  _markTabs() {
+    const t = this.renderRoot && this.renderRoot.querySelector(".tabs-wrap > .more-tabs");
+    if (!t) return;
+    t.parentElement.classList.toggle("tem-esq", t.scrollLeft > 2);
+    t.parentElement.classList.toggle("tem-dir", t.scrollLeft + t.clientWidth < t.scrollWidth - 2);
+    // a largura das abas muda quando a fonte do app termina de carregar: o tamanho de cada uma é acompanhado
+    if (window.ResizeObserver && (!this._tabsRo || this._tabsRo.t !== t)) {
+      if (this._tabsRo) this._tabsRo.ro.disconnect();
+      const ro = new ResizeObserver(() => this._markTabs());
+      ro.observe(t);
+      t.querySelectorAll("button").forEach((b) => ro.observe(b));
+      this._tabsRo = { t, ro };
+    }
+  }
+
   updated(changed) {
     this.toggleAttribute("dark", this._dark);
+    this._markTabs();
     this._chatAfterRender();
     const view = this._view();
     // an address of Mais before 2.37 (/mais/dados): the new one in its place (/config/dados)
@@ -1132,7 +1153,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
       <div class="ai-state ${tone}"><span class="dot"></span><div><b>${title}</b>${detail ? html`<span>${detail}</span>` : nothing}</div></div>
       ${opts.length || sel
         ? html`<label class="field" style="margin:14px 0 0">
-            <span class="flabel">Fala para texto</span>
+            <span class="flabel">${icon("mic", "lbl-ic")}Fala para texto</span>
             <select class="select" aria-label="Fala para texto" @change=${(e) => this._chooseVoice(e.target.value)}>
               <option value="" ?selected=${!sel}>Automático${v && v.auto ? `: ${v.auto.name}` : ""}</option>
               ${opts.map((o) => html`<option value=${o.id} ?selected=${o.id === sel}>${o.name}</option>`)}
@@ -2010,7 +2031,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     return html`<header class="brand-head">
       <div class="head-row"><p class="eyebrow"><span class="brand">${appIcon()}Resolv<span>IA</span></span>${name ? html`<span class="sep"> · </span>Olá, ${name}` : ""}</p>${this._renderChatBtn()}${this._renderMicBtn()}${this._renderTopActs()}</div>
       ${up ? html`<button class="uplink" @click=${() => this._toMenu()}>${icon("chevron-left")}Mais</button>` : nothing}
-      <h1 class="page-title">${title}</h1>
+      <h1 class="page-title">${PAGE_IC[title] ? html`<span class="mais-ic page-ic" aria-hidden="true">${icon(PAGE_IC[title])}</span>` : nothing}${title}</h1>
       ${st ? html`<p class="status"><span class="dot ${st.tone || ""}" aria-hidden="true"></span><span>${st.text}</span></p>` : nothing}
     </header>`;
   }
@@ -2232,7 +2253,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
                 <button class="done-toggle ${doneOpen ? "open" : ""}" @click=${() => (this._doneOpen = { ...this._doneOpen, [id]: !doneOpen })} aria-expanded=${doneOpen ? "true" : "false"}>
                   Concluídos <span class="count">(${done.length})</span>${icon("chevron-down")}
                 </button>
-                ${canDelete ? html`<button class="text-btn" @click=${() => this._confirmClearDone(l)}>Limpar</button>` : nothing}
+                ${canDelete ? html`<button class="text-btn" @click=${() => this._confirmClearDone(l)}>${icon("trash")}Limpar</button>` : nothing}
               </div>
               ${doneOpen ? html`<div class="panel items">${repeat(done, keyOf, (i) => this._renderItem(l, i))}</div>` : nothing}
             `
@@ -2281,7 +2302,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
             <div class="overline">${l.name}</div>
             <h1 class="display">${n ? `${n} ${n === 1 ? "selecionado" : "selecionados"}` : "Selecionar"}</h1>
           </div>
-          <button class="text-btn" @click=${() => (this._sel = { ...this._sel, keys: all ? new Set() : new Set(rows.map(keyOf)) })}>${all ? "Nenhum" : "Todos"}</button>
+          <button class="text-btn" @click=${() => (this._sel = { ...this._sel, keys: all ? new Set() : new Set(rows.map(keyOf)) })}>${icon(all ? "x" : "square-check-big")}${all ? "Nenhum" : "Todos"}</button>
         </div>
         <div class="panel items">${repeat(rows, keyOf, (i) => this._renderItem(l, i, { selecting: true, selected: this._sel.keys.has(keyOf(i)) }))}</div>
         <div class="sel-bar">
@@ -2299,7 +2320,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     const targets = this._L.filter((t) => t.id !== l.id && has(t.features, F.CREATE) && !t.unavailable && !t.hidden);
     return html`
       <div class="sheet-head">
-        <h3 class="display">Mover ${n} ${n === 1 ? "item" : "itens"} para</h3>
+        <h3 class="display">${icon("arrow-right-left", "sh-ic")}Mover ${n} ${n === 1 ? "item" : "itens"} para</h3>
         <button class="icon-btn" @click=${() => this._closeSheet()} aria-label="Fechar">${icon("x")}</button>
       </div>
       ${targets.length
@@ -2590,7 +2611,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
       ? html`<div class="res-head sel-head">
           <button class="icon-btn" @click=${() => this._endBulk()} aria-label="Cancelar seleção">${icon("x")}</button>
           <b class="res-n">${n ? `${n} ${n === 1 ? "selecionado" : "selecionados"}` : "Selecionar"}</b>
-          <button class="text-btn" ?disabled=${!shown.length} @click=${() => (this._bsel = { ...this._bsel, keys: all ? new Set() : new Set([...this._bsel.keys, ...shown]) })}>${all ? "Nenhum" : "Todos"}</button>
+          <button class="text-btn" ?disabled=${!shown.length} @click=${() => (this._bsel = { ...this._bsel, keys: all ? new Set() : new Set([...this._bsel.keys, ...shown]) })}>${icon(all ? "x" : "square-check-big")}${all ? "Nenhum" : "Todos"}</button>
         </div>`
       : html`<div class="res-head">
           <p class="page-sub">${needle ? plural(count, "resultado", "resultados") : this._searchDone ? plural(count, "item", "itens") : plural(count, "pendente", "pendentes")}</p>
@@ -2698,7 +2719,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     const canTime = rows.some(({ l }) => has(l.features, F.DUE_DATETIME));
     const quick = quickDates();
     const isQuick = quick.some((q) => q.date === f.date);
-    const keep = (on, change) => html`<button class="pick keep ${on ? "on" : ""}" aria-pressed=${on ? "true" : "false"} @click=${change}>Manter</button>`;
+    const keep = (on, change) => html`<button class="pick keep ${on ? "on" : ""}" aria-pressed=${on ? "true" : "false"} @click=${change}>${icon("lock")}<span>Manter</span></button>`;
     const eqOn = this._equipsOn();
     const eqIds = f.setEquips ? f.equips || [] : [];
     const locked = eqOn && eqIds.length > 0;
@@ -2714,7 +2735,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     const changed = f.setDue || f.setRooms || f.setEquips || f.setExt || !!f.target;
     return html`
       <div class="sheet-head">
-        <h3 class="display">Alterar ${n} ${n === 1 ? "item" : "itens"}</h3>
+        <h3 class="display">${icon("pencil", "sh-ic")}Alterar ${n} ${n === 1 ? "item" : "itens"}</h3>
         <button class="icon-btn" @click=${() => this._closeSheet()} aria-label="Fechar">${icon("x")}</button>
       </div>
       ${canDate
@@ -2722,7 +2743,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
             <span class="flabel">Prazo</span>
             <div class="chip-row grid">
               ${keep(!f.setDue, () => this._setForm({ setDue: false, date: null, time: null, cal: null }))}
-              ${quick.map((q) => html`<button class="pick ${f.setDue && f.date === q.date ? "on" : ""}" @click=${() => this._setForm({ setDue: true, date: q.date, cal: null })}>${q.label}</button>`)}
+              ${quick.map((q) => html`<button class="pick ${f.setDue && f.date === q.date ? "on" : ""}" @click=${() => this._setForm({ setDue: true, date: q.date, cal: null })}>${icon(quickIc(q.label))}<span>${q.label}</span></button>`)}
               <button class="pick ${f.setDue && f.date && !isQuick ? "on" : ""}" aria-expanded=${f.cal ? "true" : "false"} @click=${() => this._toggleCal()}>
                 ${icon("calendar")}<span>${f.setDue && f.date && !isQuick ? shortDate(f.date) : "Outra data"}</span>
               </button>
@@ -2749,7 +2770,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
             <span class="flabel">Cômodo</span>
             <div class="chip-row grid ${locked ? "locked" : ""}">
               ${keep(!f.setRooms && !locked, () => this._setForm({ setRooms: false, rooms: [] }))}
-              <button class="pick ${f.setRooms && !rooms.length && !locked ? "on" : ""}" ?disabled=${locked} @click=${() => this._setForm({ setRooms: true, rooms: [] })}>Nenhum</button>
+              <button class="pick ${f.setRooms && !rooms.length && !locked ? "on" : ""}" ?disabled=${locked} @click=${() => this._setForm({ setRooms: true, rooms: [] })}>${icon("x")}<span>Nenhum</span></button>
               ${allIds.length > 1
                 ? html`<button class="pick room all-rooms ${allRooms ? "on" : ""}" ?disabled=${locked} @click=${() => this._setForm(allRooms ? { setRooms: true, rooms: [] } : { setRooms: true, rooms: allIds })}>${icon("house")}<span>Todos</span></button>`
                 : nothing}
@@ -2765,7 +2786,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
             <span class="flabel">${eqIds.length > 1 ? "Equipamentos" : "Equipamento"}</span>
             <div class="chip-row grid">
               ${keep(!f.setEquips, () => this._setForm({ setEquips: false, equips: [], equipAdding: false }))}
-              <button class="pick ${f.setEquips && !eqIds.length ? "on" : ""}" @click=${() => this._setForm({ setEquips: true, equips: [], equipAdding: false })}>Nenhum</button>
+              <button class="pick ${f.setEquips && !eqIds.length ? "on" : ""}" @click=${() => this._setForm({ setEquips: true, equips: [], equipAdding: false })}>${icon("x")}<span>Nenhum</span></button>
             </div>
             ${renderEquipPicker({
               lit: { html, nothing },
@@ -2970,9 +2991,9 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     return html`
       <section class="page">
         ${this._renderPageHead("Configurações", null, true)}
-        <div class="seg compact more-tabs" role="tablist" aria-label="Seções de Configurações">
+        <div class="tabs-wrap"><div class="seg compact more-tabs" role="tablist" aria-label="Seções de Configurações" @scroll=${() => this._markTabs()}>
           ${tabs.map(([k, label, ic]) => html`<button class=${tab === k ? "on" : ""} role="tab" aria-selected=${tab === k ? "true" : "false"} @click=${() => go(k)}>${icon(ic)}<span>${label}</span></button>`)}
-        </div>
+        </div><span class="tabs-fim esq" aria-hidden="true">${icon("chevron-left")}</span><span class="tabs-fim dir" aria-hidden="true">${icon("chevron-right")}</span></div>
         <div role="tabpanel" aria-label=${tabs.find((t) => t[0] === tab)[1]}>${body}</div>
         ${this._renderFoot()}
       </section>
@@ -3043,7 +3064,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
               ${this._secHead("repeat", "Repetição")}
               <div class="row switch-row">
                 <div class="grow">
-                  <div class="label">Repetir depois de concluir</div>
+                  <div class="label">${icon("repeat", "lbl-ic")}Repetir depois de concluir</div>
                   <div class="hint" style="white-space:normal">${on
                     ? "O item volta sozinho N dias depois de feito."
                     : "Desligado."}</div>
@@ -3112,7 +3133,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
         <div class="panel">
           ${this._secHead("calendar-clock", "Prazos")}
           <div class="row">
-            <div class="grow"><div class="label">Controlar prazos</div><div class="hint" style="white-space:normal">${dueOn
+            <div class="grow"><div class="label">${icon("calendar-clock", "lbl-ic")}Controlar prazos</div><div class="hint" style="white-space:normal">${dueOn
               ? "O que vence fica vermelho e aparece em Agora."
               : "Datas só como informação."}</div></div>
             ${sw(dueOn, "Controlar prazos", (e) => this._saveAppPrefs({ due_off: e.target.checked ? null : true }))}
@@ -3122,15 +3143,15 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
         <div class="panel">
           ${this._secHead("layout-list", "Exibição")}
           <div class="row">
-            <div class="grow"><div class="label">Agrupar por dispositivo</div><div class="hint">Ex.: as listas da Alexa juntas</div></div>
+            <div class="grow"><div class="label">${icon("layers", "lbl-ic")}Agrupar por dispositivo</div><div class="hint">Ex.: as listas da Alexa juntas</div></div>
             ${sw(this._app("group_by_device", true), "Agrupar por dispositivo", (e) => this._saveAppPrefs({ group_by_device: e.target.checked }))}
           </div>
           <div class="row">
-            <div class="grow"><div class="label">Concluídos abertos</div><div class="hint">Mostra os concluídos sem precisar tocar</div></div>
+            <div class="grow"><div class="label">${icon("list-checks", "lbl-ic")}Concluídos abertos</div><div class="hint">Mostra os concluídos sem precisar tocar</div></div>
             ${sw(this._app("show_done", false), "Concluídos abertos", (e) => this._saveAppPrefs({ show_done: e.target.checked }))}
           </div>
           <div class="row">
-            <div class="grow"><div class="label">Notas</div><div class="hint" style="white-space:normal">${this._notesOn() ? "Campo de notas em cada item." : "Desligado."}</div></div>
+            <div class="grow"><div class="label">${icon("notebook-pen", "lbl-ic")}Notas</div><div class="hint" style="white-space:normal">${this._notesOn() ? "Campo de notas em cada item." : "Desligado."}</div></div>
             ${sw(this._notesOn(), "Notas", (e) => this._saveAppPrefs({ notes_off: e.target.checked ? null : true }))}
           </div>
         </div>
@@ -3154,7 +3175,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
         <li>Em <b>Atalho fixado</b>, escolha o tipo <b>Painel</b> e cole o <b>Caminho</b> abaixo.</li>
       </ol>
       <label class="field">
-        <span class="flabel">Caminho</span>
+        <span class="flabel">${icon("smartphone", "lbl-ic")}Caminho</span>
         <span class="copy-row"
           ><input type="text" id="rv-atalho" readonly .value=${path} @focus=${(e) => e.target.select()} /><button
             type="button"
@@ -3200,21 +3221,21 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     const without = (people || []).filter((p) => isOn(p) && !p.phone).map((p) => p.name);
     const why = !people ? "" : !me ? "Você não é uma pessoa da casa no Home Assistant." : !me.phone ? "Sem celular ligado a você no Home Assistant." : "";
     return html`<div class="row">
-        <div class="grow"><div class="label">Avisar o que vence hoje</div><div class="hint" style="white-space:normal">${on ? "Cada pessoa recebe as listas dela e as de todos." : "Desligado."}</div></div>
+        <div class="grow"><div class="label">${icon("bell", "lbl-ic")}Avisar o que vence hoje</div><div class="hint" style="white-space:normal">${on ? "Cada pessoa recebe as listas dela e as de todos." : "Desligado."}</div></div>
         ${sw(on, "Avisar o que vence hoje", (e) => this._saveAppPrefs({ due_alert: e.target.checked ? true : null }))}
       </div>
       ${on
-        ? html`<div class="due-alert">
+        ? html`<div class="sub-op"><div class="sub-box due-alert">
             <div class="alert-when">
               <label class="field">
-                <span class="flabel">Horário</span>
+                <span class="flabel">${icon("clock", "lbl-ic")}Horário</span>
                 <select class="select remind-time" aria-label="Horário do aviso" .value=${live(time)} @change=${(e) => /^\d{2}:\d{2}$/.test(e.target.value) && this._saveAppPrefs({ due_alert_time: e.target.value })}>
                   ${timeSlots(time).map((t) => html`<option value=${t} ?selected=${t === time}>${t}</option>`)}
                 </select>
               </label>
             </div>
             <div class="field">
-              <span class="flabel">Quem recebe</span>
+              <span class="flabel">${icon("users", "lbl-ic")}Quem recebe</span>
               ${people === undefined || people === null
                 ? html`<p class="field-hint">${people === null ? "Não consegui ver as pessoas da casa." : "Procurando as pessoas da casa…"}</p>`
                 : people.length
@@ -3229,7 +3250,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
                   : html`<p class="field-hint">${icon("info")}<span>Nenhuma pessoa da casa no Home Assistant.</span></p>`}
             </div>
             <button class="btn outline remind-test" ?disabled=${!me || !me.phone} title=${why} @click=${() => this._testDueAlert()}>${icon("send")}Testar no meu celular</button>
-          </div>`
+          </div></div>`
         : nothing}`;
   }
 
@@ -3285,7 +3306,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
         <div class="panel">
           ${this._secHead("palette", "Cor do app", "Vale para todos os aparelhos.")}
           <div class="row switch-row daily-row">
-            <div class="grow"><div class="label">Cor do dia</div><div class="hint">Muda a cor do app todo dia.</div></div>
+            <div class="grow"><div class="label">${icon("calendar", "lbl-ic")}Cor do dia</div><div class="hint">Muda a cor do app todo dia.</div></div>
             <label class="switch"><input type="checkbox" role="switch" .checked=${daily} @change=${(e) => this._saveAppPrefs({ accent_daily: e.target.checked ? null : false })} aria-label="Cor do dia" /><span class="track"></span></label>
           </div>
           ${colorPicker({ palette: PALETTE, value: accent, onPick: (id) => this._saveAppPrefs({ accent: id === "vermelho" ? null : id, accent_daily: false }) })}
@@ -3300,18 +3321,18 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     return html`<div class="panel" id="sensores">
       ${this._secHead("activity", "Sensores no Home Assistant", "Para usar em painéis e automações do Home Assistant.")}
       <div class="row switch-row">
-        <div class="grow"><div class="label">Criar sensores</div><div class="hint" style="white-space:normal">${on ? "Ligado." : "Desligado: nenhum sensor no Home Assistant."}</div></div>
+        <div class="grow"><div class="label">${icon("activity", "lbl-ic")}Criar sensores</div><div class="hint" style="white-space:normal">${on ? "Ligado." : "Desligado: nenhum sensor no Home Assistant."}</div></div>
         <label class="switch"><input type="checkbox" role="switch" .checked=${on} @change=${(e) => this._saveAppPrefs({ sensors_on: e.target.checked ? true : null })} aria-label="Criar sensores" /><span class="track"></span></label>
       </div>
       ${on
-        ? html`<div class="sensor-list">
+        ? html`<div class="sub-op"><div class="sub-box sensor-list">
             ${[
               ["sensor.resolvia_atrasados", "tarefas atrasadas, com cada uma nos atributos"],
               ["sensor.resolvia_vence_hoje", "o que vence hoje, com o horário"],
               ["binary_sensor.resolvia_compras", "ligado com algo para comprar, com os itens"],
               ["sensor.resolvia_ia_hoje", "chamadas de IA hoje, com erros, cota e tokens estimados"],
             ].map(([id, what]) => html`<div class="sensor-row"><code>${id}</code><span>${what}</span></div>`)}
-          </div>`
+          </div></div>`
         : nothing}
     </div>`;
   }
@@ -3320,7 +3341,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     if (!this.hass.resolvia) return nothing;
     const on = this._aiOn();
     const sw = html`<div class="row switch-row">
-        <div class="grow"><div class="label">Usar IA</div><div class="hint" style="white-space:normal">${on
+        <div class="grow"><div class="label">${icon("sparkles", "lbl-ic")}Usar IA</div><div class="hint" style="white-space:normal">${on
           ? "Ligado."
           : "Desligado: sem leitura por IA, sem Falar."}</div></div>
         <label class="switch"><input type="checkbox" role="switch" .checked=${on} @change=${(e) => this._saveAppPrefs({ ai_off: e.target.checked ? null : true })} aria-label="Usar IA" /><span class="track"></span></label>
@@ -3345,10 +3366,11 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     return html`<div class="panel" id="leitura-ia">
       ${this._secHead("sparkles", "IA do Home Assistant", "Separa os itens de mensagens, prints e fotos.")}
       ${sw}
+      <div class="sub-op"><div class="sub-box">
       <div class="ai-state ${tone}"><span class="dot"></span><div><b>${title}</b>${detail ? html`<span>${detail}</span>` : nothing}</div></div>
       ${ents.length || sel
         ? html`<label class="field" style="margin:14px 0 0">
-            <span class="flabel">IA usada pelo app</span>
+            <span class="flabel">${icon("sparkles", "lbl-ic")}IA usada pelo app</span>
             <select class="select" aria-label="IA usada pelo app" @change=${(e) => this._chooseAi(e.target.value)}>
               <option value="" ?selected=${!sel}>Padrão do Home Assistant</option>
               ${ents.map((e) => html`<option value=${e.id} ?selected=${e.id === sel}>${e.name}${e.images ? "" : " (só texto)"}${e.available ? "" : " (indisponível)"}</option>`)}
@@ -3368,6 +3390,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
               <li>Volte aqui e escolha essa IA na lista.</li>
             </ol>
           </div>`}
+      </div></div>
     </div>`;
   }
 
@@ -3416,7 +3439,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     const canDelete = has(src.features, F.DELETE);
     return html`
       <div class="sheet-head">
-        <h3 class="display">${m.tipo === "rotina" ? "Rotina da casa" : "Manutenção"}</h3>
+        <h3 class="display">${icon(m.tipo === "rotina" ? "house" : "wrench", "sh-ic")}${m.tipo === "rotina" ? "Rotina da casa" : "Manutenção"}</h3>
         <button class="icon-btn" @click=${() => this._closeSheet()} aria-label="Fechar">${icon("x")}</button>
       </div>
       <div class="ro-item">
@@ -3506,7 +3529,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
           : [];
     return html`
       <div class="sheet-head">
-        <h3 class="display">${f.mode === "add" ? "Novo item" : "Editar item"}</h3>
+        <h3 class="display">${icon(f.mode === "add" ? "plus" : "pencil", "sh-ic")}${f.mode === "add" ? "Novo item" : "Editar item"}</h3>
         <button class="icon-btn" @click=${() => this._closeSheet()} aria-label="Fechar">${icon("x")}</button>
       </div>
       ${f.mode === "add" && this._canImport()
@@ -3530,7 +3553,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
         ? html`<div class="field">
             <span class="flabel">Prazo</span>
             <div class="chip-row grid">
-              ${quick.map((q) => html`<button class="pick ${f.date === q.date ? "on" : ""}" @click=${() => this._setForm({ date: f.date === q.date ? null : q.date, cal: null })}>${q.label}</button>`)}
+              ${quick.map((q) => html`<button class="pick ${f.date === q.date ? "on" : ""}" @click=${() => this._setForm({ date: f.date === q.date ? null : q.date, cal: null })}>${icon(quickIc(q.label))}<span>${q.label}</span></button>`)}
               <button class="pick ${f.date && !isQuick ? "on" : ""}" aria-expanded=${f.cal ? "true" : "false"} @click=${() => this._toggleCal()}>
                 ${icon("calendar")}<span>${f.date && !isQuick ? shortDate(f.date) : "Outra data"}</span>
               </button>
@@ -3557,9 +3580,9 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
         ? html`<div class="field">
             <span class="flabel">Repetir depois de concluir</span>
             <div class="chip-row grid">
-              <button class="pick ${!f.repeat ? "on" : ""}" @click=${() => this._setForm({ repeat: 0, repeatCustom: false })}>Não</button>
+              <button class="pick ${!f.repeat ? "on" : ""}" @click=${() => this._setForm({ repeat: 0, repeatCustom: false })}>${icon("x")}<span>Não</span></button>
               ${REPEAT_PICKS.map(
-                (p) => html`<button class="pick ${f.repeat === p.days && !f.repeatCustom ? "on" : ""}" @click=${() => this._setForm({ repeat: p.days, repeatCustom: false })}>${p.label}</button>`,
+                (p) => html`<button class="pick ${f.repeat === p.days && !f.repeatCustom ? "on" : ""}" @click=${() => this._setForm({ repeat: p.days, repeatCustom: false })}>${icon("repeat")}<span>${p.label}</span></button>`,
               )}
               <button class="pick ${f.repeatCustom ? "on" : ""}" @click=${() => this._setForm({ repeatCustom: true, repeat: f.repeat || 4 })}>${icon("repeat")}<span>Outro</span></button>
             </div>
@@ -3619,7 +3642,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     const ai = this._aiInfo();
     const head = (title, back) => html`<div class="sheet-head">
       ${back ? html`<button class="icon-btn back" @click=${back} aria-label="Voltar">${icon("chevron-left")}</button>` : nothing}
-      <h3 class="display">${title}</h3>
+      <h3 class="display">${icon({ Falar: "mic", "Lendo…": "scan-text", "Revisar itens": "list-checks" }[title] || "list-plus", "sh-ic")}${title}</h3>
       <button class="icon-btn" @click=${() => this._closeSheet()} aria-label="Fechar">${icon("x")}</button>
     </div>`;
     const toPick = () => {
@@ -3774,7 +3797,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
       )}
       ${!ai.images
         ? html`<div class="imp-error soft">${icon("sparkles")}<span>${ai.reason || "Para ler fotos, o Home Assistant precisa de uma integração de IA com tarefa de IA que entenda imagens."}
-            <button class="text-btn inline" @click=${() => this._goAiSettings()}>Ver IA do Home Assistant</button></span></div>`
+            <button class="text-btn inline" @click=${() => this._goAiSettings()}>${icon("sparkles")}Ver IA do Home Assistant</button></span></div>`
         : nothing}
       ${error}
     `;
@@ -3785,7 +3808,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     if (!l) return nothing;
     return html`
       <div class="sheet-head">
-        <h3 class="display">${l.name}</h3>
+        <h3 class="display">${icon(l.icon || "list-todo", "sh-ic")}${l.name}</h3>
         <button class="icon-btn" @click=${() => this._closeSheet()} aria-label="Fechar">${icon("x")}</button>
       </div>
       ${has(l.features, F.DELETE) && (l.items || []).some((i) => !isDone(i))
@@ -3819,7 +3842,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
       </div>
       <label class="field">
         <span class="flabel">Nome</span>
-        <input type="text" .value=${f.name} placeholder=${l.origName} @input=${(e) => this._setForm({ name: e.target.value })} />
+        <textarea rows="1" .value=${f.name} placeholder=${l.origName} @input=${(e) => this._setForm({ name: e.target.value })} @keydown=${(e) => e.key === "Enter" && !e.shiftKey && e.preventDefault()}></textarea>
       </label>
       <div class="field">
         <span class="flabel">Cor</span>

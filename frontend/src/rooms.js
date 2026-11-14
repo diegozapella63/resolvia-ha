@@ -299,7 +299,7 @@ export const RoomsMixin = (Base) =>
       const nr = (r.comodos || []).length;
       const ne = (r.itens || []).length;
       const sw = (label, value, hint, change) => html`<div class="row switch-row">
-        <div class="grow"><div class="label">${label}</div><div class="hint" style="white-space:normal">${value ? hint : "Desligado."}</div></div>
+        <div class="grow"><div class="label">${icon(label === "Usar cômodos" ? "house" : "cpu", "lbl-ic")}${label}</div><div class="hint" style="white-space:normal">${value ? hint : "Desligado."}</div></div>
         <label class="switch"><input type="checkbox" role="switch" .checked=${value} @change=${(e) => change(e.target.checked)} aria-label=${label} /><span class="track"></span></label>
       </div>`;
       let state = nothing;
@@ -310,8 +310,8 @@ export const RoomsMixin = (Base) =>
         const detail = this._roomsBusy
           ? ""
           : r.erro || (got ? (on && nr ? r.comodos.map((c) => c.nome).join(", ") : "") : r.encontrado ? "Cadastre os cômodos e os itens no InventarIA." : "Instale ou atualize o InventarIA (1.15.0 ou mais nova) neste Home Assistant.");
-        state = html`<div class="ai-state ${tone}"><span class="dot"></span><div><b>${title}</b>${detail ? html`<span>${detail}</span>` : nothing}</div></div>
-          <div class="ai-actions"><button class="btn outline" ?disabled=${this._roomsBusy} @click=${() => this._refreshRooms()}>${icon("rotate-ccw")}Verificar de novo</button></div>`;
+        state = html`<div class="sub-op"><div class="sub-box"><div class="ai-state ${tone}"><span class="dot"></span><div><b>${title}</b>${detail ? html`<span>${detail}</span>` : nothing}</div></div>
+          <div class="ai-actions"><button class="btn outline" ?disabled=${this._roomsBusy} @click=${() => this._refreshRooms()}>${icon("rotate-ccw")}Verificar de novo</button></div></div></div>`;
       }
       // "a IA sugere qual" only with Usar IA on (off, it suggests nothing)
       const ai = this._aiOn() ? ", e a IA sugere qual" : "";

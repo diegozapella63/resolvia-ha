@@ -67,7 +67,7 @@ async def main():
         # ---- Personalizar: name, color, icon (the preview follows)
         await panel.locator(".row button.grow", has_text="Casa").click(); await pg.wait_for_timeout(350)
         check(await pg.locator(".sheet h3").inner_text() == "Personalizar", "tapping a list opens Personalizar")
-        name = pg.locator(".sheet input[type=text]")
+        name = pg.locator(".sheet .field textarea").first
         check(await name.input_value() == "" and await name.get_attribute("placeholder") == "Casa", "the name is empty, Home Assistant's name as placeholder")
         await name.fill("Casa da Praia"); await pg.wait_for_timeout(150)
         check(await pg.locator(".sheet .preview-tile .lc-title").inner_text() == "Casa da Praia", "the preview shows the new name")
@@ -88,7 +88,7 @@ async def main():
         # ⋯ › Personalizar › Padrão: back to Home Assistant's
         await pg.locator(".icon-btn[aria-label='Opções da lista']").click(); await pg.wait_for_timeout(300)
         await pg.locator(".sheet .menu-row", has_text="Personalizar").click(); await pg.wait_for_timeout(300)
-        check(await pg.locator(".sheet input[type=text]").input_value() == "Casa da Praia", "⋯ › Personalizar opens with what was saved")
+        check(await pg.locator(".sheet .field textarea").first.input_value() == "Casa da Praia", "⋯ › Personalizar opens with what was saved")
         await pg.locator(".sheet .btn", has_text="Padrão").click(); await pg.wait_for_timeout(150)
         check(await pg.locator(".sheet .preview-tile .lc-title").inner_text() == "Casa", "Padrão: Home Assistant's name in the preview")
         await pg.locator(".sheet .btn.primary", has_text="Salvar").click(); await pg.wait_for_timeout(600)

@@ -2,7 +2,11 @@
 // Claude and the Gemini connected to it) reads and changes the lists through the tools of the server
 // (lib/ferramentas.js). Off by default, and it does not need Usar IA (who thinks is the AI of the CorrerIA).
 // Mixed into <resolvia-panel>.
-import { html, nothing } from "../vendor/lit-all.min.js";
+import { html, nothing, unsafeSVG } from "../vendor/lit-all.min.js";
+import { ICONS } from "./icons.js";
+
+const icon = (name, cls = "") =>
+  html`<svg class="i ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${unsafeSVG(ICONS[name] || ICONS["list-checks"])}</svg>`;
 
 const pad = (n) => String(n).padStart(2, "0");
 const day = (d) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
@@ -42,11 +46,11 @@ export const CorreriaMixin = (Base) =>
       return html`<div class="panel" id="correria">
         ${this._secHead("zap", "CorrerIA", "O CorrerIA junta os apps da casa no WhatsApp, no Claude e no Gemini.")}
         <div class="row switch-row">
-          <div class="grow"><div class="label">Usar com o CorrerIA</div><div class="hint" style="white-space:normal">${on ? "Ligado: pelo WhatsApp, o Claude e o Gemini leem e mudam as suas listas." : "Desligado."}</div></div>
+          <div class="grow"><div class="label">${icon("zap", "lbl-ic")}Usar com o CorrerIA</div><div class="hint" style="white-space:normal">${on ? "Ligado: pelo WhatsApp, o Claude e o Gemini leem e mudam as suas listas." : "Desligado."}</div></div>
           <label class="switch"><input type="checkbox" role="switch" .checked=${on} @change=${(e) => this._setCorreria(e.target.checked)} aria-label="Usar com o CorrerIA" /><span class="track"></span></label>
         </div>
         ${on
-          ? html`<div class="ai-state ${used ? "ok" : ""}" style="margin-bottom:16px"><span class="dot"></span><div>${used ? html`<b>${used}</b>` : html`<b>Nenhum uso ainda</b><span>Conecte no app CorrerIA.</span>`}</div></div>`
+          ? html`<div class="sub-op"><div class="sub-box"><div class="ai-state ${used ? "ok" : ""}"><span class="dot"></span><div>${used ? html`<b>${used}</b>` : html`<b>Nenhum uso ainda</b><span>Conecte no app CorrerIA.</span>`}</div></div></div></div>`
           : nothing}
       </div>`;
     }

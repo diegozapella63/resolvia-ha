@@ -32,21 +32,20 @@ export function renderChat({ lit, icon, messages = [], draft = "", busy = false,
   return html`<div class="chat">
     <div class="chat-head">
       <span class="chat-title">${icon("message-circle")}Conversa</span>
-      ${messages.length ? html`<button type="button" class="text-btn" @click=${() => onClear()}>Nova conversa</button>` : nothing}
+      ${messages.length ? html`<button type="button" class="text-btn" @click=${() => onClear()}>${icon("plus")}Nova conversa</button>` : nothing}
       <button type="button" class="icon-btn" aria-label="Fechar" @click=${() => onClose()}>${icon("x")}</button>
     </div>
     <div class="chat-log">
       ${messages.length
         ? messages.map(bubble)
-        : html`<div class="chat-empty">
-            <p>Pergunte sobre esta tela ou sobre qualquer assunto. Se pedir para mudar algo, eu mostro antes de fazer.</p>
-            ${examples.length ? html`<div class="chat-ex">${examples.map((e) => html`<button type="button" class="pick" @click=${() => onSend(e)}>${e}</button>`)}</div>` : nothing}
-          </div>`}
+        : examples.length
+          ? html`<div class="chat-empty"><div class="chat-ex">${examples.map((e) => html`<button type="button" class="pick" @click=${() => onSend(e)}>${icon("sparkles")}<span>${e}</span></button>`)}</div></div>`
+          : nothing}
       ${busy ? html`<div class="chat-msg ia"><div class="chat-bubble typing"><i></i><i></i><i></i></div></div>` : nothing}
       ${error ? html`<div class="chat-error">${icon("circle-alert")}<span>${error}</span></div>` : nothing}
     </div>
     <form class="chat-input" @submit=${(e) => (e.preventDefault(), send())}>
-      <textarea rows="1" data-size="off" .value=${draft} placeholder=${rec ? "Ouvindo…" : "Escreva aqui…"} aria-label="Mensagem para a IA" ?disabled=${rec}
+      <textarea rows="1" data-size="off" .value=${draft} placeholder=${rec ? "Ouvindo…" : "Pergunte o que quiser"} aria-label="Mensagem para a IA" ?disabled=${rec}
         @input=${(e) => onDraft(e.target.value)}
         @keydown=${(e) => {
           if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
@@ -66,12 +65,15 @@ export const chatStyles = `
   .chat { display: flex; flex-direction: column; height: min(78vh, 680px); margin: -4px -4px 0; }
   .chat-head { display: flex; align-items: center; gap: 10px; padding: 0 0 10px; }
   .chat-title { display: inline-flex; align-items: center; gap: 8px; flex: 1; font-weight: 700; font-size: 18px; }
-  .chat-title .i { width: 20px; height: 20px; color: var(--rv-accent-ink, var(--rv-accent)); }
+  .chat-title .i { width: 30px; height: 30px; padding: 6px; border-radius: 9px; background: var(--rv-accent-soft); color: var(--rv-accent-ink, var(--rv-accent)); }
+  .chat-head .text-btn { display: inline-flex; align-items: center; gap: 6px; }
+  .chat-head .text-btn .i { width: 16px; height: 16px; }
   .chat-log { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 6px 2px 12px; overscroll-behavior: contain; }
-  .chat-empty { margin: auto 0; color: var(--rv-muted); font-size: 15px; line-height: 1.45; }
+  .chat-empty { margin: auto 0 0; color: var(--rv-muted); font-size: 15px; line-height: 1.45; }
   .chat-empty p { margin: 0 0 12px; }
   .chat-ex { display: flex; flex-wrap: wrap; gap: 8px; }
-  .chat-ex .pick { font-size: 14px; padding: 8px 12px; min-height: 0; }
+  .chat-ex .pick { font-size: 14px; padding: 8px 12px; min-height: 0; display: inline-flex; align-items: center; gap: 6px; }
+  .chat-ex .pick .i { width: 16px; height: 16px; flex: none; color: var(--rv-accent-ink, var(--rv-accent)); }
   .chat-msg { display: flex; flex-direction: column; gap: 6px; max-width: 88%; }
   .chat-msg.me { align-self: flex-end; align-items: flex-end; }
   .chat-msg.ia { align-self: flex-start; }

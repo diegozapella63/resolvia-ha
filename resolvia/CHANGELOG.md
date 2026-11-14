@@ -1,5 +1,14 @@
 # Mudanças
 
+## 2.65.0
+
+- **Ícones em tudo**, como nos outros apps: cada opção tem um ícone antes do título (Controlar prazos, Usar IA, Cor do dia, Horário, Quem recebe…), e o título de cada tela e de cada janela também (Agora, Configurações, Novo item…). As escolhas ganharam ícone: Hoje, Amanhã, os dias, Próx. semana, Não, Todo dia, Sem pontos, +5, Manter, Nenhum, e os botões Limpar, Todos e Nova conversa.
+- **Sem linhas entre as opções** de uma seção: o ícone de cada uma marca onde ela começa. As listas (as suas listas, as tarefas que se repetem) continuam com a linha.
+- **Sub-opções num quadro**: o que depende de uma chave fica num quadro embaixo dela: o estado e a escolha da IA embaixo de **Usar IA**; o Horário, o Quem recebe e o Testar embaixo de **Avisar o que vence hoje**; o estado do placar embaixo de **Usar recompensas**; o estado do InventarIA embaixo de **Usar cômodos** e **Usar equipamentos**; o último uso embaixo de **Usar com o CorrerIA**; e os sensores embaixo de **Criar sensores**.
+- **Configurações**: quando as abas não cabem, a ponta de onde há mais some aos poucos, com uma seta. As caixas de seleção abrem com o ícone no título.
+- **Conversa**: sem o texto de explicação; ficam as sugestões de pergunta, com ícone.
+- O nome de uma lista aumenta puxando o canto, como os outros campos de texto.
+
 ## 2.64.0
 
 - **Sensores novos no Home Assistant** (com **Sensores no Home Assistant** ligado): `sensor.resolvia_atrasados` e `sensor.resolvia_vence_hoje` (quantas tarefas, com cada uma nos atributos) e `binary_sensor.resolvia_compras` (ligado quando a lista de compras tem algo para comprar, com os itens). Servem para painéis e automações: a Alexa avisar os atrasados quando você chega, ou a lista de compras no celular ao chegar no mercado.

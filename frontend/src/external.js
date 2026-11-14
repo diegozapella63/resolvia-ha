@@ -72,7 +72,7 @@ export const ExternalMixin = (Base) =>
       return html`<div class="panel" id="quem-faz">
         ${this._secHead("hard-hat", "Quem faz")}
         <div class="row switch-row">
-          <div class="grow"><div class="label">Serviços externos</div><div class="hint" style="white-space:normal">${on ? "Quem faz em cada tarefa: vocês ou alguém de fora." : "Desligado."}</div></div>
+          <div class="grow"><div class="label">${icon("hard-hat", "lbl-ic")}Serviços externos</div><div class="hint" style="white-space:normal">${on ? "Quem faz em cada tarefa: vocês ou alguém de fora." : "Desligado."}</div></div>
           ${sw(on, "Serviços externos", (e) => this._saveAppPrefs({ ext_off: e.target.checked ? null : true }))}
         </div>
       </div>`;

@@ -138,8 +138,8 @@ export const PointsMixin = (Base) =>
       return html`<div class="field">
         <span class="flabel">Pontos para quem concluir</span>
         <div class="chip-row">
-          <button class="pick ${!n && !custom ? "on" : ""}" @click=${() => this._setForm({ points: 0, pointsCustom: false })}>Sem pontos</button>
-          ${POINT_PICKS.map((v) => html`<button class="pick ${n === v && !custom ? "on" : ""}" @click=${() => this._setForm({ points: v, pointsCustom: false })}>+${v}</button>`)}
+          <button class="pick ${!n && !custom ? "on" : ""}" @click=${() => this._setForm({ points: 0, pointsCustom: false })}>${icon("x")}<span>Sem pontos</span></button>
+          ${POINT_PICKS.map((v) => html`<button class="pick ${n === v && !custom ? "on" : ""}" @click=${() => this._setForm({ points: v, pointsCustom: false })}>${icon("trophy")}<span>+${v}</span></button>`)}
           <button class="pick ${custom ? "on" : ""}" @click=${() => this._setForm({ pointsCustom: true, points: n || 15 })}>${icon("trophy")}<span>Outro</span></button>
         </div>
         ${custom
@@ -183,7 +183,7 @@ export const PointsMixin = (Base) =>
       const n = Object.values(p.points || {}).reduce((a, m) => a + Object.keys(m).length, 0);
       const sw = html`<div class="row switch-row">
           <div class="grow">
-            <div class="label">Usar recompensas</div>
+            <div class="label">${icon("trophy", "lbl-ic")}Usar recompensas</div>
             <div class="hint" style="white-space:normal">${on
               ? n
                 ? `${plural(n, "tarefa vale", "tarefas valem")} pontos.`
@@ -212,7 +212,7 @@ export const PointsMixin = (Base) =>
       return html`<div class="panel" id="recompensas">
         ${this._secHead("trophy", "Recompensas", "Pontos no placar do CronologIA para quem concluir.")}
         ${sw}
-        <div class="ai-state ${state.tone}" style="margin-bottom:16px"><span class="dot"></span><div><b>${state.title}</b><span>${state.text}</span></div></div>
+        <div class="sub-op"><div class="sub-box"><div class="ai-state ${state.tone}"><span class="dot"></span><div><b>${state.title}</b><span>${state.text}</span></div></div></div></div>
       </div>`;
     }
   };

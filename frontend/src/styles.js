@@ -3090,12 +3090,48 @@ export const styles = css`
     width: 16px;
     height: 16px;
   }
-  .more-tabs {
+  .tabs-wrap {
     position: sticky;
     top: 0;
     z-index: 4;
     margin: 0 0 14px;
+  }
+  .more-tabs {
+    position: relative;
+    margin: 0;
     box-shadow: 0 0 0 6px var(--rv-bg);
+  }
+  .tabs-fim {
+    position: absolute;
+    top: 1px;
+    bottom: 1px;
+    z-index: 1;
+    width: 48px;
+    display: none;
+    align-items: center;
+    pointer-events: none;
+    color: var(--rv-text);
+  }
+  .tabs-fim.dir {
+    right: 1px;
+    justify-content: flex-end;
+    padding-right: 6px;
+    border-radius: 0 12px 12px 0;
+    background: linear-gradient(to right, transparent, var(--rv-surface-2) 62%);
+  }
+  .tabs-fim.esq {
+    left: 1px;
+    padding-left: 6px;
+    border-radius: 12px 0 0 12px;
+    background: linear-gradient(to left, transparent, var(--rv-surface-2) 62%);
+  }
+  .tabs-fim .i {
+    width: 18px;
+    height: 18px;
+  }
+  .tabs-wrap.tem-dir > .tabs-fim.dir,
+  .tabs-wrap.tem-esq > .tabs-fim.esq {
+    display: flex;
   }
   /* the tabs keep their width and the bar scrolls sideways when the screen is too narrow */
   .more-tabs {
@@ -3746,5 +3782,109 @@ export const styles = css`
     width: 40px;
     height: 40px;
     border-radius: 12px;
+  }
+
+  /* 2.65.0 (padrão da família): toda linha com título tem o ícone antes dele; entre as opções de uma seção não há linha
+     (o ícone marca onde cada uma começa); as listas de dados (com o quadradinho do ícone) continuam com a linha */
+  .label:has(> .lbl-ic), .flabel:has(> .lbl-ic) {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .lbl-ic {
+    flex: none;
+    width: 18px;
+    height: 18px;
+    color: var(--rv-accent-ink, var(--rv-accent));
+  }
+  .row .grow:has(> .label > .lbl-ic) > .hint {
+    padding-left: 26px;
+    white-space: normal;
+  }
+  .panel > .row:not(:has(> .tile)):not(:has(> .em-icon)):not(.inact-head) {
+    border-top: 0;
+  }
+  /* as sub-opções (o estado das Recompensas, a IA do Usar IA, o Horário, o Quem recebe e o Testar do Avisar no
+     celular): num quadro recuado, logo abaixo da chave, para ver de qual opção são */
+  .sub-op {
+    padding: 0 0 14px 26px;
+  }
+  .sub-box {
+    padding: 12px 14px 14px;
+    border: 1px solid var(--rv-line);
+    border-radius: 14px;
+    background: var(--rv-surface-2);
+  }
+  .sub-box > .ai-state {
+    padding: 0;
+    background: none;
+  }
+  .sub-box > .field:first-child,
+  .sub-box > .alert-when:first-child .field {
+    margin-top: 0;
+  }
+  .sub-box .steps-box {
+    margin-top: 14px;
+  }
+  @media (max-width: 360px) {
+    .sub-op {
+      padding-left: 10px;
+    }
+    .sub-box {
+      padding: 10px;
+    }
+  }
+  /* o título de cada tela e de cada janela com o ícone */
+  .page-title:has(> .page-ic) {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .page-title > .page-ic {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+  }
+  .page-title > .page-ic .i {
+    width: 23px;
+    height: 23px;
+  }
+  .sheet-head h3:has(> .sh-ic) {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .sh-ic {
+    flex: none;
+    width: 30px;
+    height: 30px;
+    padding: 6px;
+    border-radius: 9px;
+    background: var(--rv-accent-soft);
+    color: var(--rv-accent-ink, var(--rv-accent));
+  }
+  /* os botões de texto (Limpar, Todos, Nenhum, Ver IA…) com o ícone antes */
+  .text-btn:has(> .i) {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .text-btn > .i {
+    width: 16px;
+    height: 16px;
+    flex: none;
+  }
+  .text-btn.inline:has(> .i) {
+    display: inline-flex;
+    vertical-align: middle;
+  }
+  .pick > .i + span {
+    min-width: 0;
+  }
+  .sub-box.sensor-list {
+    padding: 10px 14px;
+  }
+  .sub-box > .ai-actions {
+    margin-top: 12px;
   }
 `;
