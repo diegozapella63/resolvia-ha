@@ -172,7 +172,9 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     this._searchShut = new Set();
     // Buscar › Incluir: closed or open (kept), and De quem é ("" = everyone's lists)
     this._incluirShut = store.get(INCLUIR_KEY, false) === true;
-    this._searchWho = store.get(WHO_KEY, null); // null: nunca escolheu (2.69.0: começa em quem está usando o app)
+    // 2.72.0: o app abre sempre em quem está usando (null); outra escolha vale até fechar o app
+    this._searchWho = null;
+    store.set(WHO_KEY, null); // (a escolha guardada antes da 2.72.0 sai do aparelho)
     this._items = new Map();
     this._subs = new Map();
     this._polling = new Set();
@@ -2751,7 +2753,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
 
   /**
    * Buscar › Incluir › De quem é (2.68.0): Todos, or a person, whose lists show with the ones of everyone. Only when a
-   * list has a person (Personalizar › De quem é); the choice stays on the device.
+   * list has a person (Personalizar › De quem é). 2.72.0: it opens on who uses the app; a choice lasts while it is open.
    */
   _renderSearchWho() {
     const people = this._searchPeople();
@@ -2760,7 +2762,6 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     const pick = (n) => {
       this._haptic("light");
       this._searchWho = n;
-      store.set(WHO_KEY, n);
       this.requestUpdate();
     };
     return html`<span class="filters-sub" id="incluir-quem">${icon("user-round", "lbl-ic")}De quem é</span>

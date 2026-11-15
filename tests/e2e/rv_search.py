@@ -128,14 +128,17 @@ async def main():
         await who.filter(has_text="Beto").click(); await pg.wait_for_timeout(300)
         g = [x.lower() for x in await groups()]
         check("casa" not in g and any("shopping list" in x for x in g), f"Beto: his lists and everyone's ({g})")
-        await pg.goto(URL); await pg.wait_for_timeout(1300)
-        await pg.locator(".tab", has_text="Buscar").click(); await pg.wait_for_timeout(400)
-        check((await pg.locator(".who-filter .pick.on").inner_text()).strip() == "Beto" and "casa" not in [x.lower() for x in await groups()], "kept on the device")
-        await pg.locator(".who-filter .pick", has_text="Todos").click(); await pg.wait_for_timeout(300)
+        # 2.72.0: a choice lasts while the app is open; opening again, it starts on who uses the app
+        await who.filter(has_text="Todos").click(); await pg.wait_for_timeout(300)
         check(len(await groups()) == n_all and "Em 4 listas" in await pg.locator(".brand-head .status").inner_text(), "Todos: every list again")
+        await pg.locator(".tab", has_text="Agora").click(); await pg.wait_for_timeout(400)
+        await pg.locator(".tab", has_text="Buscar").click(); await pg.wait_for_timeout(400)
+        check((await pg.locator(".who-filter .pick.on").inner_text()).strip() == "Todos", "Todos lasts while the app is open")
         await pg.reload(); await pg.wait_for_timeout(1300)
         await pg.locator(".tab", has_text="Buscar").click(); await pg.wait_for_timeout(400)
-        check((await pg.locator(".who-filter .pick.on").inner_text()).strip() == "Todos", "Todos chosen: kept (not back to who uses the app)")
+        check((await pg.locator(".who-filter .pick.on").inner_text()).strip() == "Beto" and "casa" not in [x.lower() for x in await groups()],
+              "opening again: back on who uses the app (only his lists and everyone's)")
+        check(await pg.evaluate("localStorage.getItem('resolvia-busca-quem')") in (None, "null"), "nothing kept on the device")
         await pg.locator(".tab", has_text="Agora").click(); await pg.wait_for_timeout(400)  # (the app reopens on the last tab)
         await pg.locator(".tab", has_text="Buscar").click(); await pg.wait_for_timeout(400)
         # Back leaves Buscar

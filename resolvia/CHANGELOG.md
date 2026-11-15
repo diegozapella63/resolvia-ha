@@ -1,5 +1,9 @@
 # Mudanças
 
+## 2.72.0
+
+- **Buscar › Incluir › De quem é**: abre sempre em quem está usando o app, com as listas dessa pessoa e as de todos. Escolher **Todos** ou outra pessoa vale até fechar o app.
+
 ## 2.71.0
 
 - **Conversa › Clipe**: manda junto uma foto ou um PDF: **Tirar foto**, **Escolher fotos** (a galeria) ou **Escolher arquivo**. A IA olha o arquivo para responder e pode propor adicionar os itens que vê.
