@@ -1,5 +1,9 @@
 # Mudanças
 
+## 2.72.1
+
+- **Conversa**: o **Nova conversa** não quebra mais em duas linhas; num celular bem estreito, fica só o **+**.
+
 ## 2.72.0
 
 - **Buscar › Incluir › De quem é**: abre sempre em quem está usando o app, com as listas dessa pessoa e as de todos. Escolher **Todos** ou outra pessoa vale até fechar o app.

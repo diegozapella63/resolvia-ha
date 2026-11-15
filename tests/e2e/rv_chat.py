@@ -174,6 +174,15 @@ async def main():
         await chat.locator(".chat-file .icon-btn").click(); await pg.wait_for_timeout(150)
         # Nova conversa: a clean conversation (the same words in every app)
         check((await chat.locator(".chat-head .text-btn").inner_text()).strip() == "Nova conversa", "Nova conversa")
+        HEAD = """(el) => { const h = el.renderRoot.querySelector('.chat-head'); const r = h.getBoundingClientRect();
+          return [...h.children].map((x) => { const b = x.getBoundingClientRect(); return [Math.round(b.height), b.left >= r.left - 1 && b.right <= r.right + 1]; }); }"""
+        for w in (390, 320):
+            await pg.set_viewport_size({"width": w, "height": 844}); await pg.wait_for_timeout(250)
+            kids = await a.evaluate(HEAD)
+            check(all(ok for _, ok in kids) and kids[1][0] <= 44, f"{w}px: the head in one line, Nova conversa not broken ({kids})")
+        check((await chat.locator(".chat-head .text-btn").inner_text()).strip() == "" and await chat.locator(".chat-head .text-btn").get_attribute("aria-label") == "Nova conversa", "320px: only the + (named Nova conversa)")
+        await pg.screenshot(path=f"{SP}/shots/rvh-nova-320.png")
+        await pg.set_viewport_size({"width": 390, "height": 844}); await pg.wait_for_timeout(250)
         await chat.locator(".chat-head .text-btn", has_text="Nova conversa").click(); await pg.wait_for_timeout(300)
         check(await chat.locator(".chat-msg").count() == 0, "Nova clears the conversation")
         await sheet.locator(".chat-head .icon-btn[aria-label='Fechar']").click(); await pg.wait_for_timeout(300)
