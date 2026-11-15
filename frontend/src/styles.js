@@ -505,6 +505,42 @@ export const styles = css`
   .panel.dobra.fechada > .mais-head {
     padding-bottom: 16px;
   }
+  /* 2.67.0: the fields of choices of a window fold with a tap on the title (the arrow at the end); closed, only the
+     chosen chips (or the chosen equipment) show */
+  .sheet .field.dobravel > .flabel {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .sheet .field.dobravel > .flabel::after {
+    content: "";
+    flex: none;
+    width: 18px;
+    height: 18px;
+    margin-left: auto;
+    background: var(--rv-muted);
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") center / 18px no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") center / 18px no-repeat;
+    transition: transform 0.2s;
+  }
+  .sheet .field.dobravel.shut > .flabel::after {
+    transform: rotate(-90deg);
+  }
+  .sheet .field.dobravel.shut > :not(.flabel):not(.chip-row):not(.eq-pick),
+  .sheet .field.dobravel.shut > .chip-row > :not(.on),
+  .sheet .field.dobravel.shut > .chip-row:not(:has(> .on)),
+  .sheet .field.dobravel.shut > .eq-pick > :not(.eq-sel),
+  .sheet .field.dobravel.shut > .eq-pick:not(:has(> .eq-sel)) {
+    display: none !important;
+  }
+  .sheet .field.dobravel > .flabel:focus-visible {
+    outline: 2px solid var(--rv-accent);
+    outline-offset: 2px;
+    border-radius: 8px;
+  }
   .panel.dobra > .mais-head:focus-visible {
     outline: 2px solid var(--rv-accent);
     outline-offset: 2px;
@@ -1363,10 +1399,41 @@ export const styles = css`
   }
   /* Buscar › Incluir: buttons of the same width, two by row */
   .filters-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 2px 0;
+    background: none;
+    border: 0;
+    text-align: left;
     font-size: 14px;
     font-weight: 500;
     color: var(--rv-text-2);
     margin: 0 0 8px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* 2.67.0: Incluir folds with a tap (the arrow at the end); closed, only the ones on; open again on each visit */
+  .filters-label::after {
+    content: "";
+    flex: none;
+    width: 18px;
+    height: 18px;
+    margin-left: auto;
+    background: var(--rv-muted);
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") center / 18px no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") center / 18px no-repeat;
+    transition: transform 0.2s;
+  }
+  .filters-label[aria-expanded="false"]::after {
+    transform: rotate(-90deg);
+  }
+  .filters.shut > :not(.on) {
+    display: none;
+  }
+  .filters.shut:not(:has(> .on)) {
+    display: none;
   }
   .filters {
     display: grid;

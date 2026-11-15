@@ -1,5 +1,10 @@
 # Mudanças
 
+## 2.67.0
+
+- **Janelas mais curtas**: no Novo item, no Editar item e no Alterar em lote, cada campo de escolhas (Trazer de mensagem ou foto, Prazo, Horário, Cômodo, Equipamento, Quem faz, Pontos, Repetir, Lista…) fecha e abre num toque no título, com a seta no canto. Fechado, mostra só o que está escolhido. O aparelho lembra os que ficaram fechados.
+- **Buscar › Incluir** fecha e abre num toque (fechado, só os ligados) e volta aberto toda vez que você abre o Buscar. Ganhou o ícone.
+
 ## 2.66.1
 
 - **Sensores no Home Assistant**: sem a linha acima do primeiro sensor no quadro embaixo de **Criar sensores**.

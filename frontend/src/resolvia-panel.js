@@ -104,6 +104,17 @@ export const foldKeyOf = (card) => {
   return card.id || (card.dataset && card.dataset.card) || (h2 ? h2.textContent.trim() : "");
 };
 
+/**
+ * 2.67.0: in a window, each field of choices (Trazer de mensagem ou foto, Prazo, Horário, Cômodo, Equipamento, Quem faz,
+ * Pontos, Repetir, Lista…) folds with a tap on its title: closed, only what is chosen shows. The device keeps the
+ * closed ones (resolvia-campos), by the title (Cômodos and Lista (mover) are Cômodo and Lista).
+ */
+const FIELD_KEY = "resolvia-campos";
+export const fieldKeyOf = (field) => {
+  const l = field && field.querySelector(":scope > .flabel");
+  return l ? l.textContent.trim().replace(/\s*\(.*\)$/, "").replace(/s$/, "") : "";
+};
+
 /** The icon of a confirmation (its title and its button), by what the button does. */
 export const confirmIc = (label = "") =>
   /^Apagar/.test(label) ? "trash" : /^Restaurar/.test(label) ? "archive-restore" : /^Importar/.test(label) ? "upload" : /^Limpar/.test(label) ? "brush-cleaning" : /^Desligar/.test(label) ? "toggle-right" : "circle-alert";
@@ -311,6 +322,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     this.toggleAttribute("dark", this._dark);
     this._markTabs();
     this._applyFolds();
+    this._applyFieldFolds();
     this._chatAfterRender();
     const view = this._view();
     // an address of Mais before 2.37 (/mais/dados): the new one in its place (/config/dados)
@@ -338,6 +350,11 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
         this._loadCorreria();
       }
       if (tab === "dados") this._loadBackups();
+    }
+    // Buscar › Incluir folds, but opens again each time Buscar is entered (2.67.0: not kept)
+    if (changed.has("_path") && this._view().name === "search" && this._incluirShut) {
+      this._incluirShut = false;
+      this.requestUpdate();
     }
     // Buscar: the cursor goes to the box on the computer (mouse), and when coming from the box
     // of the home or the "/" key. Not on the phone by itself: that would pop the keyboard over the screen.
@@ -378,6 +395,51 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     }
   }
 
+  _closedFields() {
+    if (!this._camposFechados) {
+      try {
+        this._camposFechados = new Set(JSON.parse(localStorage.getItem(FIELD_KEY) || "[]"));
+      } catch (e) {
+        this._camposFechados = new Set();
+      }
+    }
+    return this._camposFechados;
+  }
+
+  /** The fields of choices of the windows fold (see fieldKeyOf). */
+  _applyFieldFolds() {
+    const root = this.renderRoot;
+    if (!root || !root.querySelectorAll) return;
+    const shut = this._closedFields();
+    for (const field of root.querySelectorAll(".sheet .field")) {
+      const lab = field.querySelector(":scope > .flabel");
+      if (!lab || !field.querySelector(":scope > .chip-row, :scope > .imp-tiles, :scope > .eq-pick")) continue;
+      const key = fieldKeyOf(field);
+      if (!key) continue;
+      const off = shut.has(key);
+      field.classList.add("dobravel");
+      field.classList.toggle("shut", off);
+      lab.setAttribute("role", "button");
+      lab.setAttribute("tabindex", "0");
+      lab.setAttribute("aria-expanded", off ? "false" : "true");
+    }
+  }
+
+  _toggleField(lab) {
+    const key = fieldKeyOf(lab.parentElement);
+    if (!key) return;
+    const shut = this._closedFields();
+    if (shut.has(key)) shut.delete(key);
+    else shut.add(key);
+    try {
+      localStorage.setItem(FIELD_KEY, JSON.stringify([...shut]));
+    } catch (e) {
+      /* private window: only for now */
+    }
+    this._haptic("light");
+    this._applyFieldFolds();
+  }
+
   _toggleFold(head) {
     const key = foldKeyOf(head.parentElement);
     if (!key) return;
@@ -399,16 +461,21 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
       const head = e.target.closest && e.target.closest(".panel.dobra > .mais-head");
       return head && !e.target.closest("button, a, input, select, textarea, label") ? head : null;
     };
+    const fieldOf = (e) => (e.target.closest && e.target.closest(".sheet .field.dobravel > .flabel")) || null;
     this.renderRoot.addEventListener("click", (e) => {
       const head = foldOf(e);
       if (head) this._toggleFold(head);
+      const lab = fieldOf(e);
+      if (lab) this._toggleField(lab);
     });
     this.renderRoot.addEventListener("keydown", (e) => {
       if (e.key !== "Enter" && e.key !== " ") return;
       const head = foldOf(e);
-      if (!head) return;
+      const lab = !head && fieldOf(e);
+      if (!head && !lab) return;
       e.preventDefault();
-      this._toggleFold(head);
+      if (head) this._toggleFold(head);
+      else this._toggleField(lab);
     });
     // the alert of Prazos (Avisar o que vence hoje) opens the app on Sugestões
     const tab = openTab();
@@ -2697,8 +2764,12 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
           <input type="search" data-q="buscar" placeholder="Buscar em todas as listas" .value=${this._query} @input=${(e) => (this._query = e.target.value)} enterkeyhint="search" aria-label="Buscar" />
           ${this._query ? html`<button class="icon-btn" style="width:40px;height:40px" @click=${() => (this._query = "")} aria-label="Limpar">${icon("x")}</button>` : nothing}
         </label>
-        <div class="filters-label" id="incluir">Incluir</div>
-        <div class="filters" role="group" aria-labelledby="incluir">
+        <button type="button" class="filters-label" id="incluir" aria-expanded=${this._incluirShut ? "false" : "true"} @click=${() => {
+          this._haptic("light");
+          this._incluirShut = !this._incluirShut;
+          this.requestUpdate();
+        }}>${icon("sliders-horizontal", "lbl-ic")}Incluir</button>
+        <div class="filters ${this._incluirShut ? "shut" : ""}" role="group" aria-labelledby="incluir">
           ${selecting ? nothing : this._searchToggle("circle-check", "Concluídos", this._searchDone, () => (this._searchDone = !this._searchDone))}
           ${/* Serviços externos, Cômodos and Equipamentos only with their option on (off: they aren't there) */ ""}
           ${this._extOn() ? this._searchToggle("hard-hat", "Serviços externos", this._searchExt, () => (this._searchExt = !this._searchExt)) : nothing}
