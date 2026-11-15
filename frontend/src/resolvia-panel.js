@@ -107,7 +107,7 @@ export const foldKeyOf = (card) => {
 /**
  * 2.67.0: in a window, each field of choices (Trazer de mensagem ou foto, Prazo, Horário, Cômodo, Equipamento, Quem faz,
  * Pontos, Repetir, Lista…) folds with a tap on its title: closed, only what is chosen shows. The device keeps the
- * closed ones (resolvia-campos), by the title (Cômodos and Lista (mover) are Cômodo and Lista).
+ * closed ones (resolvia-campos), by the title (Cômodos is Cômodo).
  */
 const FIELD_KEY = "resolvia-campos";
 // Buscar › Incluir: closed or open, and De quem é (the person whose lists are shown), kept on the device (2.68.0)
@@ -171,7 +171,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     this._searchShut = new Set();
     // Buscar › Incluir: closed or open (kept), and De quem é ("" = everyone's lists)
     this._incluirShut = store.get(INCLUIR_KEY, false) === true;
-    this._searchWho = store.get(WHO_KEY, "") || "";
+    this._searchWho = store.get(WHO_KEY, null); // null: nunca escolheu (2.69.0: começa em quem está usando o app)
     this._items = new Map();
     this._subs = new Map();
     this._polling = new Set();
@@ -2757,10 +2757,15 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     return [...seen.values()].sort((a, b) => a.localeCompare(b, "pt-BR"));
   }
 
-  /** The person chosen in De quem é ("" = everyone), while someone still has a list. */
+  /** The person chosen in De quem é ("" = everyone), while someone still has a list; never chosen, who uses the app. */
   _searchWhoNow() {
+    const people = this._searchPeople();
+    if (this._searchWho == null) {
+      const u = fold(((this.hass && this.hass.user && this.hass.user.name) || "").trim());
+      return people.find((n) => fold(n) === u || u.split(/\s+/)[0] === fold(n).split(/\s+/)[0]) || "";
+    }
     const w = this._searchWho;
-    return w && this._searchPeople().some((n) => fold(n) === fold(w)) ? w : "";
+    return w && people.some((n) => fold(n) === fold(w)) ? w : "";
   }
 
   /** The lists of Buscar: a person's, with the ones of everyone (De quem é: Todos), like the alert of Prazos. */
@@ -3729,7 +3734,8 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
       f.mode === "add"
         ? this._L.filter((l) => has(l.features, F.CREATE) && !l.unavailable && (!l.hidden || l.id === f.target))
         : has(src.features, F.DELETE)
-          ? this._L.filter((l) => has(l.features, F.CREATE) && !l.unavailable && (!l.hidden || l.id === src.id))
+          ? // 2.69.0: a lista onde o item está vem sempre, marcada (mesmo uma que não aceita item novo, como a do Alexa)
+            this._L.filter((l) => l.id === src.id || (has(l.features, F.CREATE) && !l.unavailable && !l.hidden))
           : [];
     return html`
       <div class="sheet-head">
@@ -3809,7 +3815,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
       ${this._renderPointsField(f)}
       ${targets.length > 1
         ? html`<div class="field">
-            <span class="flabel">${icon("list-todo", "lbl-ic")}${f.mode === "add" ? "Lista" : "Lista (mover)"}</span>
+            <span class="flabel">${icon("list-todo", "lbl-ic")}Lista</span>
             <div class="chip-row grid">
               ${targets.map((t) => html`<button class="pick list ${f.target === t.id ? "on" : ""}" style=${colorVars(t.color, this._dark)} @click=${() => this._setForm({ target: t.id })}><span class="dot"></span><span>${clip(t.name, 26)}</span></button>`)}
             </div>

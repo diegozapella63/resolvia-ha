@@ -15,7 +15,7 @@ DATA, SHARE = f"{SP}/rvs-data", f"{SP}/rvs-share"
 for d in (DATA, SHARE): shutil.rmtree(d, ignore_errors=True)
 fake = subprocess.Popen(["node", f"{REPO}/dev/fake-ha.mjs"], env=dict(os.environ, FAKE_HA_TOKEN="test", FAKE_HA_PORT=HA_PORT, TZ=TZ), stdout=open(f"{SP}/rvs_fake.log", "w"), stderr=subprocess.STDOUT)
 time.sleep(0.6)
-app = subprocess.Popen(["node", f"{REPO}/resolvia/rootfs/app/server.js"], env=dict(os.environ, TZ=TZ, RESOLVIA_DEV="1", HA_WS_URL=f"ws://127.0.0.1:{HA_PORT}/api/websocket", HA_TOKEN="test", DATA_DIR=DATA, SHARE_DIR=SHARE, PORT=APP_PORT), stdout=open(f"{SP}/rvs_app.log", "w"), stderr=subprocess.STDOUT)
+app = subprocess.Popen(["node", f"{REPO}/resolvia/rootfs/app/server.js"], env=dict(os.environ, TZ=TZ, RESOLVIA_DEV="1", RESOLVIA_DEV_USER_NAME="Beto Teste", HA_WS_URL=f"ws://127.0.0.1:{HA_PORT}/api/websocket", HA_TOKEN="test", DATA_DIR=DATA, SHARE_DIR=SHARE, PORT=APP_PORT), stdout=open(f"{SP}/rvs_app.log", "w"), stderr=subprocess.STDOUT)
 time.sleep(1.0)
 URL = f"http://127.0.0.1:{APP_PORT}/"
 LISTAS = URL + "?aba=listas"  # 2.48.0: the app opens on Sugestões; these checks start on Listas
@@ -116,8 +116,9 @@ async def main():
         await pg.goto(URL); await pg.wait_for_timeout(1300)
         await pg.locator(".tab", has_text="Buscar").click(); await pg.wait_for_timeout(400)
         who = pg.locator(".who-filter .pick")
-        check([t.strip() for t in await who.all_inner_texts()] == ["Todos", "Ana", "Beto"] and (await pg.locator(".who-filter .pick.on").inner_text()).strip() == "Todos"
-              and await pg.locator(".filters-sub svg.lbl-ic").count() == 1, f"De quem é: Todos and each person, with its icon ({await who.all_inner_texts()})")
+        check([t.strip() for t in await who.all_inner_texts()] == ["Todos", "Ana", "Beto"] and (await pg.locator(".who-filter .pick.on").inner_text()).strip() == "Beto"
+              and await pg.locator(".filters-sub svg.lbl-ic").count() == 1, f"De quem é: Todos and each person, with its icon; 2.69.0: never chosen, it starts on who uses the app ({await who.all_inner_texts()})")
+        await who.filter(has_text="Todos").click(); await pg.wait_for_timeout(300)
         n_all = len(await groups())
         await who.filter(has_text="Ana").click(); await pg.wait_for_timeout(300)
         g = [x.lower() for x in await groups()]
@@ -132,6 +133,9 @@ async def main():
         check((await pg.locator(".who-filter .pick.on").inner_text()).strip() == "Beto" and "casa" not in [x.lower() for x in await groups()], "kept on the device")
         await pg.locator(".who-filter .pick", has_text="Todos").click(); await pg.wait_for_timeout(300)
         check(len(await groups()) == n_all and "Em 4 listas" in await pg.locator(".brand-head .status").inner_text(), "Todos: every list again")
+        await pg.reload(); await pg.wait_for_timeout(1300)
+        await pg.locator(".tab", has_text="Buscar").click(); await pg.wait_for_timeout(400)
+        check((await pg.locator(".who-filter .pick.on").inner_text()).strip() == "Todos", "Todos chosen: kept (not back to who uses the app)")
         await pg.locator(".tab", has_text="Agora").click(); await pg.wait_for_timeout(400)  # (the app reopens on the last tab)
         await pg.locator(".tab", has_text="Buscar").click(); await pg.wait_for_timeout(400)
         # Back leaves Buscar

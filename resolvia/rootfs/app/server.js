@@ -559,7 +559,8 @@ class Session {
     this.user = {
       // RESOLVIA_DEV_USER_ID: test hook (dev mode only) for the Home Assistant user behind ingress
       id: headers["x-remote-user-id"] || (DEV && process.env.RESOLVIA_DEV_USER_ID) || null,
-      name: headers["x-remote-user-display-name"] || headers["x-remote-user-name"] || "",
+      // RESOLVIA_DEV_USER_NAME: the same, for the name (2.69.0: Buscar › De quem é starts on who uses the app)
+      name: headers["x-remote-user-display-name"] || headers["x-remote-user-name"] || (DEV && process.env.RESOLVIA_DEV_USER_NAME) || "",
     };
     ws.on("message", (text) => this.onMessage(text));
     ws.on("close", () => this.dispose());

@@ -116,7 +116,7 @@ async def main():
         await open_edit("Comprar pilhas")
         check(await sheet_title() == "Editar item", "tapping an item opens Editar item")
         labels = [t.strip() for t in await pg.locator(".sheet .flabel").all_inner_texts()]
-        check(labels[:3] == ["Item", "Notas", "Prazo"] and "Lista (mover)" in labels, f"Casa: item, notes, deadline, move ({labels})")
+        check(labels[:3] == ["Item", "Notas", "Prazo"] and "Lista" in labels, f"Casa: item, notes, deadline, move ({labels})")
         tas = pg.locator(".sheet textarea")
         check(await tas.nth(0).input_value() == "Comprar pilhas", "the text is there")
         await tas.nth(0).fill("Comprar pilhas AA")

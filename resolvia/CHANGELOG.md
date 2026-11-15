@@ -1,5 +1,10 @@
 # Mudanças
 
+## 2.69.0
+
+- **Editar item › Lista**: vem marcada a lista onde o item está (também a do Alexa, que não aceita item novo daqui); tocar em outra move o item. Saiu o "(mover)" do título.
+- **Buscar › Incluir › De quem é** começa em quem está usando o app (a pessoa do usuário do Home Assistant, quando tem lista sua). Escolher **Todos** ou outra pessoa fica guardado no aparelho, como antes.
+
 ## 2.68.0
 
 - **Buscar › Incluir › De quem é**: quando alguma lista é de uma pessoa (Personalizar › De quem é), dá para ver só as tarefas de uma pessoa: as listas dela, junto com as de todos, sem as das outras pessoas. **Todos** volta a mostrar tudo. A escolha fica no aparelho.
