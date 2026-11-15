@@ -14,7 +14,7 @@ export function renderChat({ lit, icon, messages = [], draft = "", busy = false,
   const actionRow = (m, k, a, j) => html`<div class="chat-act ${a.state || "todo"}">
     <span class="chat-act-ic">${icon(a.state === "done" ? "check" : a.state === "failed" ? "circle-alert" : a.icon || "sparkles")}</span>
     <span class="chat-act-tx">${a.label}${a.note ? html`<small>${a.note}</small>` : nothing}</span>
-    ${a.state === "done" ? html`<span class="chat-act-ok">Feito</span>` : a.state === "doing" ? html`<span class="chat-act-ok">…</span>` : html`<button type="button" class="btn primary sm" @click=${() => onAction(k, j)}>${a.state === "failed" ? "Tentar de novo" : "Fazer"}</button>`}
+    ${a.state === "done" ? html`<span class="chat-act-ok">Feito</span>` : a.state === "doing" ? html`<span class="chat-act-ok">…</span>` : html`<button type="button" class="btn primary sm" @click=${() => onAction(k, j)}>${icon(a.state === "failed" ? "rotate-ccw" : "check")}${a.state === "failed" ? "Tentar de novo" : "Fazer"}</button>`}
   </div>`;
   const bubble = (m, k) => {
     const todo = (m.actions || []).filter((a) => a.state !== "done" && a.state !== "doing").length;
@@ -23,7 +23,7 @@ export function renderChat({ lit, icon, messages = [], draft = "", busy = false,
       ${(m.actions || []).length
         ? html`<div class="chat-acts">
             ${m.actions.map((a, j) => actionRow(m, k, a, j))}
-            ${todo > 1 ? html`<button type="button" class="btn outline sm chat-all" @click=${() => onAll(k)}>Fazer todas (${todo})</button>` : nothing}
+            ${todo > 1 ? html`<button type="button" class="btn outline sm chat-all" @click=${() => onAll(k)}>${icon("check")}Fazer todas (${todo})</button>` : nothing}
           </div>`
         : nothing}
     </div>`;
@@ -94,7 +94,8 @@ export const chatStyles = `
   .chat-act-tx { flex: 1; min-width: 0; display: flex; flex-direction: column; font-size: 14.5px; font-weight: 600; }
   .chat-act-tx small { font-weight: 400; font-size: 12.5px; color: var(--rv-muted); }
   .chat-act-ok { font-size: 13px; font-weight: 600; color: var(--rv-muted); padding: 0 8px; }
-  .chat-act .btn.sm { min-height: 36px; padding: 0 14px; }
+  .chat-act .btn.sm { min-height: 36px; padding: 0 14px; gap: 6px; }
+  .chat-act .btn.sm .i, .chat-all .i { width: 16px; height: 16px; }
   .chat-all { justify-self: start; }
   .chat-error { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; color: var(--rv-late, #e5484d); }
   .chat-error .i { width: 18px; height: 18px; flex: none; }

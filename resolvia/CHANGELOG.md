@@ -1,5 +1,12 @@
 # Mudanças
 
+## 2.66.0
+
+- **Contrair e expandir**: toda seção (Configurações, Gráficos, os cards da Agora…) fecha e abre num toque no cabeçalho, com a seta no canto. O aparelho lembra as que ficaram fechadas.
+- **Mais ícones**: em cada campo das janelas (Item, Notas, Prazo, Horário, Lista, Cômodo, Equipamento, Quem faz, Pontos, Nome, Cor, Ícone, De quem é…), no título de **Personalizar**, **Ordem dos cards**, **Quem fez?**, **Versões anteriores** e das confirmações, e nos botões que faltavam (Salvar, Adicionar, Cancelar, Aplicar, Fechar, Restaurar, Desfazer, Fazer…).
+- **Últimas chamadas** (Uso da IA) com o ícone e quantas são.
+- **Relatório de pendências**: cada gráfico e cada lista com o seu ícone (a lista na cor dela), e **Voltar** e **Baixar PDF** com os deles.
+
 ## 2.65.0
 
 - **Ícones em tudo**, como nos outros apps: cada opção tem um ícone antes do título (Controlar prazos, Usar IA, Cor do dia, Horário, Quem recebe…), e o título de cada tela e de cada janela também (Agora, Configurações, Novo item…). As escolhas ganharam ícone: Hoje, Amanhã, os dias, Próx. semana, Não, Todo dia, Sem pontos, +5, Manter, Nenhum, e os botões Limpar, Todos e Nova conversa.

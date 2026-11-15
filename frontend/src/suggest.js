@@ -300,7 +300,7 @@ export const SuggestMixin = (Base) =>
       const custom = ids.join() !== NOW_CARDS.join();
       return html`
         <div class="sheet-head">
-          <h3 class="display">Ordem dos cards</h3>
+          <h3 class="display">${icon("grip-vertical", "sh-ic")}Ordem dos cards</h3>
           <button class="icon-btn" @click=${() => this._closeSheet()} aria-label="Fechar">${icon("x")}</button>
         </div>
         <p class="sheet-note top">A ordem da Agora, só para você.</p>

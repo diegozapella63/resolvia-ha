@@ -184,6 +184,20 @@ export function graficos(rep) {
   };
 }
 
+/** The icons of the page (Lucide, the same as the app): each chart, each list, Voltar and Baixar PDF. */
+const IC = {
+  "list-todo": '<path d="M13 5h8"/><path d="M13 12h8"/><path d="M13 19h8"/><path d="m3 17 2 2 4-4"/><rect x="3" y="4" width="6" height="6" rx="1"/>',
+  "calendar-clock": '<path d="M16 14v2.2l1.6 1"/><path d="M16 2v3"/><path d="M21 7.338V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h2.338"/><path d="M3 9h5.859"/><path d="M8 2v3"/><circle cx="16" cy="16" r="6"/>',
+  "door-open": '<path d="M11 20H2"/><path d="M11 4.562v16.157a1 1 0 0 0 1.242.97L19 20V5.562a2 2 0 0 0-1.515-1.94l-4-1A2 2 0 0 0 11 4.561z"/><path d="M11 4H8a2 2 0 0 0-2 2v14"/><path d="M14 12h.01"/><path d="M22 20h-3"/>',
+  package: '<path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><polyline points="3.29 7 12 12 20.71 7"/><path d="m7.5 4.27 9 5.15"/>',
+  "hard-hat": '<path d="M10 10V5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5"/><path d="M14 6a6 6 0 0 1 6 6v3"/><path d="M4 15v-3a6 6 0 0 1 6-6"/><rect x="2" y="15" width="20" height="4" rx="1"/>',
+  "chevron-left": '<path d="m15 18-6-6 6-6"/>',
+  download: '<path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/>',
+};
+const svg = (name) => `<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[name] || IC["list-todo"]}</svg>`;
+/** The icon of each chart, as in Mais › Gráficos. */
+const CHART_IC = { "Por lista": "list-todo", "Por prazo": "calendar-clock", "Por cômodo": "door-open", "Por equipamento": "package", "Quem faz": "hard-hat" };
+
 /** The charts in order. */
 const chartList = (g) => [g.lists, g.due, g.rooms, g.equips, g.who].filter(Boolean);
 
@@ -209,7 +223,7 @@ const ICON = (cor) => `<svg class="ic" viewBox="0 0 32 32" aria-hidden="true">
  */
 export const BAIXAR =
   "try{var d=window.top.document,a=d.createElement('a');a.href=this.href;a.download=this.getAttribute('download')||'';a.target='_blank';a.style.display='none';" +
-  "d.body.appendChild(a);a.dispatchEvent(new MouseEvent('click'));d.body.removeChild(a);var b=this;b.textContent='Baixando…';" +
+  "d.body.appendChild(a);a.dispatchEvent(new MouseEvent('click'));d.body.removeChild(a);var b=this.querySelector('span')||this;b.textContent='Baixando…';" +
   "setTimeout(function(){b.textContent='Baixar PDF'},4000);return false}catch(e){return true}";
 
 /** The colors of the parts of the charts (lists bring their own): late red, today amber, then greys going quiet. */
@@ -227,7 +241,7 @@ function chartHtml(c) {
     .join("");
   const more = f.more ? `<p class="gpe">+${plural(f.more, c.unit[0], c.unit[1])}: <b>${f.moreN}</b></p>` : "";
   const none = c.none ? `<p class="gpe">${esc(c.noneLabel)}: <b>${c.none}</b></p>` : "";
-  return `<section class="g"><h3>${esc(c.title)}</h3>${bar}${rows}${more}${none}</section>`;
+  return `<section class="g"><h3><span class="hic">${svg(CHART_IC[c.title])}</span>${esc(c.title)}</h3>${bar}${rows}${more}${none}</section>`;
 }
 
 /** The mark of CorrerIA Code (as in Mais › Sobre): the lightning in the tilted square, the name and what it does. */
@@ -267,7 +281,7 @@ export function reportHtml(rep, { tema = null, cor = "#ff8a65" } = {}) {
       )
       .join("");
     const sub = [s.owner ? `de ${s.owner}` : "", plural(s.rows.length, "pendente", "pendentes"), s.late ? `${s.late} ${s.late === 1 ? "atrasada" : "atrasadas"}` : ""].filter(Boolean).join(" · ");
-    return `<section><h2><span>${esc(s.name)}</span><small>${esc(sub)}</small></h2>${s.rows.length ? `<table><tbody>${rows}</tbody></table>` : `<p class="vazio">Nada pendente nesta lista.</p>`}</section>`;
+    return `<section><h2><span><span class="hic"${s.color ? ` style="--c:${esc(s.color)}"` : ""}>${svg("list-todo")}</span>${esc(s.name)}</span><small>${esc(sub)}</small></h2>${s.rows.length ? `<table><tbody>${rows}</tbody></table>` : `<p class="vazio">Nada pendente nesta lista.</p>`}</section>`;
   };
   const claro = "--bg:#f6f7f9;--card:#fff;--fg:#141a22;--mut:#5b6573;--linha:#e3e7ec;--linha2:#eef1f4;--borda:#d6dbe2;--late:#d92d20;--pts:#b7791f;--today:#f59e0b;--ext:#4f46e5;--g1:#7b8590;--g2:#aab3bd;--g3:#d5dbe2";
   const escuro = "--bg:#0f1318;--card:#161c23;--fg:#e8edf3;--mut:#9aa6b4;--linha:#2a3340;--linha2:#1f2732;--borda:#334051;--late:#ff6b5e;--pts:#f5c451;--today:#ffb547;--ext:#a5b4fc;--g1:#9aa6b4;--g2:#66727f;--g3:#3a4552";
@@ -288,7 +302,8 @@ body{font:15px/1.45 Barlow,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
 main{max-width:860px;margin:0 auto}
 .barra{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px}
 .barra a,.barra button,.barra select{font:inherit;font-size:14px;font-weight:600;min-height:44px;padding:8px 10px;border-radius:12px;border:1px solid var(--borda);background:var(--card);color:var(--fg);text-decoration:none;cursor:pointer;text-align:center}
-.barra a{display:flex;align-items:center;justify-content:center;line-height:1.2}
+.barra a{display:flex;align-items:center;justify-content:center;gap:8px;line-height:1.2}
+.barra .i{width:18px;height:18px;flex:none}
 /* the box closed like the boxes of the app: its own arrow, never the one of the phone (it opens in selectsheet.js) */
 .barra select{grid-column:1/-1;text-align:left;font-size:15px;padding:10px 40px 10px 14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;-webkit-appearance:none;appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--mut) 50%),linear-gradient(135deg,var(--mut) 50%,transparent 50%);background-position:calc(100% - 20px) 52%,calc(100% - 14px) 52%;background-size:6px 6px;background-repeat:no-repeat}
 .barra .pdf{background:var(--a);border-color:transparent;color:#1a1210}
@@ -321,7 +336,10 @@ td small{display:block;color:var(--mut);font-size:12.5px}
 .vazio{margin:10px 0}
 .graficos{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:14px;margin-top:14px;align-items:start}
 .graficos section{margin:0;padding:12px 16px}
-.g h3{font:700 20px/1.2 "Barlow Condensed",Barlow,sans-serif;margin:2px 0 10px}
+.g h3{display:flex;align-items:center;gap:10px;font:700 20px/1.2 "Barlow Condensed",Barlow,sans-serif;margin:2px 0 10px}
+.hic{display:inline-grid;place-items:center;flex:none;width:30px;height:30px;border-radius:9px;background:color-mix(in srgb,var(--c,var(--a)) 22%,transparent);color:var(--fg)}
+.hic .i{width:17px;height:17px}
+h2 > span:first-child{display:inline-flex;align-items:center;gap:10px}
 .split{display:flex;gap:2px;height:10px;margin:0 0 8px}
 .split i{display:block;min-width:4px}
 .split i:first-child{border-radius:5px 0 0 5px}
@@ -347,7 +365,7 @@ td small{display:block;color:var(--mut);font-size:12.5px}
 </style><script src="selectsheet.js"></script></head><body><main>
 <div class="barra">
 <select aria-label="Listas" onchange="var u=new window.URL(window.location.href);if(this.value)u.searchParams.set('lista',this.value);else u.searchParams.delete('lista');location.replace(u.href)">${options}</select>
-<a href="./" onclick="if(history.length>1){history.back();return false}">Voltar</a><a class="pdf" href="${esc(pdfHref)}" download="${esc(pdfName(rep))}" onclick="${BAIXAR}">Baixar PDF</a>
+<a href="./" onclick="if(history.length>1){history.back();return false}">${svg("chevron-left")}<span>Voltar</span></a><a class="pdf" href="${esc(pdfHref)}" download="${esc(pdfName(rep))}" onclick="${BAIXAR}">${svg("download")}<span>Baixar PDF</span></a>
 </div>
 <header class="cab">${ICON(accent)}<div><div class="app"><span class="wm">Resolv<b>IA</b></span> · listas de tarefas</div><h1>Relatório de pendências</h1><p>O que falta fazer ${esc(which)} · ${when}</p></div></header>
 ${rep.total ? `<div class="resumo">${tiles}</div>` : ""}

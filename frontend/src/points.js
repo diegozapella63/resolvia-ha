@@ -136,7 +136,7 @@ export const PointsMixin = (Base) =>
       const n = f.points || 0;
       const custom = f.pointsCustom || (n > 0 && !POINT_PICKS.includes(n));
       return html`<div class="field">
-        <span class="flabel">Pontos para quem concluir</span>
+        <span class="flabel">${icon("trophy", "lbl-ic")}Pontos para quem concluir</span>
         <div class="chip-row">
           <button class="pick ${!n && !custom ? "on" : ""}" @click=${() => this._setForm({ points: 0, pointsCustom: false })}>${icon("x")}<span>Sem pontos</span></button>
           ${POINT_PICKS.map((v) => html`<button class="pick ${n === v && !custom ? "on" : ""}" @click=${() => this._setForm({ points: v, pointsCustom: false })}>${icon("trophy")}<span>+${v}</span></button>`)}
@@ -163,14 +163,14 @@ export const PointsMixin = (Base) =>
       const f = this._form;
       return html`
         <div class="sheet-head">
-          <h3 class="display">Quem fez?</h3>
+          <h3 class="display">${icon("trophy", "sh-ic")}Quem fez?</h3>
           <button class="icon-btn" @click=${() => f.run("")} aria-label="Fechar">${icon("x")}</button>
         </div>
         <p class="sheet-note top">${clip(f.title || "", 40)} · <b>+${f.points} pontos</b></p>
         <div class="who-grid">
           ${(f.participantes || []).map((p) => html`<button class="who-btn" @click=${() => f.run(p)}><span class="who-av">${(p || "?").trim().charAt(0).toUpperCase()}</span><b>${p}</b></button>`)}
         </div>
-        <button class="btn outline" style="width:100%;margin-top:12px" @click=${() => f.run("")}>Ninguém do placar (sem pontos)</button>
+        <button class="btn outline" style="width:100%;margin-top:12px" @click=${() => f.run("")}>${icon("x")}Ninguém do placar (sem pontos)</button>
       `;
     }
 

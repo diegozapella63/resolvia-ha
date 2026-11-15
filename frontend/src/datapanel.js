@@ -172,7 +172,7 @@ export const DataMixin = (Base) =>
       const f = this._form;
       return html`
         <div class="sheet-head">
-          <h3 class="display">Versões anteriores</h3>
+          <h3 class="display">${icon("archive-restore", "sh-ic")}Versões anteriores</h3>
           <button class="icon-btn" @click=${() => this._closeSheet()} aria-label="Fechar">${icon("x")}</button>
         </div>
         ${f.error
@@ -185,7 +185,7 @@ export const DataMixin = (Base) =>
                   ${f.list.map(
                     (v) => html`<div class="data-item">
                       <div><b>${this._dateTime(v.when)}</b><span>${plural(v.lists, "lista personalizada", "listas personalizadas")} · ${plural(v.rules, "repetição", "repetições")} · ${WHY[v.reason] || "automática"}</span></div>
-                      <button class="btn outline sm" @click=${() => this._confirmRestoreVersion(v)}>Restaurar</button>
+                      <button class="btn outline sm" @click=${() => this._confirmRestoreVersion(v)}>${icon("archive-restore")}Restaurar</button>
                     </div>`,
                   )}
                 </div>`}

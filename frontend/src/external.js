@@ -93,7 +93,7 @@ export const ExternalMixin = (Base) =>
       const e = clean(f.ext);
       if (!e && !has(features, F.DUE_DATE) && !has(features, F.DUE_DATETIME) && !has(features, F.DESCRIPTION)) return nothing;
       return html`<div class="field">
-        <span class="flabel">Quem faz</span>
+        <span class="flabel">${icon("hard-hat", "lbl-ic")}Quem faz</span>
         <div class="chip-row ext-row">
           <button class="pick ${!e ? "on" : ""}" @click=${() => this._setForm({ ext: null })}>${icon("house")}<span>Nós mesmos</span></button>
           <button class="pick ${e ? "on" : ""}" @click=${() => this._setForm({ ext: e || true })}>${icon("hard-hat")}<span>Serviço externo</span></button>

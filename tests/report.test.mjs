@@ -61,7 +61,7 @@ describe("Relatório de pendências", () => {
     assert.doesNotMatch(html, /todo\.velha|Velha/, "a hidden list is not offered");
     assert.match(html, /Pagar &lt;luz&gt;/);
     assert.match(html, /de Ana · 4 pendentes · 1 atrasada/);
-    assert.match(html, /<a class="pdf" href="relatorio.pdf\?cor=%23ff5a4f" download="pendencias-2026-11-07.pdf" onclick="[^"]+">Baixar PDF<\/a>/, "a PDF to download: the app Home Assistant doesn't print a page");
+    assert.match(html, /<a class="pdf" href="relatorio.pdf\?cor=%23ff5a4f" download="pendencias-2026-11-07.pdf" onclick="[^"]+"><svg class="i"[^>]*>.*?<\/svg><span>Baixar PDF<\/span><\/a>/, "a PDF to download: the app Home Assistant doesn't print a page");
     // 2.47.1: the download goes through the top page (the app Home Assistant on Android only downloads from there)
     assert.ok(html.includes(`onclick="${BAIXAR}"`) && BAIXAR.startsWith("try{var d=window.top.document") && !BAIXAR.includes('"'));
     assert.doesNotMatch(html, /window\.print/);
@@ -70,8 +70,12 @@ describe("Relatório de pendências", () => {
     // 2.52: closed, the box is like the boxes of the app: its own arrow and a long name ending in "…"
     assert.match(html, /\.barra select\{[^}]*text-overflow:ellipsis;-webkit-appearance:none;appearance:none;background-image:linear-gradient\(45deg,transparent 50%,var\(--mut\) 50%\)/);
     // 2.47: the charts of Mais › Gráficos, then the lists; at the end the mark of CorrerIA Code (as in Mais › Sobre)
-    assert.match(html, /<div class="graficos"><section class="g"><h3>Por lista<\/h3>.*<section class="g"><h3>Por prazo<\/h3>/s);
+    assert.match(html, /<div class="graficos"><section class="g"><h3><span class="hic"><svg class="i"[^>]*><path d="M13 5h8"\/>.*?<\/svg><\/span>Por lista<\/h3>.*<section class="g"><h3><span class="hic"><svg class="i"[^>]*><path d="M16 14v2.2l1.6 1"\/>.*?<\/svg><\/span>Por prazo<\/h3>/s);
     assert.ok(html.indexOf('class="graficos"') < html.indexOf("<section><h2>"), "the charts before the lists");
+    // 2.66: every section with its icon (the lists in their color), and Voltar and Baixar PDF with theirs
+    assert.match(html, /<section><h2><span><span class="hic"><svg class="i"[^>]*>.*?<\/svg><\/span>Casa<\/span>/i);
+    assert.match(html, /return false\}"><svg class="i"[^>]*><path d="m15 18-6-6 6-6"\/><\/svg><span>Voltar<\/span><\/a>/);
+    assert.ok(BAIXAR.includes("this.querySelector('span')||this"), "Baixando… in the place of the words, the icon stays");
     assert.match(html, /<footer class="marca"><span class="raio" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M13 2L3 14L12 14L11 22L21 10L12 10Z"\/><\/svg><\/span><span><b class="nome">Correr<i>IA<\/i> Code<\/b><small>desenvolvimento de softwares<\/small><\/span><\/footer>/);
     assert.doesNotMatch(html, /relatório gerado em/, "the time only in the header");
     assert.ok(html.trimEnd().endsWith("</footer>\n</main></body></html>"), "the mark is the last thing");
@@ -175,6 +179,7 @@ describe("Gráficos no relatório (2.47.0)", () => {
     assert.equal((html.match(/<div class="gl">/g) || []).length, 6);
     assert.match(html, /<p class="gpe">\+3 listas: <b>6<\/b><\/p>/);
     assert.match(html, /background:#62B5FF/, "the color of the list");
+    assert.match(html, /<h2><span><span class="hic" style="--c:#62B5FF"><svg class="i"/, "the icon of each list in its color");
     assert.ok(reportPdf(rep).toString("latin1").includes("(+3 listas: 6) Tj"));
   });
   it("listLooks: the names and colors of the lists as in the app", () => {

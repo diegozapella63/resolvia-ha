@@ -96,7 +96,7 @@ export function renderEquipPicker({ lit, icon, items, room = null, roomName = ""
     <label class="eq-search">${icon("search")}<input type="search" .value=${query} placeholder=${room ? `Buscar em ${roomName}…` : "Buscar equipamento…"} aria-label="Buscar equipamento" ?autofocus=${autofocus} @input=${(e) => onQuery(e.target.value)} /></label>
     ${shownIn.length ? html`<div class="eq-list">${shownIn.map((i) => row(i, false))}</div>` : nothing}
     ${shownOut.length ? html`${room ? html`<div class="eq-head">Em outros cômodos</div>` : nothing}<div class="eq-list">${shownOut.map((i) => row(i, true))}</div>` : nothing}
-    ${hidden > 0 ? html`<button type="button" class="eq-more" @click=${() => onMore()}>Mostrar mais ${hidden}</button>` : nothing}
+    ${hidden > 0 ? html`<button type="button" class="eq-more" @click=${() => onMore()}>${icon("chevron-down")}Mostrar mais ${hidden}</button>` : nothing}
     ${hint}
   </div>`;
   }
@@ -125,6 +125,6 @@ export const equipPickerStyles = `
   .eq-sel { display: flex; align-items: center; gap: 12px; padding: 10px 6px 10px 12px; border-radius: 14px; border: 1.5px solid var(--rv-accent); background: var(--rv-accent-soft); }
   .eq-sel .eq-ic { background: var(--rv-accent); color: var(--rv-on-accent, #fff); }
   .eq-pick > .eq-pick { gap: 8px; }
-  .eq-add { display: inline-flex; align-items: center; gap: 6px; }
-  .eq-add .i { width: 16px; height: 16px; }
+  .eq-more, .eq-add { display: inline-flex; align-items: center; gap: 6px; }
+  .eq-more .i, .eq-add .i { width: 16px; height: 16px; flex: none; }
 `;

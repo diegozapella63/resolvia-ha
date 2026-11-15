@@ -476,6 +476,40 @@ export const styles = css`
     height: 21px;
     stroke-width: 1.9;
   }
+  /* every card with a heading folds: a tap on the heading, the arrow at the end (kept on the device) */
+  .panel.dobra > .mais-head {
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .panel.dobra > .mais-head::after {
+    content: "";
+    flex: none;
+    width: 20px;
+    height: 20px;
+    margin-left: auto;
+    background: var(--rv-muted);
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") center / 20px no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") center / 20px no-repeat;
+    transition: transform 0.2s;
+  }
+  .panel.dobra > .mais-head:has(> .mh-count)::after {
+    margin-left: 0;
+  }
+  .panel.dobra.fechada > .mais-head::after {
+    transform: rotate(-90deg);
+  }
+  .panel.dobra.fechada > :not(.mais-head) {
+    display: none !important;
+  }
+  .panel.dobra.fechada > .mais-head {
+    padding-bottom: 16px;
+  }
+  .panel.dobra > .mais-head:focus-visible {
+    outline: 2px solid var(--rv-accent);
+    outline-offset: 2px;
+    border-radius: 10px;
+  }
   .mais-head .mh-count {
     margin-left: auto;
     font-size: 14px;
@@ -2673,6 +2707,9 @@ export const styles = css`
     opacity: 0.4;
   }
   .cam-done {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     justify-self: end;
     padding: 12px 16px;
     border-radius: 14px;
@@ -2733,6 +2770,9 @@ export const styles = css`
   }
   .toast button {
     flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     color: var(--rv-accent);
     font-weight: 600;
     padding: 6px 8px;
@@ -2740,6 +2780,11 @@ export const styles = css`
   }
   :host([dark]) .toast button {
     color: var(--rv-accent-ink-light);
+  }
+  .toast button .i,
+  .cam-done .i {
+    width: 18px;
+    height: 18px;
   }
   /* with a sheet open, the bottom is the sheet's buttons (Salvar, Limpar…): the toast goes to the top */
   .toast.has-sheet {

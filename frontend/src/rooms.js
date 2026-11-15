@@ -162,7 +162,7 @@ export const RoomsMixin = (Base) =>
       // with every room (Todos), the search is the whole house; Bens: the bens
       const room = bens ? this._bensId() : this._roomsOn() ? (ids.length ? this._roomsOfEquips(ids)[0] || null : this._allRooms(this._pickedRooms(f)) ? null : f.room) : null;
       return html`<div class="field">
-        <span class="flabel">${bens ? (ids.length > 1 ? "Bens" : "Bem") : ids.length > 1 ? "Equipamentos" : "Equipamento"}</span>
+        <span class="flabel">${icon(bens ? "car" : "package", "lbl-ic")}${bens ? (ids.length > 1 ? "Bens" : "Bem") : ids.length > 1 ? "Equipamentos" : "Equipamento"}</span>
         ${renderEquipPicker({
           lit: { html, nothing },
           icon,
@@ -278,9 +278,9 @@ export const RoomsMixin = (Base) =>
       const allIds = this._houseRooms().map((c) => c.id);
       const all = !locked && this._allRooms(rooms);
       return html`${where}<div class="field">
-        <span class="flabel">${rooms.length > 1 ? "Cômodos" : "Cômodo"}</span>
+        <span class="flabel">${icon("door-open", "lbl-ic")}${rooms.length > 1 ? "Cômodos" : "Cômodo"}</span>
         <div class="chip-row grid ${locked ? "locked" : ""}">
-          <button class="pick ${!rooms.length ? "on" : ""}" ?disabled=${locked} @click=${() => this._setForm({ room: null, rooms: [] })}>Nenhum</button>
+          <button class="pick ${!rooms.length ? "on" : ""}" ?disabled=${locked} @click=${() => this._setForm({ room: null, rooms: [] })}>${icon("x")}<span>Nenhum</span></button>
           ${allIds.length > 1
             ? html`<button class="pick room all-rooms ${all ? "on" : ""}" aria-pressed=${all ? "true" : "false"} ?disabled=${locked} @click=${() => this._setForm(all ? { room: null, rooms: [] } : { rooms: allIds, room: allIds[0] })}>${icon("house")}<span>Todos</span></button>`
             : nothing}

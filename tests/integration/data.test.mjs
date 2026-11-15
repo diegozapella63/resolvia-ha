@@ -290,7 +290,7 @@ describe("Mais › Relatório de pendências (2.45.0)", () => {
     assert.match(html, /<html lang="pt-BR" data-theme="light">/);
     assert.match(html, /--a:#ff5a4f/);
     assert.match(html, /<h1>Relatório de pendências<\/h1>/);
-    assert.match(html, /<span>Minha Casa<\/span>/, "the name given in the ResolvIA");
+    assert.match(html, /<\/svg><\/span>Minha Casa<\/span>/, "the name given in the ResolvIA");
     assert.match(html, /Passar pano na casa<small>repete toda semana[^<]*<\/small>/);
     assert.match(html, /\+10 pontos/);
     assert.match(html, /Consertar a porta/);
@@ -312,9 +312,9 @@ describe("Mais › Relatório de pendências (2.45.0)", () => {
   });
   it("2.47.0: the lists with the names of the app (without the device in front), the charts and the mark of CorrerIA Code", async () => {
     const html = await (await get("/relatorio")).text();
-    assert.match(html, /<span>Shopping list<\/span>/, "Notas e Rotinas do Alexa Shopping list, as in the app");
-    assert.doesNotMatch(html, /<span>Notas e Rotinas do Alexa Shopping list<\/span>/);
-    assert.match(html, /<section class="g"><h3>Por lista<\/h3>/);
+    assert.match(html, /<\/svg><\/span>Shopping list<\/span>/, "Notas e Rotinas do Alexa Shopping list, as in the app");
+    assert.doesNotMatch(html, /Notas e Rotinas do Alexa Shopping list<\/span>/);
+    assert.match(html, /<section class="g"><h3><span class="hic"><svg class="i"[^>]*>.*?<\/svg><\/span>Por lista<\/h3>/);
     assert.match(html, /<b class="nome">Correr<i>IA<\/i> Code<\/b><small>desenvolvimento de softwares<\/small>/);
     const pdf = Buffer.from(await (await get("/relatorio.pdf")).arrayBuffer()).toString("latin1");
     assert.ok(pdf.includes("(Por lista) Tj") && pdf.includes("(DESENVOLVIMENTO DE SOFTWARES) Tj"));
