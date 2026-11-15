@@ -46,7 +46,7 @@ async def main():
 
         # ---- Personalizar: name, color and icon, with the preview
         await sheet.locator(".menu-row", has_text="Personalizar").click(); await pg.wait_for_timeout(350)
-        await sheet.locator(".field input[type=text]").fill("Casa da praia")
+        await sheet.locator(".field textarea").fill("Casa da praia")
         await sheet.get_by_label("Azul", exact=True).click()
         await sheet.locator(".icon-grid .ig").nth(3).click(); await pg.wait_for_timeout(200)
         check(await sheet.locator(".preview-tile .lc-title").inner_text() == "Casa da praia", "the preview follows the name")
@@ -64,7 +64,7 @@ async def main():
         await a.get_by_label("Opções da lista").click(); await pg.wait_for_timeout(300)
         await sheet.locator(".menu-row", has_text="Personalizar").click(); await pg.wait_for_timeout(300)
         await sheet.locator(".btn", has_text="Padrão").click(); await pg.wait_for_timeout(150)
-        check(await sheet.locator(".field input[type=text]").input_value() == "", "Padrão clears the name")
+        check(await sheet.locator(".field textarea").input_value() == "", "Padrão clears the name")
         await sheet.locator(".btn.primary", has_text="Salvar").click(); await pg.wait_for_timeout(600)
         check((await a.locator(".page h1").first.inner_text()).strip() == "Casa", "back to Casa")
 
