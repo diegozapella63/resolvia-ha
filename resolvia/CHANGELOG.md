@@ -1,5 +1,9 @@
 # Mudanças
 
+## 2.66.1
+
+- **Sensores no Home Assistant**: sem a linha acima do primeiro sensor no quadro embaixo de **Criar sensores**.
+
 ## 2.66.0
 
 - **Contrair e expandir**: toda seção (Configurações, Gráficos, os cards da Agora…) fecha e abre num toque no cabeçalho, com a seta no canto. O aparelho lembra as que ficaram fechadas.

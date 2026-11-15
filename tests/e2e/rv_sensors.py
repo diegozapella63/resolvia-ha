@@ -69,6 +69,9 @@ async def main():
         check(isinstance(shop, dict) and shop["state"] in ("on", "off") and "itens" in shop["attributes"], f"compras: on or off, with the items ({shop.get('state') if isinstance(shop, dict) else shop})")
         rows = [t.split("\n")[0] for t in await panel.locator(".sensor-row code").all_inner_texts()]
         check(rows == ["sensor.resolvia_atrasados", "sensor.resolvia_vence_hoje", "binary_sensor.resolvia_compras", "sensor.resolvia_ia_hoje"], f"and listed ({rows})")
+        # 2.66.1: in the box under the switch, a line between them and none above the first
+        tops = await panel.locator(".sub-box.sensor-list > .sensor-row").evaluate_all("(rs) => rs.map((r) => parseFloat(getComputedStyle(r).borderTopWidth))")
+        check(tops and tops[0] == 0 and all(t > 0 for t in tops[1:]), f"the line between the sensors, none above the first ({tops})")
         await sw.uncheck()
         await wait_for(lambda: not has("sensor.resolvia_ia_hoje"), "off: the sensor is removed")
         for e in ("sensor.resolvia_atrasados", "sensor.resolvia_vence_hoje", "binary_sensor.resolvia_compras"):

@@ -3927,7 +3927,14 @@ export const styles = css`
     min-width: 0;
   }
   .sub-box.sensor-list {
-    padding: 10px 14px;
+    padding: 4px 14px;
+  }
+  .sub-box.sensor-list > .sensor-row:first-child {
+    border-top: 0;
+  }
+  .sub-box .sensor-row code {
+    background: var(--rv-bg);
+    overflow-wrap: anywhere;
   }
   .sub-box > .ai-actions {
     margin-top: 12px;

@@ -34,7 +34,7 @@ WS = """(m) => new Promise((res) => { const ws = new WebSocket(location.origin.r
 day = lambda n: (datetime.now(ZoneInfo(TZ)) + timedelta(days=n)).strftime("%Y-%m-%d")
 # the cards of Agora, from the top: the id of each one
 CARDS = """() => [...document.querySelector('resolvia-panel').shadowRoot.querySelectorAll('.page > .panel')].map((p) => p.dataset.card || (p.classList.contains('start') ? 'start' : '?'))"""
-WIDTHS = """(s) => [...document.querySelector('resolvia-panel').shadowRoot.querySelectorAll(s)].map((b) => { const p = b.closest('.panel'), cs = getComputedStyle(p); return [Math.round(b.getBoundingClientRect().width), Math.round(p.getBoundingClientRect().width - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight))]; })"""
+WIDTHS = """(s) => [...document.querySelector('resolvia-panel').shadowRoot.querySelectorAll(s)].map((b) => { const p = b.closest('.sub-box, .panel'), cs = getComputedStyle(p); return [Math.round(b.getBoundingClientRect().width), Math.round(p.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight))]; })"""
 
 
 async def main():
@@ -103,7 +103,7 @@ async def main():
         await a.locator(".sheet .icon-btn[aria-label=Fechar]").click(); await pg.wait_for_timeout(400)
         check((await pg.evaluate(CARDS))[0] == "late", "Agora back in the order of always")
 
-        # Verificar de novo at the width of the card on the phone
+        # Verificar de novo at the width of the card on the phone (2.65: of the box under Usar IA, where it is)
         await a.evaluate("(el) => el._go('/config')"); await pg.wait_for_timeout(900)
         w = await pg.evaluate(WIDTHS, ".ai-actions .btn")
         check(w and all(abs(x - y) <= 4 for x, y in w), f"390 px: Verificar de novo at the width of the card ({w})")
