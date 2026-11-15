@@ -3,6 +3,8 @@
 // screen shows as cards and only does after a tap. The AI is the one Home Assistant gives the app
 // (ai_task.generate_data), so there is no memory on its side: the conversation goes in every call.
 
+import { fileNames, withFiles, filesNote } from "./anexos.js";
+
 const WEEKDAY = ["domingo", "segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado"];
 const MONTH = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
 const MAX_TURNS = 16;
@@ -48,10 +50,14 @@ export const CHAT_STRUCTURE = {
  */
 export function cleanChat(raw) {
   const r = raw && typeof raw === "object" ? raw : {};
+  // 2.71.0: a message of the person can be only the files sent (their names; the files go only with the last one)
   const messages = (Array.isArray(r.messages) ? r.messages : [])
-    .filter((m) => m && (m.role === "user" || m.role === "ia") && typeof m.text === "string" && m.text.trim())
+    .filter((m) => m && (m.role === "user" || m.role === "ia") && ((typeof m.text === "string" && m.text.trim()) || (m.role === "user" && fileNames(m.anexos).length)))
     .slice(-MAX_TURNS)
-    .map((m) => ({ role: m.role, text: text(m.text, 2000) }));
+    .map((m) => {
+      const names = m.role === "user" ? fileNames(m.anexos) : [];
+      return names.length ? { role: m.role, text: text(m.text, 2000), anexos: names } : { role: m.role, text: text(m.text, 2000) };
+    });
   const c = r.context && typeof r.context === "object" ? r.context : {};
   let budget = MAX_ITEMS;
   const listas = [];
@@ -83,7 +89,7 @@ const pad = (n) => String(n).padStart(2, "0");
 const ymd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
 /** The instructions for one turn: who the AI is, today, the screen, the lists and the conversation so far. */
-export function chatInstructions({ messages, context }, now = new Date()) {
+export function chatInstructions({ messages, context, arquivos = 0 }, now = new Date()) {
   const lists = context.listas.length
     ? context.listas
         .map((l) => {
@@ -96,7 +102,7 @@ export function chatInstructions({ messages, context }, now = new Date()) {
         })
         .join("\n")
     : "(nenhuma lista)";
-  const talk = messages.map((m) => `${m.role === "user" ? "Pessoa" : "Você"}: ${m.text}`).join("\n");
+  const talk = messages.map((m) => `${m.role === "user" ? "Pessoa" : "Você"}: ${m.role === "user" ? withFiles(m) : m.text}`).join("\n");
   return [
     "Você é a IA do ResolvIA, o app das listas de tarefas da casa no Home Assistant. Converse em português do Brasil, de forma curta e direta, sem palavras em inglês e sem markdown.",
     "A pessoa pode perguntar sobre as listas e a tela em que está, ou sobre qualquer outro assunto: responda das duas formas. Sobre as listas, use só os dados abaixo; não invente itens.",
@@ -105,6 +111,7 @@ export function chatInstructions({ messages, context }, now = new Date()) {
     "Listas e itens pendentes:",
     lists,
     'Quando a pessoa pedir para adicionar ou concluir itens, escreva em "acoes" uma linha por item ("adicionar | lista | item | prazo" ou "concluir | lista | item") e, na resposta, diga o que vai fazer: ela confirma na tela antes. Sem pedido, deixe "acoes" vazio.',
+    filesNote(arquivos),
     "Conversa até agora (responda à última fala da pessoa):",
     talk,
   ]

@@ -1020,6 +1020,46 @@ function handleExtract(req, res) {
   });
 }
 
+/**
+ * POST /api/chat {messages, context, files: [{data (base64), mime, nome}]} -> {reply, actions, provider}: the Conversa with
+ * the clip (2.71.0: Tirar foto, Escolher fotos, Escolher arquivo). Without files, the screen uses resolvia/ai/chat.
+ */
+function handleChat(req, res) {
+  const chunks = [];
+  let size = 0;
+  let aborted = false;
+  req.on("data", (c) => {
+    size += c.length;
+    if (aborted) {
+      if (size > MAX_UPLOAD * 4) req.destroy();
+      return;
+    }
+    if (size > MAX_UPLOAD) {
+      aborted = true;
+      chunks.length = 0;
+      return;
+    }
+    chunks.push(c);
+  });
+  req.on("end", async () => {
+    if (aborted) return sendJson(res, 413, { error: "Arquivo grande demais" });
+    let body;
+    try {
+      body = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+    } catch (e) {
+      return sendJson(res, 400, { error: "JSON inválido" });
+    }
+    if (store.prefs.app.ai_off) return sendJson(res, 409, { error: "A IA está desligada em Mais › Configurações › Integrações", code: "ai_off" });
+    try {
+      sendJson(res, 200, await ai.chat({ messages: body.messages, context: body.context }, new Date(), body.files));
+    } catch (err) {
+      log.warn(`Conversa com arquivo falhou: ${err.message}`);
+      const code = err.code || "failed";
+      sendJson(res, code === "invalid_format" ? 400 : ["no_ai", "no_vision", "gone", "unavailable", "no_media"].includes(code) ? 409 : 502, { error: err.message, code });
+    }
+  });
+}
+
 /** POST /api/voice (raw PCM, 16 kHz, 16-bit, mono) -> {text, engine}: Falar, through the speech-to-text of Home Assistant */
 async function handleVoice(req, res) {
   const started = Date.now();
@@ -1127,6 +1167,7 @@ const server = http.createServer((req, res) => {
   }
   const url = new URL(req.url, "http://x");
   if (url.pathname === "/api/extract" && req.method === "POST") return handleExtract(req, res);
+  if (url.pathname === "/api/chat" && req.method === "POST") return handleChat(req, res);
   if (url.pathname === "/api/voice" && req.method === "POST") return handleVoice(req, res);
   const exp = url.pathname.match(/^\/api\/export\/(json|csv|zip)$/);
   if (exp && req.method === "GET") return handleData(exp[1], res);

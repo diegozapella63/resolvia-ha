@@ -3,7 +3,7 @@
 // Mixed into <resolvia-panel>.
 import { html, nothing, unsafeSVG } from "../vendor/lit-all.min.js";
 import { ICONS } from "./icons.js";
-import { renderChat } from "./chat.js";
+import { renderChat, chatFiles } from "./chat.js";
 import { Recorder, micError, VOICE_RATE, VOICE_MAX_S } from "./voice.js";
 import { F, has, fold, parseDue, dueInfo, clip } from "./util.js";
 
@@ -23,7 +23,7 @@ export const ChatMixin = (Base) =>
         } catch (e) {
           /* private mode */
         }
-        this._chat = { messages: Array.isArray(messages) ? messages : [], draft: "", busy: false, error: "", rec: null };
+        this._chat = { messages: Array.isArray(messages) ? messages : [], draft: "", busy: false, error: "", rec: null, files: [] };
       }
       return this._chat;
     }
@@ -76,7 +76,43 @@ export const ChatMixin = (Base) =>
         onAll: (k) => this._chatDoAll(k),
         onClear: () => this._setChat({ messages: [], error: "" }),
         onClose: () => this._closeSheet(),
+        // 2.71.0: the clip (Tirar foto, Escolher fotos, Escolher arquivo)
+        files: c.files || [],
+        onAttach: (kind) => this._chatAttach(kind),
+        onFileRemove: (i) => this._setChat({ files: (c.files || []).filter((_, j) => j !== i) }),
       });
+    }
+
+    /** The clip of the Conversa: the camera of the app (Digitalizar com IA), the gallery or a file (photo or PDF). */
+    _chatAttach(kind) {
+      if (kind === "camera") return this._openCamera({ chat: true });
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = kind === "fotos" ? "image/*" : "image/*,application/pdf";
+      // the Home Assistant app on Android drops selections made with multiple: one at a time there
+      input.multiple = kind === "fotos" && !this._isHaAndroid();
+      input.style.display = "none";
+      input.addEventListener("change", () => {
+        const list = Array.from(input.files || []);
+        input.remove();
+        if (list.length) this._chatAddFiles(list);
+      });
+      document.body.appendChild(input);
+      input.click();
+    }
+
+    async _chatAddFiles(list) {
+      const { files, error } = await chatFiles(list, this._chatState().files || []);
+      this._setChat({ files, error });
+      this._chatScroll = true;
+    }
+
+    /** The photos of the camera (Pronto): already JPG, ready for the AI. */
+    _chatAddShots(shots) {
+      const cur = (this._chatState().files || []).filter((f) => !f.pdf);
+      const files = [...cur, ...shots.map((s, i) => ({ nome: `Foto ${cur.length + i + 1}.jpg`, pdf: false, mime: s.mime || "image/jpeg", data: s.data, url: s.url }))].slice(0, 4);
+      this._setChat({ files, error: "" });
+      if (this._sheet !== "chat") this._openChat();
     }
 
     /** Microphone available (https or the app; not plain http). */
@@ -150,19 +186,26 @@ export const ChatMixin = (Base) =>
     async _chatSend(text) {
       const c = this._chatState();
       if (c.busy) return;
-      const messages = [...c.messages, { role: "user", text }];
-      this._setChat({ messages, draft: "", busy: true, error: "" });
+      const files = c.files || [];
+      const mine = files.length ? { role: "user", text, anexos: files.map((f) => f.nome) } : { role: "user", text };
+      const messages = [...c.messages, mine];
+      this._setChat({ messages, draft: "", busy: true, error: "", files: [] });
       this._chatScroll = true;
       try {
-        const out = await this.hass.callWS({
-          type: "resolvia/ai/chat",
-          messages: messages.map((m) => ({ role: m.role, text: m.text || (m.actions || []).map((a) => a.label).join("; ") })),
+        const payload = {
+          messages: messages.map((m) => ({ role: m.role, text: m.text || (m.actions || []).map((a) => a.label).join("; "), ...(m.anexos ? { anexos: m.anexos } : {}) })),
           context: this._chatContext(),
-        });
+        };
+        // with files, by POST (a photo is too big for the WebSocket); the names stay in the conversation
+        const out = files.length
+          ? await this.hass.resolvia.chat({ ...payload, files: files.map((f) => ({ data: f.data, mime: f.mime, nome: f.nome })) })
+          : await this.hass.callWS({ type: "resolvia/ai/chat", ...payload });
+        for (const f of files) if (f.url) URL.revokeObjectURL(f.url);
         const actions = (out.actions || []).map((a) => ({ ...a, label: this._chatLabel(a), icon: a.tipo === "concluir" ? "check" : "plus", state: "todo" }));
         this._setChat({ messages: [...this._chatState().messages, { role: "ia", text: out.reply || "", actions }], busy: false });
       } catch (err) {
-        this._setChat({ busy: false, error: err.message || "A IA não respondeu. Tente de novo." });
+        // the files come back, to send again
+        this._setChat({ busy: false, error: err.message || "A IA não respondeu. Tente de novo.", ...(files.length ? { files, messages: this._chatState().messages.filter((m) => m !== mine) } : {}) });
       }
       this._chatScroll = true;
     }

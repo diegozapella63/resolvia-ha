@@ -121,6 +121,15 @@ describe("with the fake AI", () => {
       assert.match(files[1].path, /\.png$/);
       await waitFor(() => fs.readdirSync(path.join(stack.dirs.media, "resolvia", "ia-temp")).length === 0, { what: "photos removed" });
     });
+    it("2.71.0: a PDF too (Escolher fotos ou PDF), as a PDF", async () => {
+      const pdf = Buffer.from("%PDF-1.4 lista").toString("base64");
+      const before = stack.fake.lines.length;
+      const { status } = await extract(stack, { images: [{ data: pdf, mime: "application/pdf" }] });
+      assert.equal(status, 200);
+      const call = await waitFor(() => stack.fake.lines.slice(before).filter((l) => l.startsWith("fake AI call") && !l.includes('"files":[]')).at(-1), { what: "pdf call line" });
+      const files = JSON.parse(call.slice("fake AI call ".length)).files;
+      assert.deepEqual(files.map((f) => [path.extname(f.path), f.type]), [[".pdf", "application/pdf"]]);
+    });
   });
 
   describe("suggestions", () => {
@@ -199,12 +208,12 @@ describe("with the fake AI", () => {
   describe("usage of the AI and its sensor", () => {
     it("counts every call by kind and AI", async () => {
       const u = await c.call("resolvia/ai/usage");
-      // 3 messages + 1 photo read + 2 suggestions (the two screens shared one); the refused photo never reached the AI
-      // (the 7-day totals: a fresh data folder, and no flake when the test runs across midnight)
-      assert.equal(u.semana.chamadas, 6);
-      assert.deepEqual(u.semana.tipos, { mensagem: 3, fotos: 1, sugestao: 2 });
-      assert.deepEqual(u.semana.ias, { [OLLAMA]: 1, [GOOGLE]: 5 });
-      assert.equal(u.semana.imagens, 2);
+      // 3 messages + 2 photo reads (the photos and the PDF) + 2 suggestions (the two screens shared one); the refused photo
+      // never reached the AI (the 7-day totals: a fresh data folder, and no flake when the test runs across midnight)
+      assert.equal(u.semana.chamadas, 7);
+      assert.deepEqual(u.semana.tipos, { mensagem: 3, fotos: 2, sugestao: 2 });
+      assert.deepEqual(u.semana.ias, { [OLLAMA]: 1, [GOOGLE]: 6 });
+      assert.equal(u.semana.imagens, 3);
       assert.ok(u.semana.tokens > 0);
       assert.equal(u.semana.erros, 0);
       assert.equal(u.sensor, "sensor.resolvia_ia_hoje");
@@ -250,6 +259,26 @@ describe("with the fake AI", () => {
       assert.deepEqual(done.actions, [{ tipo: "concluir", lista: "todo.casa", nome: "Casa", item: "Passar pano na casa" }]);
       const none = await c.call("resolvia/ai/chat", { messages: [{ role: "user", text: "conclui lavar o carro em Casa" }], context });
       assert.deepEqual(none.actions, []);
+    });
+    it("2.71.0: the clip: photos or a PDF go with the last message (POST /api/chat), through the AI that reads photos", async () => {
+      const jpg = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3, 4]).toString("base64");
+      const chat = async (body) => {
+        const res = await fetch(`${stack.appUrl}/api/chat`, { method: "POST", body: JSON.stringify(body) });
+        return { status: res.status, body: await res.json() };
+      };
+      const one = await chat({ messages: [{ role: "user", text: "o que é isto?" }], context, files: [{ data: jpg, mime: "image/jpeg", nome: "nota.jpg" }] });
+      assert.equal(one.status, 200, JSON.stringify(one.body));
+      assert.equal(one.body.reply, "Li o arquivo (image/jpeg).");
+      const pdf = await chat({ messages: [{ role: "user", text: "", anexos: ["manual.pdf"] }], context, files: [{ data: Buffer.from("%PDF-1.4 x").toString("base64"), mime: "application/pdf", nome: "manual.pdf" }] });
+      assert.equal(pdf.body.reply, "Li o arquivo (application/pdf).", "only the file, no text");
+      assert.deepEqual(fs.readdirSync(path.join(stack.dirs.media, "resolvia", "ia-temp")), [], "the files are removed after");
+      const bad = await chat({ messages: [{ role: "user", text: "oi" }], context, files: [{ data: "eA==", mime: "text/plain" }] });
+      assert.deepEqual([bad.status, bad.body.code], [400, "invalid_format"]);
+      const many = await chat({ messages: [{ role: "user", text: "oi" }], context, files: Array(5).fill({ data: jpg, mime: "image/jpeg" }) });
+      assert.match(many.body.error, /No máximo 4/);
+      // the names stay in the conversation; the next turn goes without the files
+      const next = await c.call("resolvia/ai/chat", { messages: [{ role: "user", text: "o que é isto?", anexos: ["nota.jpg"] }, { role: "ia", text: "Uma nota." }, { role: "user", text: "e agora?" }], context });
+      assert.match(next.reply, /e agora\?/);
     });
     it("needs something from the person; counted in Uso da IA as conversa", async () => {
       await assert.rejects(c.call("resolvia/ai/chat", { messages: [], context }), { code: "invalid_format" });

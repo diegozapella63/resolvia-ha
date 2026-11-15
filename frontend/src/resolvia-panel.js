@@ -25,7 +25,7 @@ import { ChatMixin } from "./chat-panel.js";
 import { ExternalMixin } from "./external.js";
 import { ChartsMixin, chartStyles } from "./charts.js";
 import { CorreriaMixin } from "./correria.js";
-import { chatStyles } from "./chat.js";
+import { chatStyles, chatFiles } from "./chat.js";
 import { renderCalendar, calendarStyles, monthOf } from "./calendar.js";
 import { Recorder, micError, VOICE_RATE, VOICE_MAX_S } from "./voice.js";
 import {
@@ -1445,14 +1445,22 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
   }
 
   async _onFiles(ev) {
-    const files = [...(ev.target.files || [])].filter((f) => !f.type || f.type.startsWith("image/")).slice(0, 6);
+    // 2.71.0: a PDF too (Escolher fotos ou PDF), as it is; one PDF goes alone
+    const isPdf = (f) => f.type === "application/pdf" || /\.pdf$/i.test(f.name || "");
+    let files = [...(ev.target.files || [])].filter((f) => !f.type || f.type.startsWith("image/") || isPdf(f)).slice(0, 6);
     ev.target.value = "";
+    if (files.some(isPdf)) files = [files.find(isPdf)];
     if (!files.length) return;
     if (this._sheet !== "import") this._openImport(null, "pick");
     const appending = this._form.step === "review";
     this._setForm({ step: "loading", error: null, loadingText: "Preparando as fotos…", prevStep: appending ? "review" : "pick" });
     const images = [];
-    for (const file of files) images.push(await prepareImage(file));
+    for (const file of files) {
+      if (isPdf(file)) {
+        const { files: got } = await chatFiles([file]);
+        if (got[0]) images.push({ mime: "application/pdf", data: got[0].data, url: "", pdf: true, nome: got[0].nome });
+      } else images.push(await prepareImage(file));
+    }
     this._readImages(images, appending);
   }
 
@@ -1464,7 +1472,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
       step: "loading",
       images: all,
       prevStep: appending ? "review" : "pick",
-      loadingText: images.length > 1 ? `Lendo ${images.length} fotos com IA…` : "Lendo a foto com IA…",
+      loadingText: images.some((i) => i.pdf) ? "Lendo o PDF com IA…" : images.length > 1 ? `Lendo ${images.length} fotos com IA…` : "Lendo a foto com IA…",
     });
     this._runExtract({ images, appending });
   }
@@ -1520,15 +1528,18 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
 
   // ------------------------------------------------------------ camera ("Digitalizar com IA")
 
-  async _openCamera() {
+  async _openCamera(opts = {}) {
     const md = navigator.mediaDevices;
-    const appending = !!(this._form && this._form.step === "review");
+    // 2.71.0: from the clip of the Conversa (Tirar foto), the photos go to the chat
+    const chat = !!opts.chat;
+    const appending = !chat && !!(this._form && this._form.step === "review");
     if (!md || !md.getUserMedia) {
       // http:// (not the https address): the browser does not let a page use the camera. Say so
       // instead of opening the gallery as if it were the camera.
       this._cam = {
         status: "error",
         shots: [],
+        chat,
         appending,
         flash: 0,
         error: window.isSecureContext === false
@@ -1542,7 +1553,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
       }
       return;
     }
-    this._cam = { status: "starting", shots: [], torch: false, torchOk: false, appending, flash: 0 };
+    this._cam = { status: "starting", shots: [], torch: false, torchOk: false, appending, chat, flash: 0 };
     try {
       history.pushState({ ...(history.state || {}), rvCam: true }, "");
     } catch (e) {
@@ -1626,14 +1637,20 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     if (!this._cam || !this._cam.shots.length) return;
     const shots = this._cam.shots;
     const appending = this._cam.appending;
+    const chat = this._cam.chat;
     this._cam = { ...this._cam, used: true };
     this._closeCamera();
+    if (chat) return this._chatAddShots(shots);
     if (this._sheet !== "import") this._openImport(null, "pick");
     this._readImages(shots, appending && this._form.step === "review");
   }
 
   _cameraFallback() {
     const appending = this._cam && this._cam.appending;
+    if (this._cam && this._cam.chat) {
+      this._closeCamera();
+      return this._chatAttach("fotos");
+    }
     this._closeCamera();
     if (appending && this._form) this._setForm({ step: "review" });
     this._pickFiles("scan");
@@ -1649,7 +1666,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
         ${c.flash ? html`<div class="cam-flash" .key=${c.flash}></div>` : nothing}
         <div class="cam-top">
           <button class="cam-btn" aria-label="Fechar" @click=${() => this._closeCamera()}>${icon("x")}</button>
-          <span class="cam-title">Digitalizar com IA</span>
+          <span class="cam-title">${c.chat ? "Tirar foto" : "Digitalizar com IA"}</span>
           ${c.torchOk
             ? html`<button class="cam-btn ${c.torch ? "on" : ""}" aria-label="Lanterna" @click=${() => this._toggleTorch()}>${icon("zap")}</button>`
             : html`<span class="cam-btn ghost"></span>`}
@@ -2107,7 +2124,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
         </div>
         ${this._renderSheet()} ${this._renderToast()} ${this._renderCamera()}
         ${this._canImport()
-          ? html`<input id="rv-photos" class="sr" type="file" accept="image/*" ?multiple=${!this._isHaAndroid()} tabindex="-1" aria-hidden="true" @change=${(e) => this._onFiles(e)} />
+          ? html`<input id="rv-photos" class="sr" type="file" accept="image/*,application/pdf" ?multiple=${!this._isHaAndroid()} tabindex="-1" aria-hidden="true" @change=${(e) => this._onFiles(e)} />
               <input id="rv-scan" class="sr" type="file" accept="image/*" capture="environment" tabindex="-1" aria-hidden="true" @change=${(e) => this._onFiles(e)} />`
           : nothing}
       </div>
@@ -3848,10 +3865,10 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
         ${label ? html`<span class="flabel">${icon("sparkles", "lbl-ic")}Trazer de mensagem ou foto</span>` : nothing}
         <div class="imp-tiles">
           ${tile("text", "clipboard-paste", "Colar mensagem")}
-          ${tile("photos", "images", "Escolher fotos", !ai.images)}
+          ${tile("photos", "images", "Escolher fotos ou PDF", !ai.images)}
           ${tile("scan", "scan-text", "Digitalizar com\u00a0IA", !ai.images, camOk ? "" : "Precisa de https")}
         </div>
-        ${ai.images && !camOk ? html`<p class="imp-help">Em http a câmera não abre aqui: tire a foto pelo celular e use Escolher fotos.</p>` : nothing}
+        ${ai.images && !camOk ? html`<p class="imp-help">Em http a câmera não abre aqui: tire a foto pelo celular e use Escolher fotos ou PDF.</p>` : nothing}
       </div>
       ${ai.ready ? nothing : html`<div class="ai-box">${icon("scan-text")}<span>Sem IA configurada, a mensagem é separada por linhas e vírgulas. Para ler fotos, configure a IA do Home Assistant em Mais › Configurações › Integrações.</span></div>`}`;
   }
@@ -3869,7 +3886,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
       this._setForm({ step: "pick", error: null, note: null });
     };
     const error = f.error ? html`<div class="imp-error">${icon("circle-alert")}<span>${f.error}</span></div>` : nothing;
-    const thumbs = f.images && f.images.length ? html`<div class="thumbs">${f.images.map((img) => html`<img src=${img.url} alt="" />`)}</div>` : nothing;
+    const thumbs = f.images && f.images.length ? html`<div class="thumbs">${f.images.map((img) => (img.pdf ? html`<span class="thumb-pdf" title=${img.nome || "PDF"}>${icon("file-text")}</span>` : html`<img src=${img.url} alt="" />`))}</div>` : nothing;
 
     if (f.step === "voice") return this._renderVoiceStep(head);
     if (f.step === "text") {

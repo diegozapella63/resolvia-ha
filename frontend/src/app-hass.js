@@ -213,6 +213,21 @@ export async function createAppHass(onChange) {
         }
         return body;
       },
+      // Conversa with the clip (2.71.0): the files go by POST
+      async chat(payload) {
+        const res = await fetch(new URL("api/chat", location.href), {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const err = new Error(body.error || `Erro ${res.status}`);
+          err.code = body.code;
+          throw err;
+        }
+        return body;
+      },
       async extract(payload) {
         const res = await fetch(new URL("api/extract", location.href), {
           method: "POST",

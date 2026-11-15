@@ -17,7 +17,7 @@ def check(c, label):
     print(("PASS " if c else "FAIL ") + label, flush=True)
     if c: n_ok += 1
     else: failed.append(label)
-fake = subprocess.Popen(["node", f"{REPO}/dev/fake-ha.mjs"], env=dict(os.environ, FAKE_HA_TOKEN="test", FAKE_HA_PORT="8123", TZ="America/Sao_Paulo"), stdout=open(f"{SP}/rvh_fake.log", "w"), stderr=subprocess.STDOUT)
+fake = subprocess.Popen(["node", f"{REPO}/dev/fake-ha.mjs"], env=dict(os.environ, FAKE_HA_TOKEN="test", FAKE_HA_PORT="8123", TZ="America/Sao_Paulo", FAKE_MEDIA_DIR=f"{SP}/rvh-media"), stdout=open(f"{SP}/rvh_fake.log", "w"), stderr=subprocess.STDOUT)
 time.sleep(0.6)
 app = subprocess.Popen(["node", f"{REPO}/resolvia/rootfs/app/server.js"], env=dict(os.environ, TZ="America/Sao_Paulo", RESOLVIA_DEV="1", HA_WS_URL="ws://127.0.0.1:8123/api/websocket", HA_REST_URL="http://127.0.0.1:8123/api", HA_TOKEN="test", DATA_DIR=DATA, SHARE_DIR=SHARE, MEDIA_DIR=f"{SP}/rvh-media", PORT="8099"), stdout=open(f"{SP}/rvh_app.log", "w"), stderr=subprocess.STDOUT)
 time.sleep(1.2)
@@ -124,13 +124,61 @@ async def main():
         await chat.locator(".chat-ed-acts .btn", has_text="Pronto").click(); await pg.wait_for_timeout(200)
         check(await pg.evaluate("() => localStorage.getItem('resolvia-perguntas')") is None and [t.strip() for t in await chat.locator(".chat-quick .chat-ex .pick").all_inner_texts()] == qk, "Padrão: the app's questions again (they follow the screen)")
         await qb.click(); await pg.wait_for_timeout(150)
+        # 2.71.0: the round button: with the box empty, the microphone; writing, Enviar
+        check(await chat.locator(".chat-mic").count() == 1 and await chat.locator(".chat-send").count() == 0, "empty box: the microphone, no Enviar beside it")
+        await box.fill("oi")
+        check(await chat.locator(".chat-send").count() == 1 and await chat.locator(".chat-mic").count() == 0, "writing: Enviar in the place of the microphone")
+        await box.fill("")
+        # 2.71.0: the clip: Tirar foto, Escolher fotos and Escolher arquivo; the file goes with the message
+        clipb = chat.locator(".chat-clip")
+        check(await clipb.count() == 1 and await clipb.get_attribute("aria-label") == "Anexar", "the clip beside the box")
+        await clipb.click(); await pg.wait_for_timeout(200)
+        ops = [t.strip() for t in await chat.locator(".chat-menu .chat-op").all_inner_texts()]
+        check(ops == ["Tirar foto", "Escolher fotos", "Escolher arquivo"] and await chat.locator(".chat-menu .chat-op svg").count() == 3, f"the menu of the clip, each with its icon ({ops})")
+        await pg.screenshot(path=f"{SP}/shots/rvh-clip.png")
+        async with pg.expect_file_chooser() as fc:
+            await chat.locator(".chat-op", has_text="Escolher fotos").click()
+        chooser = await fc.value
+        check(chooser.is_multiple(), "the gallery takes several")
+        png = bytes.fromhex("89504e470d0a1a0a0000000d4948445200000001000000010802000000907753de0000000c49444154789c63f8cfc0000003010100c9fe92ef0000000049454e44ae426082")
+        await chooser.set_files(files=[{"name": "nota.png", "mimeType": "image/png", "buffer": png}])
+        await wait_for(lambda: chat.locator(".chat-file").count(), "the photo chosen, before sending")
+        check(await chat.locator(".chat-menu").count() == 0 and await chat.locator(".chat-send").count() == 1, "the menu closes; with a file, Enviar")
+        await box.fill("o que diz?"); await box.press("Enter")
+        await wait_for(lambda: answered(7), "the photo goes with the question")
+        ia = await chat.locator(".chat-msg.ia .chat-bubble").last.inner_text()
+        check(ia == "Li o arquivo (image/jpeg).", f"the AI got the photo, as JPG ({ia!r})")
+        arq = [t.strip() for t in await chat.locator(".chat-msg.me .chat-arq").all_inner_texts()]
+        check(arq == ["nota.png"] and await chat.locator(".chat-file").count() == 0, f"its name in the question; the box clean ({arq})")
+        check(not os.listdir(f"{SP}/rvh-media/resolvia/ia-temp"), "the file is removed after the AI reads")
+        # Escolher arquivo: a PDF, alone; ✕ takes it out
+        await clipb.click(); await pg.wait_for_timeout(200)
+        async with pg.expect_file_chooser() as fc:
+            await chat.locator(".chat-op", has_text="Escolher arquivo").click()
+        chooser = await fc.value
+        check(not chooser.is_multiple(), "a file at a time")
+        await chooser.set_files(files=[{"name": "manual.pdf", "mimeType": "application/pdf", "buffer": b"%PDF-1.4 manual"}])
+        await wait_for(lambda: chat.locator(".chat-file .chat-pdf").count(), "the PDF chosen")
+        check((await chat.locator(".chat-file-n").inner_text()).strip() == "manual.pdf", "with its name")
+        await pg.screenshot(path=f"{SP}/shots/rvh-pdf.png")
+        await chat.locator(".chat-file .icon-btn").click(); await pg.wait_for_timeout(200)
+        check(await chat.locator(".chat-file").count() == 0 and await chat.locator(".chat-mic").count() == 1, "✕ takes it out (the microphone again)")
+        # Tirar foto: the camera of the app, titled Tirar foto; Pronto puts the photo in the Conversa
+        await clipb.click(); await pg.wait_for_timeout(200)
+        await chat.locator(".chat-op", has_text="Tirar foto").click(); await pg.wait_for_timeout(1500)
+        cam = a.locator(".cam")
+        check(await cam.count() == 1 and (await cam.locator(".cam-title").inner_text()).strip() == "Tirar foto", "the camera of the app, titled Tirar foto")
+        await cam.locator(".cam-shutter").click(); await pg.wait_for_timeout(700)
+        await cam.locator(".cam-done").click(); await pg.wait_for_timeout(700)
+        check(await a.locator(".cam").count() == 0 and await chat.locator(".chat-file img").count() == 1, "Pronto: the photo in the Conversa, ready to send")
+        await chat.locator(".chat-file .icon-btn").click(); await pg.wait_for_timeout(150)
         # Nova conversa: a clean conversation (the same words in every app)
         check((await chat.locator(".chat-head .text-btn").inner_text()).strip() == "Nova conversa", "Nova conversa")
         await chat.locator(".chat-head .text-btn", has_text="Nova conversa").click(); await pg.wait_for_timeout(300)
         check(await chat.locator(".chat-msg").count() == 0, "Nova clears the conversation")
         await sheet.locator(".chat-head .icon-btn[aria-label='Fechar']").click(); await pg.wait_for_timeout(300)
         # Uso da IA counts it
-        check(fake_log().count("fake AI chat") >= 6, "each turn is one call to the AI")
+        check(fake_log().count("fake AI chat") >= 7, "each turn is one call to the AI")
         # Controlar prazos off: nothing is late, so no example about it (2.44.0)
         await pg.evaluate(WS, [{"type": "resolvia/prefs/set_app", "prefs": {"due_off": True}}])
         await pg.reload(); await pg.wait_for_timeout(1800)

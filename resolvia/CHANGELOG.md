@@ -1,5 +1,11 @@
 # Mudanças
 
+## 2.71.0
+
+- **Conversa › Clipe**: manda junto uma foto ou um PDF: **Tirar foto**, **Escolher fotos** (a galeria) ou **Escolher arquivo**. A IA olha o arquivo para responder e pode propor adicionar os itens que vê.
+- **Conversa**: o microfone e o Enviar dividem o mesmo botão, como no WhatsApp: com a caixa vazia, o microfone; escrevendo, o Enviar.
+- **Ler com IA › Escolher fotos ou PDF**: um PDF também vira itens (uma lista, um orçamento).
+
 ## 2.70.0
 
 - **Conversa › Perguntas prontas**: as perguntas de exemplo viram suas. **Editar perguntas** tira (✕) e acrescenta as que você quiser; **Padrão** volta às de antes. Ficam guardadas no aparelho.

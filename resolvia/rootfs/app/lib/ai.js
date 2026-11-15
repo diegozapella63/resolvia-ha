@@ -7,6 +7,7 @@ import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
 import { CHAT_STRUCTURE, cleanChat, chatInstructions, parseChatActions, replyOf } from "./chat.js";
+import { cleanFiles, writeAttachments, MIMES } from "./anexos.js";
 
 const GEN_DATA = 1;
 const ATTACHMENTS = 2;
@@ -460,28 +461,26 @@ export class AI {
    * Conversa: one turn of the chat beside the microphone. {messages, context} as the screen sends them
    * -> {reply, actions, provider}. Counted in Uso da IA as "conversa".
    */
-  async chat(raw, now = new Date()) {
+  async chat(raw, now = new Date(), rawFiles = []) {
     const payload = cleanChat(raw);
+    // 2.71.0: the clip of the Conversa (Tirar foto, Escolher fotos, Escolher arquivo): photos or a PDF with the last message
+    const files = cleanFiles(rawFiles);
     if (!this.external()) for (const l of payload.context.listas) for (const i of l.itens) i.externo = "";
     const last = payload.messages[payload.messages.length - 1];
     if (!last || last.role !== "user") throw coded("invalid_format", "Escreva alguma coisa.");
+    if (files.length) last.anexos = files.map((f) => f.nome);
     if (!this.ha.ready) throw coded("no_ai", "Sem conexão com o Home Assistant.");
-    const entity = await this.resolve(false);
-    const prompt = chatInstructions(payload, now);
+    const entity = await this.resolve(files.length > 0);
+    if (files.length && !this.mediaWritable()) throw coded("no_media", "A pasta media do Home Assistant não está disponível para o app.");
+    const prompt = chatInstructions({ ...payload, arquivos: files.length }, now);
     const started = Date.now();
     let out = null;
     let failure = null;
+    const att = files.length ? writeAttachments(this.tmpDir(), TMP_REL, files) : null;
     try {
-      const res = await this.ha.send(
-        {
-          type: "call_service",
-          domain: "ai_task",
-          service: "generate_data",
-          service_data: { task_name: "ResolvIA: conversa", instructions: prompt, structure: CHAT_STRUCTURE, entity_id: entity.id },
-          return_response: true,
-        },
-        120000,
-      );
+      const data = { task_name: "ResolvIA: conversa", instructions: prompt, structure: CHAT_STRUCTURE, entity_id: entity.id };
+      if (att) data.attachments = att.attachments;
+      const res = await this.ha.send({ type: "call_service", domain: "ai_task", service: "generate_data", service_data: data, return_response: true }, 120000);
       out = res && res.response ? res.response.data : null;
       const reply = replyOf(out);
       const actions = parseChatActions(out && typeof out === "object" ? out.acoes : null, payload.context);
@@ -491,6 +490,7 @@ export class AI {
       failure = err;
       throw err;
     } finally {
+      if (att) att.done();
       if (this.usage) {
         let output = 0;
         try {
@@ -498,7 +498,7 @@ export class AI {
         } catch (e) {
           /* not serializable */
         }
-        this.usage.record({ kind: "conversa", entity: entity.id, input: prompt.length, output, images: 0, seconds: (Date.now() - started) / 1000, result: resultOf(failure) });
+        this.usage.record({ kind: "conversa", entity: entity.id, input: prompt.length, output, images: files.length, seconds: (Date.now() - started) / 1000, result: resultOf(failure) });
       }
     }
   }
@@ -508,7 +508,7 @@ export class AI {
     try {
       const attachments = [];
       for (const img of images) {
-        const ext = img.mime === "image/png" ? "png" : img.mime === "image/webp" ? "webp" : "jpg";
+        const ext = MIMES[img.mime] || "jpg"; // 2.71.0: o PDF também (Escolher fotos ou PDF)
         const name = `foto-${crypto.randomBytes(6).toString("hex")}.${ext}`;
         const full = path.join(this.tmpDir(), name);
         fs.writeFileSync(full, Buffer.from(img.data, "base64"));

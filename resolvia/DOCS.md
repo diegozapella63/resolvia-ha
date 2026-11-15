@@ -60,6 +60,8 @@ O botão de balão, ao lado do microfone, abre uma conversa com a IA. Pergunte s
 
 Pedindo para mexer nas listas ("adiciona pilhas e lâmpada na lista Casa", "conclui passar pano"), ela mostra cada ação num cartão e só faz quando você toca em **Fazer** (ou **Fazer todas**). A conversa continua ao fechar e abrir a janela (o Voltar do celular fecha); **Nova conversa** começa outra. Com **Usar IA** desligado, o botão não aparece. Cada mensagem conta em **Uso da IA** como Conversa.
 
+O **clipe**, à esquerda da caixa, manda junto uma foto ou um PDF: **Tirar foto** (a câmera do Digitalizar com IA), **Escolher fotos** (a galeria, até 4) ou **Escolher arquivo** (uma foto ou um PDF). A IA olha o arquivo para responder e pode propor adicionar os itens que vê. Na conversa fica só o nome do arquivo. O botão redondo da direita é o microfone com a caixa vazia e vira o Enviar quando você escreve ou escolhe um arquivo.
+
 **Perguntas prontas**: na conversa vazia aparecem algumas perguntas para tocar; o botão ✨ ao lado da caixa abre as mesmas a qualquer momento. Em **Editar perguntas**, o ✕ tira uma pergunta e **Adicionar** põe outra; **Padrão** volta às de exemplo. Ficam guardadas no aparelho.
 
 ## Importar de mensagem ou foto
@@ -67,14 +69,14 @@ Pedindo para mexer nas listas ("adiciona pilhas e lâmpada na lista Casa", "conc
 No botão **Adicionar** (ou no ícone ao lado do campo de adicionar de uma lista) há três quadros, no alto do formulário:
 
 - **Colar mensagem**: cole uma mensagem do WhatsApp, e-mail ou anotação ("amor compra leite, ovos e café"). A IA separa os itens.
-- **Escolher fotos**: prints ou fotos de listas da galeria. No app Android do Home Assistant é uma foto por vez (limitação da versão atual do app); use **Mais fotos** na revisão para juntar outras.
+- **Escolher fotos ou PDF**: prints ou fotos de listas da galeria, ou um PDF (uma lista, um orçamento). No app Android do Home Assistant é uma foto por vez (limitação da versão atual do app); use **Mais fotos** na revisão para juntar outras.
 - **Digitalizar com IA**: abre a câmera dentro do ResolvIA para fotografar uma lista em papel, mesmo escrita à mão. Dá para tirar várias páginas e usar a lanterna. Na primeira vez, o celular pede permissão de câmera para o app do Home Assistant.
 
 Você revisa os itens (dá para corrigir, desmarcar ou incluir linhas). Embaixo de cada um fica a lista para onde ele vai, sugerida pela IA (comprar leite → a lista de compras, consertar a pia → Casa), e, com o InventarIA, o cômodo e o equipamento; toque para trocar. **Todos em** manda todos para uma lista só.
 
 ### IA do Home Assistant
 
-**Usar IA** (em **Mais › Configurações › Integrações › IA do Home Assistant**) liga ou desliga tudo o que usa IA. Desligada, somem o **Colar mensagem**, o **Escolher fotos** e o **Digitalizar com IA** (no Adicionar e no botão ao lado do campo de cada lista), o **Falar**, a **Conversa**, o **Sugerir com IA** e o **Uso da IA**, e o app não chama a IA. Colar várias linhas no campo de adicionar continua criando um item por linha. Começa ligada.
+**Usar IA** (em **Mais › Configurações › Integrações › IA do Home Assistant**) liga ou desliga tudo o que usa IA. Desligada, somem o **Colar mensagem**, o **Escolher fotos ou PDF** e o **Digitalizar com IA** (no Adicionar e no botão ao lado do campo de cada lista), o **Falar**, a **Conversa**, o **Sugerir com IA** e o **Uso da IA**, e o app não chama a IA. Colar várias linhas no campo de adicionar continua criando um item por linha. Começa ligada.
 
 **Uso da IA** (logo abaixo, em Mais › Configurações › Integrações): cada mensagem, foto, sugestão ou conversa é uma chamada para a IA do Home Assistant. Como o Home Assistant não informa tokens nem custo, o ResolvIA conta as chamadas e estima os tokens pelo tamanho do texto (uns 4 caracteres por token). Mostra hoje, os últimos 7 dias e o mês, um gráfico por dia (toque numa barra para ver o dia), os tipos de chamada e as últimas chamadas, com o link para o consumo exato no painel do provedor (Google, OpenAI ou Anthropic). Os números ficam em `/data/uso_ia.json` (120 dias).
 
