@@ -35,6 +35,7 @@ Com a tela larga (1000 pixels ou mais, como no InventarIA), as abas de baixo vir
 - **Notas** pode ser desligado em **Mais › Configurações › Opções › Exibição**: o campo some do **Novo item** e do **Editar item**, a não ser num item que já tem notas (para ver ou apagar). As notas que já existem continuam aparecendo nas listas.
 - Um link vira uma etiqueta curta: `Ver sobre: https://github.com/fulano/projeto` mostra `fulano/projeto`.
 - O **⋯** da lista: **Selecionar itens**, **Personalizar** (nome, cor, ícone, de quem é e prazos), **Ocultar do início**, **Abrir na tela padrão do HA** e **Limpar concluídos**.
+- **Cor** e **Ícone** (em Personalizar): a primeira escolha de cada um é **Sem cor** (a lista nas cores do tema) e **Sem ícone** (sem o quadrinho); **Padrão** volta à cor e ao ícone automáticos.
 - **De quem é** (em Personalizar): **Todos** (o padrão) ou uma pessoa da casa. O aviso de prazos de uma lista com dono vai só para o celular dessa pessoa, e na CronologIA (1.53.0 ou mais novo) ela só aparece para essa pessoa. Se a CronologIA já tinha o dono de alguma lista, ele vem sozinho, uma vez.
 
 ### Mover vários itens de lista
@@ -58,6 +59,8 @@ O **microfone** no alto da tela, à direita (na Agora, nas Listas, nas outras te
 O botão de balão, ao lado do microfone, abre uma conversa com a IA. Pergunte sobre a tela em que está ("o que é mais urgente aqui?"), sobre as listas ("o que está atrasado?") ou sobre qualquer outro assunto; dá para escrever ou tocar no microfone e falar. Ela conhece as listas visíveis e os itens pendentes, com prazo, pontos, cômodo e equipamento.
 
 Pedindo para mexer nas listas ("adiciona pilhas e lâmpada na lista Casa", "conclui passar pano"), ela mostra cada ação num cartão e só faz quando você toca em **Fazer** (ou **Fazer todas**). A conversa continua ao fechar e abrir a janela (o Voltar do celular fecha); **Nova conversa** começa outra. Com **Usar IA** desligado, o botão não aparece. Cada mensagem conta em **Uso da IA** como Conversa.
+
+**Perguntas prontas**: na conversa vazia aparecem algumas perguntas para tocar; o botão ✨ ao lado da caixa abre as mesmas a qualquer momento. Em **Editar perguntas**, o ✕ tira uma pergunta e **Adicionar** põe outra; **Padrão** volta às de exemplo. Ficam guardadas no aparelho.
 
 ## Importar de mensagem ou foto
 

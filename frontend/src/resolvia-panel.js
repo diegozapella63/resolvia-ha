@@ -43,6 +43,7 @@ import {
   listMeta,
   guessIcon,
   LIST_ICONS,
+  NO_COLOR,
   parseDue,
   dueInfo,
   quickDates,
@@ -601,7 +602,8 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
       const pendingItems = items ? items.filter((i) => !isDone(i)) : null;
       const pending = pendingItems ? pendingItems.length : Number(st.state) || 0;
       const done = items ? items.length - pendingItems.length : 0;
-      const color = colorById(p.color) || autoColor(index);
+      // 2.70.0: Sem cor and Sem ícone ("sem"): the list without a palette color and without the icon
+      const color = p.color === "sem" ? NO_COLOR : colorById(p.color) || autoColor(index);
       const features = st.attributes.supported_features || 0;
       const canDue = has(features, F.DUE_DATE) || has(features, F.DUE_DATETIME);
       // A deadline is only what you set: a list that doesn't let you set one gets
@@ -618,7 +620,8 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
         group: meta.group,
         color,
         colorId: p.color || null,
-        icon: p.icon || guessIcon(`${meta.name} ${meta.group || ""} ${id}`),
+        autoColor: autoColor(index),
+        icon: p.icon === "sem" ? null : p.icon || guessIcon(`${meta.name} ${meta.group || ""} ${id}`),
         iconPref: p.icon || null,
         hidden: !!p.hidden,
         owner: p.owner || null,
@@ -1918,6 +1921,11 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     });
   }
 
+  /** The color of the Personalizar form: Sem cor, the one chosen, or (Padrão) the list's automatic one. */
+  _formColor(f, l) {
+    return f.color === "sem" ? NO_COLOR : colorById(f.color) || l.autoColor || l.color;
+  }
+
   _openCustomize(list) {
     this._openSheet("customize", {
       listId: list.id,
@@ -2150,7 +2158,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
             <div class="side-lists">
               ${lists.map(
                 (l) => html`<button class="side-list" aria-current=${view.name === "list" && view.id === l.id ? "page" : "false"} style=${colorVars(l.color, this._dark)} @click=${() => this._go(`/lista/${l.id}`)}>
-                  <span class="side-tile">${icon(l.icon)}</span><span class="sl-name">${l.name}</span><span class="sl-num">${l.pending || ""}</span>
+                  ${l.icon ? html`<span class="side-tile">${icon(l.icon)}</span>` : html`<span class="side-tile sem"></span>`}<span class="sl-name">${l.name}</span><span class="sl-num">${l.pending || ""}</span>
                 </button>`,
               )}
             </div>`
@@ -2307,7 +2315,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     }
     return html`
       <button class="list-card ${l.unavailable ? "off" : ""}" style=${colorVars(l.color, this._dark)} @click=${() => this._go(`/lista/${l.id}`)}>
-        <span class="tile">${icon(l.icon)}</span>
+        ${l.icon ? html`<span class="tile">${icon(l.icon)}</span>` : nothing}
         <span class="lc-main">
           <span class="lc-title">${l.name}</span>
           <span class="lc-meta">${showGroup && l.group ? html`<span>${l.group} ·</span>` : nothing}${meta}</span>
@@ -2588,7 +2596,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
           ${opts.why ? html`<div class="it-why">${icon(opts.whyIcon || "lightbulb")}<span>${opts.why}</span></div>` : nothing}
           ${due || opts.showList || rule || this._pointsOf(l.id, item.summary, item.uid) || this._roomIdOf(l.id, item.summary) || this._equipIdOf(l.id, item.summary) || this._externalOf(l.id, item.summary)
             ? html`<div class="chips">
-                ${opts.showList ? html`<span class="tag list">${icon(l.icon)}${clip(l.name, 24)}</span>` : nothing}
+                ${opts.showList ? html`<span class="tag list">${l.icon ? icon(l.icon) : nothing}${clip(l.name, 24)}</span>` : nothing}
                 ${this._renderExternalTag(l.id, item)} ${this._renderRoomTag(l.id, item)} ${this._renderEquipTag(l.id, item)}
                 ${due
                   ? l.noDue
@@ -2704,7 +2712,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
                     <div class="it-body" @click=${() => this._go(`/lista/${x.l.id}`)}>
                       <div class="it-text">${x.r.summary}</div>
                       <div class="chips">
-                        <span class="tag list">${icon(x.l.icon)}${clip(x.l.name, 24)}</span>
+                        <span class="tag list">${x.l.icon ? icon(x.l.icon) : nothing}${clip(x.l.name, 24)}</span>
                         <span class="tag rep">${icon("repeat")}volta ${this._returnLabel(x.r.reopen_at)}</span>
                       </div>
                     </div>
@@ -3232,7 +3240,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     const off = this._L.filter((l) => l.hidden);
     const row = (l) => html`
       <div class="row ${l.hidden ? "inact" : ""}" style=${colorVars(l.color, this._dark)}>
-        <button class="tile" @click=${() => this._openCustomize(l)} aria-label="Personalizar ${l.name}">${icon(l.icon)}</button>
+        <button class="tile ${l.icon ? "" : "sem"}" @click=${() => this._openCustomize(l)} aria-label="Personalizar ${l.name}">${l.icon ? icon(l.icon) : nothing}</button>
         <button class="grow" style="text-align:left" @click=${() => this._openCustomize(l)}>
           <div class="label">${l.name}</div>
           <div class="hint">${l.group || l.id}</div>
@@ -3631,8 +3639,8 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
   _sheetStyle() {
     const f = this._form || {};
     const l = this._list(f.target || f.listId);
-    const c = this._sheet === "customize" ? colorById(f.color) || (l && l.color) : l && l.color;
-    if (!c) return "";
+    const c = this._sheet === "customize" && l ? this._formColor(f, l) : l && l.color;
+    if (!c || c.none) return c ? colorVars(c, this._dark) : "";
     return `--rv-accent:${c.fill};--rv-accent-ink:${this._dark ? c.fill : c.ink};--rv-accent-soft:${hexToRgba(c.fill, this._dark ? 0.18 : 0.14)};${colorVars(c, this._dark)}`;
   }
 
@@ -4040,15 +4048,15 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     const f = this._form;
     const l = this._list(f.listId);
     if (!l) return nothing;
-    const color = colorById(f.color) || l.color;
-    const ic = f.icon || guessIcon(`${l.origName} ${l.group || ""} ${l.id}`);
+    const color = this._formColor(f, l);
+    const ic = f.icon === "sem" ? null : f.icon || guessIcon(`${l.origName} ${l.group || ""} ${l.id}`);
     return html`
       <div class="sheet-head">
         <h3 class="display">${icon("sliders-horizontal", "sh-ic")}Personalizar</h3>
         <button class="icon-btn" @click=${() => this._closeSheet()} aria-label="Fechar">${icon("x")}</button>
       </div>
       <div class="preview-tile" style=${colorVars(color, this._dark)}>
-        <span class="tile">${icon(ic)}</span>
+        ${ic ? html`<span class="tile">${icon(ic)}</span>` : nothing}
         <span class="lc-main"><span class="lc-title">${(f.name || "").trim() || l.origName}</span><span class="lc-meta">${l.group || l.id}</span></span>
       </div>
       <label class="field">
@@ -4058,6 +4066,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
       <div class="field">
         <span class="flabel">${icon("palette", "lbl-ic")}Cor</span>
         <div class="swatches">
+          <button class="sw none ${color.none ? "on" : ""}" aria-label="Sem cor" title="Sem cor" @click=${() => this._setForm({ color: "sem" })}>${icon("ban")}</button>
           ${PALETTE.map(
             (c) => html`<button class="sw ${color.id === c.id ? "on" : ""}" style="--c:${c.fill}" aria-label=${c.label} @click=${() => this._setForm({ color: c.id })}>${color.id === c.id ? icon("check") : nothing}</button>`,
           )}
@@ -4066,12 +4075,13 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
       <div class="field">
         <span class="flabel">${icon("blocks", "lbl-ic")}Ícone</span>
         <div class="icon-grid" style=${colorVars(color, this._dark)}>
+          <button class="ig none ${ic ? "" : "on"}" aria-label="Sem ícone" title="Sem ícone" @click=${() => this._setForm({ icon: "sem" })}>${icon("ban")}</button>
           ${LIST_ICONS.map((n) => html`<button class="ig ${ic === n ? "on" : ""}" aria-label=${n} @click=${() => this._setForm({ icon: n })}>${icon(n)}</button>`)}
         </div>
       </div>
       ${this._renderOwnerPick(f)}
       <div class="row" style="border:0;padding-top:0">
-        <div class="grow"><div class="label">Mostrar no início</div></div>
+        <div class="grow"><div class="label">${icon("eye", "lbl-ic")}Mostrar no início</div></div>
         <label class="switch"><input type="checkbox" role="switch" .checked=${!f.hidden} @change=${(e) => this._setForm({ hidden: !e.target.checked })} aria-label="Mostrar no início" /><span class="track"></span></label>
       </div>
       ${!this._dueOn()
@@ -4079,7 +4089,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
         : l.canDue
         ? html`<div class="row" style="border:0;padding-top:0">
             <div class="grow">
-              <div class="label">Prazos</div>
+              <div class="label">${icon("calendar-clock", "lbl-ic")}Prazos</div>
               <div class="hint" style="white-space:normal">${f.deadlines ? "Vencidos ficam vermelhos e aparecem em Agora." : "Datas só como informação."}</div>
             </div>
             <label class="switch"><input type="checkbox" role="switch" .checked=${f.deadlines} @change=${(e) => this._setForm({ deadlines: e.target.checked })} aria-label="Prazos" /><span class="track"></span></label>

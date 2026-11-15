@@ -205,4 +205,10 @@ describe("Gráficos no relatório (2.47.0)", () => {
       ["todo.to_do_list", "To-do list", "#FFA23E"],
     ]);
   });
+
+  it("listLooks: a list Sem cor goes without a color (2.70.0)", () => {
+    const states = new Map([["todo.casa", { attributes: { friendly_name: "Casa" } }]]);
+    const looks = listLooks({ states, prefs: { "todo.casa": { color: "sem", icon: "sem" } } });
+    assert.equal(looks.get("todo.casa").color, "");
+  });
 });

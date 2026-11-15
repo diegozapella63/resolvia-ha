@@ -40,7 +40,8 @@ export function listLooks({ states = new Map(), entities = [], devices = [], pre
   return new Map(
     rows.map((l, k) => {
       const p = prefs[l.id] || {};
-      return [l.id, { name: p.name || l.name, color: PALETTE[p.color] || PALETTE[AUTO_COLORS[k % AUTO_COLORS.length]] }];
+      // 2.70.0: Sem cor ("sem") goes without a color (the report's own)
+      return [l.id, { name: p.name || l.name, color: p.color === "sem" ? "" : PALETTE[p.color] || PALETTE[AUTO_COLORS[k % AUTO_COLORS.length]] }];
     }),
   );
 }

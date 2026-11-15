@@ -17,7 +17,8 @@ const SHOP_RE = /shopping|compra|mercado|supermerc|feira/;
 /** A shopping list: the icon chosen in Personalizar, or the name (the same rule of the screen). */
 export function isShopping(id, l) {
   const icon = l && l.prefs && l.prefs.icon;
-  return icon ? icon === "shopping-cart" : SHOP_RE.test(fold(`${(l && l.name) || ""} ${id}`));
+  // Sem ícone ("sem", 2.70.0) goes by the name
+  return icon && icon !== "sem" ? icon === "shopping-cart" : SHOP_RE.test(fold(`${(l && l.name) || ""} ${id}`));
 }
 
 /**

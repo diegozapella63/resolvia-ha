@@ -61,6 +61,8 @@ export const ChatMixin = (Base) =>
       return renderChat({
         lit: { html, nothing },
         icon,
+        app: "resolvia", // as perguntas prontas, guardadas no aparelho
+        onRedraw: () => this.requestUpdate(),
         messages: c.messages,
         draft: c.draft,
         busy: c.busy,

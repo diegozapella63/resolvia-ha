@@ -59,8 +59,34 @@ async def main():
         style = await a.locator(".list-card", has_text="Casa da praia").first.get_attribute("style")
         check("#2" in (style or "") or "--c:" in (style or ""), f"the card has its color ({(style or '')[:40]})")
 
-        # ---- Padrão: back to the name of the Home Assistant
+        # ---- 2.70.0: Sem cor and Sem ícone (the first choice of each), and the icons of Mostrar no início and Prazos
         await a.locator(".list-card", has_text="Casa da praia").first.click(); await pg.wait_for_timeout(500)
+        await a.get_by_label("Opções da lista").click(); await pg.wait_for_timeout(300)
+        await sheet.locator(".menu-row", has_text="Personalizar").click(); await pg.wait_for_timeout(300)
+        for lab in ("Mostrar no início", "Prazos"):
+            n = await sheet.locator(".row .label", has_text=lab).locator("svg.lbl-ic").count()
+            check(n == 1, f"{lab} has its icon, like the other options")
+        await sheet.get_by_label("Sem cor", exact=True).click()
+        await sheet.get_by_label("Sem ícone", exact=True).click(); await pg.wait_for_timeout(200)
+        check(await sheet.locator(".sw.on").get_attribute("aria-label") == "Sem cor", "Sem cor is checked")
+        check(await sheet.locator(".ig.on").get_attribute("aria-label") == "Sem ícone", "Sem ícone is checked")
+        check(await sheet.locator(".preview-tile .tile").count() == 0, "the preview has no icon")
+        await sheet.screenshot(path=f"{SP}/shots/rvm-sem.png")
+        await sheet.locator(".btn.primary", has_text="Salvar").click(); await pg.wait_for_timeout(600)
+        await pg.goto("http://127.0.0.1:8099/?aba=listas"); await pg.wait_for_timeout(1500)
+        card = a.locator(".list-card", has_text="Casa da praia").first
+        style = await card.get_attribute("style") or ""
+        check(await card.locator(".tile").count() == 0, "the card has no icon, kept after reloading")
+        check("var(--rv-text-2)" in style and "#" not in style, f"nor a color of the palette ({style[:60]})")
+        await card.click(); await pg.wait_for_timeout(500)
+        await a.get_by_label("Opções da lista").click(); await pg.wait_for_timeout(300)
+        await sheet.locator(".menu-row", has_text="Personalizar").click(); await pg.wait_for_timeout(300)
+        check(await sheet.locator(".sw.on").get_attribute("aria-label") == "Sem cor" and await sheet.locator(".ig.on").get_attribute("aria-label") == "Sem ícone", "reopened: Sem cor and Sem ícone")
+
+        # ---- Padrão: back to the name of the Home Assistant (and the color and icon of before)
+        await sheet.locator(".btn", has_text="Padrão").click(); await pg.wait_for_timeout(150)
+        check(await sheet.locator(".sw.on").get_attribute("aria-label") not in (None, "Sem cor") and await sheet.locator(".preview-tile .tile").count() == 1, "Padrão gives back a color and the icon")
+        await sheet.locator(".btn.primary", has_text="Salvar").click(); await pg.wait_for_timeout(600)
         await a.get_by_label("Opções da lista").click(); await pg.wait_for_timeout(300)
         await sheet.locator(".menu-row", has_text="Personalizar").click(); await pg.wait_for_timeout(300)
         await sheet.locator(".btn", has_text="Padrão").click(); await pg.wait_for_timeout(150)

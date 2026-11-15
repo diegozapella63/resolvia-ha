@@ -33,6 +33,7 @@ describe("sensors: what they say", () => {
     assert.equal(isShopping("todo.x", L("Coisas", { prefs: { icon: "shopping-cart" } })), true);
     assert.equal(isShopping("todo.compras", L("Compras", { prefs: { icon: "house" } })), false, "the icon chosen wins");
     assert.equal(isShopping("todo.casa", L("Casa")), false);
+    assert.equal(isShopping("todo.compras", L("Compras", { prefs: { icon: "sem" } })), true, "Sem ícone goes by the name");
   });
   it("atrasados and vence hoje: the visible lists with deadlines; the dates that are information stay out", () => {
     const s = sensorStates(LISTS, ITEMS, { now: NOW });

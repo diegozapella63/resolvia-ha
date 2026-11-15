@@ -1807,6 +1807,24 @@ export const styles = css`
     color: var(--ci);
     box-shadow: inset 0 0 0 2px var(--c);
   }
+  /* 2.70.0: Sem cor and Sem ícone, the first choice of each */
+  .sw.none {
+    background: var(--rv-surface-2);
+    color: var(--rv-muted);
+    --c: var(--rv-text-2);
+  }
+  .sw.none .i {
+    stroke-width: 2;
+    width: 22px;
+    height: 22px;
+  }
+  .side-tile.sem {
+    background: none;
+  }
+  .row .tile.sem {
+    background: var(--rv-surface-2);
+    box-shadow: inset 0 0 0 1.5px var(--rv-line-strong);
+  }
   .foot {
     text-align: center;
     color: var(--rv-faint);

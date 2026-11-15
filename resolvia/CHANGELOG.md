@@ -1,5 +1,12 @@
 # Mudanças
 
+## 2.70.0
+
+- **Conversa › Perguntas prontas**: as perguntas de exemplo viram suas. **Editar perguntas** tira (✕) e acrescenta as que você quiser; **Padrão** volta às de antes. Ficam guardadas no aparelho.
+- **Conversa**: o botão ✨ ao lado da caixa abre as perguntas prontas a qualquer momento, não só na conversa vazia.
+- **Personalizar**: **Sem cor** e **Sem ícone** são a primeira escolha de cada um. A lista fica nas cores do tema, sem o quadrinho do ícone.
+- **Personalizar**: **Mostrar no início** e **Prazos** ganharam o ícone, como as outras opções.
+
 ## 2.69.0
 
 - **Editar item › Lista**: vem marcada a lista onde o item está (também a do Alexa, que não aceita item novo daqui); tocar em outra move o item. Saiu o "(mover)" do título.

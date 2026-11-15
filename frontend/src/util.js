@@ -68,7 +68,11 @@ export function hexToRgba(hex, alpha) {
   return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
 }
 
+/** 2.70.0: Sem cor (Personalizar): the list in the colors of the theme, no palette color. */
+export const NO_COLOR = { id: "sem", label: "Sem cor", fill: "", ink: "", none: true };
+
 export function colorVars(color, dark, prefix = "c") {
+  if (color && color.none) return `--${prefix}:var(--rv-text-2);--${prefix}i:var(--rv-text-2);--${prefix}s:var(--rv-surface-2);`;
   return `--${prefix}:${color.fill};--${prefix}i:${dark ? color.fill : color.ink};--${prefix}s:${hexToRgba(color.fill, dark ? 0.17 : 0.15)};`;
 }
 
