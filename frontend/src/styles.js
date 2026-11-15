@@ -529,11 +529,7 @@ export const styles = css`
   .sheet .field.dobravel.shut > .flabel::after {
     transform: rotate(-90deg);
   }
-  .sheet .field.dobravel.shut > :not(.flabel):not(.chip-row):not(.eq-pick),
-  .sheet .field.dobravel.shut > .chip-row > :not(.on),
-  .sheet .field.dobravel.shut > .chip-row:not(:has(> .on)),
-  .sheet .field.dobravel.shut > .eq-pick > :not(.eq-sel),
-  .sheet .field.dobravel.shut > .eq-pick:not(:has(> .eq-sel)) {
+  .sheet .field.dobravel.shut > :not(.flabel) {
     display: none !important;
   }
   .sheet .field.dobravel > .flabel:focus-visible {
@@ -1429,11 +1425,37 @@ export const styles = css`
   .filters-label[aria-expanded="false"]::after {
     transform: rotate(-90deg);
   }
-  .filters.shut > :not(.on) {
+  .filters.shut {
     display: none;
   }
-  .filters.shut:not(:has(> .on)) {
-    display: none;
+  /* Buscar: the name of each list folds it (2.67.1) */
+  .panel > .overline.fold-over {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    background: none;
+    border: 0;
+    text-align: left;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .panel > .overline.fold-over::after {
+    content: "";
+    flex: none;
+    width: 18px;
+    height: 18px;
+    margin-left: auto;
+    background: var(--rv-muted);
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") center / 18px no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") center / 18px no-repeat;
+    transition: transform 0.2s;
+  }
+  .panel > .overline.fold-over[aria-expanded="false"] {
+    padding-bottom: 16px;
+  }
+  .panel > .overline.fold-over[aria-expanded="false"]::after {
+    transform: rotate(-90deg);
   }
   .filters {
     display: grid;

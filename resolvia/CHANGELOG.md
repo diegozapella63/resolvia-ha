@@ -1,5 +1,12 @@
 # Mudanças
 
+## 2.67.1
+
+- **Campos das janelas** (Prazo, Cômodo, Lista…): fechados, escondem tudo, também o que está escolhido.
+- **Novo item e Editar item**: a escolha **Casa** ou **Bens** vem antes do Prazo.
+- **Buscar**: **Incluir** fechado esconde todos os botões, não só os desligados. Cada lista dos resultados também fecha e abre num toque no nome dela (fechada, mostra quantos itens tem). Tudo volta aberto quando você abre o Buscar de novo.
+- **Colar mensagem**: o **Separar itens** com ícone também sem IA.
+
 ## 2.67.0
 
 - **Janelas mais curtas**: no Novo item, no Editar item e no Alterar em lote, cada campo de escolhas (Trazer de mensagem ou foto, Prazo, Horário, Cômodo, Equipamento, Quem faz, Pontos, Repetir, Lista…) fecha e abre num toque no título, com a seta no canto. Fechado, mostra só o que está escolhido. O aparelho lembra os que ficaram fechados.

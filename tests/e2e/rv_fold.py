@@ -85,9 +85,7 @@ async def main():
             await prazo.locator(".pick", has_text="Amanhã").click(); await pg.wait_for_timeout(200)
             await lab.click(); await pg.wait_for_timeout(250)
             shown = [t.strip() for t in await prazo.locator(".pick:visible").all_inner_texts()]
-            check(await lab.get_attribute("aria-expanded") == "false" and shown == ["Amanhã"], f"{scheme}: Prazo closed: only the date chosen ({shown})")
-            await prazo.locator(".pick", has_text="Amanhã").click(); await pg.wait_for_timeout(200)
-            check(await prazo.locator(".pick:visible").count() == 0, f"{scheme}: closed, no date: only the title")
+            check(await lab.get_attribute("aria-expanded") == "false" and shown == [], f"{scheme}: 2.67.1: Prazo closed: all of it, even the date chosen ({shown})")
             trazer = a.locator(".sheet .field.imp-field")
             if await trazer.count():
                 await trazer.locator(":scope > .flabel").click(); await pg.wait_for_timeout(250)
@@ -101,18 +99,26 @@ async def main():
             if await trazer.count():
                 await trazer.locator(":scope > .flabel").click(); await pg.wait_for_timeout(200)
             check(await prazo.locator(".pick:visible").count() >= 4 and await pg.evaluate("() => localStorage.getItem('resolvia-campos')") == "[]", f"{scheme}: open again: every date")
+            if await prazo.locator(".pick.on", has_text="Amanhã").count():
+                await prazo.locator(".pick", has_text="Amanhã").click(); await pg.wait_for_timeout(150)
             await a.locator(".sheet .icon-btn[aria-label=Fechar]").click(); await pg.wait_for_timeout(400)
 
             # ---- Buscar › Incluir folds, and is open again each time Buscar is entered
             await go("/buscar")
             inc = a.locator("#incluir")
             check(await inc.get_attribute("aria-expanded") == "true" and await inc.locator("svg.lbl-ic").count() == 1, f"{scheme}: Incluir with its icon, open")
-            on = await a.locator(".filters .pick.on").count()
             await inc.click(); await pg.wait_for_timeout(250)
             vis = await a.locator(".filters .pick:visible").count()
-            check(await inc.get_attribute("aria-expanded") == "false" and vis == on, f"{scheme}: Incluir closed: only the ones on ({vis} of {on})")
+            check(await inc.get_attribute("aria-expanded") == "false" and vis == 0, f"{scheme}: 2.67.1: Incluir closed: all of it ({vis})")
+            # each list of the results folds by its name
+            lst = a.locator(".search-list").first
+            n0 = await lst.locator(".item, .row").count()
+            await lst.locator(".fold-over").click(); await pg.wait_for_timeout(250)
+            n1 = await lst.locator(".item, .row").count()
+            name = (await lst.locator(".fold-over").inner_text()).strip()
+            check(n0 > 0 and n1 == 0 and await lst.locator(".fold-over").get_attribute("aria-expanded") == "false" and name.endswith(f"({n0})"), f"{scheme}: a list of Buscar closes by its name, with how many ({name}, {n0} → {n1})")
             await go("/listas"); await go("/buscar")
-            check(await a.locator("#incluir").get_attribute("aria-expanded") == "true", f"{scheme}: back to Buscar, Incluir open again (not kept)")
+            check(await a.locator("#incluir").get_attribute("aria-expanded") == "true" and await a.locator(".search-list .fold-over[aria-expanded=false]").count() == 0, f"{scheme}: back to Buscar, all open again (not kept)")
             await ctx.close()
         check(not errs, f"no page errors {errs[:3]}")
         await b.close()

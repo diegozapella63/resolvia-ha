@@ -164,6 +164,8 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
 
   constructor() {
     super();
+    /** Buscar: the lists folded on this visit (open again each time Buscar is entered) */
+    this._searchShut = new Set();
     this._items = new Map();
     this._subs = new Map();
     this._polling = new Set();
@@ -352,8 +354,9 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
       if (tab === "dados") this._loadBackups();
     }
     // Buscar › Incluir folds, but opens again each time Buscar is entered (2.67.0: not kept)
-    if (changed.has("_path") && this._view().name === "search" && this._incluirShut) {
+    if (changed.has("_path") && this._view().name === "search" && (this._incluirShut || this._searchShut.size)) {
       this._incluirShut = false;
+      this._searchShut.clear();
       this.requestUpdate();
     }
     // Buscar: the cursor goes to the box on the computer (mouse), and when coming from the box
@@ -2779,16 +2782,25 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
         ${results.length
           ? html`${head}
               ${results.map(
-                ({ l, hits }) => html`
-                  <div class="panel items" style=${colorVars(l.color, this._dark)}>
-                    <div class="overline">${l.name}${l.group ? ` · ${l.group}` : ""}</div>
-                    ${repeat(hits, keyOf, (i) =>
+                ({ l, hits }) => {
+                  // 2.67.1: each list folds with a tap on its name (open again each time Buscar is entered)
+                  const shut = this._searchShut.has(l.id);
+                  return html`
+                  <div class="panel items search-list" style=${colorVars(l.color, this._dark)}>
+                    <button type="button" class="overline fold-over" aria-expanded=${shut ? "false" : "true"} @click=${() => {
+                      this._haptic("light");
+                      if (shut) this._searchShut.delete(l.id);
+                      else this._searchShut.add(l.id);
+                      this.requestUpdate();
+                    }}><span>${l.name}${l.group ? ` · ${l.group}` : ""}${shut ? ` (${hits.length})` : ""}</span></button>
+                    ${shut ? nothing : repeat(hits, keyOf, (i) =>
                       selecting
                         ? this._renderItem(l, i, { selecting: true, selected: this._bsel.keys.has(this._bkey(l, i)), locked: this._bulkLocked(l, i), onToggle: () => this._toggleBulk(l, i) })
                         : this._renderItem(l, i, { query: q, onHold: isDone(i) || this._bulkLocked(l, i) ? null : () => this._startBulk(l, i) }),
                     )}
                   </div>
-                `,
+                `;
+                },
               )}
               ${selecting
                 ? html`<div class="sel-bar">
@@ -3692,6 +3704,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
             <textarea rows="3" .value=${f.description} @input=${(e) => this._setForm({ description: e.target.value })} placeholder="Detalhes, links…"></textarea>
           </label>`
         : nothing}
+      ${this._renderWhere(f)}
       ${canDate
         ? html`<div class="field">
             <span class="flabel">${icon("calendar", "lbl-ic")}Prazo</span>
@@ -3741,7 +3754,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
               : nothing}
           </div>`
         : nothing}
-      ${this._renderRoomField(f)}
+      ${this._renderRoomField(f, false)}
       ${this._renderEquipField(f)}
       ${this._renderExternalField(f, target.appDue ? feat & ~(F.DUE_DATE | F.DUE_DATETIME) : feat)}
       ${this._renderPointsField(f)}
@@ -3806,7 +3819,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
         ${error}
         <div class="sheet-actions">
           ${this._clipOk() ? html`<button class="btn outline" @click=${() => this._pasteClipboard()}>${icon("clipboard-paste")}Colar</button>` : nothing}
-          <button class="btn primary" ?disabled=${!(f.text || "").trim()} @click=${() => this._readText()}>${ai.ready ? icon("sparkles") : nothing}Separar itens</button>
+          <button class="btn primary" ?disabled=${!(f.text || "").trim()} @click=${() => this._readText()}>${icon(ai.ready ? "sparkles" : "list-checks")}Separar itens</button>
         </div>
         ${ai.ready ? nothing : html`<p class="sheet-note">Sem IA configurada: separo por linhas, vírgulas e “e”.</p>`}
       `;

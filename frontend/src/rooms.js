@@ -263,8 +263,9 @@ export const RoomsMixin = (Base) =>
     }
 
     /** Item sheet: Cômodo (when on). With equipment, the rooms are those of the items, locked. */
-    _renderRoomField(f) {
-      const where = this._renderWhere(f);
+    _renderRoomField(f, withWhere = true) {
+      // 2.67.1: in the item sheet, Casa ou Bens comes before Prazo (it renders it there: withWhere false)
+      const where = withWhere ? this._renderWhere(f) : nothing;
       // Bens: no rooms (the bem says where it is)
       if (!this._roomsOn() || this._inBens(f)) return where;
       const locked = this._equipsOn() && (f.equips || []).length > 0;
