@@ -1,5 +1,10 @@
 # Mudanças
 
+## 2.68.0
+
+- **Buscar › Incluir › De quem é**: quando alguma lista é de uma pessoa (Personalizar › De quem é), dá para ver só as tarefas de uma pessoa: as listas dela, junto com as de todos, sem as das outras pessoas. **Todos** volta a mostrar tudo. A escolha fica no aparelho.
+- **Buscar › Incluir** fechado continua fechado ao voltar ao Buscar e ao abrir o app de novo. As listas dos resultados continuam abrindo toda vez.
+
 ## 2.67.1
 
 - **Campos das janelas** (Prazo, Cômodo, Lista…): fechados, escondem tudo, também o que está escolhido.

@@ -1,4 +1,4 @@
-# ResolvIA Buscar: results across lists with the count and highlight, accents, notes, Incluir concluídos, nothing found, clearing, opening and completing an item from a result, Back.
+# ResolvIA Buscar: results across lists with the count and highlight, accents, notes, Incluir concluídos, nothing found, clearing, opening and completing an item from a result, Incluir › De quem é (2.68.0), Back.
 import os as _os
 CRONOLOGIA = _os.environ.get("E2E_CRONOLOGIA", "")
 RESOLVIA = _os.environ.get("E2E_RESOLVIA", "")
@@ -107,6 +107,33 @@ async def main():
         await pg.wait_for_timeout(600)
         check(await hits() == ["Comprar pilhas"] and await groups() == ["Shopping list · Notas e Rotinas do Alexa"], "an item added elsewhere appears in the results")
         await pg.screenshot(path=f"{SP}/shots/rvs-live.png")
+        # 2.68.0: Incluir › De quem é, only when a list has a person (Personalizar › De quem é): Todos, or a person, whose
+        # lists show with the ones of everyone; the choice stays on the device
+        await search("")
+        check(await pg.locator(".who-filter").count() == 0, "no list with a person: no De quem é")
+        for eid, quem in ((CASA, "Ana"), (SHOP, "Beto")):
+            await ws({"type": "resolvia/prefs/set_list", "entity_id": eid, "prefs": {"owner": quem}})
+        await pg.goto(URL); await pg.wait_for_timeout(1300)
+        await pg.locator(".tab", has_text="Buscar").click(); await pg.wait_for_timeout(400)
+        who = pg.locator(".who-filter .pick")
+        check([t.strip() for t in await who.all_inner_texts()] == ["Todos", "Ana", "Beto"] and (await pg.locator(".who-filter .pick.on").inner_text()).strip() == "Todos"
+              and await pg.locator(".filters-sub svg.lbl-ic").count() == 1, f"De quem é: Todos and each person, with its icon ({await who.all_inner_texts()})")
+        n_all = len(await groups())
+        await who.filter(has_text="Ana").click(); await pg.wait_for_timeout(300)
+        g = [x.lower() for x in await groups()]
+        check("casa" in g and not any("shopping list" in x for x in g) and len(g) == n_all - 1 and "Em 3 listas" in await pg.locator(".brand-head .status").inner_text(),
+              f"Ana: her lists and everyone's, without Beto's ({g})")
+        await pg.screenshot(path=f"{SP}/shots/rvs-quem.png")
+        await who.filter(has_text="Beto").click(); await pg.wait_for_timeout(300)
+        g = [x.lower() for x in await groups()]
+        check("casa" not in g and any("shopping list" in x for x in g), f"Beto: his lists and everyone's ({g})")
+        await pg.goto(URL); await pg.wait_for_timeout(1300)
+        await pg.locator(".tab", has_text="Buscar").click(); await pg.wait_for_timeout(400)
+        check((await pg.locator(".who-filter .pick.on").inner_text()).strip() == "Beto" and "casa" not in [x.lower() for x in await groups()], "kept on the device")
+        await pg.locator(".who-filter .pick", has_text="Todos").click(); await pg.wait_for_timeout(300)
+        check(len(await groups()) == n_all and "Em 4 listas" in await pg.locator(".brand-head .status").inner_text(), "Todos: every list again")
+        await pg.locator(".tab", has_text="Agora").click(); await pg.wait_for_timeout(400)  # (the app reopens on the last tab)
+        await pg.locator(".tab", has_text="Buscar").click(); await pg.wait_for_timeout(400)
         # Back leaves Buscar
         await pg.go_back(); await pg.wait_for_timeout(500)
         check(await pg.locator(".page-title").inner_text() == "Agora", "Back goes to the start (Sugestões)")

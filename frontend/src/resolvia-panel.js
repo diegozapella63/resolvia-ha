@@ -110,6 +110,9 @@ export const foldKeyOf = (card) => {
  * closed ones (resolvia-campos), by the title (Cômodos and Lista (mover) are Cômodo and Lista).
  */
 const FIELD_KEY = "resolvia-campos";
+// Buscar › Incluir: closed or open, and De quem é (the person whose lists are shown), kept on the device (2.68.0)
+const INCLUIR_KEY = "resolvia-incluir-fechado";
+const WHO_KEY = "resolvia-busca-quem";
 export const fieldKeyOf = (field) => {
   const l = field && field.querySelector(":scope > .flabel");
   return l ? l.textContent.trim().replace(/\s*\(.*\)$/, "").replace(/s$/, "") : "";
@@ -166,6 +169,9 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     super();
     /** Buscar: the lists folded on this visit (open again each time Buscar is entered) */
     this._searchShut = new Set();
+    // Buscar › Incluir: closed or open (kept), and De quem é ("" = everyone's lists)
+    this._incluirShut = store.get(INCLUIR_KEY, false) === true;
+    this._searchWho = store.get(WHO_KEY, "") || "";
     this._items = new Map();
     this._subs = new Map();
     this._polling = new Set();
@@ -353,9 +359,8 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
       }
       if (tab === "dados") this._loadBackups();
     }
-    // Buscar › Incluir folds, but opens again each time Buscar is entered (2.67.0: not kept)
-    if (changed.has("_path") && this._view().name === "search" && (this._incluirShut || this._searchShut.size)) {
-      this._incluirShut = false;
+    // Buscar: the lists of the results open again each time Buscar is entered (Incluir is kept, 2.68.0)
+    if (changed.has("_path") && this._view().name === "search" && this._searchShut.size) {
       this._searchShut.clear();
       this.requestUpdate();
     }
@@ -2719,9 +2724,49 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
 
   // ---------- search
 
+  /**
+   * Buscar › Incluir › De quem é (2.68.0): Todos, or a person, whose lists show with the ones of everyone. Only when a
+   * list has a person (Personalizar › De quem é); the choice stays on the device.
+   */
+  _renderSearchWho() {
+    const people = this._searchPeople();
+    if (!people.length) return nothing;
+    const cur = this._searchWhoNow();
+    const pick = (n) => {
+      this._haptic("light");
+      this._searchWho = n;
+      store.set(WHO_KEY, n);
+      this.requestUpdate();
+    };
+    return html`<span class="filters-sub" id="incluir-quem">${icon("user-round", "lbl-ic")}De quem é</span>
+      <div class="filters who-filter" role="radiogroup" aria-labelledby="incluir-quem">${["", ...people].map((n) => {
+        const on = n ? fold(cur) === fold(n) : !cur;
+        return html`<button class="pick ${on ? "on" : ""}" role="radio" aria-checked=${on ? "true" : "false"} @click=${() => pick(n)}>${icon(n ? "user-round" : "users")}<span>${n || "Todos"}</span></button>`;
+      })}</div>`;
+  }
+
   /** A Buscar › Incluir button, on or off. */
   _searchToggle(ic, label, on, toggle) {
     return html`<button class="pick ${on ? "on" : ""}" aria-pressed=${on ? "true" : "false"} @click=${toggle}>${icon(ic)}<span>${label}</span></button>`;
+  }
+
+  /** Buscar › Incluir › De quem é: the people with a list of their own (Personalizar › De quem é), in order. */
+  _searchPeople() {
+    const seen = new Map();
+    for (const l of this._visible()) if (l.owner && !seen.has(fold(l.owner))) seen.set(fold(l.owner), l.owner);
+    return [...seen.values()].sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }
+
+  /** The person chosen in De quem é ("" = everyone), while someone still has a list. */
+  _searchWhoNow() {
+    const w = this._searchWho;
+    return w && this._searchPeople().some((n) => fold(n) === fold(w)) ? w : "";
+  }
+
+  /** The lists of Buscar: a person's, with the ones of everyone (De quem é: Todos), like the alert of Prazos. */
+  _searchLists() {
+    const w = this._searchWhoNow();
+    return this._visible().filter((l) => !w || !l.owner || fold(l.owner) === fold(w));
   }
 
   _renderSearch() {
@@ -2738,7 +2783,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
       !needle || fold(i.summary).includes(needle) || fold(i.description).includes(needle) || place(l, i) || (byExt && fold(this._externalText(l.id, i.summary)).includes(needle));
     // like the InventarIA: everything pending from the start (only the lists that are on, Mais › Listas), and a word
     // narrows it, also by the room or the item of the InventarIA ("cozinha", "fogão"); selecting, only what is pending
-    for (const l of this._visible()) {
+    for (const l of this._searchLists()) {
       const hits = (l.items || []).filter((i) => ((this._searchDone && !selecting) || !isDone(i)) && hit(l, i));
       if (hits.length) {
         hits.sort((a, b) => Number(isDone(a)) - Number(isDone(b)));
@@ -2761,7 +2806,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
         </div>`;
     return html`
       <section class="page ${selecting ? "selecting-page" : ""}">
-        ${this._renderPageHead("Buscar", { text: `Em ${plural(this._visible().length, "lista", "listas")}` })}
+        ${this._renderPageHead("Buscar", { text: `Em ${plural(this._searchLists().length, "lista", "listas")}` })}
         <label class="search-box">
           ${icon("search")}
           <input type="search" data-q="buscar" placeholder="Buscar em todas as listas" .value=${this._query} @input=${(e) => (this._query = e.target.value)} enterkeyhint="search" aria-label="Buscar" />
@@ -2770,14 +2815,18 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
         <button type="button" class="filters-label" id="incluir" aria-expanded=${this._incluirShut ? "false" : "true"} @click=${() => {
           this._haptic("light");
           this._incluirShut = !this._incluirShut;
+          store.set(INCLUIR_KEY, this._incluirShut);
           this.requestUpdate();
         }}>${icon("sliders-horizontal", "lbl-ic")}Incluir</button>
-        <div class="filters ${this._incluirShut ? "shut" : ""}" role="group" aria-labelledby="incluir">
+        <div class="incluir ${this._incluirShut ? "shut" : ""}">
+        <div class="filters" role="group" aria-labelledby="incluir">
           ${selecting ? nothing : this._searchToggle("circle-check", "Concluídos", this._searchDone, () => (this._searchDone = !this._searchDone))}
           ${/* Serviços externos, Cômodos and Equipamentos only with their option on (off: they aren't there) */ ""}
           ${this._extOn() ? this._searchToggle("hard-hat", "Serviços externos", this._searchExt, () => (this._searchExt = !this._searchExt)) : nothing}
           ${this._rooms && this._rooms.encontrado && this._roomsOn() ? this._searchToggle("door-open", "Cômodos", this._searchRooms, () => (this._searchRooms = !this._searchRooms)) : nothing}
           ${this._rooms && this._rooms.encontrado && this._equipsOn() ? this._searchToggle("package", "Equipamentos", this._searchEquips, () => (this._searchEquips = !this._searchEquips)) : nothing}
+        </div>
+        ${this._renderSearchWho()}
         </div>
         ${results.length
           ? html`${head}

@@ -1425,8 +1425,19 @@ export const styles = css`
   .filters-label[aria-expanded="false"]::after {
     transform: rotate(-90deg);
   }
-  .filters.shut {
+  .filters.shut,
+  .incluir.shut {
     display: none;
+  }
+  /* 2.68.0: Incluir › De quem é, a person's lists (with the ones of everyone) */
+  .filters-sub {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: -6px 0 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--rv-text-2);
   }
   /* Buscar: the name of each list folds it (2.67.1) */
   .panel > .overline.fold-over {

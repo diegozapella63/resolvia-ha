@@ -103,7 +103,7 @@ async def main():
                 await prazo.locator(".pick", has_text="Amanhã").click(); await pg.wait_for_timeout(150)
             await a.locator(".sheet .icon-btn[aria-label=Fechar]").click(); await pg.wait_for_timeout(400)
 
-            # ---- Buscar › Incluir folds, and is open again each time Buscar is entered
+            # ---- Buscar › Incluir folds, kept on the device (2.68.0); the lists of the results open again on each visit
             await go("/buscar")
             inc = a.locator("#incluir")
             check(await inc.get_attribute("aria-expanded") == "true" and await inc.locator("svg.lbl-ic").count() == 1, f"{scheme}: Incluir with its icon, open")
@@ -118,7 +118,12 @@ async def main():
             name = (await lst.locator(".fold-over").inner_text()).strip()
             check(n0 > 0 and n1 == 0 and await lst.locator(".fold-over").get_attribute("aria-expanded") == "false" and name.endswith(f"({n0})"), f"{scheme}: a list of Buscar closes by its name, with how many ({name}, {n0} → {n1})")
             await go("/listas"); await go("/buscar")
-            check(await a.locator("#incluir").get_attribute("aria-expanded") == "true" and await a.locator(".search-list .fold-over[aria-expanded=false]").count() == 0, f"{scheme}: back to Buscar, all open again (not kept)")
+            check(await a.locator("#incluir").get_attribute("aria-expanded") == "false" and await a.locator(".filters .pick:visible").count() == 0
+                  and await a.locator(".search-list .fold-over[aria-expanded=false]").count() == 0, f"{scheme}: back to Buscar, Incluir still closed (kept), the lists open again")
+            await pg.reload(); await pg.wait_for_timeout(1200); await go("/buscar")
+            check(await a.locator("#incluir").get_attribute("aria-expanded") == "false" and await pg.evaluate("() => localStorage.getItem('resolvia-incluir-fechado')") == "true", f"{scheme}: after reopening the app too")
+            await a.locator("#incluir").click(); await pg.wait_for_timeout(250)
+            check(await a.locator("#incluir").get_attribute("aria-expanded") == "true" and await a.locator(".filters .pick:visible").count() > 0 and await pg.evaluate("() => localStorage.getItem('resolvia-incluir-fechado')") == "false", f"{scheme}: a tap opens it again, kept")
             await ctx.close()
         check(not errs, f"no page errors {errs[:3]}")
         await b.close()
