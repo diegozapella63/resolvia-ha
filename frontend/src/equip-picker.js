@@ -103,7 +103,7 @@ export function renderEquipPicker({ lit, icon, items, room = null, roomName = ""
 }
 
 export const equipPickerStyles = `
-  .eq-pick { display: grid; gap: 8px; }
+  .eq-pick { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
   .eq-search { display: flex; align-items: center; gap: 10px; padding: 0 14px; min-height: 48px; border-radius: 14px; border: 1.5px solid var(--rv-line-strong, var(--rv-line)); background: var(--rv-input-bg, transparent); color: var(--rv-muted); }
   .eq-search:focus-within { border-color: var(--rv-accent); color: var(--rv-accent-ink); }
   .eq-search .i { width: 18px; height: 18px; flex: none; }
@@ -122,7 +122,7 @@ export const equipPickerStyles = `
   .eq-head { font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--rv-muted); padding: 4px 2px 0; }
   .eq-more { justify-self: start; padding: 4px 2px; font-weight: 600; font-size: 14px; color: var(--rv-accent-ink); background: none; }
   .eq-hint { margin: 0; padding: 2px; font-size: 13px; color: var(--rv-muted); }
-  .eq-sel { display: flex; align-items: center; gap: 12px; padding: 10px 6px 10px 12px; border-radius: 14px; border: 1.5px solid var(--rv-accent); background: var(--rv-accent-soft); }
+  .eq-sel { display: flex; align-items: center; gap: 12px; min-width: 0; padding: 10px 6px 10px 12px; border-radius: 14px; border: 1.5px solid var(--rv-accent); background: var(--rv-accent-soft); }
   .eq-sel .eq-ic { background: var(--rv-accent); color: var(--rv-on-accent, #fff); }
   .eq-pick > .eq-pick { gap: 8px; }
   .eq-more, .eq-add { display: inline-flex; align-items: center; gap: 6px; }

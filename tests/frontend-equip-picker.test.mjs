@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { searchEquips, renderEquipPicker } from "../frontend/src/equip-picker.js";
+import { searchEquips, renderEquipPicker, equipPickerStyles } from "../frontend/src/equip-picker.js";
 
 const ITEMS = [
   { id: "geladeira", nome: "Geladeira", zona: "Bancada", roomId: "cozinha", roomName: "Cozinha" },
@@ -228,5 +228,13 @@ describe("renderEquipPicker with several (2.31)", () => {
   });
   it("an id that is gone is left out", () => {
     assert.equal(multi({ value: ["sumiu", "geladeira"] }).cards, 1);
+  });
+});
+
+describe("equipPickerStyles", () => {
+  it("a long name of the chosen one stays inside the width (2.72.2): the column can shrink, the name ends in …", () => {
+    assert.match(equipPickerStyles, /\.eq-pick \{ display: grid; grid-template-columns: minmax\(0, 1fr\);/);
+    assert.match(equipPickerStyles, /\.eq-sel \{[^}]*min-width: 0;/);
+    assert.match(equipPickerStyles, /\.eq-tx b \{[^}]*text-overflow: ellipsis; white-space: nowrap;/);
   });
 });

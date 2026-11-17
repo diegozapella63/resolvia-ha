@@ -1,5 +1,9 @@
 # Mudanças
 
+## 2.72.2
+
+- **Equipamento** escolhido numa tarefa: um nome comprido não passa mais da borda da direita. Ele termina em "…" dentro do cartão.
+
 ## 2.72.1
 
 - **Conversa**: o **Nova conversa** não quebra mais em duas linhas; num celular bem estreito, fica só o **+**.
