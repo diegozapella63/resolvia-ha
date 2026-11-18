@@ -238,7 +238,7 @@ const HA_REST = process.env.HA_REST_URL || "http://supervisor/core/api";
 // Falar: the speech-to-text of Home Assistant (Assist)
 const voice = new Voice({ ha, rest: HA_REST, token: TOKEN, log, pick: () => store.prefs.app.voice_engine || "" });
 const usage = new AiUsage({ dir: DATA_DIR, sensor: "sensor.resolvia_ia_hoje", label: "ResolvIA", rest: HA_REST, token: TOKEN, log, enabled: () => store.prefs.app.sensors_on === true });
-const ai = new AI({ ha, log, mediaDir: MEDIA_DIR, selected: () => store.prefs.app.ai_entity || "", usage, external: () => store.prefs.app.ext_off !== true });
+const ai = new AI({ ha, log, mediaDir: MEDIA_DIR, selected: () => store.prefs.app.ai_entity || "", selectedPhotos: () => store.prefs.app.ai_photos || "", usage, external: () => store.prefs.app.ext_off !== true });
 const itemSubs = new Map(); // entity_id -> subscription (for the recurring engine and the ages)
 // Mais › Configurações › Opções › Prazos › Avisar o que vence hoje: the lists as the screens show them (name, deadlines on or not)
 const dueLists = () => {

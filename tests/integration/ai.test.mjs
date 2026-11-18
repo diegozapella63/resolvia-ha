@@ -41,6 +41,7 @@ describe("with the fake AI", () => {
         ready: true,
         images: true,
         selected: "",
+        selected_photos: "",
         using: { id: GOOGLE, name: "Google AI Task" },
         entities: [
           { id: GOOGLE, name: "Google AI Task", images: true, available: true },

@@ -1,5 +1,9 @@
 # Mudanças
 
+## 2.73.0
+
+- **Integrações › IA** (antes "IA do Home Assistant"): agora dá para escolher uma IA **Para conversar** (a Conversa, o Falar, as mensagens coladas e as sugestões) e outra **Para ler fotos e PDFs** (o Escolher fotos ou PDF, o Digitalizar com IA e a Conversa com uma foto ou um PDF). Assim uma IA mais barata responde as perguntas e uma mais caprichada lê as fotos. A de fotos começa **Igual à de conversar**, então nada muda até você escolher.
+
 ## 2.72.2
 
 - **Equipamento** escolhido numa tarefa: um nome comprido não passa mais da borda da direita. Ele termina em "…" dentro do cartão.

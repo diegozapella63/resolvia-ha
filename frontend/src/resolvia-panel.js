@@ -1161,7 +1161,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     return this._aiState || (this.hass && this.hass.resolvia && this.hass.resolvia.ai) || { ready: false, images: false, entities: [] };
   }
 
-  /** Mais › Configurações › Integrações › IA do Home Assistant: which AI Home Assistant gives the app, and if it is ready. */
+  /** Mais › Configurações › Integrações › IA: which AI Home Assistant gives the app, and if it is ready. */
   async _refreshAi(force = true) {
     const r = this.hass && this.hass.resolvia;
     if (!r || !r.aiStatus) return;
@@ -1178,8 +1178,9 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     this.requestUpdate();
   }
 
-  async _chooseAi(id) {
-    await this._saveAppPrefs({ ai_entity: id || null });
+  /** 2.73.0: key ai_entity (for conversing and reading text) or ai_photos (for photos and PDFs; none: the same). */
+  async _chooseAi(id, key = "ai_entity") {
+    await this._saveAppPrefs({ [key]: id || null });
     await this._refreshAi();
     this._showToast("IA do app atualizada");
   }
@@ -3583,13 +3584,14 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
       </div>`;
     if (!on) {
       return html`<div class="panel" id="leitura-ia">
-        ${this._secHead("sparkles", "IA do Home Assistant", "Separa os itens de mensagens, prints e fotos.")}
+        ${this._secHead("sparkles", "IA", "Separa os itens de mensagens, prints, fotos e PDFs, e conversa.")}
         ${sw}
       </div>`;
     }
     const ai = this._aiInfo();
     const ents = ai.entities || [];
     const sel = this._app("ai_entity", "");
+    const selPhotos = this._app("ai_photos", "");
     const tone = this._aiChecking ? "off" : ai.ready && ai.images ? "ok" : ai.ready ? "warn" : "bad";
     const title = this._aiChecking ? "Verificando…" : ai.ready && ai.images ? "Pronta para ler fotos" : ai.ready ? "Só lê mensagens" : "Não configurada";
     let detail = "";
@@ -3599,19 +3601,27 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     }
     if (ai.reason) detail = `${detail} ${ai.reason}`.trim();
     return html`<div class="panel" id="leitura-ia">
-      ${this._secHead("sparkles", "IA do Home Assistant", "Separa os itens de mensagens, prints e fotos.")}
+      ${this._secHead("sparkles", "IA", "Separa os itens de mensagens, prints, fotos e PDFs, e conversa.")}
       ${sw}
       <div class="sub-op"><div class="sub-box">
       <div class="ai-state ${tone}"><span class="dot"></span><div><b>${title}</b>${detail ? html`<span>${detail}</span>` : nothing}</div></div>
-      ${ents.length || sel
+      ${ents.length || sel || selPhotos
         ? html`<label class="field" style="margin:14px 0 0">
-            <span class="flabel">${icon("sparkles", "lbl-ic")}IA usada pelo app</span>
-            <select class="select" aria-label="IA usada pelo app" @change=${(e) => this._chooseAi(e.target.value)}>
-              <option value="" ?selected=${!sel}>Padrão do Home Assistant</option>
-              ${ents.map((e) => html`<option value=${e.id} ?selected=${e.id === sel}>${e.name}${e.images ? "" : " (só texto)"}${e.available ? "" : " (indisponível)"}</option>`)}
-              ${sel && !ents.some((e) => e.id === sel) ? html`<option value=${sel} selected>${sel} (não encontrada)</option>` : nothing}
-            </select>
-          </label>`
+              <span class="flabel">${icon("message-circle", "lbl-ic")}Para conversar</span>
+              <select class="select" aria-label="IA para conversar" @change=${(e) => this._chooseAi(e.target.value)}>
+                <option value="" ?selected=${!sel}>Padrão do Home Assistant</option>
+                ${ents.map((e) => html`<option value=${e.id} ?selected=${e.id === sel}>${e.name}${e.available ? "" : " (indisponível)"}</option>`)}
+                ${sel && !ents.some((e) => e.id === sel) ? html`<option value=${sel} selected>${sel} (não encontrada)</option>` : nothing}
+              </select>
+            </label>
+            <label class="field" style="margin:14px 0 0">
+              <span class="flabel">${icon("scan-text", "lbl-ic")}Para ler fotos e PDFs</span>
+              <select class="select" aria-label="IA para ler fotos e PDFs" @change=${(e) => this._chooseAi(e.target.value, "ai_photos")}>
+                <option value="" ?selected=${!selPhotos}>Igual à de conversar</option>
+                ${ents.filter((e) => e.images || e.id === selPhotos).map((e) => html`<option value=${e.id} ?selected=${e.id === selPhotos}>${e.name}${e.available ? "" : " (indisponível)"}</option>`)}
+                ${selPhotos && !ents.some((e) => e.id === selPhotos) ? html`<option value=${selPhotos} selected>${selPhotos} (não encontrada)</option>` : nothing}
+              </select>
+            </label>`
         : nothing}
       <div class="ai-actions"><button class="btn outline" ?disabled=${this._aiChecking} @click=${() => this._refreshAi()}>${icon("rotate-ccw")}Verificar de novo</button></div>
       ${ai.ready && ai.images
@@ -4034,7 +4044,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
       )}
       ${!ai.images
         ? html`<div class="imp-error soft">${icon("sparkles")}<span>${ai.reason || "Para ler fotos, o Home Assistant precisa de uma integração de IA com tarefa de IA que entenda imagens."}
-            <button class="text-btn inline" @click=${() => this._goAiSettings()}>${icon("sparkles")}Ver IA do Home Assistant</button></span></div>`
+            <button class="text-btn inline" @click=${() => this._goAiSettings()}>${icon("sparkles")}Ver IA</button></span></div>`
         : nothing}
       ${error}
     `;

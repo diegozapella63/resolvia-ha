@@ -346,9 +346,9 @@ function fakeHA({ states = AI_STATES, preferred = null, prefsFail = false, answe
   return ha;
 }
 
-function newAI({ selected = "", usage = null, mediaDir = tmpDir("resolvia-media-"), ...ha } = {}) {
+function newAI({ selected = "", photos = "", usage = null, mediaDir = tmpDir("resolvia-media-"), ...ha } = {}) {
   const fake = fakeHA(ha);
-  return { ai: new AI({ ha: fake, log: fakeLog(), mediaDir, selected: () => selected, usage }), ha: fake, mediaDir };
+  return { ai: new AI({ ha: fake, log: fakeLog(), mediaDir, selected: () => selected, selectedPhotos: () => photos, usage }), ha: fake, mediaDir };
 }
 
 const serviceCall = (ha) => ha.calls.find((c) => c.type === "call_service");
@@ -386,6 +386,15 @@ describe("AI: which AI reads", () => {
     await assert.rejects(newAI({ states: textOnly }).ai.resolve(true), { code: "no_vision" });
     const down = [{ ...AI_STATES[0], state: "unavailable" }];
     await assert.rejects(newAI({ states: down }).ai.resolve(false), { code: "unavailable" });
+  });
+
+  it("2.73.0: photos and PDFs go to the AI chosen for them; none chosen, to the one for conversing", async () => {
+    const two = newAI({ selected: "ai_task.ollama", photos: "ai_task.google" }).ai;
+    assert.deepEqual([(await two.resolve(false)).id, (await two.resolve(true)).id], ["ai_task.ollama", "ai_task.google"]);
+    assert.equal((await newAI({ selected: "ai_task.google" }).ai.resolve(true)).id, "ai_task.google", "none: the one for conversing");
+    await assert.rejects(newAI({ photos: "ai_task.ollama" }).ai.resolve(true), { code: "no_vision" });
+    const st = await two.status();
+    assert.deepEqual([st.selected, st.selected_photos, st.using.id, st.photos.id], ["ai_task.ollama", "ai_task.google", "ai_task.ollama", "ai_task.google"]);
   });
 
   it("status() says what is used for messages and for photos", async () => {

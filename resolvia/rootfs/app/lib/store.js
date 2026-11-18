@@ -43,6 +43,8 @@ const APP_FIELDS = {
   list_order: ["list", 200],
   // "" / null = the AI Home Assistant prefers (Mais > Configurações > Integrações > Leitura por IA).
   ai_entity: ["string", 80],
+  // 2.73.0: the AI for photos and PDFs; "" / null = the same as ai_entity
+  ai_photos: ["string", 80],
   // Mais > Configurações > Integrações > Falar: the speech-to-text (stt.* or an engine of a voice assistant); null = the voice assistant's
   voice_engine: ["string", 80],
   // Mais > Configurações > Integrações > Recompensas: tasks can be worth points in the CronologIA scoreboard.
@@ -245,6 +247,7 @@ export function normalize(raw, strict = false) {
           }
         }
         if (app.ai_entity && !/^ai_task\.[a-z0-9_]+$/.test(app.ai_entity)) delete app.ai_entity;
+        if (app.ai_photos && !/^ai_task\.[a-z0-9_]+$/.test(app.ai_photos)) delete app.ai_photos;
         if (app.voice_engine && !/^[a-z0-9_.]+$/.test(app.voice_engine)) delete app.voice_engine;
         checkAlert(app);
         data.prefs.app = Store.merge({}, app);
