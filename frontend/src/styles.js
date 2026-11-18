@@ -5,16 +5,18 @@ export const styles = css`
   :host {
     --rv-body: ${unsafeCSS(FONT_BODY)};
     --rv-display: ${unsafeCSS(FONT_DISPLAY)};
-    --rv-bg: #fbf6f4;
-    --rv-surface: #ffffff;
-    --rv-surface-2: #f6eeec;
-    --rv-line: #eee2df;
-    --rv-line-strong: #dccbc7;
+    /* the background and the cards are the ones of the Home Assistant theme (hatema.js, the same in all the apps); the
+       grays come from them and the text, so every app of the family has the same background */
+    --rv-bg: var(--ha-bg-light, #fafafa);
+    --rv-surface: var(--ha-card-light, #ffffff);
+    --rv-surface-2: color-mix(in srgb, var(--rv-surface) 95%, var(--rv-text));
+    --rv-line: color-mix(in srgb, var(--rv-surface) 91%, var(--rv-text));
+    --rv-line-strong: color-mix(in srgb, var(--rv-surface) 81%, var(--rv-text));
     --rv-text: #231a1b;
     --rv-text-2: #4a3f40;
     --rv-muted: #7b6d6e;
     --rv-faint: #ab9c9d;
-    --rv-nav: #ffffff;
+    --rv-nav: var(--rv-surface);
     --rv-scrim: rgba(35, 20, 22, 0.42);
     --rv-shadow: 0 18px 50px rgba(70, 25, 25, 0.18);
     --rv-on-accent: #1d0f10;
@@ -25,8 +27,8 @@ export const styles = css`
     /* Serviço externo: a color of its own (not the late red, the today amber, the points gold) */
     --rv-ext: #4f46e5;
     --rv-ext-soft: rgba(79, 70, 229, 0.12);
-    --rv-skeleton: #efe5e3;
-    --rv-header-bg: var(--app-header-background-color, #fbf6f4);
+    --rv-skeleton: color-mix(in srgb, var(--rv-surface) 92%, var(--rv-text));
+    --rv-header-bg: var(--app-header-background-color, var(--rv-bg));
     --rv-header-fg: var(--app-header-text-color, #231a1b);
     --rv-nav-h: 68px;
     --rv-side-w: 272px;
@@ -41,16 +43,12 @@ export const styles = css`
     line-height: 1.5;
   }
   :host([dark]) {
-    --rv-bg: #171213;
-    --rv-surface: #201819;
-    --rv-surface-2: #2a2122;
-    --rv-line: #332a2b;
-    --rv-line-strong: #463a3b;
+    --rv-bg: var(--ha-bg-dark, #111111);
+    --rv-surface: var(--ha-card-dark, #1c1c1c);
     --rv-text: #f5eeee;
     --rv-text-2: #dbd0d0;
     --rv-muted: #a59798;
     --rv-faint: #716465;
-    --rv-nav: #1d1617;
     --rv-scrim: rgba(0, 0, 0, 0.6);
     --rv-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
     --rv-late: #ff6b5e;
@@ -59,8 +57,7 @@ export const styles = css`
     --rv-today-soft: rgba(255, 181, 71, 0.14);
     --rv-ext: #a5b4fc;
     --rv-ext-soft: rgba(129, 140, 248, 0.18);
-    --rv-skeleton: #2a2223;
-    --rv-header-bg: var(--app-header-background-color, #130f10);
+    --rv-header-bg: var(--app-header-background-color, var(--rv-bg));
     --rv-header-fg: var(--app-header-text-color, #f5eeee);
     color-scheme: dark;
   }

@@ -1,5 +1,10 @@
 # Mudanças
 
+## 2.74.0
+
+- **O fundo e os cartões seguem o tema do Home Assistant**, no claro e no escuro: o mesmo fundo do Home Assistant e dos outros apps da família (antes, cada app tinha o seu, o do ResolvIA meio rosado). Com um tema seu no Home Assistant, o app usa as cores dele; ao trocar o tema ou o modo no Home Assistant, o app muda junto. O mesmo vale para a página do Relatório.
+- **Conversa**: a IA responde com todos os acentos (algumas IAs escreviam "voce" e "Alimentacao").
+
 ## 2.73.0
 
 - **Integrações › IA** (antes "IA do Home Assistant"): agora dá para escolher uma IA **Para conversar** (a Conversa, o Falar, as mensagens coladas e as sugestões) e outra **Para ler fotos e PDFs** (o Escolher fotos ou PDF, o Digitalizar com IA e a Conversa com uma foto ou um PDF). Assim uma IA mais barata responde as perguntas e uma mais caprichada lê as fotos. A de fotos começa **Igual à de conversar**, então nada muda até você escolher.

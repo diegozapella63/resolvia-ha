@@ -284,8 +284,8 @@ export function reportHtml(rep, { tema = null, cor = "#ff8a65" } = {}) {
     const sub = [s.owner ? `de ${s.owner}` : "", plural(s.rows.length, "pendente", "pendentes"), s.late ? `${s.late} ${s.late === 1 ? "atrasada" : "atrasadas"}` : ""].filter(Boolean).join(" · ");
     return `<section><h2><span><span class="hic"${s.color ? ` style="--c:${esc(s.color)}"` : ""}>${svg("list-todo")}</span>${esc(s.name)}</span><small>${esc(sub)}</small></h2>${s.rows.length ? `<table><tbody>${rows}</tbody></table>` : `<p class="vazio">Nada pendente nesta lista.</p>`}</section>`;
   };
-  const claro = "--bg:#f6f7f9;--card:#fff;--fg:#141a22;--mut:#5b6573;--linha:#e3e7ec;--linha2:#eef1f4;--borda:#d6dbe2;--late:#d92d20;--pts:#b7791f;--today:#f59e0b;--ext:#4f46e5;--g1:#7b8590;--g2:#aab3bd;--g3:#d5dbe2";
-  const escuro = "--bg:#0f1318;--card:#161c23;--fg:#e8edf3;--mut:#9aa6b4;--linha:#2a3340;--linha2:#1f2732;--borda:#334051;--late:#ff6b5e;--pts:#f5c451;--today:#ffb547;--ext:#a5b4fc;--g1:#9aa6b4;--g2:#66727f;--g3:#3a4552";
+  const claro = "--bg:var(--ha-bg-light,#fafafa);--card:var(--ha-card-light,#fff);--fg:#141a22;--mut:#5b6573;--linha:#e3e7ec;--linha2:#eef1f4;--borda:#d6dbe2;--late:#d92d20;--pts:#b7791f;--today:#f59e0b;--ext:#4f46e5;--g1:#7b8590;--g2:#aab3bd;--g3:#d5dbe2";
+  const escuro = "--bg:var(--ha-bg-dark,#111111);--card:var(--ha-card-dark,#1c1c1c);--fg:#e8edf3;--mut:#9aa6b4;--linha:#2a3340;--linha2:#1f2732;--borda:#334051;--late:#ff6b5e;--pts:#f5c451;--today:#ffb547;--ext:#a5b4fc;--g1:#9aa6b4;--g2:#66727f;--g3:#3a4552";
   const charts = chartList(graficos(rep));
   return `<!doctype html><html lang="pt-BR"${attr}><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -363,7 +363,7 @@ h2 > span:first-child{display:inline-flex;align-items:center;gap:10px}
 .marca .nome i{font-style:normal;color:var(--a)}
 .marca small{display:block;margin-top:4px;color:var(--mut);font-size:10.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase}
 @media print{:root,:root[data-theme],:root:not([data-theme="light"]){${claro};--bg:#fff;color-scheme:light} .barra{display:none} body{padding:0} section,.marca{break-inside:avoid-page} .cab,section,.resumo div{border-color:#d6dbe2} .raio{box-shadow:none}}
-</style><script src="selectsheet.js"></script></head><body><main>
+</style><script src="selectsheet.js"></script><script src="hatema.js"></script></head><body><main>
 <div class="barra">
 <select aria-label="Listas" onchange="var u=new window.URL(window.location.href);if(this.value)u.searchParams.set('lista',this.value);else u.searchParams.delete('lista');location.replace(u.href)">${options}</select>
 <a href="./" onclick="if(history.length>1){history.back();return false}">${svg("chevron-left")}<span>Voltar</span></a><a class="pdf" href="${esc(pdfHref)}" download="${esc(pdfName(rep))}" onclick="${BAIXAR}">${svg("download")}<span>Baixar PDF</span></a>

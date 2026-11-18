@@ -326,6 +326,10 @@ describe("Mais › Relatório de pendências (2.45.0)", () => {
       assert.doesNotMatch(html, /Minha Casa/, "neither in the box nor as the chosen list");
       assert.match(html, /<option value="" selected>Todas as listas marcadas<\/option>/);
       assert.match(html, /<script src="selectsheet.js"><\/script>/);
+      // 2.74.0: the background and the cards of the Home Assistant theme, like the app
+      assert.match(html, /<script src="hatema.js"><\/script>/);
+      assert.match(html, /--bg:var\(--ha-bg-light,#fafafa\);--card:var\(--ha-card-light,#fff\)/);
+      assert.match(html, /--bg:var\(--ha-bg-dark,#111111\);--card:var\(--ha-card-dark,#1c1c1c\)/);
     } finally {
       await c.call("resolvia/prefs/set_list", { entity_id: CASA, prefs: { hidden: null } });
     }
@@ -333,5 +337,9 @@ describe("Mais › Relatório de pendências (2.45.0)", () => {
     assert.equal(js.status, 200);
     assert.match(js.headers.get("content-type"), /^text\/javascript/);
     assert.match(await js.text(), /__selectSheet/);
+    const tema = await get("/hatema.js");
+    assert.equal(tema.status, 200);
+    assert.match(tema.headers.get("content-type"), /^text\/javascript/);
+    assert.match(await tema.text(), /__haTema/);
   });
 });

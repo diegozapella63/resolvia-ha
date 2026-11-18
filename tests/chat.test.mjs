@@ -41,6 +41,8 @@ describe("chatInstructions", () => {
   const p = chatInstructions(cleanChat({ messages: [{ role: "user", text: "O que está atrasado?" }, { role: "ia", text: "A conta de luz." }, { role: "user", text: "E hoje?" }], context: ctx() }), NOW);
   it("in Portuguese, today with the weekday, the screen", () => {
     assert.match(p, /português do Brasil/);
+    // 2.74.0: some AIs answered without the accents: asked for them in words
+    assert.match(p, /com todos os acentos e o ç \(você, às, não, alimentação\)/);
     assert.match(p, /segunda-feira, 2 de novembro de 2026, 09:30 \(2026-11-02\)/);
     assert.match(p, /A pessoa está na tela: a lista "Casa"\./);
   });

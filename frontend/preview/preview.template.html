@@ -7,11 +7,11 @@
     <style>
       :root {
         /* Approximates your Home Assistant theme's header */
-        --app-header-background-color: #f7f1ef;
+        --app-header-background-color: var(--ha-bg-light, #fafafa);
         --app-header-text-color: #231a1b;
       }
       :root[data-dark="1"] {
-        --app-header-background-color: #130f1c;
+        --app-header-background-color: var(--ha-bg-dark, #111111);
         --app-header-text-color: #ffffff;
       }
       html,
@@ -21,7 +21,7 @@
         height: 100%;
       }
       body {
-        background: #171213;
+        background: var(--ha-bg-dark, #111111);
       }
     </style>
   </head>

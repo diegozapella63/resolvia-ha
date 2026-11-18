@@ -52,7 +52,8 @@ async def main():
             secs = [s.strip() for s in await pg.locator("section h2 span").all_inner_texts()]
             check(len(secs) >= 2, f"{scheme}: a section per marked list ({secs})")
             bg = await pg.evaluate("getComputedStyle(document.body).backgroundColor")
-            check(bg == ("rgb(15, 19, 24)" if scheme == "dark" else "rgb(246, 247, 249)"), f"{scheme}: the theme of the app ({bg})")
+            # 2.74.0: the background of the Home Assistant theme (outside it, the default one: #fafafa and #111111)
+            check(bg == ("rgb(17, 17, 17)" if scheme == "dark" else "rgb(250, 250, 250)"), f"{scheme}: the theme of the app ({bg})")
             bx = [await pg.locator(sel).bounding_box() for sel in (".barra a:not(.pdf)", ".barra a.pdf")]
             check(abs(bx[0]["width"] - bx[1]["width"]) < 1.5 and abs(bx[0]["height"] - bx[1]["height"]) < 1.5 and abs(bx[0]["y"] - bx[1]["y"]) < 1.5, f"{scheme}: Voltar and Baixar PDF side by side, the same size ({bx})")
             check(await pg.locator(".barra button").count() == 0 and (await pg.locator(".barra a.pdf").inner_text()).strip() == "Baixar PDF", f"{scheme}: Baixar PDF, no Imprimir")

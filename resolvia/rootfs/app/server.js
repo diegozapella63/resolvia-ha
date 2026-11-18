@@ -904,6 +904,7 @@ const FILES = {
   "/index.html": ["index.html", "text/html; charset=utf-8"],
   "/resolvia.js": ["resolvia.js", "text/javascript; charset=utf-8"],
   "/selectsheet.js": ["selectsheet.js", "text/javascript; charset=utf-8"],
+  "/hatema.js": ["hatema.js", "text/javascript; charset=utf-8"],
 };
 
 function allowed(req) {

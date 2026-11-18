@@ -31,7 +31,7 @@ const isDate = (s) => {
 
 export const CHAT_STRUCTURE = {
   resposta: {
-    description: "A resposta para a pessoa, em português do Brasil: curta, direta, sem palavras em inglês e sem markdown.",
+    description: "A resposta para a pessoa, em português do Brasil com os acentos: curta, direta, sem palavras em inglês e sem markdown.",
     required: true,
     selector: { text: { multiline: true } },
   },
@@ -104,7 +104,7 @@ export function chatInstructions({ messages, context, arquivos = 0 }, now = new 
     : "(nenhuma lista)";
   const talk = messages.map((m) => `${m.role === "user" ? "Pessoa" : "Você"}: ${m.role === "user" ? withFiles(m) : m.text}`).join("\n");
   return [
-    "Você é a IA do ResolvIA, o app das listas de tarefas da casa no Home Assistant. Converse em português do Brasil, de forma curta e direta, sem palavras em inglês e sem markdown.",
+    "Você é a IA do ResolvIA, o app das listas de tarefas da casa no Home Assistant. Converse em português do Brasil, com todos os acentos e o ç (você, às, não, alimentação), de forma curta e direta, sem palavras em inglês e sem markdown.",
     "A pessoa pode perguntar sobre as listas e a tela em que está, ou sobre qualquer outro assunto: responda das duas formas. Sobre as listas, use só os dados abaixo; não invente itens.",
     `Hoje é ${whenText(now)} (${ymd(now)}).`,
     context.tela ? `A pessoa está na tela: ${context.tela}.` : "",
