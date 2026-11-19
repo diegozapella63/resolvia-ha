@@ -1,5 +1,10 @@
 # Mudanças
 
+## 2.75.0
+
+- **Conversa**: 6 perguntas prontas, as que fazem sentido com o que está ligado (prazos, pontos, cômodos, equipamentos). Em **Editar perguntas**, embaixo, ficam **Mais perguntas (20)**: um toque põe a pergunta na sua lista.
+- **Conversa**: a IA sabe quem está usando o app e de quem é cada lista ("você" é só o que é seu ou de todos), e vê também as notas de cada tarefa, quando ela volta depois de concluída e as concluídas.
+
 ## 2.74.0
 
 - **O fundo e os cartões seguem o tema do Home Assistant**, no claro e no escuro: o mesmo fundo do Home Assistant e dos outros apps da família (antes, cada app tinha o seu, o do ResolvIA meio rosado). Com um tema seu no Home Assistant, o app usa as cores dele; ao trocar o tema ou o modo no Home Assistant, o app muda junto. O mesmo vale para a página do Relatório.

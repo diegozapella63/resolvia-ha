@@ -62,7 +62,9 @@ Pedindo para mexer nas listas ("adiciona pilhas e lâmpada na lista Casa", "conc
 
 O **clipe**, à esquerda da caixa, manda junto uma foto ou um PDF: **Tirar foto** (a câmera do Digitalizar com IA), **Escolher fotos** (a galeria, até 4) ou **Escolher arquivo** (uma foto ou um PDF). A IA olha o arquivo para responder e pode propor adicionar os itens que vê. Na conversa fica só o nome do arquivo. O botão redondo da direita é o microfone com a caixa vazia e vira o Enviar quando você escreve ou escolhe um arquivo.
 
-**Perguntas prontas**: na conversa vazia aparecem algumas perguntas para tocar; o botão ✨ ao lado da caixa abre as mesmas a qualquer momento. Em **Editar perguntas**, o ✕ tira uma pergunta e **Adicionar** põe outra; **Padrão** volta às de exemplo. Ficam guardadas no aparelho.
+**Perguntas prontas**: na conversa vazia aparecem 6 perguntas para tocar (só as do que está ligado); o botão ✨ ao lado da caixa abre as mesmas a qualquer momento. Em **Editar perguntas**, o ✕ tira uma pergunta e **Adicionar** põe outra; **Padrão** volta às de exemplo. Embaixo, **Mais perguntas (20)**: um toque põe a pergunta na lista. Ficam guardadas no aparelho.
+
+A IA sabe quem está usando o app e de quem é cada lista, e vê as tarefas pendentes (com o prazo, os pontos, o cômodo, o equipamento, as notas e a repetição) e as concluídas.
 
 ## Importar de mensagem ou foto
 

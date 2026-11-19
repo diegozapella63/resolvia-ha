@@ -69,6 +69,7 @@ export const ChatMixin = (Base) =>
         error: c.error,
         voice: { ready: !!v.ready && this._micOk(), on: c.rec === "on", starting: c.rec === "starting" },
         examples: this._chatExamples(),
+        models: this._chatModels(),
         onDraft: (t) => this._setChat({ draft: t }),
         onSend: (t) => this._chatSend(t),
         onMic: () => this._chatMic(),
@@ -120,14 +121,80 @@ export const ChatMixin = (Base) =>
       return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
     }
 
+    /**
+     * 2.75.0: the 6 ready questions (the first ones of the screen, then the app's) and, in Editar perguntas, 20 more
+     * models; each one only with what it asks about on (Controlar prazos, pontos, cômodos, equipamentos, serviço externo,
+     * repetição).
+     */
+    _chatPool() {
+      const on = {
+        due: !!(this._dueOn && this._dueOn()),
+        points: !!(this._ptsActive && this._ptsActive()),
+        rooms: !!(this._roomsOn && this._roomsOn()),
+        equips: !!(this._equipsOn && this._equipsOn()),
+        ext: !!(this._extOn && this._extOn()),
+        repeat: !!(this._repeatOn && this._repeatOn()),
+      };
+      const q = (t, ok = true) => (ok ? [t] : []);
+      return {
+        examples: [
+          ...q("Por onde eu começo hoje?"),
+          ...q("O que está atrasado?", on.due),
+          ...q("O que vence esta semana?", on.due),
+          ...q("Quais tarefas dão mais pontos?", on.points),
+          ...q("O que tem para fazer na cozinha?", on.rooms),
+          ...q("Quantas tarefas eu tenho?"),
+          ...q("Qual lista tem mais pendências?"),
+          ...q("Adiciona leite na lista de compras"),
+          ...q("Resume as minhas listas"),
+        ],
+        models: [
+          ...q("O que posso fazer em 15 minutos?"),
+          ...q("Quais são as tarefas mais importantes?"),
+          ...q("Monta um plano para o fim de semana"),
+          ...q("Me ajuda a planejar a semana"),
+          ...q("Quais tarefas estão sem prazo?", on.due),
+          ...q("O que está mais perto de vencer?", on.due),
+          ...q("Quem tem mais pontos?", on.points),
+          ...q("Quantos pontos eu tenho?", on.points),
+          ...q("Separa as tarefas por cômodo", on.rooms),
+          ...q("Quais tarefas são de equipamentos?", on.equips),
+          ...q("Quais tarefas precisam de alguém de fora?", on.ext),
+          ...q("Quais tarefas se repetem?", on.repeat),
+          ...q("O que eu concluí hoje?"),
+          ...q("Quais listas são minhas?"),
+          ...q("O que dá para resolver numa ida ao mercado?"),
+          ...q("O que fazer antes de sair de casa?"),
+          ...q("Quais tarefas são rápidas?"),
+          ...q("Que tarefas posso fazer à noite?"),
+          ...q("Tem alguma tarefa repetida nas listas?"),
+          ...q("Divide as tarefas de hoje entre as pessoas da casa"),
+          ...q("Cria uma tarefa para trocar o filtro amanhã"),
+          ...q("Adiciona arroz, feijão e café na lista de compras"),
+          ...q("Marca como feita a tarefa de lavar a louça"),
+          ...q("O que eu esqueci?"),
+          ...q("Reorganiza as tarefas de hoje por prioridade"),
+          ...q("Escolhe três tarefas para eu fazer agora"),
+          ...q("O que é mais fácil de resolver hoje?"),
+          ...q("Resume a lista de compras"),
+          ...q("Quanto falta para terminar tudo?"),
+          ...q("Quais tarefas são da casa toda?"),
+        ],
+      };
+    }
+
     _chatExamples() {
       const v = this._view();
-      if (v.name === "list") {
-        const l = this._list(v.id);
-        return l ? [`O que é mais urgente em ${clip(l.name, 24)}?`, "Por onde eu começo hoje?"] : [];
-      }
-      // "atrasado" only with Controlar prazos on (off, nothing is late)
-      return [...(this._dueOn() ? ["O que está atrasado?"] : []), "Por onde eu começo hoje?", "Adiciona leite na lista de compras"];
+      const { examples, models } = this._chatPool();
+      const l = v.name === "list" ? this._list(v.id) : null;
+      const first = l ? [`O que é mais urgente em ${clip(l.name, 24)}?`] : [];
+      return [...new Set([...first, ...examples, ...models])].slice(0, 6);
+    }
+
+    /** The 20 models of Editar perguntas: the others of the app, beyond the 6 at hand. */
+    _chatModels() {
+      const { examples, models } = this._chatPool();
+      return [...new Set([...examples, ...models])].filter((t) => !this._chatExamples().includes(t)).slice(0, 20);
     }
 
     /** Where the person is, in words for the AI. */
@@ -155,13 +222,22 @@ export const ChatMixin = (Base) =>
       if (open && !lists.includes(open)) lists.unshift(open);
       lists.sort((a, b) => Number(b === open) - Number(a === open));
       const now = new Date();
+      // 2.75.0: quem usa o app (a pessoa do placar ligada ao login, ou o nome do login)
+      const pts = this._pts && this._pts.placar;
+      const eu = (pts && pts.eu) || ((this.hass && this.hass.user && this.hass.user.name) || "").trim();
       return {
         tela: this._chatScreen(),
+        eu,
         listas: lists.map((l) => {
           const pending = (l.items || []).filter((i) => !isDone(i));
+          const done = (l.items || []).filter((i) => isDone(i));
           return {
             id: l.id,
             nome: l.name,
+            // 2.75.0: de quem é a lista (De quem é; vazio: de todos) e as concluídas (as últimas)
+            de: l.owner || "",
+            concluidas: done.length,
+            concluidas_itens: done.slice(-15).map((i) => i.summary || "").filter(Boolean),
             adicionar: has(l.features, F.CREATE) && !l.unavailable,
             prazos: !l.noDue && has(l.features, F.DUE_DATE),
             pendentes: pending.length,
@@ -176,6 +252,9 @@ export const ChatMixin = (Base) =>
                 comodo: this._roomIdsOf(l.id, i.summary).map((id) => this._roomName(id)).filter(Boolean).join(", "),
                 equipamento: this._equipIdsOf(l.id, i.summary).map((id) => (this._equipOf(id) || {}).nome).filter(Boolean).join(", "),
                 externo: ((e) => (e === true ? "sim" : e || ""))(this._externalOf(l.id, i.summary)),
+                // 2.75.0: as notas do item e a repetição (volta N dias depois de concluída)
+                notas: clip(String(i.description || "").replace(/\s+/g, " ").trim(), 200),
+                repete: ((r) => (r && r.days ? `volta ${r.days} ${r.days === 1 ? "dia" : "dias"} depois de concluída` : ""))(this._ruleFor ? this._ruleFor(l.id, i) : null),
               };
             }),
           };

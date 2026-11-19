@@ -77,11 +77,20 @@ export function cleanChat(raw) {
         comodo: oneLine(i.comodo, 80),
         equipamento: oneLine(i.equipamento, 120),
         externo: oneLine(i.externo, 60),
+        notas: oneLine(i.notas, 200),
+        repete: oneLine(i.repete, 60),
       });
     }
-    listas.push({ id: l.id, nome: oneLine(l.nome, 60) || l.id, adicionar: l.adicionar !== false, prazos: l.prazos === true, itens, pendentes: Number.isFinite(l.pendentes) ? Math.max(0, Math.round(l.pendentes)) : itens.length });
+    listas.push({
+      id: l.id, nome: oneLine(l.nome, 60) || l.id, adicionar: l.adicionar !== false, prazos: l.prazos === true, itens,
+      pendentes: Number.isFinite(l.pendentes) ? Math.max(0, Math.round(l.pendentes)) : itens.length,
+      // 2.75.0: de quem é a lista e as concluídas
+      de: oneLine(l.de, 60),
+      concluidas: Number.isFinite(l.concluidas) ? Math.max(0, Math.round(l.concluidas)) : 0,
+      concluidas_itens: (Array.isArray(l.concluidas_itens) ? l.concluidas_itens : []).slice(-15).map((t) => oneLine(t, 120)).filter(Boolean),
+    });
   }
-  return { messages, context: { tela: oneLine(c.tela, 160), listas } };
+  return { messages, context: { tela: oneLine(c.tela, 160), eu: oneLine(c.eu, 60), listas } };
 }
 
 const whenText = (now) => `${WEEKDAY[now.getDay()]}, ${now.getDate()} de ${MONTH[now.getMonth()]} de ${now.getFullYear()}, ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
@@ -94,11 +103,12 @@ export function chatInstructions({ messages, context, arquivos = 0 }, now = new 
     ? context.listas
         .map((l) => {
           const rows = l.itens.map((i) => {
-            const extra = [i.prazo ? `prazo ${i.prazo}${i.atrasado ? " (atrasado)" : ""}` : "", i.pontos ? `${i.pontos} pontos` : "", i.comodo ? `cômodo: ${i.comodo}` : "", i.equipamento ? `equipamento: ${i.equipamento}` : "", i.externo ? `serviço externo: ${i.externo}` : ""].filter(Boolean);
+            const extra = [i.prazo ? `prazo ${i.prazo}${i.atrasado ? " (atrasado)" : ""}` : "", i.pontos ? `${i.pontos} pontos` : "", i.comodo ? `cômodo: ${i.comodo}` : "", i.equipamento ? `equipamento: ${i.equipamento}` : "", i.externo ? `serviço externo: ${i.externo}` : "", i.repete || "", i.notas ? `notas: ${i.notas}` : ""].filter(Boolean);
             return `  - ${i.texto}${extra.length ? ` (${extra.join("; ")})` : ""}`;
           });
-          const more = l.pendentes > l.itens.length ? `  - … e mais ${l.pendentes - l.itens.length}` : "";
-          return [`• ${l.nome}${l.adicionar ? "" : " (não aceita itens novos)"}: ${l.pendentes ? `${l.pendentes} pendentes` : "nada pendente"}`, ...rows, more].filter(Boolean).join("\n");
+          const more = l.pendentes > l.itens.length ? `  - … e mais ${l.pendentes - l.itens.length} que não couberam aqui` : "";
+          const feitas = l.concluidas ? `  Concluídas: ${l.concluidas}${l.concluidas_itens.length ? ` (as últimas: ${l.concluidas_itens.join("; ")})` : ""}` : "";
+          return [`• ${l.nome}${l.de ? ` (de ${l.de})` : " (de todos)"}${l.adicionar ? "" : " (não aceita itens novos)"}: ${l.pendentes ? `${l.pendentes} pendentes` : "nada pendente"}`, ...rows, more, feitas].filter(Boolean).join("\n");
         })
         .join("\n")
     : "(nenhuma lista)";
@@ -108,6 +118,8 @@ export function chatInstructions({ messages, context, arquivos = 0 }, now = new 
     "A pessoa pode perguntar sobre as listas e a tela em que está, ou sobre qualquer outro assunto: responda das duas formas. Sobre as listas, use só os dados abaixo; não invente itens.",
     `Hoje é ${whenText(now)} (${ymd(now)}).`,
     context.tela ? `A pessoa está na tela: ${context.tela}.` : "",
+    // 2.75.0: quem usa e de quem é cada lista: "você" é só o que é dessa pessoa ou de todos
+    context.eu ? `Quem está usando o app agora: ${context.eu}. "Você" é essa pessoa: uma lista de outra pessoa é dela (diga de quem é).` : "",
     "Listas e itens pendentes:",
     lists,
     'Quando a pessoa pedir para adicionar ou concluir itens, escreva em "acoes" uma linha por item ("adicionar | lista | item | prazo" ou "concluir | lista | item") e, na resposta, diga o que vai fazer: ela confirma na tela antes. Sem pedido, deixe "acoes" vazio.',

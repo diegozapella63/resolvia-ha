@@ -107,12 +107,14 @@ async def main():
         # Editar perguntas: take one out, add one, Pronto; kept on the device; Padrão brings the app's back
         await qb.click(); await pg.wait_for_timeout(250)
         await chat.locator(".chat-quick .chat-ed-open").click(); await pg.wait_for_timeout(250)
-        rows = await chat.locator(".chat-ed-row span").all_inner_texts()
+        rows = await chat.locator(".chat-ed > .chat-ed-row:not(.chat-ed-modelo) > span").all_inner_texts()
         check(rows == qk, f"Editar: the questions as a list ({rows})")
+        mods = [t.strip() for t in await chat.locator(".chat-ed-modelo").all_inner_texts()]
+        check(len(mods) == 20 and not set(mods) & set(qk), f"2.75.0: Editar: 20 more models beyond the 6 ({len(mods)})")
         await chat.locator(".chat-ed-row .icon-btn").first.click(); await pg.wait_for_timeout(150)
         await chat.locator(".chat-ed-new input").fill("Quanto falta na lista Casa?")
         await chat.locator(".chat-ed-new .btn", has_text="Adicionar").click(); await pg.wait_for_timeout(150)
-        check(await chat.locator(".chat-ed-new input").input_value() == "" and (await chat.locator(".chat-ed-row span").all_inner_texts())[-1] == "Quanto falta na lista Casa?", "Adicionar: in the list, the box empty again")
+        check(await chat.locator(".chat-ed-new input").input_value() == "" and (await chat.locator(".chat-ed > .chat-ed-row:not(.chat-ed-modelo) > span").all_inner_texts())[-1] == "Quanto falta na lista Casa?", "Adicionar: in the list, the box empty again")
         await pg.screenshot(path=f"{SP}/shots/rvh-perguntas.png")
         await chat.locator(".chat-ed-acts .btn", has_text="Pronto").click(); await pg.wait_for_timeout(250)
         saved = json.loads(await pg.evaluate("() => localStorage.getItem('resolvia-perguntas')"))
@@ -194,7 +196,7 @@ async def main():
         await a.locator(".chat-top").first.click(); await pg.wait_for_timeout(400)
         if await chat.locator(".chat-head .text-btn", has_text="Nova conversa").count(): await chat.locator(".chat-head .text-btn", has_text="Nova conversa").click(); await pg.wait_for_timeout(300)
         ex = [t.strip() for t in await chat.locator(".chat-ex .pick").all_inner_texts()]
-        check(ex == ["Por onde eu começo hoje?", "Adiciona leite na lista de compras"], f"Controlar prazos off: no 'O que está atrasado?' ({ex})")
+        check(len(ex) == 6 and not [t for t in ex if "atrasado" in t or "vence" in t], f"Controlar prazos off: 6 questions, none about late or due ({ex})")
         await sheet.locator(".chat-head .icon-btn[aria-label='Fechar']").click(); await pg.wait_for_timeout(300)
         await pg.evaluate(WS, [{"type": "resolvia/prefs/set_app", "prefs": {"due_off": None}}])
         # Usar IA off: no button

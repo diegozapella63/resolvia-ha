@@ -25,7 +25,7 @@ describe("cleanChat", () => {
     const c = cleanChat({ messages: [{ role: "user", text: "oi" }], context: { tela: "x\ny", listas: [{ id: "light.x", itens: [] }, { id: "todo.a", nome: "A", itens: [{ texto: "a|b\nc", prazo: "amanhã", pontos: -2 }, { texto: "" }] }] } });
     assert.equal(c.context.tela, "x y");
     assert.equal(c.context.listas.length, 1);
-    assert.deepEqual(c.context.listas[0].itens, [{ texto: "a b c", prazo: null, atrasado: false, pontos: 0, comodo: "", equipamento: "", externo: "" }]);
+    assert.deepEqual(c.context.listas[0].itens, [{ texto: "a b c", prazo: null, atrasado: false, pontos: 0, comodo: "", equipamento: "", externo: "", notas: "", repete: "" }]);
   });
   it("at most 250 items in all", () => {
     const listas = Array.from({ length: 5 }, (_, n) => ({ id: `todo.l${n}`, nome: `L${n}`, itens: Array.from({ length: 80 }, (_, i) => ({ texto: `i${i}` })) }));
@@ -33,7 +33,7 @@ describe("cleanChat", () => {
     assert.equal(c.context.listas.reduce((s, l) => s + l.itens.length, 0), 250);
   });
   it("tolerates nothing at all", () => {
-    assert.deepEqual(cleanChat(null), { messages: [], context: { tela: "", listas: [] } });
+    assert.deepEqual(cleanChat(null), { messages: [], context: { tela: "", eu: "", listas: [] } });
   });
 });
 
@@ -47,10 +47,21 @@ describe("chatInstructions", () => {
     assert.match(p, /A pessoa está na tela: a lista "Casa"\./);
   });
   it("the lists with their items: date (late), points, room and equipment; one that takes no new items says so", () => {
-    assert.match(p, /• Casa: 3 pendentes/);
+    assert.match(p, /• Casa \(de todos\): 3 pendentes/);
     assert.match(p, /- Pagar conta de luz \(prazo 2026-11-01 \(atrasado\); 10 pontos\)/);
     assert.match(p, /- Trocar filtro do ar \(cômodo: Sala; equipamento: Ar-condicionado\)/);
-    assert.match(p, /• Avisos do condomínio \(não aceita itens novos\)/);
+    assert.match(p, /• Avisos do condomínio \(de todos\) \(não aceita itens novos\)/);
+  });
+  it("2.75.0: who uses the app, whose each list is, the notes, the repetition and the done items", () => {
+    const c = ctx();
+    Object.assign(c.listas[0], { de: "Ana", concluidas: 4, concluidas_itens: ["Lavar a louça", "Varrer"] });
+    c.listas[0].itens[0] = { ...c.listas[0].itens[0], notas: "usar o\n balde azul", repete: "volta 7 dias depois de concluída" };
+    const t = chatInstructions(cleanChat({ messages: [{ role: "user", text: "x" }], context: { ...c, eu: "Beto" } }), NOW);
+    assert.match(t, /Quem está usando o app agora: Beto\. "Você" é essa pessoa/);
+    assert.match(t, /• Casa \(de Ana\): 3 pendentes/);
+    assert.match(t, /volta 7 dias depois de concluída; notas: usar o balde azul\)/);
+    assert.match(t, /Concluídas: 4 \(as últimas: Lavar a louça; Varrer\)/);
+    assert.doesNotMatch(chatInstructions(cleanChat({ messages: [{ role: "user", text: "x" }], context: ctx() }), NOW), /Quem está usando/);
   });
   it("the conversation, ending with the person's last words", () => {
     assert.match(p, /Pessoa: O que está atrasado\?\nVocê: A conta de luz\.\nPessoa: E hoje\?$/);
