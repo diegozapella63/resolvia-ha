@@ -85,12 +85,73 @@ describe("chat: the window", () => {
     assert.equal(store.has("teste-perguntas"), false, "Padrão: the app's again (they follow the screen)");
   });
 
+  it("Editar perguntas: Perguntas prontas and Mais perguntas close by the title (both open at first), and the device keeps it", () => {
+    store.delete("teste-perguntas-fechadas");
+    const c = chat();
+    click(c.draw(), "Editar perguntas");
+    let v = c.draw();
+    assert.match(render(v).html, /data-dobra="prontas" aria-expanded="true"/);
+    assert.match(render(v).html, /data-dobra="mais" aria-expanded="true"/);
+    click(v, "Mais perguntas (20)");
+    v = c.draw();
+    assert.equal((render(v).html.match(/aria-label="Pôr “/g) || []).length, 0, "closed: no models");
+    assert.ok(labels(v).includes("Tirar “O que está atrasado?”"), "the ready ones stay");
+    click(v, "Perguntas prontas (6)");
+    v = c.draw();
+    assert.ok(!labels(v).some((l) => /^Tirar /.test(l)) && !labels(v).includes("Adicionar"), "both closed");
+    assert.ok(labels(v).includes("Pronto") && labels(v).includes("Padrão"), "Pronto and Padrão stay");
+    assert.match(render(v).html, /data-dobra="prontas" aria-expanded="false"/);
+    assert.deepEqual(JSON.parse(store.get("teste-perguntas-fechadas")).sort(), ["mais", "prontas"], "kept on the device");
+    click(v, "Pronto");
+    click(c.draw(), "Editar perguntas");
+    v = c.draw();
+    assert.match(render(v).html, /data-dobra="mais" aria-expanded="false"/, "opening again: still closed");
+    click(v, "Perguntas prontas (6)");
+    click(c.draw(), "Mais perguntas (20)");
+    v = c.draw();
+    assert.equal((render(v).html.match(/aria-label="Pôr “/g) || []).length, 20);
+    assert.deepEqual(JSON.parse(store.get("teste-perguntas-fechadas")), []);
+    store.delete("teste-perguntas-fechadas");
+    click(v, "Pronto");
+  });
+
+  it("Editar perguntas: a tap on a question changes it; Pronto keeps it as it is, and one left empty goes away", () => {
+    const c = chat();
+    click(c.draw(), "Editar perguntas");
+    let v = c.draw();
+    fire(v, "Mudar “O que está atrasado?”", "input", { target: { value: "O que está atrasado na Casa?" } });
+    fire(v, "Mudar “Quantas tarefas eu tenho?”", "input", { target: { value: "   " } });
+    let blurred = 0;
+    let stopped = 0;
+    fire(c.draw(), "Mudar “O que vence esta semana?”", "keydown", { key: "Enter", preventDefault: () => stopped++, target: { blur: () => blurred++ } });
+    assert.deepEqual([stopped, blurred], [1, 1], "Enter: no new line, just done");
+    fire(c.draw(), "Mudar “O que vence esta semana?”", "keydown", { key: "a", target: {} });
+    click(c.draw(), "Pronto");
+    assert.deepEqual(JSON.parse(store.get("teste-perguntas")), ["Por onde eu começo hoje?", "O que está atrasado na Casa?", "O que vence esta semana?", "Qual lista tem mais pendências?", "Adiciona leite na lista de compras"]);
+    assert.ok(text(c.draw()).includes("O que está atrasado na Casa?"), "the screen shows it");
+    store.delete("teste-perguntas");
+  });
+
+  it("without the device's storage, the titles still close (only for now)", () => {
+    const real = globalThis.localStorage;
+    globalThis.localStorage = { getItem: () => { throw new Error("privado"); }, setItem: () => { throw new Error("privado"); }, removeItem: () => {} };
+    try {
+      const c = chat();
+      click(c.draw(), "Editar perguntas");
+      click(c.draw(), "Mais perguntas (20)");
+      assert.match(render(c.draw()).html, /data-dobra="mais" aria-expanded="true"/, "nothing kept: open again");
+      click(c.draw(), "Pronto");
+    } finally {
+      globalThis.localStorage = real;
+    }
+  });
+
   it("Enter in Nova pergunta adds it; a list equal to the app's is not kept; Pronto takes a typed one too", () => {
     const c = chat();
     click(c.draw(), "Editar perguntas");
     fire(c.draw(), "Nova pergunta", "input", { target: { value: "Uma pergunta nova" } });
     fire(c.draw(), "Nova pergunta", "keydown", { key: "Enter", target: { closest: () => null } });
-    assert.match(text(c.draw()), /Uma pergunta nova/);
+    assert.ok(labels(c.draw(), "input").includes("Mudar “Uma pergunta nova”"));
     fire(c.draw(), "Tirar “Uma pergunta nova”", "click");
     click(c.draw(), "Pronto");
     assert.equal(store.has("teste-perguntas"), false, "the same as the app's");

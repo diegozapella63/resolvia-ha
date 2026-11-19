@@ -424,7 +424,8 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     const shut = this._closedFields();
     for (const field of root.querySelectorAll(".sheet .field")) {
       const lab = field.querySelector(":scope > .flabel");
-      if (!lab || !field.querySelector(":scope > .chip-row, :scope > .imp-tiles, :scope > .eq-pick")) continue;
+      // 2.76.0: a Cor e o Ícone do Personalizar também
+      if (!lab || !field.querySelector(":scope > .chip-row, :scope > .imp-tiles, :scope > .eq-pick, :scope > .swatches, :scope > .icon-grid")) continue;
       const key = fieldKeyOf(field);
       if (!key) continue;
       const off = shut.has(key);

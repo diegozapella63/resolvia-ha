@@ -46,6 +46,19 @@ async def main():
 
         # ---- Personalizar: name, color and icon, with the preview
         await sheet.locator(".menu-row", has_text="Personalizar").click(); await pg.wait_for_timeout(350)
+        # 2.76.0: Cor and Ícone fold by the title, like the other fields of choices (kept on the device)
+        for nome, grade in (("Cor", ".swatches"), ("Ícone", ".icon-grid")):
+            f = sheet.locator(f".field:has(> .flabel:text-is('{nome}'))")
+            lab = f.locator(":scope > .flabel")
+            check(await lab.get_attribute("role") == "button" and await lab.get_attribute("aria-expanded") == "true", f"{nome} folds, open at first")
+            await lab.click(); await pg.wait_for_timeout(200)
+            check(await lab.get_attribute("aria-expanded") == "false" and not await f.locator(grade).is_visible(), f"{nome} closed: only the title")
+        kept = await pg.evaluate("() => JSON.parse(localStorage.getItem('resolvia-campos') || '[]')")
+        check({"Cor", "Ícone"} <= set(kept), f"kept on the device ({kept})")
+        await sheet.screenshot(path=f"{SP}/shots/rvm-personalizar-fechado.png")
+        for nome in ("Cor", "Ícone"):
+            await sheet.locator(f".field > .flabel:text-is('{nome}')").click(); await pg.wait_for_timeout(150)
+        check(await sheet.locator(".swatches").is_visible() and await sheet.locator(".icon-grid").is_visible(), "open again")
         await sheet.locator(".field textarea").fill("Casa da praia")
         await sheet.get_by_label("Azul", exact=True).click()
         await sheet.locator(".icon-grid .ig").nth(3).click(); await pg.wait_for_timeout(200)

@@ -107,18 +107,28 @@ async def main():
         # Editar perguntas: take one out, add one, Pronto; kept on the device; Padrão brings the app's back
         await qb.click(); await pg.wait_for_timeout(250)
         await chat.locator(".chat-quick .chat-ed-open").click(); await pg.wait_for_timeout(250)
-        rows = await chat.locator(".chat-ed > .chat-ed-row:not(.chat-ed-modelo) > span").all_inner_texts()
+        rows = await chat.locator(".chat-ed > .chat-ed-row:not(.chat-ed-modelo) > .chat-ed-txt").evaluate_all("els => els.map(e => e.value)")
         check(rows == qk, f"Editar: the questions as a list ({rows})")
         mods = [t.strip() for t in await chat.locator(".chat-ed-modelo").all_inner_texts()]
         check(len(mods) == 20 and not set(mods) & set(qk), f"2.75.0: Editar: 20 more models beyond the 6 ({len(mods)})")
+        # 2.76.0: the titles fold (the arrow in the corner) and a tap on a question changes it
+        heads = [t.strip() for t in await chat.locator(".chat-ed-dobra").all_inner_texts()]
+        check(heads == [f"Perguntas prontas ({len(qk)})", "Mais perguntas (20)"], f"the two titles, with the count ({heads})")
+        await chat.locator('.chat-ed-dobra[data-dobra="mais"]').click(); await pg.wait_for_timeout(150)
+        check(await chat.locator(".chat-ed-modelo").count() == 0 and await chat.locator('.chat-ed-dobra[data-dobra="mais"]').get_attribute("aria-expanded") == "false", "Mais perguntas closes")
+        await chat.locator('.chat-ed-dobra[data-dobra="mais"]').click(); await pg.wait_for_timeout(150)
+        check(await chat.locator(".chat-ed-modelo").count() == 20, "and opens again")
+        txt = chat.locator(".chat-ed > .chat-ed-row:not(.chat-ed-modelo) > .chat-ed-txt").nth(1)
+        await txt.fill(qk[1] + " Hoje"); await txt.press("Enter"); await pg.wait_for_timeout(100)
+        check(await txt.input_value() == qk[1] + " Hoje", "a question changed in place (Enter: no new line)")
         await chat.locator(".chat-ed-row .icon-btn").first.click(); await pg.wait_for_timeout(150)
         await chat.locator(".chat-ed-new input").fill("Quanto falta na lista Casa?")
         await chat.locator(".chat-ed-new .btn", has_text="Adicionar").click(); await pg.wait_for_timeout(150)
-        check(await chat.locator(".chat-ed-new input").input_value() == "" and (await chat.locator(".chat-ed > .chat-ed-row:not(.chat-ed-modelo) > span").all_inner_texts())[-1] == "Quanto falta na lista Casa?", "Adicionar: in the list, the box empty again")
+        check(await chat.locator(".chat-ed-new input").input_value() == "" and (await chat.locator(".chat-ed > .chat-ed-row:not(.chat-ed-modelo) > .chat-ed-txt").evaluate_all("els => els.map(e => e.value)"))[-1] == "Quanto falta na lista Casa?", "Adicionar: in the list, the box empty again")
         await pg.screenshot(path=f"{SP}/shots/rvh-perguntas.png")
         await chat.locator(".chat-ed-acts .btn", has_text="Pronto").click(); await pg.wait_for_timeout(250)
         saved = json.loads(await pg.evaluate("() => localStorage.getItem('resolvia-perguntas')"))
-        check(saved == qk[1:] + ["Quanto falta na lista Casa?"], f"Pronto: kept on the device ({saved})")
+        check(saved == [qk[1] + " Hoje"] + qk[2:] + ["Quanto falta na lista Casa?"], f"Pronto: kept on the device, the changed one too ({saved})")
         now = [t.strip() for t in await chat.locator(".chat-quick .chat-ex .pick").all_inner_texts()]
         check(now == saved, f"and the panel shows them ({now})")
         await chat.locator(".chat-quick .chat-ed-open").click(); await pg.wait_for_timeout(200)
