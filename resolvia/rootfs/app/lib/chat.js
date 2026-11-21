@@ -98,6 +98,10 @@ const pad = (n) => String(n).padStart(2, "0");
 const ymd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
 /** The instructions for one turn: who the AI is, today, the screen, the lists and the conversation so far. */
+// The context of the family, the same in every app: the AI only sees the data of this app and says in which app the rest is
+export const FAMILIA =
+  "Este app é um dos apps da casa (a família da CorrerIA Code), cada um com o seu assunto: ResolvIA (listas de tarefas), CronologIA (agenda, rotinas, remédios e placar), GerencIA (finanças), InventarIA (inventário da casa), MemorIA (blocos de anotações), EconomIA (lista de compras e preços) e CorrerIA (os apps no WhatsApp e em outras IAs). Você só vê os dados deste app: se a pessoa perguntar algo que é de outro, diga em qual app está, sem inventar.";
+
 export function chatInstructions({ messages, context, arquivos = 0 }, now = new Date()) {
   const lists = context.listas.length
     ? context.listas
@@ -116,6 +120,7 @@ export function chatInstructions({ messages, context, arquivos = 0 }, now = new 
   return [
     "Você é a IA do ResolvIA, o app das listas de tarefas da casa no Home Assistant. Converse em português do Brasil, com todos os acentos e o ç (você, às, não, alimentação), de forma curta e direta, sem palavras em inglês e sem markdown.",
     "A pessoa pode perguntar sobre as listas e a tela em que está, ou sobre qualquer outro assunto: responda das duas formas. Sobre as listas, use só os dados abaixo; não invente itens.",
+    FAMILIA,
     `Hoje é ${whenText(now)} (${ymd(now)}).`,
     context.tela ? `A pessoa está na tela: ${context.tela}.` : "",
     // 2.75.0: quem usa e de quem é cada lista: "você" é só o que é dessa pessoa ou de todos

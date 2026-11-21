@@ -1,7 +1,7 @@
 // Conversa (the chat beside the microphone): what the screen sends, the instructions and the actions.
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { cleanChat, chatInstructions, parseChatActions, replyOf, CHAT_STRUCTURE, MAX_ACTIONS } from "../resolvia/rootfs/app/lib/chat.js";
+import { cleanChat, chatInstructions, parseChatActions, replyOf, CHAT_STRUCTURE, MAX_ACTIONS, FAMILIA } from "../resolvia/rootfs/app/lib/chat.js";
 
 const ctx = () => ({
   tela: 'a lista "Casa"',
@@ -62,6 +62,11 @@ describe("chatInstructions", () => {
     assert.match(t, /volta 7 dias depois de concluída; notas: usar o balde azul\)/);
     assert.match(t, /Concluídas: 4 \(as últimas: Lavar a louça; Varrer\)/);
     assert.doesNotMatch(chatInstructions(cleanChat({ messages: [{ role: "user", text: "x" }], context: ctx() }), NOW), /Quem está usando/);
+    // 2.79.1: the context of the family (the same sentence in every app): the other apps and that it only sees this one
+    const fam = chatInstructions(cleanChat({ messages: [{ role: "user", text: "x" }], context: ctx() }), NOW);
+    assert.ok(fam.includes(FAMILIA) && fam.indexOf(FAMILIA) < fam.indexOf("Hoje é"), "right after what the app is");
+    for (const app of ["ResolvIA (listas de tarefas)", "CronologIA (agenda", "GerencIA (finanças)", "InventarIA (inventário", "MemorIA (blocos", "EconomIA (lista de compras", "CorrerIA (os apps no WhatsApp"]) assert.ok(FAMILIA.includes(app), app);
+    assert.match(FAMILIA, /Você só vê os dados deste app: se a pessoa perguntar algo que é de outro, diga em qual app está, sem inventar\.$/);
   });
   it("the conversation, ending with the person's last words", () => {
     assert.match(p, /Pessoa: O que está atrasado\?\nVocê: A conta de luz\.\nPessoa: E hoje\?$/);

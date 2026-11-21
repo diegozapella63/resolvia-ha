@@ -1,5 +1,9 @@
 # Mudanças
 
+## 2.79.1
+
+- **Conversa**: a IA sabe quais são os outros apps da casa e, quando a pergunta é de outro app, diz em qual deles está.
+
 ## 2.79.0
 
 - **Novo item › Nenhum, Casa ou Bens**: a escolha ganhou o **Nenhum**, que vem primeiro e é onde um item novo começa. O **Cômodo** e o **Equipamento** só aparecem depois de escolher **Casa** ou **Bens**.
