@@ -78,12 +78,22 @@ describe("usage panel", () => {
     assert.match(t, /Sugestões padrão do Home Assistant resposta fora do formato 1 s · ≈ 800 tokens · 1 imagem ·/);
     assert.match(text(usagePanel({ u: U({ ultimas: [] }), head: "" })), /Nenhuma chamada ainda\./);
   });
-  it("where to see the exact use: the provider of the AI in use", () => {
-    const note = (using, ias = {}) => text(usagePanel({ u: U({ semana: { chamadas: 0, ias }, mes: { chamadas: 0 } }), head: "", using })).split("Últimas chamadas")[1];
-    assert.match(note("ai_task.google_generative_ai"), /Google Cloud Console/);
-    assert.match(note("", { "ai_task.openai_ai_task": 1 }), /platform\.openai\.com\/usage/);
-    assert.match(note("ai_task.claude"), /Claude Console/);
+  it("where to see the exact use and the balance: a line for each provider of the AIs in use", () => {
+    const panel = (using, ias = {}, names = {}) => usagePanel({ u: U({ semana: { chamadas: 0, ias }, mes: { chamadas: 0 } }), head: "", using, names });
+    const note = (...a) => text(panel(...a)).split("Últimas chamadas")[1];
+    assert.match(note("ai_task.google_generative_ai"), /Gemini: consumo e cota no Google AI Studio, em Dashboard › Usage; o saldo dos créditos, em Billing\./);
+    assert.doesNotMatch(note("ai_task.google_generative_ai"), /Cloud Console/, "the Gemini API is in AI Studio, not in the Cloud Console");
+    assert.match(note("", { "ai_task.openai_ai_task": 1 }), /OpenAI: consumo e custo em platform\.openai\.com\/usage\./);
+    assert.match(note("ai_task.claude"), /Claude: consumo e custo no Claude Console; o saldo dos créditos, em Billing\./);
     assert.match(note("ai_task.ollama"), /O consumo exato fica no painel do provedor da IA\./);
+    // one to chat and another to read photos: both, each with its link
+    const dois = render(panel(["ai_task.google_conversa", "ai_task.claude_leitura"])).html;
+    assert.equal((dois.match(/class="uso-note"/g) || []).length, 2);
+    for (const href of ["https://aistudio.google.com/", "https://platform.claude.com/usage", "https://platform.claude.com/settings/billing"]) assert.ok(dois.includes(`href="${href}"`), href);
+    assert.match(note(["ai_task.google_conversa", "ai_task.claude_leitura"]), /Gemini: .*Claude: /);
+    // by the name of the entity too, and an empty one of the list does not count
+    assert.match(note(["ai_task.minha", ""], {}, { "ai_task.minha": "Claude Leitura" }), /Claude Console/);
+    assert.equal((render(panel(["ai_task.claude", "ai_task.claude_2"])).html.match(/class="uso-note"/g) || []).length, 1, "the same provider once");
   });
   it("the styles are plain CSS", () => {
     assert.match(usageStyles, /\.uso-tiles \{/);

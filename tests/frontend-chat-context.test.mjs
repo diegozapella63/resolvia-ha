@@ -235,4 +235,19 @@ describe("chat: sending and the cards", () => {
     await p._chatMic();
     assert.equal(p._chatState().rec, null);
   });
+
+  it("Cancelar while listening: the microphone stops, nothing is transcribed or sent", async () => {
+    const p = withHass({ "resolvia/ai/chat": () => ({ reply: "ok" }) });
+    let heard = 0;
+    p.hass.resolvia.voiceText = async () => (heard++, { text: "não era para ir" });
+    const rec = { cancel() { this.cancelled = true; }, stop: () => new Int16Array(16000) };
+    p._chatRec = rec;
+    p._chat = { ...p._chatState(), rec: "on", error: "antes" };
+    p._chatMicCancel();
+    await new Promise((r) => setTimeout(r, 0));
+    assert.equal(rec.cancelled, true);
+    assert.deepEqual([p._chatRec, p._chatState().rec, p._chatState().error, heard, p._chatState().messages.length], [null, null, "", 0, 0]);
+    p._chatMicCancel(); // twice, or with nothing listening: nothing happens
+    assert.equal(p._chatState().rec, null);
+  });
 });

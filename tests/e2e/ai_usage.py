@@ -72,7 +72,7 @@ async def run(app):
             await panel.locator(".uso-last summary").click(); await pg.wait_for_timeout(200)
             check(await panel.locator(".uso-last li").count() == 3 and "Google AI Task" in await panel.locator(".uso-last li").first.inner_text(), f"{name}: last calls listed")
             note = await panel.inner_text()
-            check("Google Cloud Console" in note and f"sensor.{app}_ia_hoje" not in note, f"{name}: provider link (Gemini); the sensor is in Sensores, not here")
+            check("Google AI Studio" in note and "Cloud Console" not in note and f"sensor.{app}_ia_hoje" not in note, f"{name}: provider link (Gemini); the sensor is in Sensores, not here")
             sens = await pg.locator("#sensores").inner_text() if await pg.locator("#sensores").count() else ""
             check(f"sensor.{app}_ia_hoje" in sens and "com erros, cota e tokens" in sens, f"{name}: Sensores explains the AI sensor")
             await panel.scroll_into_view_if_needed()

@@ -19,10 +19,10 @@ const MODELOS = Array.from({ length: 20 }, (_, i) => `Modelo ${i + 1}?`);
 
 /** A chat on screen: the props, what each callback got, and draw() to render it again (as onRedraw asks). */
 function chat(over = {}) {
-  const got = { sent: [], mic: 0, actions: [], all: [], cleared: 0, closed: 0, drafts: [], attach: [], removed: [], redraws: 0 };
+  const got = { sent: [], mic: 0, micCancel: 0, actions: [], all: [], cleared: 0, closed: 0, drafts: [], attach: [], removed: [], redraws: 0 };
   const props = {
     lit: { html, nothing }, icon, app: "teste", messages: [], draft: "", busy: false, error: "", voice: null, examples: SEIS, models: MODELOS, files: [],
-    onDraft: (t) => got.drafts.push(t), onSend: (t) => got.sent.push(t), onMic: () => got.mic++, onAction: (k, j) => got.actions.push([k, j]),
+    onDraft: (t) => got.drafts.push(t), onSend: (t) => got.sent.push(t), onMic: () => got.mic++, onMicCancel: () => got.micCancel++, onAction: (k, j) => got.actions.push([k, j]),
     onAll: (k) => got.all.push(k), onClear: () => got.cleared++, onClose: () => got.closed++, onAttach: (k) => got.attach.push(k),
     onFileRemove: (i) => got.removed.push(i), onRedraw: () => got.redraws++, ...over,
   };
@@ -214,6 +214,12 @@ describe("chat: the window", () => {
     assert.ok(labels(v).includes("Pronto: enviar o que falei"));
     assert.match(render(v).html, /placeholder="Ouvindo…"/);
     assert.ok(!labels(v).includes("Anexar"), "listening: no clip");
+    // listening, Cancelar in the place of the clip: the app stops the microphone and nothing is sent
+    assert.ok(labels(v).includes("Cancelar: não enviar o que falei"));
+    click(v, "Cancelar: não enviar o que falei");
+    assert.deepEqual([c.got.micCancel, c.got.mic, c.got.sent], [1, 1, []]);
+    assert.ok(!labels(c.draw({ voice })).includes("Cancelar: não enviar o que falei"), "not listening: no Cancelar");
+    assert.ok(!labels(renderChat({ ...c.props, voice: { ready: true, on: true }, onMicCancel: undefined })).includes("Cancelar: não enviar o que falei"), "an app without the cancel: no button");
     v = c.draw({ voice, draft: "Quanto falta?" });
     assert.ok(!labels(v).includes("Falar"));
     fire(v, "Mensagem para a IA", "keydown", { key: "Enter", shiftKey: true });
