@@ -2859,7 +2859,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
           this._incluirShut = !this._incluirShut;
           store.set(INCLUIR_KEY, this._incluirShut);
           this.requestUpdate();
-        }}>${icon("sliders-horizontal", "lbl-ic")}Incluir</button>
+        }}>${icon("sliders-horizontal", "lbl-ic")}Filtros</button>
         <div class="incluir ${this._incluirShut ? "shut" : ""}">
         <div class="filters" role="group" aria-labelledby="incluir">
           ${selecting ? nothing : this._searchToggle("circle-check", "Concluídos", this._searchDone, () => (this._searchDone = !this._searchDone))}

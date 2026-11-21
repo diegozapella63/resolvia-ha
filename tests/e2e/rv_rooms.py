@@ -221,7 +221,7 @@ async def main():
         res = lambda: a.locator(".panel.items .item").all_inner_texts()
         found = lambda txts, w: any(w in t for t in txts)
         fl = [t.strip() for t in await a.locator(".filters .pick").all_inner_texts()]
-        check(fl == ["Concluídos", "Serviços externos", "Cômodos", "Equipamentos"] and (await a.locator(".filters-label").inner_text()).strip() == "Incluir", f"Buscar › Incluir: the switches ({fl})")
+        check(fl == ["Concluídos", "Serviços externos", "Cômodos", "Equipamentos"] and (await a.locator(".filters-label").inner_text()).strip() == "Filtros", f"Buscar › Incluir: the switches ({fl})")
         check(await a.locator(".filters .pick.on", has_text="Cômodos").count() == 1 and await a.locator(".filters .pick.on", has_text="Equipamentos").count() == 1, "both on by default")
         boxes = await a.locator(".filters .pick").evaluate_all("(els) => els.map((e) => { const r = e.getBoundingClientRect(); return [Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(r.height)]; })")
         check(len({b[2] for b in boxes}) == 1 and boxes[0][1] == boxes[1][1] and boxes[2][1] == boxes[3][1] and boxes[0][0] == boxes[2][0] and boxes[1][0] == boxes[3][0], f"two by row, all the same width and aligned ({boxes})")

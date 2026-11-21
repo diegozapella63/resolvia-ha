@@ -5251,7 +5251,7 @@ dialog.ss-wrap::backdrop{background:transparent}
           <input type="search" data-q="buscar" placeholder="Buscar em todas as listas" .value=${this._query} @input=${x=>this._query=x.target.value} enterkeyhint="search" aria-label="Buscar" />
           ${this._query?n`<button class="icon-btn" style="width:40px;height:40px" @click=${()=>this._query=""} aria-label="Limpar">${f("x")}</button>`:u}
         </label>
-        <button type="button" class="filters-label" id="incluir" aria-expanded=${this._incluirShut?"false":"true"} @click=${()=>{this._haptic("light"),this._incluirShut=!this._incluirShut,le.set(gi,this._incluirShut),this.requestUpdate()}}>${f("sliders-horizontal","lbl-ic")}Incluir</button>
+        <button type="button" class="filters-label" id="incluir" aria-expanded=${this._incluirShut?"false":"true"} @click=${()=>{this._haptic("light"),this._incluirShut=!this._incluirShut,le.set(gi,this._incluirShut),this.requestUpdate()}}>${f("sliders-horizontal","lbl-ic")}Filtros</button>
         <div class="incluir ${this._incluirShut?"shut":""}">
         <div class="filters" role="group" aria-labelledby="incluir">
           ${s?u:this._searchToggle("circle-check","Conclu\xEDdos",this._searchDone,()=>this._searchDone=!this._searchDone)}

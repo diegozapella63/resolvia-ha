@@ -106,7 +106,8 @@ async def main():
             # ---- Buscar › Incluir folds, kept on the device (2.68.0); the lists of the results open again on each visit
             await go("/buscar")
             inc = a.locator("#incluir")
-            check(await inc.get_attribute("aria-expanded") == "true" and await inc.locator("svg.lbl-ic").count() == 1, f"{scheme}: Incluir with its icon, open")
+            check((await inc.inner_text()).strip() == "Filtros", f"{scheme}: the heading of the filters is Filtros, as in every app ({await inc.inner_text()})")
+            check(await inc.get_attribute("aria-expanded") == "true" and await inc.locator("svg.lbl-ic").count() == 1, f"{scheme}: Filtros (2.78.0; before, Incluir) with its icon, open")
             await inc.click(); await pg.wait_for_timeout(250)
             vis = await a.locator(".filters .pick:visible").count()
             check(await inc.get_attribute("aria-expanded") == "false" and vis == 0, f"{scheme}: 2.67.1: Incluir closed: all of it ({vis})")

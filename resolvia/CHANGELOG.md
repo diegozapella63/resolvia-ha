@@ -5,6 +5,7 @@
 - **Novo item / Editar item**: as **Notas** ficam logo acima de **Lista** e fecham e abrem num toque no título, como os outros campos (o aparelho lembra). Fechadas, mostram o começo do que está escrito.
 - **Listas › Inativas (n)**: a linha de recolher fica direto na página, sem um cartão em volta; aberta, as listas inativas aparecem no cartão delas, logo abaixo.
 - **Conversa**: as perguntas prontas ficam no meio da tela, uma por linha, como no CorrerIA.
+- **Buscar**: o título dos filtros se chama **Filtros** (antes, Incluir), como nos outros apps.
 
 ## 2.77.1
 
