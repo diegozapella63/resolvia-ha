@@ -223,7 +223,7 @@ describe("suggest: the page", () => {
     const v = p._renderSuggest();
     const t = text(v);
     assert.match(t, /Agora 5 pendentes em 3 listas Comece por aqui 2 Varrer \(Faltam 2 para zerar a lista\) Lavar \(Faltam 2 para zerar a lista\)/);
-    assert.match(t, /Compras 3 mercado O mais antigo está há 2 semanas 2 leite \(undefined\) ovos \(undefined\) feira 1 alface \(undefined\) Ordem dos cards$/, "2.80.0: the items right in the card");
+    assert.match(t, /Compras 3 mercado O mais antigo está há 2 semanas 2 leite \(\) ovos \(\) feira 1 alface \(\) Ordem dos cards$/, "2.80.0: the items right in the card");
     click(v, /^feira/);
     assert.equal(p.went, "/lista/todo.feira");
     assert.doesNotMatch(t, /Sugerir com IA/, "AI off: no button");
