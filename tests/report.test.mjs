@@ -3,7 +3,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { pendencias, reportHtml, dueText, reportPdf, pdfName, graficos, listLooks, BAIXAR } from "../resolvia/rootfs/app/lib/report.js";
-import { Pdf, winAnsi, textWidth, wrap, rgb } from "../resolvia/rootfs/app/lib/pdf.js";
+import { Pdf, winAnsi, textWidth, wrap, rgb, glyphChar, isGlyph } from "../resolvia/rootfs/app/lib/pdf.js";
 
 const NOW = new Date(2026, 10, 7, 17, 0).getTime();
 const LISTS = [
@@ -212,4 +212,30 @@ describe("Gráficos no relatório (2.47.0)", () => {
     const looks = listLooks({ states, prefs: { "todo.casa": { color: "sem", icon: "sem" } } });
     assert.equal(looks.get("todo.casa").color, "");
   });
+});
+
+// 2.81.0: the PDF writer is the same file of the MemorIA, which draws a small picture in the place of a character (its
+// emojis): here nothing uses it, but the file is tested the same
+describe("the PDF writer: pictures in the text", () => {
+  it("a character with a picture is drawn as the picture, one em wide; without one it is left out", () => {
+  const S = 48;
+  const g = glyphChar(0);
+  assert.ok(isGlyph(g) && !isGlyph("a"));
+  assert.equal(textWidth(g, 10), 10);
+  assert.equal(winAnsi(`a${g}b`).toString("latin1"), "ab");
+  const pdf = new Pdf({ title: "t", producer: "x" });
+  pdf.setGlyph(g, { w: S, h: S, rgba: Buffer.alloc(S * S * 4, 180) });
+  pdf.setGlyph(glyphChar(1), { w: S, h: S, rgba: Buffer.alloc(10) });
+  pdf.setGlyph("a", { w: S, h: S, rgba: Buffer.alloc(S * S * 4) });
+  pdf.setGlyph(glyphChar(2));
+  assert.equal(pdf.glyphs.size, 1);
+  pdf.text(40, 60, `Café ${g} fim ${glyphChar(1)}!`, { size: 10 });
+  pdf.text(300, 80, `${g}${g}`, { size: 10, align: "right" });
+  const s = pdf.build().toString("latin1");
+  assert.match(s, /\(Caf\\351 \) Tj ET\nq 9\.2 0 0 9\.2 [\d.]+ [\d.]+ cm \/Im1 Do Q\nBT \/F1 10 Tf [\d. ]+ rg [\d.]+ [\d.]+ Td \( fim \) Tj ET\nBT[^\n]+\(!\) Tj ET/);
+  assert.equal((s.match(/\/Im1 Do/g) || []).length, 3);
+  assert.match(s, /\/ColorSpace \/DeviceRGB \/BitsPerComponent 8 \/SMask \d+ 0 R \/Filter \/FlateDecode/);
+  assert.match(s, /\/Resources << \/Font << \/F1 \d+ 0 R \/F2 \d+ 0 R >> \/XObject << \/Im1 \d+ 0 R >> >>/);
+  assert.doesNotMatch(new Pdf().text(10, 10, "sem figura").build().toString("latin1"), /XObject/);
+});
 });

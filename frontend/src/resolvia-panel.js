@@ -24,6 +24,7 @@ import { SuggestMixin, DUE_GROUPS } from "./suggest.js";
 import { RoomsMixin } from "./rooms.js";
 import { ChatMixin } from "./chat-panel.js";
 import { ExternalMixin } from "./external.js";
+import { PhotosMixin } from "./photos.js";
 import { ChartsMixin, chartStyles } from "./charts.js";
 import { CorreriaMixin } from "./correria.js";
 import { chatStyles, chatFiles } from "./chat.js";
@@ -129,8 +130,9 @@ const IN_MORE = ["listas", "graficos", "config", "sobre"];
 // Novo/Editar item › Horário: Dia todo, this one or another (2.48.0)
 const DEFAULT_TIME = "08:00";
 
-class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(PointsMixin(DataMixin(LitElement)))))))) {
+class ResolviaPanel extends CorreriaMixin(ChartsMixin(PhotosMixin(ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(PointsMixin(DataMixin(LitElement))))))))) {
   static properties = {
+    _photoView: { state: true }, // 2.81.0: a photo of a task opened big
     hass: { attribute: false },
     narrow: { type: Boolean },
     route: { attribute: false },
@@ -306,6 +308,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
         this._loadPoints();
         this._loadRooms();
         this._loadExternal();
+        this._loadPhotos();
       }
       if (!this._rulesUnsub && this.isConnected) this._subscribeRules();
       if (!this._voiceAsked && this.hass.resolvia && this.hass.resolvia.voiceStatus) {
@@ -363,6 +366,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
         this._loadPoints();
         this._loadRooms();
         this._loadExternal();
+        this._loadPhotos();
         this._loadUsage();
         this._loadCorreria();
       }
@@ -1816,6 +1820,8 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
       // what is kept, even with Serviços externos off (no field then): a rename or a move takes it along
       ext: this._externalRaw(list.id, item.summary),
       extOrig: this._externalRaw(list.id, item.summary),
+      photos: this._photosOf(list.id, item.summary),
+      photosOrig: this._photosOf(list.id, item.summary),
     });
     this._loadPoints();
   }
@@ -1845,6 +1851,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
       if (ok && f.points) await this._setTaskPoints(target.id, summary, f.points);
       if (ok) await this._saveTaskPlace(target.id, summary, f);
       if (ok) await this._saveTaskExternal(target.id, summary, f);
+      if (ok) await this._saveTaskPhotos(target.id, summary, { ...f, photosOrig: [] });
       if (ok && this._view().id !== target.id) this._showToast(`Adicionado em ${clip(target.name, 28)}`);
       return;
     }
@@ -1869,6 +1876,9 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
         if ((f.equipsOrig || []).length) await this._setTaskEquip(list.id, item.summary, null);
         await this._saveTaskExternal(target.id, summary, { ...f, extOrig: null });
         if (f.extOrig) await this._setTaskExternal(list.id, item.summary, null);
+        // the photos go along: first out of the task that leaves (the files stay while the other keeps them)
+        if ((f.photos || []).length) await this._setTaskPhotos(target.id, summary, f.photos);
+        if ((f.photosOrig || []).length) await this._setTaskPhotos(list.id, item.summary, []);
         await this._call("remove_item", { item: [f.key] }, list.id);
         this._showToast(`Movido para ${clip(target.name, 28)}`);
       }
@@ -1891,6 +1901,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     }
     await this._saveTaskPlace(list.id, summary, f, summary !== item.summary ? item.summary : null);
     await this._saveTaskExternal(list.id, summary, f, summary !== item.summary ? item.summary : null);
+    await this._saveTaskPhotos(list.id, summary, f, summary !== item.summary ? item.summary : null);
     if ((f.repeat || 0) !== (f.repeatOrig || 0)) {
       await this._setRule(list.id, { uid: item.uid, summary, days: f.repeat });
       if (f.repeat) this._showToast(`Repete ${this._everyLabel(f.repeat)} depois de concluir`);
@@ -2139,7 +2150,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
           <main @touchstart=${(e) => this._onSwipeStart(e)} @touchend=${(e) => this._onSwipeEnd(e)}>${page}</main>
           ${this._renderNav(view)}
         </div>
-        ${this._renderSheet()} ${this._renderToast()} ${this._renderCamera()}
+        ${this._renderSheet()} ${this._renderToast()} ${this._renderCamera()} ${this._renderPhotoView()}
         ${this._canImport()
           ? html`<input id="rv-photos" class="sr" type="file" accept="image/*,application/pdf" ?multiple=${!this._isHaAndroid()} tabindex="-1" aria-hidden="true" @change=${(e) => this._onFiles(e)} />
               <input id="rv-scan" class="sr" type="file" accept="image/*" capture="environment" tabindex="-1" aria-hidden="true" @change=${(e) => this._onFiles(e)} />`
@@ -2633,10 +2644,10 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
           <div class="it-text">${this._renderText(item.summary || "", opts.query)}</div>
           ${stripMark(item.description) ? html`<div class="it-desc">${this._renderText(stripMark(item.description), opts.query)}</div>` : nothing}
           ${opts.why ? html`<div class="it-why">${icon(opts.whyIcon || "lightbulb")}<span>${opts.why}</span></div>` : nothing}
-          ${due || opts.showList || rule || this._pointsOf(l.id, item.summary, item.uid) || this._roomIdOf(l.id, item.summary) || this._equipIdOf(l.id, item.summary) || this._externalOf(l.id, item.summary)
+          ${due || opts.showList || rule || this._pointsOf(l.id, item.summary, item.uid) || this._roomIdOf(l.id, item.summary) || this._equipIdOf(l.id, item.summary) || this._externalOf(l.id, item.summary) || this._photosOf(l.id, item.summary).length
             ? html`<div class="chips">
                 ${opts.showList ? html`<span class="tag list">${l.icon ? icon(l.icon) : nothing}${clip(l.name, 24)}</span>` : nothing}
-                ${this._renderExternalTag(l.id, item)} ${this._renderRoomTag(l.id, item)} ${this._renderEquipTag(l.id, item)}
+                ${this._renderExternalTag(l.id, item)} ${this._renderRoomTag(l.id, item)} ${this._renderEquipTag(l.id, item)} ${this._renderPhotoTag(l.id, item)}
                 ${due
                   ? l.noDue
                     ? html`<span class="tag info" title=${l.canDue ? "Prazos desligados: a data é só informação" : "Data da integração, não é prazo"}>${icon("clock-fading")}${due.text}</span>`
@@ -3878,6 +3889,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
       ${this._renderEquipField(f)}
       ${this._renderExternalField(f, target.appDue ? feat & ~(F.DUE_DATE | F.DUE_DATETIME) : feat)}
       ${this._renderPointsField(f)}
+      ${this._renderPhotosField(f)}
       ${canDesc && (this._notesOn() || f.hadNotes)
         ? // 2.78.0: logo acima de Lista, e fecha e abre pelo título como os outros campos; fechado, mostra o começo do que há
           html`<div class="field notes-field">

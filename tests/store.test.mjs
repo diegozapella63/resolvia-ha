@@ -5,7 +5,7 @@ import path from "node:path";
 import { Store, normalize, taskKey, datesInfo } from "../resolvia/rootfs/app/lib/store.js";
 import { tmpDir, fakeLog, local } from "./_helpers.mjs";
 
-const EMPTY = { version: 1, prefs: { lists: {}, app: {} }, rules: {}, points: {}, rooms: {}, equips: {}, ext: {}, dues: {} };
+const EMPTY = { version: 1, prefs: { lists: {}, app: {} }, rules: {}, points: {}, rooms: {}, equips: {}, ext: {}, photos: {}, dues: {} };
 
 /** A store in a fresh temp dir, with its timers and clock under the test's control. */
 function newStore(t, { now = local(2026, 11, 2, 9, 0, 0), file } = {}) {
@@ -744,5 +744,33 @@ describe("Store: the deadlines of the app (2.58.0, the lists that take no date)"
     assert.throws(() => store.setDue("light.x", "Sabão", "2026-12-01"), /to-do/);
     assert.throws(() => store.setDue(L, "  ", "2026-12-01"), /name/);
     assert.deepEqual(normalize({ dues: { [L]: { "Sabão  em pó": "2026-12-01", x: "2026-02-31x", y: 3 }, "light.x": { a: "2026-12-01" }, "todo.z": "x" } }).dues, { [L]: { "sabao em po": "2026-12-01" } });
+  });
+});
+
+// 2.81.0: the photos of a task
+describe("photos of a task", () => {
+  const A = "0123456789abcdef.jpg";
+  const B = "fedcba9876543210.jpg";
+  const C = "00112233aabbccdd.jpg";
+  it("kept by the name of the task, up to six, only file names of the app; a rename takes them along", async () => {
+    const { photoList, MAX_PHOTOS, PHOTO_RE } = await import("../resolvia/rootfs/app/lib/store.js");
+    assert.deepEqual(photoList([A, "../x.jpg", A, 7, "ABC.jpg", B]), [A, B]);
+    assert.deepEqual(photoList("x"), []);
+    assert.equal(photoList(Array.from({ length: 9 }, (_, i) => `${String(i).repeat(16)}.jpg`)).length, MAX_PHOTOS);
+    assert.ok(PHOTO_RE.test(A) && !PHOTO_RE.test("a.jpg"));
+    const store = new Store(tmpDir(), fakeLog());
+    assert.deepEqual(store.photos, {});
+    assert.deepEqual(store.setPhotos("todo.casa", "Trocar o chuveiro", [A, B]), [], "nothing left");
+    assert.deepEqual(store.photosFor("todo.casa", "trocar  o Chuveiro"), [A, B]);
+    assert.deepEqual(store.photosFor("todo.casa", "Outra"), []);
+    assert.deepEqual([...store.photosInUse()].sort(), [A, B].sort());
+    assert.deepEqual(store.setPhotos("todo.casa", "Trocar o chuveiro novo", [B, C], "Trocar o chuveiro"), [A], "renamed, and the one taken out is the file to delete");
+    assert.deepEqual(store.photos, { "todo.casa": { "trocar o chuveiro novo": [B, C] } });
+    store.setPhotos("todo.outra", "Outra", [C]);
+    assert.deepEqual(store.setPhotos("todo.casa", "Trocar o chuveiro novo", []), [B], "cleared: C stays, another task has it");
+    assert.deepEqual(store.photos, { "todo.outra": { outra: [C] } });
+    assert.throws(() => store.setPhotos("light.x", "a", [A]), /Not a to-do entity/);
+    assert.throws(() => store.setPhotos("todo.casa", "  ", [A]), /Task name required/);
+    assert.deepEqual(normalize({ photos: { "todo.casa": { "Lavar  Louça": [A, "x"], vazio: [] }, "light.x": { a: [A] }, "todo.b": 3 } }).photos, { "todo.casa": { "lavar louca": [A] } });
   });
 });

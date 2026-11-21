@@ -6,11 +6,12 @@
 // - Dados: exports (JSON, CSV, ZIP), backups in share/resolvia, imports, versions.
 import http from "node:http";
 import fs from "node:fs";
+import crypto from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { acceptUpgrade } from "./lib/ws.js";
 import { HAClient } from "./lib/ha.js";
-import { Store, datesInfo, taskKey } from "./lib/store.js";
+import { Store, datesInfo, taskKey, PHOTO_RE, photoList } from "./lib/store.js";
 import { TaskSensors } from "./lib/sensors.js";
 import { pendencias, reportHtml, reportPdf, pdfName, listLooks } from "./lib/report.js";
 import { Recurring } from "./lib/recurring.js";
@@ -53,6 +54,24 @@ if (!TOKEN) {
 }
 
 const store = new Store(DATA_DIR, log);
+// 2.81.0: the photos of the tasks (taken or chosen in the item sheet), one JPEG each
+const PHOTO_DIR = path.join(DATA_DIR, "fotos");
+const MAX_PHOTO = 4 * 1024 * 1024;
+/** The files that no task has any more: out (the new ones get an hour, for the sheet still open). */
+function sweepPhotos(files = null) {
+  try {
+    const used = store.photosInUse();
+    for (const f of files || (fs.existsSync(PHOTO_DIR) ? fs.readdirSync(PHOTO_DIR) : [])) {
+      if (!PHOTO_RE.test(f) || used.has(f)) continue;
+      const full = path.join(PHOTO_DIR, f);
+      if (!files && Date.now() - fs.statSync(full).mtimeMs < 3600000) continue;
+      fs.rmSync(full, { force: true });
+    }
+  } catch (err) {
+    log.warn(`Fotos: ${err.message}`);
+  }
+}
+sweepPhotos();
 store.trimVersions(); // Versões anteriores: only the 3 newest (older installs kept up to 60)
 const ha = new HAClient(HA_URL, TOKEN, log);
 const todoStates = new Map();
@@ -783,6 +802,16 @@ class Session {
         return this.result(id, { ext: store.external });
       }
 
+      // ---- 2.81.0: the photos of a task ({photos: {todo.x: {task key: ["file.jpg"]}}})
+      case "resolvia/photos/get":
+        return this.result(id, { photos: store.photos });
+
+      case "resolvia/photos/set": {
+        const files = photoList(msg.photos).filter((f) => fs.existsSync(path.join(PHOTO_DIR, f)));
+        sweepPhotos(store.setPhotos(msg.entity_id, String(msg.summary || ""), files, msg.previous_summary == null ? null : String(msg.previous_summary)));
+        return this.result(id, { photos: store.photos });
+      }
+
       case "resolvia/points/get":
         return this.result(id, pointsState(this.user.id));
 
@@ -1072,6 +1101,31 @@ function handleChat(req, res) {
 }
 
 /** POST /api/voice (raw PCM, 16 kHz, 16-bit, mono) -> {text, engine}: Falar, through the speech-to-text of Home Assistant */
+/** 2.81.0: a photo of a task: POST api/photo (a JPEG, already made small by the screen) -> {file}; GET api/photo/<file>. */
+async function handlePhotoUp(req, res) {
+  try {
+    const jpg = await readRaw(req, MAX_PHOTO);
+    if (jpg.length < 100 || jpg[0] !== 0xff || jpg[1] !== 0xd8) return sendJson(res, 422, { error: "A foto não veio como JPEG.", code: "invalid_format" });
+    fs.mkdirSync(PHOTO_DIR, { recursive: true });
+    const file = `${crypto.randomBytes(8).toString("hex")}.jpg`;
+    fs.writeFileSync(path.join(PHOTO_DIR, file), jpg, { mode: 0o600 });
+    sendJson(res, 200, { file });
+  } catch (err) {
+    sendJson(res, err.code === "too_big" ? 413 : 400, { error: err.code === "too_big" ? "A foto é grande demais." : "Não consegui guardar a foto.", code: err.code || "failed" });
+  }
+}
+
+function handlePhotoGet(file, req, res) {
+  let data;
+  try {
+    data = fs.readFileSync(path.join(PHOTO_DIR, file));
+  } catch (err) {
+    return res.writeHead(404).end("Not found");
+  }
+  res.writeHead(200, { "Content-Type": "image/jpeg", "Content-Length": data.length, "Cache-Control": "private, max-age=31536000, immutable", "X-Content-Type-Options": "nosniff" });
+  res.end(req.method === "HEAD" ? undefined : data);
+}
+
 async function handleVoice(req, res) {
   const started = Date.now();
   try {
@@ -1121,6 +1175,7 @@ async function handleReport(url, res, pdf = false) {
       rooms: roomsOn() ? store.roomsFor(listId, i.summary).map((id) => inventario.nameOf(id)).filter(Boolean) : [],
       equips: equipsOn() ? store.equipsFor(listId, i.summary).map(itemName).filter(Boolean) : [],
       external: app.ext_off !== true ? store.externalFor(listId, i.summary) : null,
+      photos: store.photosFor(listId, i.summary).length,
     };
   };
   const rep = pendencias({ lists, items: recurring.items, pick: url.searchParams.get("lista") || "", now: Date.now(), extra });
@@ -1180,6 +1235,9 @@ const server = http.createServer((req, res) => {
   if (url.pathname === "/api/extract" && req.method === "POST") return handleExtract(req, res);
   if (url.pathname === "/api/chat" && req.method === "POST") return handleChat(req, res);
   if (url.pathname === "/api/voice" && req.method === "POST") return handleVoice(req, res);
+  if (url.pathname === "/api/photo" && req.method === "POST") return handlePhotoUp(req, res);
+  const foto = url.pathname.match(/^\/api\/photo\/([a-f0-9]{16}\.jpg)$/);
+  if (foto && (req.method === "GET" || req.method === "HEAD")) return handlePhotoGet(foto[1], req, res);
   const exp = url.pathname.match(/^\/api\/export\/(json|csv|zip)$/);
   if (exp && req.method === "GET") return handleData(exp[1], res);
   if (url.pathname === "/api/import" && req.method === "POST") return handleImport(req, res);

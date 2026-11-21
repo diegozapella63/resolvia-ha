@@ -39,6 +39,7 @@ export function snapshot(store, lists, version) {
     rooms: store.data.rooms || {},
     equips: store.data.equips || {},
     ext: store.data.ext || {},
+    photos: store.data.photos || {}, // 2.81.0: which photos are of which task (the files stay in /data/fotos)
     dues: store.data.dues || {},
     lists: lists.map((l) => ({
       entity_id: l.entity_id,

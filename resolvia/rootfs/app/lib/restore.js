@@ -138,7 +138,12 @@ export class Restore {
       const t = to(id);
       if (!dues[t] || id === t) dues[t] = m;
     }
-    this.store.replaceAll({ prefs: { lists, app }, rules, points, rooms, equips, ext, dues }, reason);
+    const photos = {}; // 2.81.0: which photos are of which task (the files are not in the backup: they stay in /data/fotos)
+    for (const [id, m] of Object.entries(isObj(raw.photos) ? raw.photos : {})) {
+      const t = to(id);
+      if (!photos[t] || id === t) photos[t] = m;
+    }
+    this.store.replaceAll({ prefs: { lists, app }, rules, points, rooms, equips, ext, dues, photos }, reason);
 
     // Repeating tasks whose item isn't here (yet) bind again by name.
     for (const r of Object.values(this.store.rules)) {

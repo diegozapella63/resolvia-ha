@@ -3201,6 +3201,76 @@ export const styles = css`
     font-weight: 500;
     color: var(--rv-text-2);
   }
+  /* 2.81.0: as fotos de uma tarefa: Tirar foto e Escolher fotos lado a lado, as fotos em quadrados embaixo */
+  .photo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .photo {
+    position: relative;
+    aspect-ratio: 1;
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--rv-bg);
+    border: 1px solid var(--rv-line);
+  }
+  .photo.busy {
+    display: grid;
+    place-items: center;
+    color: var(--rv-muted);
+  }
+  .photo-open {
+    display: block;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+  }
+  .photo-open img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .photo-x {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 28px;
+    height: 28px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.62);
+    color: #fff;
+  }
+  .photo-x .i {
+    width: 16px;
+    height: 16px;
+  }
+  .photo-view {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    display: grid;
+    place-items: center;
+    background: rgba(0, 0, 0, 0.9);
+    padding: 12px;
+  }
+  .photo-view img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: 8px;
+  }
+  .photo-view .photo-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: rgba(0, 0, 0, 0.6);
+    color: #fff;
+  }
   /* 2.80.0: Agora › Compras: os itens no cartão, embaixo do nome da lista */
   .shop-more {
     width: 100%;

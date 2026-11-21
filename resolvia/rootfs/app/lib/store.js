@@ -205,6 +205,31 @@ function cleanDues(raw) {
   return out;
 }
 
+// 2.81.0: the photos of a task: the files kept in /data/fotos ("3f9c…a1.jpg"), up to MAX_PHOTOS for each task
+export const PHOTO_RE = /^[a-f0-9]{16}\.jpg$/;
+export const MAX_PHOTOS = 6;
+export function photoList(v) {
+  const out = [];
+  for (const f of Array.isArray(v) ? v : []) if (typeof f === "string" && PHOTO_RE.test(f) && !out.includes(f)) out.push(f);
+  return out.slice(0, MAX_PHOTOS);
+}
+
+/** {todo.x: {task key: ["file.jpg"]}}: the photos of each task. */
+function cleanPhotos(raw) {
+  const out = {};
+  if (!isObj(raw)) return out;
+  for (const [id, map] of Object.entries(raw)) {
+    if (!/^todo\.[a-z0-9_]+$/.test(id) || !isObj(map)) continue;
+    for (const [k, v] of Object.entries(map)) {
+      const key = taskKey(k);
+      const val = photoList(v);
+      if (!key || !val.length) continue;
+      (out[id] || (out[id] = {}))[key] = val;
+    }
+  }
+  return out;
+}
+
 /** {todo.x: {task key: true | "who"}}: the tasks done by someone from outside (a professional, a store). */
 function cleanExternal(raw) {
   const out = {};
@@ -223,7 +248,7 @@ function cleanExternal(raw) {
 
 /** The file contents, checked. Strict (imports) also validates every preference. */
 export function normalize(raw, strict = false) {
-  const data = { version: 1, prefs: { lists: {}, app: {} }, rules: {}, points: {}, rooms: {}, equips: {}, ext: {}, dues: {} };
+  const data = { version: 1, prefs: { lists: {}, app: {} }, rules: {}, points: {}, rooms: {}, equips: {}, ext: {}, photos: {}, dues: {} };
   if (!isObj(raw)) return data;
   if (isObj(raw.prefs)) {
     if (isObj(raw.prefs.lists)) {
@@ -271,6 +296,7 @@ export function normalize(raw, strict = false) {
   data.points = cleanPoints(raw.points);
   data.rooms = cleanLinks(raw.rooms); // {todo.x: {task key: room id | [room ids]}}
   data.ext = cleanExternal(raw.ext); // {todo.x: {task key: true | "who"}}: Serviço externo
+  data.photos = cleanPhotos(raw.photos); // 2.81.0: {todo.x: {task key: ["file.jpg"]}}
   data.equips = cleanLinks(raw.equips); // {todo.x: {task key: item id | [item ids] of the InventarIA}}
   data.dues = cleanDues(raw.dues); // {todo.x: {task key: deadline}}: the lists without dates (2.58.0)
   // the day each daily alert went out ({prazos: "YYYY-MM-DD"}), so it goes once a day even after a restart
@@ -316,7 +342,7 @@ export class Store {
     const out = { rules: Object.keys(this.data.rules).length, points: count(this.data.points), rooms: count(this.data.rooms), equips: count(this.data.equips), ext: count(this.data.ext), dues: count(this.data.dues) };
     if (this.timer) this.flush({ version: false });
     this.version("antes-de-apagar", true);
-    this.data = { ...this.data, rules: {}, points: {}, rooms: {}, equips: {}, ext: {}, dues: {} };
+    this.data = { ...this.data, rules: {}, points: {}, rooms: {}, equips: {}, ext: {}, dues: {}, photos: {} };
     this.flush({ version: false });
     return out;
   }
@@ -395,6 +421,44 @@ export class Store {
     this.data.ext = all;
     this.save();
     return all;
+  }
+
+  // ---- 2.81.0: the photos of a task (the files are in /data/fotos; here, which ones are of which task)
+  get photos() {
+    return this.data.photos || {};
+  }
+
+  photosFor(entityId, summary) {
+    const map = this.photos[entityId];
+    return photoList(map && map[taskKey(summary)]);
+  }
+
+  /** Every file in use, of all the tasks. */
+  photosInUse() {
+    const out = new Set();
+    for (const map of Object.values(this.photos)) for (const list of Object.values(map)) for (const f of list) out.add(f);
+    return out;
+  }
+
+  /** Sets the photos of a task ([] clears); `previous` is the old name after a rename. Returns the files that left. */
+  setPhotos(entityId, summary, files, previous = null) {
+    if (typeof entityId !== "string" || !/^todo\.[a-z0-9_]+$/.test(entityId)) throw new Error("Not a to-do entity");
+    const key = taskKey(summary);
+    if (!key) throw new Error("Task name required");
+    const val = photoList(files);
+    const cur = this.photos;
+    const map = { ...(cur[entityId] || {}) };
+    const before = [...(map[key] || []), ...(previous != null && taskKey(previous) !== key ? map[taskKey(previous)] || [] : [])];
+    if (previous != null && taskKey(previous) !== key) delete map[taskKey(previous)];
+    if (val.length) map[key] = val;
+    else delete map[key];
+    const all = { ...cur };
+    if (Object.keys(map).length) all[entityId] = map;
+    else delete all[entityId];
+    this.data.photos = all;
+    this.save();
+    const used = this.photosInUse();
+    return before.filter((f) => !used.has(f));
   }
 
   get rooms() {

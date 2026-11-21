@@ -342,6 +342,9 @@ export class Ferramentas {
     }
     const ext = on.ext ? st.externalFor(list.id, item.summary) : null;
     if (ext) out.externo = ext === true ? "sim" : ext;
+    // 2.81.0: the photos of the task (taken or chosen on the screen): how many
+    const fotos = st.photosFor ? st.photosFor(list.id, item.summary).length : 0;
+    if (fotos) out.fotos = fotos;
     return out;
   }
 
@@ -451,6 +454,8 @@ export class Ferramentas {
       this.c.roomsFromEquips(list.id, summary);
     }
     if (f.ext !== undefined) st.setExternal(list.id, summary, f.ext, previous);
+    // 2.81.0: the photos go along with a rename or a move (the tools don't add or take photos: that is on the screen)
+    if (f.photos !== undefined && st.setPhotos) st.setPhotos(list.id, summary, f.photos, previous);
   }
 
   /** The extras as words, for the confirmation ("prazo 2026-11-09 · repete toda semana · 10 pontos"). */
@@ -670,6 +675,7 @@ export class Ferramentas {
       rooms: on.rooms ? st.roomsFor(list.id, item.summary) : undefined,
       equips: on.equips ? st.equipsFor(list.id, item.summary) : undefined,
       ext: st.externalFor(list.id, item.summary),
+      photos: st.photosFor ? st.photosFor(list.id, item.summary) : undefined,
     };
     const was = this.extrasText(list, item, on);
     if (target.id !== list.id) {
@@ -689,10 +695,11 @@ export class Ferramentas {
         rooms: f.rooms ?? had.rooms,
         equips: f.equips ?? had.equips,
         ext: f.ext !== undefined ? f.ext : had.ext,
+        photos: had.photos && had.photos.length ? had.photos : undefined,
       });
       // what the task had here goes away with it
       if (rule) this.c.recurring.setRule({ entity_id: list.id, uid: rule.uid, summary: rule.match || rule.summary, days: 0 });
-      this.saveExtras(list, item.summary, null, { points: 0, rooms: had.rooms && [], equips: had.equips && [], ext: null });
+      this.saveExtras(list, item.summary, null, { points: 0, rooms: had.rooms && [], equips: had.equips && [], ext: null, photos: had.photos && had.photos.length ? [] : undefined });
       await this.c.call("remove_item", { item: [keyOf(item)] }, list.id);
       this.c.changed();
       const now = this.extrasText(target, made || { summary, status: "needs_action" }, on);

@@ -242,6 +242,14 @@ export async function createAppHass(onChange) {
         }
         return body;
       },
+      // 2.81.0: the photos of a task: the file goes by POST (a JPEG already made small); the address to show one
+      async uploadPhoto(blob) {
+        const res = await fetch(new URL("api/photo", location.href), { method: "POST", headers: { "content-type": "image/jpeg" }, body: blob });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok || !body.file) throw new Error(body.error || `Erro ${res.status}`);
+        return body.file;
+      },
+      photoUrl: (file) => new URL(`api/photo/${encodeURIComponent(file)}`, location.href).href,
       // Mais › Relatório de pendências: a page of the server, to print or save as PDF
       report: (query) => new URL(`relatorio?${query}`, location.href).href,
       // Mais › Configurações › Dados

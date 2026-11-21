@@ -240,6 +240,39 @@ describe("repetitions", () => {
     await assert.rejects(c.call("resolvia/recurring/set", { entity_id: "light.x", uid: "x", days: 2 }), { message: /Not a to-do entity/ });
   });
 
+  it("2.81.0: the photos of a task: sent as JPEG, shown, kept by the name of the task, and the file goes when no task has it", async () => {
+    const jpg = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(300, 7), Buffer.from([0xff, 0xd9])]);
+    const up = async (body, type = "image/jpeg") => {
+      const res = await fetch(`${stack.appUrl}/api/photo`, { method: "POST", body, headers: { "content-type": type } });
+      return [res.status, await res.json()];
+    };
+    assert.deepEqual((await c.call("resolvia/photos/get")).photos, {});
+    const [st, a] = await up(jpg);
+    assert.equal(st, 200);
+    assert.match(a.file, /^[a-f0-9]{16}\.jpg$/);
+    const [, b] = await up(jpg);
+    assert.notEqual(a.file, b.file);
+    const bad = await up(Buffer.from("isto não é uma foto, é um texto comprido o bastante para passar do tamanho mínimo que o servidor aceita de um arquivo"));
+    assert.deepEqual([bad[0], bad[1].code], [422, "invalid_format"]);
+    assert.equal((await up(Buffer.alloc(5 * 1024 * 1024, 1)))[0], 413, "too big");
+    let res = await fetch(`${stack.appUrl}/api/photo/${a.file}`);
+    assert.deepEqual([res.status, res.headers.get("content-type"), Buffer.from(await res.arrayBuffer()).equals(jpg)], [200, "image/jpeg", true]);
+    assert.equal((await fetch(`${stack.appUrl}/api/photo/${a.file}`, { method: "HEAD" })).status, 200);
+    assert.equal((await fetch(`${stack.appUrl}/api/photo/0000000000000000.jpg`)).status, 404);
+    assert.equal((await fetch(`${stack.appUrl}/api/photo/..%2Fresolvia.json`)).status, 404, "only a file of the photos");
+    // of a task: the ones that exist, by its name; a rename takes them along
+    let r = await c.call("resolvia/photos/set", { entity_id: CASA, summary: "Trocar o chuveiro", photos: [a.file, b.file, "0000000000000000.jpg", "../x"] });
+    assert.deepEqual(r.photos, { [CASA]: { "trocar o chuveiro": [a.file, b.file] } }, "a file that is not there is left out");
+    r = await c.call("resolvia/photos/set", { entity_id: CASA, summary: "Trocar o chuveiro novo", photos: [b.file], previous_summary: "Trocar o chuveiro" });
+    assert.deepEqual(r.photos, { [CASA]: { "trocar o chuveiro novo": [b.file] } });
+    assert.equal((await fetch(`${stack.appUrl}/api/photo/${a.file}`)).status, 404, "the one taken out: its file goes");
+    assert.equal((await fetch(`${stack.appUrl}/api/photo/${b.file}`)).status, 200);
+    await assert.rejects(c.call("resolvia/photos/set", { entity_id: "light.x", summary: "a", photos: [] }), { message: /Not a to-do entity/ });
+    r = await c.call("resolvia/photos/set", { entity_id: CASA, summary: "Trocar o chuveiro novo", photos: [] });
+    assert.deepEqual(r.photos, {});
+    assert.equal((await fetch(`${stack.appUrl}/api/photo/${b.file}`)).status, 404);
+  });
+
   it("Serviço externo: set, renamed, cleared; the CronologIA taking a task over removes it", async () => {
     let r = await c.call("resolvia/external/set", { entity_id: CASA, summary: "Trocar o chuveiro", value: "Eletricista" });
     assert.deepEqual(r.ext, { [CASA]: { "trocar o chuveiro": "Eletricista" } });

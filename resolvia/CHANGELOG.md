@@ -1,5 +1,9 @@
 # Mudanças
 
+## 2.81.0
+
+- **Fotos na tarefa**: no Novo item e no Editar item, **Tirar foto** e **Escolher fotos**, até 6 por tarefa. A tarefa mostra na lista quantas fotos tem; um toque na foto abre ela grande. As fotos acompanham a tarefa ao renomear ou mover de lista.
+
 ## 2.80.0
 
 - **Agora › Compras**: os itens aparecem direto no cartão, para marcar dali mesmo (até 8 de cada lista; o resto, em **Ver os N**).
