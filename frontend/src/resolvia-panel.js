@@ -1163,7 +1163,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(PhotosMixin(ExternalMixin(
     });
     this.updateComplete.then(() => {
       const ta = this.renderRoot.querySelector(".sheet textarea");
-      if (ta) ta.focus();
+      if (ta) ta.focus({ preventScroll: true }); // 2.84.1: sem pedir rolagem (a janela ainda está subindo)
     });
   }
 
@@ -1429,7 +1429,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(PhotosMixin(ExternalMixin(
   _focusImportText() {
     this.updateComplete.then(() => {
       const ta = this.renderRoot.querySelector(".sheet textarea");
-      if (ta) ta.focus();
+      if (ta) ta.focus({ preventScroll: true }); // 2.84.1: sem pedir rolagem (a janela ainda está subindo)
     });
   }
 

@@ -203,6 +203,29 @@ describe("chat: the window", () => {
     assert.doesNotMatch(render(c.draw()).html, /chat-quick/, "asked: the panel closes");
   });
 
+  it("on the phone (the on-screen keyboard), Enter is a new line and the button sends; with a real keyboard, Enter sends", () => {
+    const antes = globalThis.matchMedia;
+    try {
+      globalThis.matchMedia = (q) => ({ matches: q === "(hover: none) and (pointer: coarse)" });
+      const c = chat({});
+      const v = c.draw({ draft: "Quanto falta?" });
+      assert.match(render(v).html, /enterkeyhint="enter"/);
+      let parou = 0;
+      fire(v, "Mensagem para a IA", "keydown", { key: "Enter", preventDefault: () => parou++ });
+      assert.deepEqual([c.got.sent, parou], [[], 0], "the Enter is left alone: the box gets the new line");
+      fire(v, /^$/, "submit");
+      assert.deepEqual(c.got.sent, ["Quanto falta?"], "the button sends");
+      globalThis.matchMedia = () => ({ matches: false });
+      const d = chat({});
+      const w = d.draw({ draft: "E amanhã?" });
+      assert.match(render(w).html, /enterkeyhint="send"/);
+      fire(w, "Mensagem para a IA", "keydown", { key: "Enter", preventDefault: () => parou++ });
+      assert.deepEqual([d.got.sent, parou], [["E amanhã?"], 1]);
+    } finally {
+      globalThis.matchMedia = antes;
+    }
+  });
+
   it("the round button: the microphone with the box empty, Enviar with text or a file; Enter sends, Shift+Enter does not", () => {
     const voice = { ready: true, on: false, starting: false };
     const c = chat({ voice });

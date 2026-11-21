@@ -1,5 +1,10 @@
 # Mudanças
 
+## 2.84.1
+
+- **Conversa no celular**: o Enter do teclado vai para a próxima linha; quem envia é o botão. Com teclado de verdade, o Enter continua enviando.
+- **Novo item**: o campo recebe o foco sem pedir rolagem (mais um cuidado contra a tela deslocada ao abrir o teclado).
+
 ## 2.84.0
 
 - **Quem faz**: aparece no item de todas as listas, também nas que não têm prazo nem notas.
