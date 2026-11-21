@@ -426,7 +426,8 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     for (const field of root.querySelectorAll(".sheet .field")) {
       const lab = field.querySelector(":scope > .flabel");
       // 2.76.0: a Cor e o Ícone do Personalizar também
-      if (!lab || !field.querySelector(":scope > .chip-row, :scope > .imp-tiles, :scope > .eq-pick, :scope > .swatches, :scope > .icon-grid")) continue;
+      // 2.78.0: as Notas também (o textarea marcado com data-fold)
+      if (!lab || !field.querySelector(":scope > .chip-row, :scope > .imp-tiles, :scope > .eq-pick, :scope > .swatches, :scope > .icon-grid, :scope > textarea[data-fold]")) continue;
       const key = fieldKeyOf(field);
       if (!key) continue;
       const off = shut.has(key);
@@ -2294,7 +2295,14 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
                 `;
               })}
               </div>
-              ${off.length ? html`<div class="panel grp inact-grp">${this._renderFold("listas", off, (l) => this._renderListCard(l, !groupBy))}</div>` : nothing}
+              ${off.length
+                ? // 2.78.0: a linha fina direto na página, sem um cartão em volta (num cartão sozinha, parecia um botão);
+                  // aberta, as listas inativas no cartão delas, logo abaixo
+                  html`<div class="inact-grp">
+                    ${this._renderFold("listas", off, () => nothing)}
+                    ${this._folds.listas ? html`<div class="panel grp">${off.map((l) => this._renderListCard(l, !groupBy))}</div>` : nothing}
+                  </div>`
+                : nothing}
             `}
         ${this.hass.user && this.hass.user.is_admin
           ? html`<button class="pick ghost" style="margin:4px auto 0;display:flex" @click=${() => this._openInHA("/config/integrations/dashboard/add?domain=local_todo")}>
@@ -3784,12 +3792,6 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
         <span class="flabel">${icon("pencil", "lbl-ic")}Item</span>
         <textarea rows="2" .value=${f.summary} @input=${(e) => this._setForm({ summary: e.target.value })} @keydown=${(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), this._saveItem())} placeholder="O que precisa ser resolvido?"></textarea>
       </label>
-      ${canDesc && (this._notesOn() || f.hadNotes)
-        ? html`<label class="field">
-            <span class="flabel">${icon("notebook-pen", "lbl-ic")}Notas</span>
-            <textarea rows="3" .value=${f.description} @input=${(e) => this._setForm({ description: e.target.value })} placeholder="Detalhes, links…"></textarea>
-          </label>`
-        : nothing}
       ${this._renderWhere(f)}
       ${canDate
         ? html`<div class="field">
@@ -3844,6 +3846,14 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
       ${this._renderEquipField(f)}
       ${this._renderExternalField(f, target.appDue ? feat & ~(F.DUE_DATE | F.DUE_DATETIME) : feat)}
       ${this._renderPointsField(f)}
+      ${canDesc && (this._notesOn() || f.hadNotes)
+        ? // 2.78.0: logo acima de Lista, e fecha e abre pelo título como os outros campos; fechado, mostra o começo do que há
+          html`<div class="field notes-field">
+            <span class="flabel">${icon("notebook-pen", "lbl-ic")}Notas</span>
+            <textarea rows="3" data-fold aria-label="Notas" .value=${f.description} @input=${(e) => this._setForm({ description: e.target.value })} placeholder="Detalhes, links…"></textarea>
+            ${(f.description || "").trim() ? html`<p class="shut-val">${(f.description || "").trim().split("\n")[0]}</p>` : nothing}
+          </div>`
+        : nothing}
       ${targets.length > 1
         ? html`<div class="field">
             <span class="flabel">${icon("list-todo", "lbl-ic")}Lista</span>

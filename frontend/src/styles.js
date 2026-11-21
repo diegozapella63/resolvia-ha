@@ -529,6 +529,19 @@ export const styles = css`
   .sheet .field.dobravel.shut > :not(.flabel) {
     display: none !important;
   }
+  /* 2.78.0: as Notas fechadas mostram o começo do que há nelas (uma linha), para não esconder que existem */
+  .sheet .field > .shut-val {
+    display: none;
+  }
+  .sheet .field.dobravel.shut > .shut-val {
+    display: block !important;
+    margin: 4px 0 0 26px;
+    font-size: 14px;
+    color: var(--rv-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
   .sheet .field.dobravel > .flabel:focus-visible {
     outline: 2px solid var(--rv-accent);
     outline-offset: 2px;
@@ -3153,6 +3166,10 @@ export const styles = css`
   }
   .inact-head .count {
     font-variant-numeric: tabular-nums;
+  }
+  /* 2.78.0: na aba Listas, a linha fica direto na página (sem um cartão em volta); aberta, as listas no cartão delas */
+  .inact-grp > .inact-head {
+    padding: 4px 18px 14px;
   }
   .row.inact .label {
     color: var(--rv-text-2);

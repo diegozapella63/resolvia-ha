@@ -47,6 +47,11 @@ async def main():
         chat = sheet.locator(".chat")
         ex = [t.strip() for t in await chat.locator(".chat-ex .pick").all_inner_texts()]
         check(await chat.count() == 1 and "O que está atrasado?" in ex, f"the chat opens empty, with examples ({ex})")
+        # 2.78.0: the ready questions in the middle of the width, one per line, as in the CorrerIA (the same in every app)
+        mid = await chat.locator(".chat-ex").evaluate("(x) => { const b = x.getBoundingClientRect(), c = (b.left + b.right) / 2; const rs = [...x.querySelectorAll('.pick')].map((p) => p.getBoundingClientRect()); return { off: Math.max(...rs.map((r) => Math.abs((r.left + r.right) / 2 - c))), lines: new Set(rs.map((r) => Math.round(r.top))).size, n: rs.length, wide: Math.max(...rs.map((r) => r.right)) <= b.right + 1 }; }")
+        check(mid["off"] <= 1 and mid["lines"] == mid["n"] and mid["wide"], f"the questions centered, one per line, inside the window ({mid})")
+        ed = await chat.locator(".chat-ed-open").evaluate("(b) => { const r = b.getBoundingClientRect(), p = b.closest('.chat-empty').getBoundingClientRect(); return Math.abs((r.left + r.right) / 2 - (p.left + p.right) / 2); }")
+        check(ed <= 1, f"Editar perguntas centered too ({ed})")
         await pg.screenshot(path=f"{SP}/shots/rvh-empty.png")
         # an example: what is late (the AI gets the lists)
         await chat.locator(".chat-ex .pick", has_text="O que está atrasado?").click()
