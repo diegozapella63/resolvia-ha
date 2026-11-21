@@ -86,7 +86,10 @@ const safeName = (name) =>
     .trim()
     .slice(0, 60) || "Lista";
 
-export function backupZip(snap, version) {
+// 2.82.0: the photos of the tasks go in the .zip (the folder fotos) and come back on Importar and Restaurar
+const PHOTO_FILE = /^fotos\/([a-f0-9]{16}\.jpg)$/;
+
+export function backupZip(snap, version, photos = []) {
   const files = [
     { name: "resolvia.json", data: JSON.stringify(snap, null, 1) },
     { name: "resolvia.csv", data: toCSV(snap) },
@@ -98,12 +101,14 @@ export function backupZip(snap, version) {
     used.add(base.toLowerCase());
     files.push({ name: `listas/${base}.md`, data: listText(l) });
   }
+  for (const p of photos) if (p && PHOTO_FILE.test(`fotos/${p.name}`) && Buffer.isBuffer(p.data)) files.push({ name: `fotos/${p.name}`, data: p.data });
   files.push({
     name: "LEIA-ME.txt",
     data:
       `Backup do ResolvIA ${version} criado em ${dateTime(Date.now())}.\n` +
       "resolvia.json tem tudo: as listas com os itens (prazo, notas, concluídos), os nomes, cores e ícones\n" +
-      "das listas e as tarefas que se repetem; resolvia.csv abre no Excel; a pasta listas tem um arquivo de texto por lista.\n" +
+      "das listas e as tarefas que se repetem; resolvia.csv abre no Excel; a pasta listas tem um arquivo de texto por lista;\n" +
+      "a pasta fotos tem as fotos das tarefas.\n" +
       "Para restaurar: Mais > Configurações > Dados > Importar, e escolha este .zip. Os itens que faltarem voltam para as listas.\n",
   });
   return makeZip(files);
@@ -112,12 +117,14 @@ export function backupZip(snap, version) {
 /** A .zip backup or a .json file -> the raw snapshot. */
 export function parseImport(buf, fileName = "") {
   let text;
+  let fotos = [];
   const isZip = buf.length > 3 && buf[0] === 0x50 && buf[1] === 0x4b;
   if (isZip || /\.zip$/i.test(fileName)) {
     const entries = readZip(buf).filter((e) => !e.name.startsWith("__MACOSX/") && !path.basename(e.name).startsWith("._"));
     const entry = entries.find((e) => path.basename(e.name) === "resolvia.json") || entries.find((e) => /\.json$/i.test(e.name));
     if (!entry) throw Object.assign(new Error("O .zip não tem o arquivo resolvia.json."), { code: "invalid_format" });
     text = entry.data.toString("utf8");
+    fotos = entries.map((e) => [PHOTO_FILE.exec(e.name), e.data]).filter(([m, d]) => m && d.length > 3 && d[0] === 0xff && d[1] === 0xd8).map(([m, d]) => ({ name: m[1], data: d }));
   } else {
     text = buf.toString("utf8");
   }
@@ -130,6 +137,8 @@ export function parseImport(buf, fileName = "") {
   if (!raw || typeof raw !== "object" || !("prefs" in raw || "lists" in raw || "rules" in raw)) {
     throw Object.assign(new Error("Esse .json não é do ResolvIA."), { code: "invalid_format" });
   }
+  // the photos of the .zip, out of the way of the data (not written with it): the server puts the files back
+  if (fotos.length) Object.defineProperty(raw, "fotos_do_zip", { value: fotos, enumerable: false });
   return raw;
 }
 

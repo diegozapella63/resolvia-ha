@@ -92,6 +92,27 @@ describe("toCSV", () => {
   });
 });
 
+describe("2.82.0: the photos of the tasks in the .zip", () => {
+  const A = "0123456789abcdef.jpg";
+  const JPG = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(50, 3)]);
+  it("go in the folder fotos, before the read-me, and come back with the import (never as part of the data)", () => {
+    const snap = snapshot(sampleStore(), LISTS, "2.82.0");
+    const zip = backupZip(snap, "2.82.0", [{ name: A, data: JPG }, { name: "../x.jpg", data: JPG }, { name: "ffffffffffffffff.jpg", data: "texto" }, null]);
+    const files = readZip(zip);
+    assert.deepEqual(files.map((f) => f.name).slice(-2), [`fotos/${A}`, "LEIA-ME.txt"], "only the files of the app");
+    assert.ok(files.find((f) => f.name === `fotos/${A}`).data.equals(JPG));
+    assert.match(files.at(-1).data.toString(), /a pasta fotos tem as fotos das tarefas/);
+    const raw = parseImport(zip, "resolvia.zip");
+    assert.deepEqual(raw, snap, "the data as before");
+    assert.deepEqual(raw.fotos_do_zip.map((f) => [f.name, f.data.equals(JPG)]), [[A, true]]);
+    assert.equal(JSON.stringify(raw).includes("fotos_do_zip"), false, "never written with the data");
+    // a file in the folder that is not a JPEG, or with another name, is left out
+    const torto = makeZip([{ name: "resolvia.json", data: JSON.stringify(snap) }, { name: `fotos/${A}`, data: Buffer.from("isto não é foto") }, { name: "fotos/outra.jpg", data: JPG }]);
+    assert.equal(parseImport(torto, "x.zip").fotos_do_zip, undefined);
+    assert.equal(parseImport(Buffer.from(JSON.stringify(snap)), "x.json").fotos_do_zip, undefined, "a .json has no photos");
+  });
+});
+
 describe("backupZip", () => {
   it("has the JSON, the CSV, one checklist per list and a read-me", (t) => {
     t.mock.timers.enable({ apis: ["Date"], now: NOW });

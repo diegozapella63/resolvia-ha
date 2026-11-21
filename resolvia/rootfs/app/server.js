@@ -57,14 +57,15 @@ const store = new Store(DATA_DIR, log);
 // 2.81.0: the photos of the tasks (taken or chosen in the item sheet), one JPEG each
 const PHOTO_DIR = path.join(DATA_DIR, "fotos");
 const MAX_PHOTO = 4 * 1024 * 1024;
-/** The files that no task has any more: out (the new ones get an hour, for the sheet still open). */
+/** The files that no task has any more: out. Ao iniciar, só os parados há 30 dias (uma versão anterior restaurada pode
+ * querer a foto de volta); os que a pessoa tirou da tarefa, na hora. */
 function sweepPhotos(files = null) {
   try {
     const used = store.photosInUse();
     for (const f of files || (fs.existsSync(PHOTO_DIR) ? fs.readdirSync(PHOTO_DIR) : [])) {
       if (!PHOTO_RE.test(f) || used.has(f)) continue;
       const full = path.join(PHOTO_DIR, f);
-      if (!files && Date.now() - fs.statSync(full).mtimeMs < 3600000) continue;
+      if (!files && Date.now() - fs.statSync(full).mtimeMs < 30 * 86400000) continue;
       fs.rmSync(full, { force: true });
     }
   } catch (err) {
@@ -72,6 +73,28 @@ function sweepPhotos(files = null) {
   }
 }
 sweepPhotos();
+/** 2.82.0: the photos in use, for the .zip: [{name, data}]. */
+function photoFiles() {
+  const out = [];
+  for (const f of store.photosInUse()) {
+    try {
+      out.push({ name: f, data: fs.readFileSync(path.join(PHOTO_DIR, f)) });
+    } catch (err) {
+      /* a file that is gone: the task shows no photo */
+    }
+  }
+  return out;
+}
+/** The photos that came in a .zip (Importar, Restaurar): back to /data/fotos, without touching the ones there. */
+function putPhotos(raw) {
+  const list = (raw && raw.fotos_do_zip) || [];
+  if (!list.length) return;
+  fs.mkdirSync(PHOTO_DIR, { recursive: true });
+  for (const p of list.slice(0, 2000)) {
+    const full = path.join(PHOTO_DIR, p.name);
+    if (PHOTO_RE.test(p.name) && p.data.length <= MAX_PHOTO && !fs.existsSync(full)) fs.writeFileSync(full, p.data, { mode: 0o600 });
+  }
+}
 store.trimVersions(); // Versões anteriores: only the 3 newest (older installs kept up to 60)
 const ha = new HAClient(HA_URL, TOKEN, log);
 const todoStates = new Map();
@@ -255,6 +278,7 @@ function pointsState(userId) {
 }
 /** Import or restore, then tell the other apps about the lists again. */
 async function restoreAll(raw, reason, opts) {
+  putPhotos(raw); // 2.82.0: the photos of the .zip, before the tasks that have them
   const out = await restore.run(raw, reason, opts);
   publishPresence();
   correria.publish(); // the switch of the CorrerIA may have come with the backup
@@ -310,6 +334,13 @@ async function userOf(pessoa) {
   return (st && st.attributes.user_id) || null;
 }
 const ferramentas = new Ferramentas({
+  // 2.82.0: a photo that came by the CorrerIA: kept as a file of the photos, like one sent by the screen
+  addPhoto: (jpg) => {
+    fs.mkdirSync(PHOTO_DIR, { recursive: true });
+    const file = `${crypto.randomBytes(8).toString("hex")}.jpg`;
+    fs.writeFileSync(path.join(PHOTO_DIR, file), jpg, { mode: 0o600 });
+    return file;
+  },
   lists: toolLists,
   items: async (id) => (await appSend({ type: "todo/item/list", entity_id: id })).items,
   call: (service, data, entityId) => appSend({ type: "call_service", domain: "todo", service, service_data: data, target: { entity_id: [entityId] } }),
@@ -860,7 +891,7 @@ class Session {
       case "resolvia/backups/create": {
         await ha.whenReady();
         const snap = snapshot(store, await restore.lists(), VERSION);
-        const out = backups.save(backupZip(snap, VERSION));
+        const out = backups.save(backupZip(snap, VERSION, photoFiles()));
         log.info(`Backup criado em ${out.folder}/${out.name} (${snap.lists.length} listas)`);
         return this.result(id, out);
       }
@@ -971,7 +1002,7 @@ async function handleData(fmt, res) {
     const snap = snapshot(store, await restore.lists(), VERSION);
     if (fmt === "json") return download(res, Buffer.from(JSON.stringify(snap, null, 1)), "application/json; charset=utf-8", `${name}.json`);
     if (fmt === "csv") return download(res, toCSV(snap), "text/csv; charset=utf-8", `${name}.csv`);
-    return download(res, backupZip(snap, VERSION), "application/zip", `${name}.zip`);
+    return download(res, backupZip(snap, VERSION, photoFiles()), "application/zip", `${name}.zip`);
   } catch (err) {
     sendJson(res, 502, { error: err.message });
   }
@@ -1202,7 +1233,7 @@ async function handleTools(req, res) {
   if (req.method !== "POST") return sendJson(res, 405, { erro: "Use GET ou POST." });
   let body;
   try {
-    const raw = await readRaw(req, 256 * 1024);
+    const raw = await readRaw(req, 8 * 1024 * 1024); // 2.82.0: com a foto de anexar_foto (até 4 MB, em base64)
     body = JSON.parse(raw.toString("utf8"));
     if (!body || typeof body !== "object") throw new Error("not an object");
   } catch (err) {
@@ -1213,7 +1244,7 @@ async function handleTools(req, res) {
   const cliente = String(body.cliente || "CorrerIA").slice(0, 40);
   try {
     await ha.whenReady();
-    const texto = await ferramentas.chamar(nome, body.argumentos, { pessoa });
+    const texto = await ferramentas.chamar(nome, body.argumentos, { pessoa, anexo: body.anexo && typeof body.anexo === "object" ? body.anexo : null });
     correria.used(cliente, nome);
     if (ferramentas.lista().some((t) => t.nome === nome && t.grava)) log.info(`CorrerIA: ${cliente}${pessoa && pessoa.nome ? ` (${String(pessoa.nome).slice(0, 40)})` : ""} ${nome} → ${texto.split("\n")[0].slice(0, 160)}`);
     return sendJson(res, 200, { texto });

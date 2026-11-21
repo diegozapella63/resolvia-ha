@@ -5,7 +5,7 @@
 // functions of the server: the to-do actions of Home Assistant, the rules of Recurring and what the Store keeps by
 // the name of the task (points, rooms, equipment, Serviço externo). The tools follow what is on in the app: without
 // points, no points; without rooms, no rooms (the same as the screens).
-import { taskKey, externalValue } from "./store.js";
+import { taskKey, externalValue, MAX_PHOTOS } from "./store.js";
 import { dueText } from "./report.js";
 
 const F = { CREATE: 1, DELETE: 2, UPDATE: 4, DUE_DATE: 16, DUE_DATETIME: 32, DESCRIPTION: 64 };
@@ -153,6 +153,16 @@ export function toolList(on) {
       grava: true,
       apaga: true,
     },
+    {
+      // 2.82.0: a foto que a pessoa mandou na conversa (WhatsApp ou a tela do CorrerIA) vai para uma tarefa. `anexo` diz
+      // ao CorrerIA que esta ferramenta recebe o arquivo junto (ele manda em `anexo`, fora dos argumentos)
+      nome: "anexar_foto",
+      titulo: "Pôr a foto na tarefa",
+      descricao: "Guarda numa tarefa a foto que a pessoa acabou de mandar na conversa (até 6 fotos por tarefa). Ache a tarefa antes, com resolvia_tarefas. Só serve logo depois de a pessoa mandar uma foto.",
+      entrada: obj({ id: ID, lista: { ...LISTA, description: "A lista da tarefa, se o id for o nome." } }, ["id"]),
+      grava: true,
+      anexo: ["image/jpeg"],
+    },
   );
   return tools.map((t) => ({ ...t, apaga: !!t.apaga }));
 }
@@ -228,7 +238,7 @@ export class Ferramentas {
   }
 
   /** Runs a tool and returns the text for the AI. Throws ErroFerramenta (400) or FerramentaDesconhecida (404). */
-  async chamar(nome, argumentos, { pessoa = null } = {}) {
+  async chamar(nome, argumentos, { pessoa = null, anexo = null } = {}) {
     const a = argumentos && typeof argumentos === "object" && !Array.isArray(argumentos) ? argumentos : {};
     const on = this.c.on();
     const run = {
@@ -240,6 +250,7 @@ export class Ferramentas {
       editar_tarefa: () => this.editar(a, on),
       concluir_tarefa: () => this.concluir(a, on, pessoa),
       apagar_tarefa: () => this.apagar(a),
+      anexar_foto: () => this.anexarFoto(a, anexo),
     }[String(nome || "")];
     if (!run) throw new FerramentaDesconhecida(nome);
     return run();
@@ -764,6 +775,24 @@ export class Ferramentas {
       if (on.points) tail.push("Os pontos de hoje saíram.");
     }
     return `Voltou para pendente: ${item.summary} (${list.name}).${tail.length ? ` ${tail.join(" ")}` : ""}`;
+  }
+
+  /** 2.82.0: the photo the person sent in the conversation goes to a task: {tipo, nome, b64 (a data URL or plain)}. */
+  async anexarFoto(a, anexo) {
+    const b64 = anexo && typeof anexo === "object" && typeof anexo.b64 === "string" ? anexo.b64.replace(/^data:[^,]*,/, "") : "";
+    if (!b64) throw new ErroFerramenta("Falta a foto: peça para a pessoa mandar a foto na conversa e tente de novo.");
+    const jpg = Buffer.from(b64, "base64");
+    if (jpg.length < 100 || jpg[0] !== 0xff || jpg[1] !== 0xd8) throw new ErroFerramenta("A foto precisa ser JPEG. Peça para a pessoa mandar como foto, não como arquivo.");
+    if (jpg.length > 4 * 1024 * 1024) throw new ErroFerramenta("A foto é grande demais (até 4 MB). Peça uma foto menor.");
+    const lists = await this.lists();
+    const { list, item } = await this.findTask(lists, a);
+    const st = this.c.store;
+    const cur = st.photosFor(list.id, item.summary);
+    if (cur.length >= MAX_PHOTOS) throw new ErroFerramenta(`A tarefa já tem ${MAX_PHOTOS} fotos, o máximo. Tire uma pela tela do ResolvIA antes.`);
+    const file = this.c.addPhoto(jpg);
+    st.setPhotos(list.id, item.summary, [...cur, file]);
+    this.c.changed();
+    return `Foto guardada em ${item.summary} (${list.name}): agora ${cur.length + 1 === 1 ? "tem 1 foto" : `tem ${cur.length + 1} fotos`}.`;
   }
 
   async apagar(a) {

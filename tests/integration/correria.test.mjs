@@ -80,7 +80,7 @@ describe("CorrerIA on", () => {
     const body = await res.json();
     assert.equal(body.versao, APP_VERSION);
     assert.match(body.instrucoes, /^ResolvIA: .*resolvia_resumo/);
-    assert.deepEqual(body.ferramentas.map((t) => t.nome), ["resumo", "tarefas", "pontos", "criar_tarefa", "editar_tarefa", "concluir_tarefa", "apagar_tarefa"]);
+    assert.deepEqual(body.ferramentas.map((t) => t.nome), ["resumo", "tarefas", "pontos", "criar_tarefa", "editar_tarefa", "concluir_tarefa", "apagar_tarefa", "anexar_foto"]);
     assert.ok(body.ferramentas.every((t) => t.titulo && t.descricao && t.entrada.type === "object" && typeof t.grava === "boolean" && typeof t.apaga === "boolean"));
     assert.equal((await list("errada")).status, 401);
     assert.equal((await fetch(`${stack.appUrl}${ROUTE}`)).status, 401);
@@ -148,6 +148,29 @@ describe("CorrerIA on", () => {
     assert.deepEqual(p.tarefas, [{ id: `todo.casa:${item.uid}`, lista: "Casa", texto: "Comprar pilhas AA", pontos: 10, situacao: "pendente" }]);
   });
 
+  it("2.82.0: anexar_foto: the photo the CorrerIA sends along goes to the task, as a file of the photos", async () => {
+    const jpg = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(400, 4), Buffer.from([0xff, 0xd9])]);
+    const anexo = { tipo: "image/jpeg", nome: "foto.jpg", b64: `data:image/jpeg;base64,${jpg.toString("base64")}` };
+    const first = (await ok("tarefas", {}));
+    const alvo = JSON.parse(first).tarefas[0];
+    const post = async (body) => {
+      const res = await fetch(`${stack.appUrl}${ROUTE}`, { method: "POST", headers: { ...auth(), "content-type": "application/json" }, body: JSON.stringify(body) });
+      return [res.status, await res.json()];
+    };
+    let [st, out] = await post({ nome: "anexar_foto", argumentos: { id: alvo.id }, pessoa: ANA, cliente: "WhatsApp" });
+    assert.deepEqual([st, /Falta a foto/.test(out.erro)], [400, true], "without the photo: it says what is missing");
+    [st, out] = await post({ nome: "anexar_foto", argumentos: { id: alvo.id }, pessoa: ANA, cliente: "WhatsApp", anexo });
+    assert.equal(st, 200, JSON.stringify(out));
+    assert.match(out.texto, /^Foto guardada em .+: agora tem 1 foto\.$/);
+    const c2 = await stack.client();
+    const photos = (await c2.call("resolvia/photos/get")).photos;
+    const file = Object.values(Object.values(photos)[0])[0][0];
+    const got = await fetch(`${stack.appUrl}/api/photo/${file}`);
+    assert.deepEqual([got.status, Buffer.from(await got.arrayBuffer()).equals(jpg)], [200, true]);
+    assert.equal(JSON.parse(await ok("tarefas", {})).tarefas.find((t) => t.id === alvo.id).fotos, 1);
+    await c2.call("resolvia/photos/set", { entity_id: Object.keys(photos)[0], summary: alvo.texto || alvo.tarefa || alvo.nome, photos: [] });
+  });
+
   it("moves a task to another list, and apagar_tarefa deletes it (with its repetition)", async () => {
     assert.match(await ok("editar_tarefa", { id: "Café", mover_para: "Casa" }), /^Movida de Shopping list para Casa: Café\. id: todo\.casa:u\d+$/);
     assert.ok(!(await items(c, SHOP)).some((i) => i.summary === "Café"));
@@ -169,7 +192,7 @@ describe("CorrerIA on", () => {
     assert.deepEqual(await call("voar"), { status: 404, body: { erro: "Ferramenta desconhecida: voar." } });
     assert.deepEqual(await call("", {}, { raw: "{não é json" }), { status: 400, body: { erro: "JSON inválido." } });
     assert.deepEqual(await call("", {}, { raw: "null" }), { status: 400, body: { erro: "JSON inválido." } });
-    assert.match(await rawPost(stack, ROUTE, 300 * 1024, auth()), /^HTTP 413 \{"erro":"Pedido grande demais."\}$/);
+    assert.match(await rawPost(stack, ROUTE, 9 * 1024 * 1024, auth()), /^HTTP 413 \{"erro":"Pedido grande demais."\}$/);
   });
 
   it("the card knows who used it last", async () => {

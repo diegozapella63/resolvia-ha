@@ -1,5 +1,10 @@
 # Mudanças
 
+## 2.82.0
+
+- **Fotos no Exportar e no Backup**: o arquivo .zip agora leva as fotos das tarefas (na pasta fotos), e o Importar e o Restaurar trazem elas de volta.
+- **Foto pelo CorrerIA**: com o CorrerIA 1.17.0, uma foto mandada no WhatsApp ou na Conversa dele com um pedido como "põe na tarefa do piso" fica guardada na tarefa.
+
 ## 2.81.0
 
 - **Fotos na tarefa**: no Novo item e no Editar item, **Tirar foto** e **Escolher fotos**, até 6 por tarefa. A tarefa mostra na lista quantas fotos tem; um toque na foto abre ela grande. As fotos acompanham a tarefa ao renomear ou mover de lista.

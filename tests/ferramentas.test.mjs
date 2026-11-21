@@ -95,6 +95,7 @@ function setup({ on = ON, lists = baseLists(), placar = null, mangle = false, br
     return { key: "k", who, points: n, participantes: p.participantes };
   };
   let changed = 0;
+  const fotos = [];
   const tools = new Ferramentas({
     lists: async () => lists.map(({ items, datesInfo, ...l }) => ({ hidden: false, owner: "", unavailable: false, ...l, due: on.due && !datesInfo && !!(l.features & (F.DUE_DATE | F.DUE_DATETIME)) })),
     items: async (id) => {
@@ -139,6 +140,7 @@ function setup({ on = ON, lists = baseLists(), placar = null, mangle = false, br
       if (rooms.length) store.setRoom(list, summary, rooms);
     },
     changed: () => changed++,
+    addPhoto: (jpg) => (fotos.push(jpg), `${String(fotos.length).padStart(16, "0")}.jpg`),
     now: () => NOW.getTime(),
   });
   const run = async (nome, args, opts) => tools.chamar(nome, args, opts);
@@ -152,7 +154,7 @@ function setup({ on = ON, lists = baseLists(), placar = null, mangle = false, br
     });
   };
   const item = (listId, summary) => byId.get(listId).items.find((i) => i.summary === summary);
-  return { tools, run, read, fails, calls, done, store, recurring, lists, byId, item, changed: () => changed };
+  return { tools, run, read, fails, calls, done, store, recurring, lists, byId, item, fotos, changed: () => changed };
 }
 
 const PLACAR = { placar: { ativo: true, periodo: "quinzena", participantes: ["Ana", "Beto"], usuarios: { "u-ana": "Ana" } }, espelho: { "todo.casa": { cr1: { pontos: 7, tipo: "rotina" } } } };
@@ -160,7 +162,7 @@ const PLACAR = { placar: { ativo: true, periodo: "quinzena", participantes: ["An
 describe("ferramentas: the list", () => {
   it("everything on: 8 tools, the reads first, apagar marked", () => {
     const t = toolList(ON);
-    assert.deepEqual(t.map((x) => x.nome), ["resumo", "tarefas", "repeticoes", "pontos", "criar_tarefa", "editar_tarefa", "concluir_tarefa", "apagar_tarefa"]);
+    assert.deepEqual(t.map((x) => x.nome), ["resumo", "tarefas", "repeticoes", "pontos", "criar_tarefa", "editar_tarefa", "concluir_tarefa", "apagar_tarefa", "anexar_foto"]);
     for (const x of t) {
       assert.match(x.nome, /^[a-z0-9_]{1,40}$/);
       assert.ok(x.titulo && x.descricao);
@@ -178,12 +180,12 @@ describe("ferramentas: the list", () => {
   });
   it("only what is on: no points, no repetition, no rooms", () => {
     const t = toolList(OFF);
-    assert.deepEqual(t.map((x) => x.nome), ["resumo", "tarefas", "criar_tarefa", "editar_tarefa", "concluir_tarefa", "apagar_tarefa"]);
+    assert.deepEqual(t.map((x) => x.nome), ["resumo", "tarefas", "criar_tarefa", "editar_tarefa", "concluir_tarefa", "apagar_tarefa", "anexar_foto"]);
     assert.deepEqual(Object.keys(t[2].entrada.properties), ["lista", "texto", "notas"]);
     assert.deepEqual(Object.keys(t[3].entrada.properties), ["id", "lista", "texto", "notas", "mover_para"]);
     assert.deepEqual(Object.keys(t[4].entrada.properties), ["id", "lista", "concluida"]);
     assert.deepEqual(Object.keys(t[1].entrada.properties), ["lista", "busca", "situacao", "limite"]);
-    assert.equal(setup({ on: OFF }).tools.lista().length, 6);
+    assert.equal(setup({ on: OFF }).tools.lista().length, 7);
   });
   it("an unknown tool is a 404; arguments that are not an object count as none", async () => {
     const s = setup();
@@ -567,6 +569,32 @@ describe("ferramentas: concluir_tarefa", () => {
   });
   it("a list that does not let complete is said", async () => {
     await setup().fails("concluir_tarefa", { id: "Assembleia" }, /A lista Avisos do condomínio não deixa concluir tarefas/);
+  });
+});
+
+describe("ferramentas: anexar_foto (2.82.0)", () => {
+  const JPG = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(200, 5)]);
+  const foto = (buf = JPG, url = true) => ({ tipo: "image/jpeg", nome: "foto.jpg", b64: (url ? "data:image/jpeg;base64," : "") + buf.toString("base64") });
+  it("the photo of the conversation goes to the task, up to six; the tool says it receives the file", async () => {
+    const s = setup();
+    const def = s.tools.lista().find((t) => t.nome === "anexar_foto");
+    assert.deepEqual([def.grava, def.apaga, def.anexo], [true, false, ["image/jpeg"]]);
+    assert.equal(await s.run("anexar_foto", { id: "todo.casa:u6" }, { anexo: foto() }), "Foto guardada em Lavar o carro (Casa): agora tem 1 foto.");
+    assert.deepEqual(s.store.photosFor("todo.casa", "Lavar o carro"), ["0000000000000001.jpg"]);
+    assert.ok(s.fotos[0].equals(JPG));
+    assert.equal(await s.run("anexar_foto", { id: "Lavar o carro" }, { anexo: foto(JPG, false) }), "Foto guardada em Lavar o carro (Casa): agora tem 2 fotos.");
+    const todas = (await s.read("tarefas", {})).tarefas;
+    const todasMais = (await s.read("tarefas", { situacao: "todas" })).tarefas;
+    const com = [...todas, ...todasMais].filter((t) => t.fotos);
+    assert.ok(com.length >= 1 && com.every((t) => t.fotos === 2 && /Lavar o carro/.test(JSON.stringify(t))), `the task says how many it has (${JSON.stringify(com)})`);
+    await s.fails("anexar_foto", { id: "todo.casa:u6" }, /Falta a foto: peça para a pessoa mandar a foto/);
+    await s.fails("anexar_foto", { id: "todo.casa:u6" }, /Falta a foto/, { anexo: { b64: 5 } });
+    await s.fails("anexar_foto", { id: "todo.casa:u6" }, /A foto precisa ser JPEG/, { anexo: foto(Buffer.alloc(300, 1)) });
+    await s.fails("anexar_foto", { id: "todo.casa:u6" }, /grande demais \(até 4 MB\)/, { anexo: foto(Buffer.concat([JPG, Buffer.alloc(4 * 1024 * 1024)])) });
+    await s.fails("anexar_foto", { id: "Não existe" }, /./, { anexo: foto() });
+    for (let i = 0; i < 4; i++) await s.run("anexar_foto", { id: "todo.casa:u6" }, { anexo: foto() });
+    await s.fails("anexar_foto", { id: "todo.casa:u6" }, /já tem 6 fotos, o máximo/, { anexo: foto() });
+    assert.equal(s.fotos.length, 6, "nothing kept when it is refused");
   });
 });
 

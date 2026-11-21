@@ -70,6 +70,28 @@ describe("exports", () => {
     assert.match(text, /;Arroz;concluído;/);
   });
 
+  it("2.82.0: the photos of the tasks go in the ZIP and come back with Importar", async () => {
+    const fs = await import("node:fs");
+    const path = await import("node:path");
+    const jpg = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(300, 9), Buffer.from([0xff, 0xd9])]);
+    const up = await (await fetch(`${stack.appUrl}/api/photo`, { method: "POST", body: jpg, headers: { "content-type": "image/jpeg" } })).json();
+    await c.call("resolvia/photos/set", { entity_id: CASA, summary: "Foto de teste", photos: [up.file] });
+    const zip = Buffer.from(await (await get("/api/export/zip")).arrayBuffer());
+    const files = readZip(zip);
+    assert.ok(files.find((f) => f.name === `fotos/${up.file}`).data.equals(jpg), "the photo in the folder fotos");
+    assert.deepEqual(JSON.parse(files[0].data.toString()).photos, { [CASA]: { "foto de teste": [up.file] } });
+    // the task loses the photo (the file goes), and the import brings both back
+    await c.call("resolvia/photos/set", { entity_id: CASA, summary: "Foto de teste", photos: [] });
+    assert.equal((await fetch(`${stack.appUrl}/api/photo/${up.file}`)).status, 404);
+    const res = await fetch(`${stack.appUrl}/api/import`, { method: "POST", body: zip, headers: { "x-file-name": "resolvia.zip" } });
+    assert.equal(res.status, 200);
+    assert.deepEqual((await c.call("resolvia/photos/get")).photos, { [CASA]: { "foto de teste": [up.file] } });
+    const back = await fetch(`${stack.appUrl}/api/photo/${up.file}`);
+    assert.deepEqual([back.status, Buffer.from(await back.arrayBuffer()).equals(jpg)], [200, true]);
+    assert.ok(fs.existsSync(path.join(stack.dirs.data, "fotos", up.file)));
+    await c.call("resolvia/photos/set", { entity_id: CASA, summary: "Foto de teste", photos: [] });
+  });
+
   it("ZIP: the JSON, the CSV, a checklist per list and a read-me", async () => {
     const res = await get("/api/export/zip");
     assert.equal(res.headers.get("content-type"), "application/zip");
