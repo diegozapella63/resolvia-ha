@@ -3,9 +3,10 @@
 // pending items only, no due dates in a list whose dates are information, and no room, equipment, points or external service
 // when their option is off.
 import "./_lit.mjs";
-import { describe, it } from "node:test";
+import { describe, it, mock } from "node:test";
 import assert from "node:assert/strict";
-import { fakeHass, hostOf } from "./_lit.mjs";
+import { fakeHass, hostOf, click, labels } from "./_lit.mjs";
+import { Recorder, micError, VOICE_MAX_S } from "../frontend/src/voice.js";
 import { ChatMixin } from "../frontend/src/chat-panel.js";
 import { F } from "../frontend/src/util.js";
 const { nothing } = await import("../frontend/vendor/lit-all.min.js");
@@ -249,5 +250,156 @@ describe("chat: sending and the cards", () => {
     assert.deepEqual([p._chatRec, p._chatState().rec, p._chatState().error, heard, p._chatState().messages.length], [null, null, "", 0, 0]);
     p._chatMicCancel(); // twice, or with nothing listening: nothing happens
     assert.equal(p._chatState().rec, null);
+  });
+});
+
+describe("chat: what is kept, the window and the clip", () => {
+  const store = () => {
+    const kept = {};
+    globalThis.sessionStorage = { getItem: (k) => (k in kept ? kept[k] : null), setItem: (k, v) => (kept[k] = v) };
+    return kept;
+  };
+
+  it("the conversation is kept in this tab (the last 30 messages) and comes back; private mode does not break", () => {
+    const kept = store();
+    const p = panel();
+    p._setChat({ messages: Array.from({ length: 34 }, (_, i) => ({ role: "user", text: `m${i}` })) });
+    const saved = JSON.parse(kept["resolvia-conversa"]);
+    assert.deepEqual([saved.length, saved[0].text, saved[29].text], [30, "m4", "m33"]);
+    p._setChat({ draft: "oi" });
+    assert.equal(JSON.parse(kept["resolvia-conversa"]).length, 30, "only the messages are kept, when they change");
+    assert.deepEqual(panel()._chatState().messages.map((m) => m.text).slice(0, 2), ["m4", "m5"], "another opening of the app in this tab: the same conversation");
+    kept["resolvia-conversa"] = '{"não":"lista"}';
+    assert.deepEqual(panel()._chatState().messages, [], "something else kept there: an empty conversation");
+    globalThis.sessionStorage = { getItem() { throw new Error("private"); }, setItem() { throw new Error("private"); } };
+    const q = panel();
+    assert.deepEqual(q._chatState().messages, []);
+    assert.doesNotThrow(() => q._setChat({ messages: [{ role: "user", text: "oi" }] }));
+    assert.equal(q._chatState().messages.length, 1);
+    store();
+  });
+
+  it("the button opens the window; on a computer (a mouse) the box takes the focus, on a phone the keyboard stays down", async () => {
+    store();
+    const p = panel();
+    p.updateComplete = Promise.resolve();
+    const ta = { focused: 0, focus() { this.focused++; } };
+    p.renderRoot = { querySelector: (q) => (q === ".chat-input textarea" ? ta : null) };
+    globalThis.window.matchMedia = (q) => ({ matches: /pointer: fine/.test(q) });
+    try {
+      click(p._renderChatBtn(), "Conversar com a IA");
+      await p.updateComplete;
+      assert.deepEqual([p._sheet, p._chatScroll, ta.focused], ["chat", true, 1]);
+      globalThis.window.matchMedia = () => ({ matches: false });
+      p._openChat();
+      await p.updateComplete;
+      assert.equal(ta.focused, 1, "a phone: no focus");
+      p.renderRoot = { querySelector: () => null };
+      p._openChat(); // the box is not drawn yet: no error
+      await p.updateComplete;
+    } finally {
+      delete globalThis.window.matchMedia;
+    }
+    p._openChat();
+    await p.updateComplete;
+    assert.equal(ta.focused, 1);
+  });
+
+  it("the clip: Tirar foto opens the camera of the app; Escolher fotos, the gallery (one at a time in the Home Assistant app on Android); Escolher arquivo, a photo or a PDF", () => {
+    store();
+    const doc = globalThis.document;
+    const made = [];
+    globalThis.document = {
+      ...doc,
+      createElement: (tag) => {
+        const el = { tag, style: {}, files: [], clicked: 0, removed: 0, on: {}, addEventListener(t, fn) { this.on[t] = fn; }, click() { this.clicked++; }, remove() { this.removed++; } };
+        made.push(el);
+        return el;
+      },
+      body: { appended: [], appendChild(el) { this.appended.push(el); } },
+    };
+    try {
+      const mk = (android = false) => Object.assign(panel(), { _isHaAndroid: () => android, cams: [], _openCamera(o) { this.cams.push(o); } });
+      const p = mk();
+      p._chatAttach("camera");
+      assert.deepEqual(p.cams, [{ chat: true }]);
+      const added = [];
+      p._chatAddFiles = (l) => added.push(l);
+      p._chatAttach("fotos");
+      const inp = made[0];
+      assert.deepEqual([inp.tag, inp.type, inp.accept, inp.multiple, inp.style.display, inp.clicked], ["input", "file", "image/*", true, "none", 1]);
+      assert.deepEqual(globalThis.document.body.appended, [inp]);
+      inp.files = [{ name: "a.jpg" }, { name: "b.jpg" }];
+      inp.on.change();
+      assert.deepEqual([inp.removed, added], [1, [[{ name: "a.jpg" }, { name: "b.jpg" }]]]);
+      mk(true)._chatAttach("fotos");
+      assert.equal(made[1].multiple, false, "the Home Assistant app on Android drops what multiple chose");
+      p._chatAttach("arquivo");
+      assert.deepEqual([made[2].accept, made[2].multiple], ["image/*,application/pdf", false]);
+      made[2].files = null;
+      made[2].on.change();
+      assert.deepEqual([made[2].removed, added.length], [1, 1], "nothing chosen: the field leaves the page and nothing is added");
+    } finally {
+      globalThis.document = doc;
+    }
+  });
+
+  it("the files chosen go to the conversation, with what could not be read said; the X of a file takes it out", async () => {
+    store();
+    const p = panel();
+    p._setChat({ files: [{ nome: "nota.pdf", pdf: true }] });
+    await p._chatAddFiles([{ name: "planilha.xlsx", type: "application/vnd.ms-excel", size: 10 }]);
+    assert.deepEqual(p._chatState().files.map((f) => f.nome), ["nota.pdf"]);
+    assert.match(p._chatState().error, /PDF/i);
+    assert.equal(p._chatScroll, true);
+    p._voice = null;
+    p._isHaAndroid = () => false;
+    click(p._renderChatSheet(), "Tirar nota.pdf");
+    assert.deepEqual(p._chatState().files, []);
+    assert.ok(labels(p._renderChatSheet()).includes("Anexar"));
+  });
+});
+
+describe("chat: starting to listen", () => {
+  it("the microphone opens (starting, then on) and stops alone at the limit; blocked, it says why", async () => {
+    globalThis.sessionStorage = { getItem: () => null, setItem() {} };
+    const start = Recorder.prototype.start;
+    const cancel = Recorder.prototype.cancel;
+    const cancelled = [];
+    Recorder.prototype.cancel = function () { cancelled.push(this); };
+    const seen = [];
+    Recorder.prototype.start = async function () { seen.push(this); };
+    mock.timers.enable({ apis: ["setTimeout"] });
+    try {
+      const p = panel();
+      p.hass = fakeHass({});
+      p.hass.resolvia.voiceText = async () => ({ text: "" });
+      const going = p._chatMic();
+      assert.equal(p._chatState().rec, "starting");
+      await p._chatMic(); // a second tap while it opens: nothing
+      await going;
+      assert.deepEqual([p._chatState().rec, p._chatRec === seen[0], seen.length], ["on", true, 1]);
+      // at the limit of a recording, it finishes by itself (as a tap on Pronto)
+      let auto = 0;
+      p._chatRec = { stop: () => (auto++, new Int16Array(10)) };
+      mock.timers.tick(VOICE_MAX_S * 1000);
+      assert.equal(auto, 1);
+      // the person left while the microphone was opening: this recorder is dropped
+      const q = panel();
+      Recorder.prototype.start = async function () { q._chatRec = null; };
+      await q._chatMic();
+      assert.equal(cancelled.length, 1);
+      assert.notEqual(q._chatState().rec, "on");
+      // the browser says no: the reason, in words
+      const r = panel();
+      Recorder.prototype.start = async () => { throw Object.assign(new Error("x"), { name: "NotAllowedError" }); };
+      await r._chatMic();
+      assert.deepEqual([r._chatState().rec, r._chatRec, r._chatState().error], [null, null, micError({ name: "NotAllowedError" })]);
+      assert.equal(cancelled.length, 2);
+    } finally {
+      mock.timers.reset();
+      Recorder.prototype.start = start;
+      Recorder.prototype.cancel = cancel;
+    }
   });
 });
