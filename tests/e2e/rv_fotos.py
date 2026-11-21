@@ -3,16 +3,28 @@
 # e tirar a foto apaga o arquivo.
 import os as _os
 RESOLVIA = _os.environ.get("E2E_RESOLVIA", "")
-import asyncio, json, os, subprocess, time, shutil
-from PIL import Image
+import asyncio, json, os, struct, subprocess, time, shutil, zlib
 from playwright.async_api import async_playwright
 SP = _os.environ["E2E_TMP"]; REPO = RESOLVIA
 DATA, SHARE = f"{SP}/rvf-data", f"{SP}/rvf-share"
 for d in (DATA, SHARE): shutil.rmtree(d, ignore_errors=True)
 os.makedirs(SHARE); os.makedirs(DATA)
-FOTO1, FOTO2 = f"{SP}/rvf-foto1.png", f"{SP}/rvf-foto2.jpg"
-Image.new("RGB", (2400, 1200), (200, 80, 60)).save(FOTO1)
-Image.new("RGB", (600, 900), (40, 120, 200)).save(FOTO2, quality=90)
+FOTO1, FOTO2 = f"{SP}/rvf-foto1.png", f"{SP}/rvf-foto2.png"
+def png(arq, w, h, cor):
+    """Um PNG de uma cor só (sem o PIL, que o GitHub não tem)."""
+    linha = b"\x00" + bytes(cor) * w
+    def parte(tipo, dados): return struct.pack(">I", len(dados)) + tipo + dados + struct.pack(">I", zlib.crc32(tipo + dados))
+    open(arq, "wb").write(b"\x89PNG\r\n\x1a\n" + parte(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 2, 0, 0, 0)) + parte(b"IDAT", zlib.compress(linha * h, 9)) + parte(b"IEND", b""))
+def tamanho_jpg(arq):
+    """(largura, altura) de um JPEG, pelo marcador SOF."""
+    d = open(arq, "rb").read(); i = 2
+    while i < len(d):
+        m, n = d[i + 1], struct.unpack(">H", d[i + 2:i + 4])[0]
+        if 0xC0 <= m <= 0xCF and m not in (0xC4, 0xC8, 0xCC): return struct.unpack(">HH", d[i + 5:i + 9])[::-1]
+        i += 2 + n
+    return None
+png(FOTO1, 2400, 1200, (200, 80, 60))
+png(FOTO2, 600, 900, (40, 120, 200))
 n_ok, failed = 0, []
 def check(c, label):
     global n_ok
@@ -47,7 +59,7 @@ async def main():
         check(ok == [True, True], f"as fotos carregam do servidor ({ok})")
         fs = arquivos()
         check(len(fs) == 2 and all(os.path.getsize(f"{DATA}/fotos/{f}") < 400_000 for f in fs), f"guardadas em /data/fotos, já pequenas ({[(f, os.path.getsize(DATA + '/fotos/' + f)) for f in fs]})")
-        dims = sorted(Image.open(f"{DATA}/fotos/{f}").size for f in fs)
+        dims = sorted(tamanho_jpg(f"{DATA}/fotos/{f}") for f in fs)
         check(dims == [(600, 900), (1600, 800)], f"a grande diminuída para 1600 px; a pequena como veio ({dims})")
         await campo.scroll_into_view_if_needed()
         await pg.screenshot(path=f"{SP}/shots/rvf-novo.png")
