@@ -1,5 +1,9 @@
 # Mudanças
 
+## 2.82.1
+
+- **Integrações › IA**: o texto de cima igual ao dos outros apps.
+
 ## 2.82.0
 
 - **Fotos no Exportar e no Backup**: o arquivo .zip agora leva as fotos das tarefas (na pasta fotos), e o Importar e o Restaurar trazem elas de volta.
