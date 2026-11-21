@@ -1,5 +1,14 @@
 # Mudanças
 
+## 2.80.0
+
+- **Agora › Compras**: os itens aparecem direto no cartão, para marcar dali mesmo (até 8 de cada lista; o resto, em **Ver os N**).
+- **Listas**: as **Inativas (n)** ficam no mesmo cartão das listas, no fim dele.
+- **Personalizar**: **Mostrar no início** e **Prazos** dentro de **Opções**, que fecha e abre como a Cor e o Ícone, com a mesma letra.
+- **Pontos para quem concluir**: os botões do mesmo tamanho, alinhados.
+- **Alterar vários itens**: com os bens em uso, **Onde** (Manter, Nenhum, Casa ou Bens) vem antes do cômodo e do equipamento, como no item.
+- **Usar bens** começa desligado (Mais › Configurações › Integrações › InventarIA).
+
 ## 2.79.1
 
 - **Conversa**: a IA sabe quais são os outros apps da casa e, quando a pergunta é de outro app, diz em qual deles está.

@@ -432,7 +432,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
       const lab = field.querySelector(":scope > .flabel");
       // 2.76.0: a Cor e o Ícone do Personalizar também
       // 2.78.0: as Notas também (o textarea marcado com data-fold)
-      if (!lab || !field.querySelector(":scope > .chip-row, :scope > .imp-tiles, :scope > .eq-pick, :scope > .swatches, :scope > .icon-grid, :scope > textarea[data-fold]")) continue;
+      if (!lab || !field.querySelector(":scope > .chip-row, :scope > .imp-tiles, :scope > .eq-pick, :scope > .swatches, :scope > .icon-grid, :scope > .opt-rows, :scope > textarea[data-fold]")) continue;
       const key = fieldKeyOf(field);
       if (!key) continue;
       const off = shut.has(key);
@@ -2258,6 +2258,10 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
       const pend = (g) => g.lists.reduce((n, l) => n + l.pending, 0);
       groups.sort((a, b) => pend(b) - pend(a) || (a.name ? 1 : 0) - (b.name ? 1 : 0));
     } else groups.push({ name: null, lists });
+    // the ones turned off: each in the card of its group (without that card, in the last one)
+    for (const g of groups) g.off = [];
+    if (off.length && !groups.length) groups.push({ name: "", lists: [], off: [] });
+    for (const l of off) (groups.find((x) => groupBy && x.name === (l.group || "")) || groups[groups.length - 1]).off.push(l);
 
     return html`
       <section class="page">
@@ -2298,22 +2302,16 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
                 const title = groupBy ? g.name || (groups.length > 1 ? "Listas locais" : "Listas") : "Listas";
                 // the heading: on the phone only when there are groups; on the computer always, with its icon
                 const shown = groupBy && (g.name || groups.length > 1);
+                // 2.80.0: as inativas no mesmo cartão das listas, no fim dele (as de cada grupo no cartão do grupo)
                 return html`
                   <div class="panel grp">
                     <div class="grp-head ${shown ? "" : "desk-only"}"><span class="sec-ic" aria-hidden="true">${icon(g.name ? "layout-list" : "list-checks")}</span><h2 class="overline">${title}</h2><small>${g.lists.length}</small></div>
                     ${g.lists.map((l) => this._renderListCard(l, !groupBy))}
+                    ${g.off.length ? html`<div class="inact-grp">${this._renderFold("listas", g.off, (l) => this._renderListCard(l, !groupBy))}</div>` : nothing}
                   </div>
                 `;
               })}
               </div>
-              ${off.length
-                ? // 2.78.0: a linha fina direto na página, sem um cartão em volta (num cartão sozinha, parecia um botão);
-                  // aberta, as listas inativas no cartão delas, logo abaixo
-                  html`<div class="inact-grp">
-                    ${this._renderFold("listas", off, () => nothing)}
-                    ${this._folds.listas ? html`<div class="panel grp">${off.map((l) => this._renderListCard(l, !groupBy))}</div>` : nothing}
-                  </div>`
-                : nothing}
             `}
         ${this.hass.user && this.hass.user.is_admin
           ? html`<button class="pick ghost" style="margin:4px auto 0;display:flex" @click=${() => this._openInHA("/config/integrations/dashboard/add?domain=local_todo")}>
@@ -2960,7 +2958,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
 
   /** Alterar N itens: each field starts on Manter (nothing changes until another choice). */
   _openBulk() {
-    this._openSheet("bulk", { setDue: false, date: null, time: null, setRooms: false, rooms: [], setEquips: false, equips: [], equipQ: "", equipMore: false, equipAdding: false, setExt: false, ext: null, target: null });
+    this._openSheet("bulk", { where: null, setDue: false, date: null, time: null, setRooms: false, rooms: [], setEquips: false, equips: [], equipQ: "", equipMore: false, equipAdding: false, setExt: false, ext: null, target: null });
   }
 
   /**
@@ -2990,6 +2988,19 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     const e = f.setExt ? f.ext : null;
     const targets = this._L.filter((t) => has(t.features, F.CREATE) && !t.unavailable && !t.hidden);
     const changed = f.setDue || f.setRooms || f.setEquips || f.setExt || !!f.target;
+    // 2.80.0: with the area Bens, Manter | Nenhum | Casa | Bens first, as in the item (the rooms and the items only after Casa or Bens)
+    const bensId = (this._roomsOn() || eqOn) ? this._bensId() : null;
+    const where = bensId ? f.where || null : "casa";
+    const goWhere = (to) => {
+      if (to === (f.where || null)) return;
+      const base = { where: to, equipQ: "", equipMore: false, equipAdding: false };
+      if (!to) this._setForm({ ...base, setRooms: false, rooms: [], setEquips: false, equips: [] });
+      else if (to === "nenhum") this._setForm({ ...base, setRooms: true, rooms: [], setEquips: true, equips: [] });
+      else if (to === "bens") this._setForm({ ...base, setRooms: true, rooms: [bensId], setEquips: true, equips: [] });
+      else this._setForm({ ...base, setRooms: false, rooms: [], setEquips: false, equips: [] });
+    };
+    const wOpt = (id, ic, label) => html`<button class=${(f.where || null) === id ? "on" : ""} aria-pressed=${(f.where || null) === id ? "true" : "false"} @click=${() => goWhere(id)}>${icon(ic)}<span>${label}</span></button>`;
+    const eqItems = bensId ? this._equipItems().filter((i) => (i.roomId === bensId) === (where === "bens")) : this._equipItems();
     return html`
       <div class="sheet-head">
         <h3 class="display">${icon("pencil", "sh-ic")}Alterar ${n} ${n === 1 ? "item" : "itens"}</h3>
@@ -3022,7 +3033,13 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
             ${this._timeBox("rv-bulk-time", f.time)}
           </div>`
         : nothing}
-      ${this._roomsOn()
+      ${bensId
+        ? html`<div class="field where-field" data-f="onde">
+            <span class="flabel">${icon("pin", "lbl-ic")}Onde</span>
+            <div class="seg where four" role="group" aria-label="Manter, Nenhum, Casa ou Bens">${wOpt(null, "lock", "Manter")}${wOpt("nenhum", "x", "Nenhum")}${wOpt("casa", "house", "Casa")}${wOpt("bens", "car", "Bens")}</div>
+          </div>`
+        : nothing}
+      ${this._roomsOn() && where === "casa"
         ? html`<div class="field" data-f="comodo">
             <span class="flabel">${icon("door-open", "lbl-ic")}Cômodo</span>
             <div class="chip-row grid ${locked ? "locked" : ""}">
@@ -3038,17 +3055,17 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
             ${locked ? html`<span class="field-hint">${icon("lock")}<span>Vem ${eqIds.length > 1 ? "dos equipamentos" : "do equipamento"}.</span></span>` : nothing}
           </div>`
         : nothing}
-      ${eqOn
+      ${eqOn && (where === "casa" || where === "bens")
         ? html`<div class="field" data-f="equipamento">
             <span class="flabel">${icon("package", "lbl-ic")}${eqIds.length > 1 ? "Equipamentos" : "Equipamento"}</span>
             <div class="chip-row grid">
-              ${keep(!f.setEquips, () => this._setForm({ setEquips: false, equips: [], equipAdding: false }))}
+              ${where === "bens" ? nothing : keep(!f.setEquips, () => this._setForm({ setEquips: false, equips: [], equipAdding: false }))}
               <button class="pick ${f.setEquips && !eqIds.length ? "on" : ""}" @click=${() => this._setForm({ setEquips: true, equips: [], equipAdding: false })}>${icon("x")}<span>Nenhum</span></button>
             </div>
             ${renderEquipPicker({
               lit: { html, nothing },
               icon,
-              items: this._equipItems(),
+              items: eqItems,
               room: eqIds.length ? this._roomsOfEquips(eqIds)[0] || null : this._roomsOn() && f.setRooms && rooms.length === 1 ? rooms[0] : null,
               roomName: eqIds.length ? this._roomName(this._roomsOfEquips(eqIds)[0]) || "" : this._roomsOn() && f.setRooms && rooms.length === 1 ? this._roomName(rooms[0]) || "" : "",
               value: eqIds,
@@ -4128,6 +4145,9 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
         </div>
       </div>
       ${this._renderOwnerPick(f)}
+      <div class="field" data-f="opcoes">
+        <span class="flabel">${icon("sliders-horizontal", "lbl-ic")}Opções</span>
+        <div class="opt-rows">
       <div class="row" style="border:0;padding-top:0">
         <div class="grow"><div class="label">${icon("eye", "lbl-ic")}Mostrar no início</div></div>
         <label class="switch"><input type="checkbox" role="switch" .checked=${!f.hidden} @change=${(e) => this._setForm({ hidden: !e.target.checked })} aria-label="Mostrar no início" /><span class="track"></span></label>
@@ -4145,6 +4165,8 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
         : l.hasDates
           ? html`<p class="sheet-note with-icon">${icon("info")}<span>Esta lista não aceita prazo: as datas vêm da integração, só como informação.</span></p>`
           : nothing}
+        </div>
+      </div>
       <div class="sheet-actions">
         <button class="btn outline" @click=${() => this._setForm({ name: "", color: null, icon: null, hidden: false, deadlines: l.canDue, owner: "" })}>${icon("rotate-ccw")}Padrão</button>
         <button class="btn primary" @click=${() => this._saveCustomize()}>${icon("check")}Salvar</button>

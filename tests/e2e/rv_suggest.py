@@ -103,7 +103,14 @@ async def main():
         check(any("A data já passou" in t for t in texts), "a dated item whose date passed")
         check(sum("Casa" in t for t in texts) <= 2, "at most 2 from the same list")
         shop = pg.locator(".panel", has_text="Compras").locator(".list-card")
-        check(await shop.count() == 1 and "há 12 dias" in await shop.inner_text() and "Café" not in page, "Compras apart, with the oldest age")
+        start_txt = await pg.locator(".panel.items", has_text="Comece por aqui").inner_text()
+        check(await shop.count() == 1 and "há 12 dias" in await shop.inner_text() and "Café" not in start_txt, "Compras apart, with the oldest age")
+        # 2.80.0: the items right in the card of Compras (not only the list), each with its check
+        cp = pg.locator(".panel[data-card='shopping']")
+        its = [t.strip() for t in await cp.locator(".shop-items .item .it-text").all_inner_texts()]
+        check(len(its) >= 1 and any("Café" in t for t in its) and await cp.locator(".shop-items .item .check, .shop-items .item button").count() >= len(its), f"Compras: the items right there ({its})")
+        check((await cp.locator(".mais-head .mh-count").inner_text()).strip() == str(len(its)), "Compras: the count is of the items")
+        await cp.screenshot(path=f"{SP}/shots/rvs-compras.png")
         heads = [t.strip() for t in await pg.locator(".page .mais-head h2").all_inner_texts()]
         check(heads[:2] == ["Comece por aqui", "Compras"] and await pg.locator(".panel.items", has_text="Comece por aqui").locator(".mais-head .mais-ic").count() == 1, f"Comece por aqui and Compras with their icon ({heads})")
         await pg.locator(".panel.items").first.screenshot(path=f"{SP}/shots/rvs-comece.png")

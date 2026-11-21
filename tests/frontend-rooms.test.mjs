@@ -319,7 +319,7 @@ describe("rooms: Mais › Configurações › Integrações › InventarIA", () 
     assert.doesNotMatch(t, /Verificar de novo/);
     assert.doesNotMatch(t, /Usar bens/, "2.79.0: Usar bens only with the rooms or the equipment on");
   });
-  it("2.79.0: Usar bens, respecting the InventarIA: on from the start when it uses bens; locked, saying why, when it does not", async () => {
+  it("2.79.0: Usar bens, respecting the InventarIA: off from the start (2.80.0); locked, saying why, when it does not", async () => {
     const p0 = panel();
     p0._app_ = { rooms_on: true, equips_on: true };
     assert.match(text(p0._renderRoomsPanel()), /Usar bens O InventarIA não usa bens\./, "the rooms of the test come without the area");
@@ -332,8 +332,14 @@ describe("rooms: Mais › Configurações › Integrações › InventarIA", () 
       return p;
     };
     const r = { ...ROOMS(), comodos: [...ROOMS().comodos, { id: "bens", nome: "Bens", tipo: "bens" }], bens: true };
-    let p = com({ rooms_on: true, equips_on: true }, r);
+    // 2.80.0: off at first
+    let p = com({ rooms_on: true, equips_on: true }, { ...ROOMS(), bens: true });
     let f = p._renderRoomsPanel();
+    assert.match(text(f), /Usar bens Desligado\./);
+    await fire(f, "Usar bens", "change", { target: { checked: true } });
+    assert.deepEqual(calls.splice(0), [{ bens_on: true }, "refresh"], "on: kept as true");
+    p = com({ rooms_on: true, equips_on: true, bens_on: true }, r);
+    f = p._renderRoomsPanel();
     assert.match(text(f), /Usar equipamentos Cada tarefa pode ser de um equipamento ou móvel[^.]*\. Usar bens Uma tarefa pode ser de um bem, como a casa ou o carro\./);
     const st = (v) => {
       const c = controls(v).find((x) => x.aria === "Usar bens");
@@ -341,14 +347,14 @@ describe("rooms: Mais › Configurações › Integrações › InventarIA", () 
     };
     assert.deepEqual(st(f), [true, false]);
     await fire(f, "Usar bens", "change", { target: { checked: false } });
-    assert.deepEqual(calls.splice(0), [{ bens_on: false }, "refresh"], "off: kept as false, and the InventarIA is read again");
+    assert.deepEqual(calls.splice(0), [{ bens_on: null }, "refresh"], "off: the default again, and the InventarIA is read again");
     // off: the server leaves the area out (r.bens still says the InventarIA has it)
     p = com({ rooms_on: true, bens_on: false }, { ...ROOMS(), bens: true });
     f = p._renderRoomsPanel();
     assert.match(text(f), /Usar bens Desligado\./);
     assert.deepEqual(st(f), [false, false]);
     await fire(f, "Usar bens", "change", { target: { checked: true } });
-    assert.deepEqual(calls.splice(0), [{ bens_on: null }, "refresh"], "on again: the default");
+    assert.deepEqual(calls.splice(0), [{ bens_on: true }, "refresh"], "on again");
     assert.equal(p._bensId(), null, "off: no area Bens here");
     // the InventarIA with its Usar bens off sends no area: the switch is locked and says why
     p = com({ equips_on: true }, ROOMS());

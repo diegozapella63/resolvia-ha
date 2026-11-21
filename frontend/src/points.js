@@ -137,7 +137,7 @@ export const PointsMixin = (Base) =>
       const custom = f.pointsCustom || (n > 0 && !POINT_PICKS.includes(n));
       return html`<div class="field">
         <span class="flabel">${icon("trophy", "lbl-ic")}Pontos para quem concluir</span>
-        <div class="chip-row">
+        <div class="chip-row grid pts-row">
           <button class="pick ${!n && !custom ? "on" : ""}" @click=${() => this._setForm({ points: 0, pointsCustom: false })}>${icon("x")}<span>Sem pontos</span></button>
           ${POINT_PICKS.map((v) => html`<button class="pick ${n === v && !custom ? "on" : ""}" @click=${() => this._setForm({ points: v, pointsCustom: false })}>${icon("trophy")}<span>+${v}</span></button>`)}
           <button class="pick ${custom ? "on" : ""}" @click=${() => this._setForm({ pointsCustom: true, points: n || 15 })}>${icon("trophy")}<span>Outro</span></button>

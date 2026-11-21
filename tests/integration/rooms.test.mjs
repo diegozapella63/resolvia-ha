@@ -52,7 +52,7 @@ const extract = async (body) => {
 describe("off (the default)", () => {
   it("says the InventarIA is there, reads nothing, refuses links", async () => {
     const r = await rooms();
-    assert.deepEqual(r, { on: false, equips_on: false, bens_on: true, encontrado: true, comodos: [], itens: [], erro: null, versao: null, at: null, map: {}, emap: {} });
+    assert.deepEqual(r, { on: false, equips_on: false, bens_on: false, encontrado: true, comodos: [], itens: [], erro: null, versao: null, at: null, map: {}, emap: {} });
     assert.equal(inv.requests.length, 0, "nothing asked while off");
     await assert.rejects(c.call("resolvia/rooms/set", { entity_id: CASA, summary: "x", room: "cozinha" }), { code: "rooms_off" });
     await assert.rejects(c.call("resolvia/equips/set", { entity_id: CASA, summary: "x", equip: "pia_1" }), { code: "equips_off" });
@@ -259,21 +259,24 @@ describe("InventarIA problems", () => {
     assert.equal((await c.call("resolvia/rooms/refresh")).erro, null);
   });
 
-  it("2.79.0: Usar bens: the area Bens of the InventarIA comes while on (the default); off, it and its items stay out", async () => {
+  it("2.79.0: Usar bens: the area Bens of the InventarIA comes while on; off (the default, 2.80.0), it and its items stay out", async () => {
     COMODOS.push({ id: "bens", nome: "Bens", itens: 1, tipo: "bens" });
     ITENS.push({ id: "carro_1", nome: "Carro", comodo: "bens" });
     try {
       let r = await c.call("resolvia/rooms/refresh");
+      assert.deepEqual([r.bens_on, r.bens, r.comodos.some((x) => x.id === "bens"), r.itens.some((i) => i.id === "carro_1")], [false, true, false, false], "2.80.0: off at first");
+      await c.call("resolvia/prefs/set_app", { prefs: { bens_on: true } });
+      r = await c.call("resolvia/rooms/refresh");
       assert.deepEqual([r.bens_on, r.bens, r.comodos.at(-1), r.itens.some((i) => i.id === "carro_1")], [true, true, { id: "bens", nome: "Bens", itens: 1, tipo: "bens" }, true]);
       await waitFor(() => (stack.presence().comodos.lista || []).some((x) => x.id === "bens"), { what: "Bens in the file of the CronologIA" });
-      await c.call("resolvia/prefs/set_app", { prefs: { bens_on: false } });
+      await c.call("resolvia/prefs/set_app", { prefs: { bens_on: null } });
       r = await waitFor(async () => {
         const x = await rooms();
         return x.comodos.some((y) => y.id === "bens") ? null : x;
       }, { what: "the area out" });
       assert.deepEqual([r.bens_on, r.bens, r.comodos.map((x) => x.id), r.itens.map((i) => i.id)], [false, true, ["cozinha", "banheiro", "quarto"], ["pia_1", "geladeira_1", "chuveiro_1", "ar_1"]], "off: out, and the InventarIA still has it (bens)");
       await waitFor(() => !(stack.presence().comodos.lista || []).some((x) => x.id === "bens") && !(stack.presence().equipamentos.lista || []).some((x) => x.id === "carro_1"), { what: "Bens out of the file" });
-      await c.call("resolvia/prefs/set_app", { prefs: { bens_on: null } });
+      await c.call("resolvia/prefs/set_app", { prefs: { bens_on: true } });
       r = await c.call("resolvia/rooms/refresh");
       assert.deepEqual([r.bens_on, r.comodos.length, r.itens.length], [true, 4, 5], "on again");
     } finally {

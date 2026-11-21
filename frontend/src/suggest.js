@@ -41,6 +41,8 @@ export const DUE_GROUPS = [
 // Agora › Ordem dos cards (2.60.0): the cards of Agora, in the order they come by default. Each person chooses theirs
 // (app.now_order: {user of Home Assistant or "": [ids]}); every card is in it, also the ones with nothing now or with
 // Controlar prazos off. One missing from a saved order (new in a later version) goes after the one before it by default.
+// Agora › Compras: how many items of each list show in the card (the rest, in the list)
+export const SHOP_MAX = 8;
 export const NOW_CARDS = ["late", "today", "start", "tomorrow", "week", "later", "coming", "shopping"];
 export function nowOrder(saved) {
   const ids = (Array.isArray(saved) ? saved : []).filter((x, i, a) => NOW_CARDS.includes(x) && a.indexOf(x) === i);
@@ -113,7 +115,7 @@ export const SuggestMixin = (Base) =>
         lists++;
         if (isShopping(l)) {
           const ages = pend.map((i) => this._ageOf(l, i, now)).filter((n) => n != null);
-          shopping.push({ l, n: pend.length, oldest: ages.length ? Math.max(...ages) : null });
+          shopping.push({ l, n: pend.length, items: pend, oldest: ages.length ? Math.max(...ages) : null });
           continue;
         }
         pend.forEach((i, idx) => {
@@ -335,16 +337,19 @@ export const SuggestMixin = (Base) =>
         coming: due.coming || nothing,
         shopping: s.shopping.length
           ? html`<div class="panel" data-card="shopping">
-              <div class="mais-head"><span class="mais-ic" aria-hidden="true">${icon("shopping-cart")}</span><h2>Compras</h2><small class="mh-count">${s.shopping.length}</small></div>
+              <div class="mais-head"><span class="mais-ic" aria-hidden="true">${icon("shopping-cart")}</span><h2>Compras</h2><small class="mh-count">${s.shopping.reduce((n, x) => n + x.n, 0)}</small></div>
               ${s.shopping.map(
-                (x) => html`<button class="list-card" style=${colorVars(x.l.color, this._dark)} @click=${() => this._go(`/lista/${x.l.id}`)}>
+                // 2.80.0: the items right in the card (to check them from here), under the name of their list
+                (x) => html`<button class="list-card shop-list" style=${colorVars(x.l.color, this._dark)} @click=${() => this._go(`/lista/${x.l.id}`)}>
                   <span class="tile">${icon(x.l.icon)}</span>
                   <span class="lc-main">
                     <span class="lc-title">${x.l.name}</span>
-                    <span class="lc-meta"><span>${x.oldest != null && x.oldest >= 3 ? `O mais antigo está há ${ageText(x.oldest)}` : plural(x.n, "item para comprar", "itens para comprar")}</span></span>
+                    ${x.oldest != null && x.oldest >= 3 ? html`<span class="lc-meta"><span>O mais antigo está há ${ageText(x.oldest)}</span></span>` : nothing}
                   </span>
                   <span class="lc-num">${x.n}</span>
-                </button>`,
+                </button>
+                <div class="items shop-items">${repeat(x.items.slice(0, SHOP_MAX), (i) => x.l.id + (i.uid || i.summary), (i) => this._renderItem(x.l, i, {}))}</div>
+                ${x.n > SHOP_MAX ? html`<button class="add-line shop-more" @click=${() => this._go(`/lista/${x.l.id}`)}>${icon("chevron-right")}Ver os ${x.n}</button>` : nothing}`,
               )}
             </div>`
           : nothing,

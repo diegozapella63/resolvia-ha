@@ -45,6 +45,10 @@ async def main():
         a = pg.locator("resolvia-panel"); sheet = a.locator(".sheet")
         await a.evaluate("(el) => el._saveAppPrefs({ rooms_on: true, equips_on: true })"); await pg.wait_for_timeout(500)
         await a.evaluate("(el) => el._refreshRooms()"); await pg.wait_for_timeout(1500)
+        # 2.80.0: Usar bens off at first: the area stays out until the switch is turned on
+        check([c["id"] for c in presence()["comodos"]["lista"]] == ["cozinha", "sala"], f"off at first: no area Bens ({presence()['comodos']['lista']})")
+        await a.evaluate("(el) => el._saveAppPrefs({ bens_on: true })"); await pg.wait_for_timeout(500)
+        await a.evaluate("(el) => el._refreshRooms()"); await pg.wait_for_timeout(1500)
         check([c.get("tipo") for c in presence()["comodos"]["lista"]] == [None, None, "bens"], f"the CronologIA gets the area Bens with its tipo ({presence()['comodos']['lista']})")
         # Casa: the rooms of the house, no Bens chip
         await a.evaluate("(el) => el._openAdd('todo.casa')"); await pg.wait_for_timeout(500)
@@ -92,10 +96,10 @@ async def main():
         rows = [" ".join(t.split()) for t in await card.locator(".row.switch-row .grow").all_inner_texts()]
         check(len(rows) == 3 and rows[2] == "Usar bens Uma tarefa pode ser de um bem, como a casa ou o carro.", f"Usar bens after Usar equipamentos ({rows})")
         sw = card.locator("input[aria-label='Usar bens']")
-        check(await sw.is_checked() and await sw.is_enabled() and await card.locator(".row.switch-row").nth(2).locator(".label svg").count() == 1, "on from the start, with the icon")
+        check(await sw.is_checked() and await sw.is_enabled() and await card.locator(".row.switch-row").nth(2).locator(".label svg").count() == 1, "on, with the icon")
         await card.screenshot(path=f"{SP}/shots/rvb-usar-bens.png")
         await card.locator(".row.switch-row").nth(2).locator(".switch").click(); await pg.wait_for_timeout(1800)
-        check(stored()["prefs"]["app"].get("bens_on") is False and [c["id"] for c in presence()["comodos"]["lista"]] == ["cozinha", "sala"]
+        check(stored()["prefs"]["app"].get("bens_on") is None and [c["id"] for c in presence()["comodos"]["lista"]] == ["cozinha", "sala"]
               and [e["id"] for e in presence()["equipamentos"]["lista"]] == ["coz-001", "sal-001"], f"off: kept, and the area and its items leave the file of the CronologIA ({presence()['comodos']['lista']})")
         check(" ".join((await card.locator(".row.switch-row").nth(2).locator(".grow").inner_text()).split()) == "Usar bens Desligado." and "Bens" not in await card.locator(".ai-state").inner_text(), "off: Desligado, and Bens out of the rooms read")
         await a.evaluate("(el) => el._openAdd('todo.casa')"); await pg.wait_for_timeout(500)
@@ -108,7 +112,28 @@ async def main():
             req = urllib.request.Request("http://127.0.0.1:8097" + path, method=method, data=json.dumps(body).encode() if body is not None else None, headers={"Content-Type": "application/json"})
             return urllib.request.urlopen(req, timeout=10).read()
         await card.locator(".row.switch-row").nth(2).locator(".switch").click(); await pg.wait_for_timeout(1500)
-        check(stored()["prefs"]["app"].get("bens_on") is None and len(presence()["comodos"]["lista"]) == 3, "on again: Bens back")
+        check(stored()["prefs"]["app"].get("bens_on") is True and len(presence()["comodos"]["lista"]) == 3, "on again: Bens back")
+        # ---- 2.80.0: Buscar › Selecionar › Alterar: Onde (Manter | Nenhum | Casa | Bens) before the rooms and the equipment
+        await a.evaluate("(el) => el._go('/buscar')"); await pg.wait_for_timeout(700)
+        await a.evaluate("(el) => { for (const l of el._visible()) for (const i of l.items || []) if (i.status !== 'completed' && i.summary === 'Revisar o carro') el._startBulk(l, i); }"); await pg.wait_for_timeout(300)
+        await a.evaluate("(el) => el._openBulk()"); await pg.wait_for_timeout(500)
+        segb = sheet.locator(".field[data-f='onde'] .seg.where button")
+        check([t.strip() for t in await segb.all_inner_texts()] == ["Manter", "Nenhum", "Casa", "Bens"] and "on" in (await segb.first.get_attribute("class") or ""), "Alterar: Onde with Manter first, chosen")
+        wb = await segb.evaluate_all("(bs) => bs.map((b) => [Math.round(b.getBoundingClientRect().width), Math.round(b.getBoundingClientRect().top), b.scrollWidth > b.clientWidth + 1])")
+        check(max(x[0] for x in wb) - min(x[0] for x in wb) <= 1 and len({x[1] for x in wb}) == 1 and not any(x[2] for x in wb), f"Alterar: the four of the same size, nothing cut ({wb})")
+        check(await sheet.locator(".field[data-f='comodo'], .field[data-f='equipamento']").count() == 0 and await sheet.locator(".sheet-actions .btn.primary").is_disabled(), "Manter: no Cômodo, no Equipamento, nothing to apply")
+        await sheet.screenshot(path=f"{SP}/shots/rvb-lote-onde.png")
+        await segb.nth(2).click(); await pg.wait_for_timeout(300)
+        check(await sheet.locator(".field[data-f='comodo']").count() == 1 and await sheet.locator(".field[data-f='equipamento']").count() == 1 and "Bens" not in await a.evaluate(PICKS), "Casa: the rooms of the house and the equipment")
+        await segb.nth(3).click(); await pg.wait_for_timeout(300)
+        check(await sheet.locator(".field[data-f='comodo']").count() == 0 and await sheet.locator(".field[data-f='equipamento']").count() == 1, "Bens: only the equipment (the bens)")
+        await segb.nth(1).click(); await pg.wait_for_timeout(300)
+        check(await sheet.locator(".field[data-f='comodo'], .field[data-f='equipamento']").count() == 0 and await sheet.locator(".sheet-actions .btn.primary").is_enabled(), "Nenhum: no fields, and it can be applied")
+        await sheet.locator(".sheet-actions .btn.primary").click(); await pg.wait_for_timeout(1500)
+        st = stored()
+        check("revisar o carro" not in json.dumps(st.get("rooms", {})) and "revisar o carro" not in json.dumps(st.get("equips", {})), f"Nenhum applied: the task without room and without equipment ({st.get('rooms')}, {st.get('equips')})")
+        await a.evaluate("(el) => el._go('/config')"); await pg.wait_for_timeout(700)
+        card = a.locator("#comodos"); await card.scroll_into_view_if_needed()
         try:
             inv("PUT", "/api/settings", {"bens": False})
             await card.locator(".btn", has_text="Verificar de novo").click(); await pg.wait_for_timeout(2000)

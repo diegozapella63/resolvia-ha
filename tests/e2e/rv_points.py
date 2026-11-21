@@ -90,7 +90,11 @@ async def main():
         await A.locator(".list-card", has_text="Casa").click(); await A.wait_for_timeout(500)
         await A.locator(".items .item .it-body", has_text="Passar pano").click(); await A.wait_for_timeout(400)
         check(await A.locator(".sheet .flabel", has_text="Pontos para quem concluir").count() == 1, "points field in the item sheet")
+        # 2.80.0: the buttons lined up: the same width and height, in rows
+        pk = await A.locator(".sheet .pts-row .pick").evaluate_all("(bs) => bs.map((b) => { const r = b.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height), Math.round(r.left), b.scrollWidth > b.clientWidth + 1]; })")
+        check(len(pk) == 7 and max(x[0] for x in pk) - min(x[0] for x in pk) <= 1 and len({x[1] for x in pk}) == 1 and len({x[2] for x in pk}) <= 4 and not any(x[3] for x in pk), f"the point buttons: same size, lined up, nothing cut ({pk})")
         await A.locator(".sheet .pick", has_text="+10").click(); await A.wait_for_timeout(150)
+        await A.locator(".sheet .pts-row").scroll_into_view_if_needed()
         await A.screenshot(path=f"{SP}/shots/rvp-sheet.png")
         await A.locator(".sheet .btn.primary").click(); await A.wait_for_timeout(700)
         check(stored()["points"] == {"todo.casa": {"passar pano na casa": 10}}, f"points saved ({stored().get('points')})")

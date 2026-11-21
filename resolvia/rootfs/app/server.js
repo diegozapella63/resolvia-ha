@@ -146,7 +146,8 @@ const roomsOn = () => store.prefs.app.rooms_on === true;
 // … and the equipment (Mais › Configurações › Integrações › InventarIA › Usar equipamentos; off by default): an item for each task
 const equipsOn = () => store.prefs.app.equips_on === true;
 // 2.79.0, InventarIA › Usar bens (on unless turned off): the area Bens of the InventarIA, when it has one
-const bensOn = () => store.prefs.app.bens_on !== false;
+// 2.80.0: desligado de início (o dono pediu); quem liga é a chave Usar bens
+const bensOn = () => store.prefs.app.bens_on === true;
 const inventario = new Inventario({ shareDir: SHARE_DIR, log, enabled: roomsOn, items: equipsOn, bens: bensOn, onChange: () => publishPresence() });
 // 2.79.0, Opções › Exibição › De quem é (off unless turned on): off, every list is everyone's (what was chosen is kept)
 const ownersOn = () => store.prefs.app.owners_on === true;

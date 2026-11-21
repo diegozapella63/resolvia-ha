@@ -313,7 +313,7 @@ export const RoomsMixin = (Base) =>
         <label class="switch"><input type="checkbox" role="switch" .checked=${value} ?disabled=${locked} @change=${(e) => change(e.target.checked)} aria-label=${label} /><span class="track"></span></label>
       </div>`;
       // 2.79.0, Usar bens: only with the rooms or the equipment on, and only when the InventarIA uses bens (its Usar bens)
-      const bon = this._app("bens_on", true) !== false;
+      const bon = this._app("bens_on", false) === true; // 2.80.0: off at first
       const bens =
         on || eon
           ? r.bens
@@ -343,7 +343,7 @@ export const RoomsMixin = (Base) =>
     }
 
     async _toggleBens(on) {
-      await this._saveAppPrefs({ bens_on: on ? null : false });
+      await this._saveAppPrefs({ bens_on: on ? true : null });
       await this._refreshRooms();
     }
 

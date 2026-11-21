@@ -3177,7 +3177,34 @@ export const styles = css`
   }
   /* 2.78.0: na aba Listas, a linha fica direto na página (sem um cartão em volta); aberta, as listas no cartão delas */
   .inact-grp > .inact-head {
-    padding: 4px 18px 14px;
+    padding: 10px 18px 12px;
+  }
+  /* 2.80.0: Onde na alteração em lote: Manter, Nenhum, Casa, Bens */
+  .seg.where.four {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .seg.where.four button {
+    font-size: 13px;
+    gap: 4px;
+  }
+  /* 2.80.0: Pontos para quem concluir: os botões na mesma grade, três por linha no celular */
+  .chip-row.grid.pts-row {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 6.6em), 1fr));
+  }
+  /* 2.80.0: Personalizar › Opções: as chaves com a letra dos títulos de cima (Cor, Ícone) */
+  .sheet .opt-rows .row {
+    padding: 8px 0;
+    border: 0;
+  }
+  .sheet .opt-rows .row .label {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--rv-text-2);
+  }
+  /* 2.80.0: Agora › Compras: os itens no cartão, embaixo do nome da lista */
+  .shop-more {
+    width: 100%;
+    justify-content: center;
   }
   .row.inact .label {
     color: var(--rv-text-2);
