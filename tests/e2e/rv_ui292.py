@@ -102,8 +102,8 @@ async def main():
         await sw.check(); await pg.wait_for_timeout(500)
         # Novo item: InventarIA-like tiles
         await pg.locator(".tab.fab").click(); await pg.wait_for_timeout(500)
-        check(await pg.locator(".sheet .imp-tile").count() == 3 and await pg.locator(".sheet .ai-box").count() == 0, "Novo item: three dashed tiles (no AI box when the AI is ready)")
-        labels = [t.replace(" ", " ").strip() for t in await pg.locator(".sheet .imp-tile").all_inner_texts()]
+        check(await pg.locator(".sheet .imp-tiles:not(.photo-tiles) .imp-tile").count() == 3 and await pg.locator(".sheet .ai-box").count() == 0, "Novo item: three dashed tiles (no AI box when the AI is ready)")
+        labels = [t.replace(" ", " ").strip() for t in await pg.locator(".sheet .imp-tiles:not(.photo-tiles) .imp-tile").all_inner_texts()]
         check(labels == ["Colar mensagem", "Escolher fotos ou PDF", "Digitalizar com IA"], f"tiles ({labels})")
         await pg.screenshot(path=f"{SP}/shots/rvu-novo.png")
         await pg.locator(".sheet .imp-tile", has_text="Colar mensagem").click(); await pg.wait_for_timeout(400)

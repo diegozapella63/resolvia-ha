@@ -80,7 +80,7 @@ async def main():
         f = await facts()
         check(f["quick"] == 1 and f["grips"] == 3 and f["disabled"] == 0, f"Casa: add, reorder, complete ({f})")
         s = await sheet_of("Pagar conta de luz")
-        check(s["labels"][:2] == ["Item", "Prazo"] and "Notas" in s["labels"] and s["trash"] == 1, f"Casa: notes, deadline, delete ({s})")
+        check(s["labels"][:3] == ["Item", "Fotos", "Prazo"] and "Notas" in s["labels"] and s["trash"] == 1, f"Casa: notes, deadline, delete ({s})")
         # 2.78.0: Notas right above Lista (the last two), and it folds by its title like the other fields
         check(s["labels"][-2:] == ["Notas", "Lista"], f"Casa: Notas right above Lista ({s['labels']})")
         nf = pg.locator(".sheet .field.notes-field")
@@ -104,7 +104,7 @@ async def main():
         check(f["quick"] == 1 and f["grips"] == 3 and f["limpar"] == 1, f"Lista de compras: add, reorder, clear done ({f})")
         s = await sheet_of("Manteiga")
         # 2.58.0: a list that takes no date gets a deadline kept by the app
-        check(s["labels"] == ["Item", "Prazo", "Fotos", "Lista"] and s["trash"] == 1, f"Lista de compras: no notes, a deadline of the app ({s['labels']})")
+        check(s["labels"] == ["Item", "Fotos", "Prazo", "Lista"] and s["trash"] == 1, f"Lista de compras: no notes, a deadline of the app ({s['labels']})")
         await close(); await pg.wait_for_timeout(300)
         keys0 = await pg.locator(".panel.items .item[data-drag]").evaluate_all("(els) => els.map((e) => e.dataset.key)")
         grip = await pg.locator(f".item[data-key='{keys0[-1]}'] .grip").bounding_box()
@@ -120,7 +120,7 @@ async def main():
         f = await facts()
         check(f["quick"] == 1 and f["grips"] == 1, f"Google Tasks: add, reorder ({f})")
         s = await sheet_of("Renovar passaporte")
-        check(s["labels"][:2] == ["Item", "Prazo"] and "Notas" in s["labels"], f"Google Tasks: notes and deadline ({s['labels']})")
+        check(s["labels"][:3] == ["Item", "Fotos", "Prazo"] and "Notas" in s["labels"], f"Google Tasks: notes and deadline ({s['labels']})")
         await pg.locator(".sheet .pick", has_text="Amanhã").click(); await pg.wait_for_timeout(150)
         check(await pg.locator(".sheet .field", has=pg.locator(".flabel", has_text="Horário")).count() == 0, "Google Tasks: no time for the deadline")
         await pg.locator(".sheet textarea").nth(1).fill("Levar foto 3x4")
@@ -135,7 +135,7 @@ async def main():
         f = await facts()
         check(f["quick"] == 1 and f["grips"] == 0 and f["limpar"] == 1, f"Alexa: add and clear, no reorder ({f})")
         s = await sheet_of("Leite")
-        check(s["labels"] == ["Item", "Prazo", "Fotos", "Lista"] and s["trash"] == 1, f"Alexa: no notes, a deadline of the app ({s['labels']})")
+        check(s["labels"] == ["Item", "Fotos", "Prazo", "Lista"] and s["trash"] == 1, f"Alexa: no notes, a deadline of the app ({s['labels']})")
         check(await pg.locator(".sheet .app-due").count() == 0, "Alexa: no hint before a date")
         # 2.69.0: Lista with the list where the item is marked (also when it takes no new item), without "(mover)"
         on = [t.strip() for t in await pg.locator(".sheet .pick.list.on").all_inner_texts()]

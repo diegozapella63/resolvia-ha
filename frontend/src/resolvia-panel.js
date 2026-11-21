@@ -3825,16 +3825,21 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(PhotosMixin(ExternalMixin(
         <button class="icon-btn" @click=${() => this._closeSheet()} aria-label="Fechar">${icon("x")}</button>
       </div>
       ${f.mode === "add" && this._canImport()
-        ? this._renderImportTiles({
-            text: () => this._openImport(f.target, "text"),
-            photos: () => this._openImport(f.target, "photos"),
-            scan: () => this._openImport(f.target, "scan"),
-          })
+        ? // 2.83.0: as fotos da tarefa ficam aqui em cima, no mesmo bloco: ler com a IA numa linha, anexar na outra
+          this._renderImportTiles(
+            {
+              text: () => this._openImport(f.target, "text"),
+              photos: () => this._openImport(f.target, "photos"),
+              scan: () => this._openImport(f.target, "scan"),
+            },
+            { anexar: this._renderPhotosField(f, { inline: true }) },
+          )
         : nothing}
       <label class="field">
         <span class="flabel">${icon("pencil", "lbl-ic")}Item</span>
         <textarea rows="2" .value=${f.summary} @input=${(e) => this._setForm({ summary: e.target.value })} @keydown=${(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), this._saveItem())} placeholder="O que precisa ser resolvido?"></textarea>
       </label>
+      ${f.mode === "add" && this._canImport() ? nothing : this._renderPhotosField(f)}
       ${this._renderWhere(f)}
       ${canDate
         ? html`<div class="field">
@@ -3889,7 +3894,6 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(PhotosMixin(ExternalMixin(
       ${this._renderEquipField(f)}
       ${this._renderExternalField(f, target.appDue ? feat & ~(F.DUE_DATE | F.DUE_DATETIME) : feat)}
       ${this._renderPointsField(f)}
-      ${this._renderPhotosField(f)}
       ${canDesc && (this._notesOn() || f.hadNotes)
         ? // 2.78.0: logo acima de Lista, e fecha e abre pelo título como os outros campos; fechado, mostra o começo do que há
           html`<div class="field notes-field">
@@ -3917,18 +3921,21 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(PhotosMixin(ExternalMixin(
    * Colar mensagem / Escolher fotos / Digitalizar com IA as dashed tiles (like the InventarIA),
    * (without notes that only take room, 2.61.0: the gallery of the Home Assistant app sends one photo at a time).
    */
-  _renderImportTiles(run, { label = true } = {}) {
+  _renderImportTiles(run, { label = true, anexar = null } = {}) {
+    const junto = anexar && anexar !== nothing;
     const ai = this._aiInfo();
     const camOk = this._camOk();
     const tile = (key, ic, text, off = false, note = "") => html`<button type="button" class="imp-tile ${note ? "no-cam" : ""}" ?disabled=${off} @click=${run[key]}>${icon(ic)}<span>${text}</span>${note ? html`<small>${note}</small>` : nothing}</button>`;
     return html`<div class="field imp-field">
-        ${label ? html`<span class="flabel">${icon("sparkles", "lbl-ic")}Trazer de mensagem ou foto</span>` : nothing}
+        ${label ? html`<span class="flabel">${icon("sparkles", "lbl-ic")}${junto ? "Fotos e mensagens" : "Trazer de mensagem ou foto"}</span>` : nothing}
+        ${junto ? html`<div class="imp-sub">Ler com a IA</div>` : nothing}
         <div class="imp-tiles">
           ${tile("text", "clipboard-paste", "Colar mensagem")}
           ${tile("photos", "images", "Escolher fotos ou PDF", !ai.images)}
           ${tile("scan", "scan-text", "Digitalizar com\u00a0IA", !ai.images, camOk ? "" : "Precisa de https")}
         </div>
         ${ai.images && !camOk ? html`<p class="imp-help">Em http a câmera não abre aqui: tire a foto pelo celular e use Escolher fotos ou PDF.</p>` : nothing}
+        ${junto ? anexar : nothing}
       </div>
       ${ai.ready ? nothing : html`<div class="ai-box">${icon("scan-text")}<span>Sem IA configurada, a mensagem é separada por linhas e vírgulas. Para ler fotos, configure a IA do Home Assistant em Mais › Configurações › Integrações.</span></div>`}`;
   }

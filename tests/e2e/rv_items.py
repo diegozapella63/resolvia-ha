@@ -117,7 +117,7 @@ async def main():
         check(await sheet_title() == "Editar item", "tapping an item opens Editar item")
         labels = [t.strip() for t in await pg.locator(".sheet .flabel").all_inner_texts()]
         # 2.78.0: Notas logo acima de Lista
-        check(labels[:2] == ["Item", "Prazo"] and "Notas" in labels and labels.index("Notas") == labels.index("Lista") - 1, f"Casa: item, deadline, notes just above Lista ({labels})")
+        check(labels[:3] == ["Item", "Fotos", "Prazo"] and "Notas" in labels and labels.index("Notas") == labels.index("Lista") - 1, f"Casa: item, deadline, notes just above Lista ({labels})")
         tas = pg.locator(".sheet textarea")
         check(await tas.nth(0).input_value() == "Comprar pilhas", "the text is there")
         await tas.nth(0).fill("Comprar pilhas AA")

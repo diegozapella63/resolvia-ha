@@ -1,5 +1,9 @@
 # Mudanças
 
+## 2.83.0
+
+- **Novo item**: as fotos da tarefa ficam no bloco de cima, agora **Fotos e mensagens**, em duas linhas: **Ler com a IA** (Colar mensagem, Escolher fotos ou PDF, Digitalizar com IA) e **Anexar na tarefa** (Tirar foto, Escolher fotos, sem a IA ler). O campo Fotos de baixo saiu. No Editar item, as Fotos ficam logo abaixo do Item.
+
 ## 2.82.1
 
 - **Integrações › IA**: o texto de cima igual ao dos outros apps.

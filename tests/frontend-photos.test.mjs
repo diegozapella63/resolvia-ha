@@ -65,6 +65,13 @@ describe("photos: the field of the item sheet", () => {
     assert.match(text(p._renderPhotosField({})), /^Fotos Tirar foto Escolher fotos$/);
     const full = controls(p._renderPhotosField({ photos: Array.from({ length: MAX_PHOTOS }, (_, i) => `${String(i).repeat(16)}.jpg`) })).filter((c) => /disabled/.test(c.attrs));
     assert.equal(full.length, 2, "with six, no more");
+    // 2.83.0: in Novo item, inside the block at the top: a row of its own, with its name and the count
+    const inl = p._renderPhotosField({ photos: [A] }, { inline: true });
+    assert.match(text(inl), /^Anexar na tarefa \(1\) Tirar foto Escolher fotos$/);
+    assert.doesNotMatch(text(inl), /^Fotos/);
+    assert.deepEqual(controls(inl).map((c) => c.aria).filter(Boolean), ["Abrir a foto 1", "Tirar a foto 1"]);
+    assert.match(text(p._renderPhotosField({}, { inline: true })), /^Anexar na tarefa Tirar foto Escolher fotos$/);
+    assert.equal(text(p._renderPhotosField({ mirrored: true }, { inline: true })), "");
   });
   it("saves when they changed or the task was renamed", async () => {
     const p = panel({}, { "resolvia/photos/set": (m) => ({ photos: { [m.entity_id]: { x: m.photos } } }) });

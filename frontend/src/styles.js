@@ -3201,6 +3201,29 @@ export const styles = css`
     font-weight: 500;
     color: var(--rv-text-2);
   }
+  /* 2.83.0: Novo item › Fotos e mensagens: duas linhas no mesmo bloco, cada uma com o nome do que faz */
+  .imp-sub {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--rv-muted);
+    margin: 2px 0 8px;
+  }
+  .imp-tiles + .imp-sub,
+  .imp-help + .imp-sub {
+    margin-top: 14px;
+  }
+  .imp-tiles.photo-tiles {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .imp-tiles.photo-tiles .imp-tile {
+    aspect-ratio: auto;
+    min-height: 56px;
+    grid-auto-flow: column;
+    justify-content: center;
+    gap: 8px;
+  }
   /* 2.81.0: as fotos de uma tarefa: Tirar foto e Escolher fotos lado a lado, as fotos em quadrados embaixo */
   .photo-grid {
     display: grid;

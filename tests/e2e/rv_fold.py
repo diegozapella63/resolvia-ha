@@ -89,7 +89,7 @@ async def main():
             trazer = a.locator(".sheet .field.imp-field")
             if await trazer.count():
                 await trazer.locator(":scope > .flabel").click(); await pg.wait_for_timeout(250)
-                check(not await trazer.locator(".imp-tiles").is_visible(), f"{scheme}: Trazer de mensagem ou foto closed")
+                check(not await trazer.locator(".imp-tiles").first.is_visible() and not await trazer.locator(".photo-tiles").is_visible(), f"{scheme}: Fotos e mensagens closed")
             kept = await pg.evaluate("() => JSON.parse(localStorage.getItem('resolvia-campos') || '[]')")
             check("Prazo" in kept, f"{scheme}: kept on the device ({kept})")
             await a.locator(".sheet .icon-btn[aria-label=Fechar]").click(); await pg.wait_for_timeout(400)

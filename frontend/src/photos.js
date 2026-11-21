@@ -116,17 +116,12 @@ export const PhotosMixin = (Base) =>
     }
 
     /** Item sheet: Fotos, with Tirar foto and Escolher fotos; a tap on a photo opens it. */
-    _renderPhotosField(f) {
+    _renderPhotosField(f, { inline = false } = {}) {
       if (f.mirrored) return nothing;
       const list = clean(f.photos);
       const full = list.length + (f.photosBusy || 0) >= MAX_PHOTOS;
-      return html`<div class="field photos-field">
-        <span class="flabel">${icon("camera", "lbl-ic")}Fotos${list.length ? html` <span class="count">(${list.length})</span>` : nothing}</span>
-        <div class="chip-row grid photo-acts">
-          <button class="pick" ?disabled=${full} @click=${() => this._pickPhoto("rv-task-cam")}>${icon("camera")}<span>Tirar foto</span></button>
-          <button class="pick" ?disabled=${full} @click=${() => this._pickPhoto("rv-task-pick")}>${icon("images")}<span>Escolher fotos</span></button>
-        </div>
-        ${list.length || f.photosBusy
+      const grid =
+        list.length || f.photosBusy
           ? html`<div class="photo-grid">
               ${list.map(
                 (file, i) => html`<div class="photo">
@@ -136,9 +131,26 @@ export const PhotosMixin = (Base) =>
               )}
               ${Array.from({ length: f.photosBusy || 0 }, () => html`<div class="photo busy" aria-label="Enviando">${icon("loader-circle", "ai-spin")}</div>`)}
             </div>`
-          : nothing}
-        <input id="rv-task-cam" class="sr" type="file" accept="image/*" capture="environment" tabindex="-1" aria-hidden="true" @change=${(e) => this._addPhotos(e)} />
-        <input id="rv-task-pick" class="sr" type="file" accept="image/*" multiple tabindex="-1" aria-hidden="true" @change=${(e) => this._addPhotos(e)} />
+          : nothing;
+      const inputs = html`<input id="rv-task-cam" class="sr" type="file" accept="image/*" capture="environment" tabindex="-1" aria-hidden="true" @change=${(e) => this._addPhotos(e)} />
+        <input id="rv-task-pick" class="sr" type="file" accept="image/*" multiple tabindex="-1" aria-hidden="true" @change=${(e) => this._addPhotos(e)} />`;
+      // 2.83.0: in Novo item, inside the block at the top (Fotos e mensagens), as a second row of tiles: only to keep the
+      // photo with the task, without the AI reading it
+      if (inline) {
+        return html`<div class="imp-sub photos-sub">Anexar na tarefa${list.length ? html` <span class="count">(${list.length})</span>` : nothing}</div>
+          <div class="imp-tiles photo-tiles">
+            <button type="button" class="imp-tile" ?disabled=${full} @click=${() => this._pickPhoto("rv-task-cam")}>${icon("camera")}<span>Tirar foto</span></button>
+            <button type="button" class="imp-tile" ?disabled=${full} @click=${() => this._pickPhoto("rv-task-pick")}>${icon("images")}<span>Escolher fotos</span></button>
+          </div>
+          ${grid}${inputs}`;
+      }
+      return html`<div class="field photos-field">
+        <span class="flabel">${icon("camera", "lbl-ic")}Fotos${list.length ? html` <span class="count">(${list.length})</span>` : nothing}</span>
+        <div class="chip-row grid photo-acts">
+          <button class="pick" ?disabled=${full} @click=${() => this._pickPhoto("rv-task-cam")}>${icon("camera")}<span>Tirar foto</span></button>
+          <button class="pick" ?disabled=${full} @click=${() => this._pickPhoto("rv-task-pick")}>${icon("images")}<span>Escolher fotos</span></button>
+        </div>
+        ${grid}${inputs}
       </div>`;
     }
 
