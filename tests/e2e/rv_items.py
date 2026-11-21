@@ -116,7 +116,8 @@ async def main():
         await open_edit("Comprar pilhas")
         check(await sheet_title() == "Editar item", "tapping an item opens Editar item")
         labels = [t.strip() for t in await pg.locator(".sheet .flabel").all_inner_texts()]
-        check(labels[:3] == ["Item", "Notas", "Prazo"] and "Lista" in labels, f"Casa: item, notes, deadline, move ({labels})")
+        # 2.78.0: Notas logo acima de Lista
+        check(labels[:2] == ["Item", "Prazo"] and "Notas" in labels and labels.index("Notas") == labels.index("Lista") - 1, f"Casa: item, deadline, notes just above Lista ({labels})")
         tas = pg.locator(".sheet textarea")
         check(await tas.nth(0).input_value() == "Comprar pilhas", "the text is there")
         await tas.nth(0).fill("Comprar pilhas AA")
@@ -178,7 +179,8 @@ async def main():
         check("Notas" not in [t.strip() for t in await flabels()], f"Notas off: Editar item without notes, no Notas ({await flabels()})")
         await pg.locator(".sheet .icon-btn[aria-label='Fechar']").click(); await pg.wait_for_timeout(300)
         await open_edit("Comprar pilhas AA")
-        check([t.strip() for t in await flabels()][:2] == ["Item", "Notas"] and await tas.nth(1).input_value() == "Duracell, 4 unidades", "Notas off: an item with notes keeps its field (to see or clear them)")
+        fl = [t.strip() for t in await flabels()]
+        check(fl[0] == "Item" and "Notas" in fl and await tas.nth(1).input_value() == "Duracell, 4 unidades", f"Notas off: an item with notes keeps its field (to see or clear them) ({fl})")
         await pg.locator(".sheet .icon-btn[aria-label='Fechar']").click(); await pg.wait_for_timeout(300)
         check(await row("Comprar pilhas AA").locator(".it-desc").inner_text() == "Duracell, 4 unidades", "Notas off: the notes still show in the list")
         on, hint, after = await notes_switch()
