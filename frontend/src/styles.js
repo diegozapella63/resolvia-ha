@@ -3133,26 +3133,26 @@ export const styles = css`
     line-height: 1.4;
     color: var(--rv-muted);
   }
-  /* Mais › Listas: the lists turned off, folded at the end */
+  /* Mais › Listas and the tab Listas: the lists turned off, folded at the end under Nome (n): the thin line of every
+     app of the family (as Ocultos (n) in the CronologIA), with the arrow before the name */
   .inact-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     width: 100%;
+    padding: 10px 4px 8px;
     text-align: left;
-  }
-  .inact-head .tile.muted {
-    background: color-mix(in srgb, var(--rv-muted) 16%, transparent);
     color: var(--rv-muted);
+    font-weight: 600;
+    font-size: 14px;
   }
-  /* Nome (n), as in every app of the family */
-  .inact-head .label .count {
-    color: var(--rv-muted);
+  .inact-head .i {
+    flex: none;
+    width: 18px;
+    height: 18px;
+  }
+  .inact-head .count {
     font-variant-numeric: tabular-nums;
-  }
-  .inact-head .chev {
-    color: var(--rv-muted);
-    transition: transform 0.2s;
-  }
-  .inact-head.open .chev {
-    transform: rotate(180deg);
   }
   .row.inact .label {
     color: var(--rv-text-2);
@@ -3972,7 +3972,7 @@ export const styles = css`
     padding-left: 26px;
     white-space: normal;
   }
-  .panel > .row:not(:has(> .tile)):not(:has(> .em-icon)):not(.inact-head) {
+  .panel > .row:not(:has(> .tile)):not(:has(> .em-icon)) {
     border-top: 0;
   }
   /* as sub-opções (o estado das Recompensas, a IA do Usar IA, o Horário, o Quem recebe e o Testar do Avisar no

@@ -1,4 +1,4 @@
-# ResolvIA 2.25.0: Mais › Listas: the lists turned off go last, folded under Inativas; Dados: buttons of the same size.
+# ResolvIA 2.25.0: Mais › Listas: the lists turned off go last, folded under Inativas (2.77.1: the thin line of the other apps); Dados: buttons of the same size.
 import os as _os
 CRONOLOGIA = _os.environ.get("E2E_CRONOLOGIA", "")
 RESOLVIA = _os.environ.get("E2E_RESOLVIA", "")
@@ -48,10 +48,15 @@ async def main():
         check(await head.locator(".count").inner_text() == f"({n_off})" and (await head.locator(".label").inner_text()).strip() == f"Inativas ({n_off})", f"with how many, Inativas (n) ({await head.locator('.label').inner_text()})")
         last = await panel.evaluate("(p) => { const kids = [...p.children]; return kids[kids.length - 1].className; }")
         check("inact-head" in last, f"folded: Inativas is the last thing ({last})")
+        # 2.77.1: the thin line of the other apps (as Ocultos (n) in the CronologIA): the arrow before the name, no tile
+        look = await head.evaluate("(h) => { const r = h.getBoundingClientRect(), i = h.querySelector('svg').getBoundingClientRect(), l = h.querySelector('.label').getBoundingClientRect(); return { h: Math.round(r.height), first: h.firstElementChild.tagName.toLowerCase(), before: i.right <= l.left + 1, tile: !!h.querySelector('.tile'), svgs: h.querySelectorAll('svg').length, size: getComputedStyle(h).fontSize, d: h.querySelector('svg').innerHTML }; }")
+        check(look["first"] == "svg" and look["before"] and look["svgs"] == 1 and not look["tile"], f"thin line: the arrow before the name, no tile ({look})")
+        check(look["h"] <= 44 and look["size"] == "14px", f"thin line: lower than a row of the list ({look['h']} px, {look['size']})")
         await pg.screenshot(path=f"{SP}/shots/rvi-closed.png")
         # open it
         await head.click(); await pg.wait_for_timeout(300)
         check(await head.get_attribute("aria-expanded") == "true", "opens")
+        check(await head.locator("svg").inner_html() != look["d"], "open: the arrow turns down")
         st = await state(); print("OPEN:", st)
         tail = st[-n_off:]
         check(all(not on for _, on in tail) and any(n == "Casa" for n, _ in tail), f"the turned-off ones after Inativas ({tail})")

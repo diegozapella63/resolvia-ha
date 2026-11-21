@@ -1,5 +1,9 @@
 # Mudanças
 
+## 2.77.1
+
+- **Inativas (n)** (em **Mais › Listas** e na aba **Listas**): a linha de recolher ficou igual à dos outros apps, fina, com a seta antes do nome (para a direita fechada, para baixo aberta).
+
 ## 2.77.0
 
 - **Conversa › Falar**: ouvindo, o clipe dá lugar ao **Cancelar**: o microfone para e nada é enviado. Antes só dava para mandar.

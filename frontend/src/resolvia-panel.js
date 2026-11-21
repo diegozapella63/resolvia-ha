@@ -11,6 +11,7 @@ import {
 import { ICONS } from "./icons.js";
 import { ensureFonts } from "./fonts.js";
 import { appIcon } from "./appicon.js";
+import { offFold } from "./offfold.js";
 import { swipeStart, swipeEnd, slideIn } from "./swipe.js";
 import { styles } from "./styles.js";
 import { usagePanel, usageStyles } from "./usage-panel.js";
@@ -3243,14 +3244,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
    * it was while the app is open); `row` draws each one.
    */
   _renderFold(key, things, row, label = "Inativas") {
-    if (!things.length) return nothing;
-    const open = !!this._folds[key];
-    return html`<button class="row inact-head ${open ? "open" : ""}" data-fold=${key} aria-expanded=${open ? "true" : "false"} @click=${() => (this._folds = { ...this._folds, [key]: !open })}>
-        <span class="tile muted">${icon("eye-off")}</span>
-        <span class="grow"><div class="label">${label} <span class="count">(${things.length})</span></div></span>
-        ${icon("chevron-down", "chev")}
-      </button>
-      ${open ? repeat(things, (l) => l.id, row) : nothing}`;
+    return offFold(this, key, things, row, label);
   }
 
   /** Mais › Listas: name, color, icon and show/hide of each list; new lists. */
