@@ -1,9 +1,12 @@
 // Entry point of the UI served by the ResolvIA app.
 import "./selectsheet.js"; // first: its Back comes before the app's
 import "./hatema.js"; // the background and the cards of the Home Assistant theme (the same file in all the apps)
+import { tecladoCalmo } from "./teclado.js"; // the keyboard of the phone does not leave the pages around the app scrolled
 import "./textareas.js"; // the text fields keep the size the person left them (the same file in all the apps)
 import "./resolvia-panel.js";
 import { createAppHass, appEnv } from "./app-hass.js";
+
+tecladoCalmo();
 
 const root = document.getElementById("app");
 const el = document.createElement("resolvia-panel");

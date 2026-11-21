@@ -5,7 +5,7 @@
 // and moves along with its task). Mixed into <resolvia-panel>.
 import { html, nothing, unsafeSVG } from "../vendor/lit-all.min.js";
 import { ICONS } from "./icons.js";
-import { clip, F, has } from "./util.js";
+import { clip, F } from "./util.js";
 import { taskKey } from "./rooms.js";
 
 const icon = (name, cls = "") =>
@@ -84,14 +84,13 @@ export const ExternalMixin = (Base) =>
     }
 
     /**
-     * Item sheet: Quem faz (the house, or a Serviço externo, with who when said). Not on a plain list
-     * without dates and notes (a shopping list, the Alexa one), unless the task already has one; not
+     * Item sheet: Quem faz (the house, or a Serviço externo, with who when said). 2.84.0 (the owner: "deve
+     * aparecer sempre"): on every list, also a plain one without dates and notes (the Alexa one); only not
      * with Serviços externos off.
      */
     _renderExternalField(f, features = F.DUE_DATE | F.DESCRIPTION) {
       if (!this._extOn()) return nothing;
       const e = clean(f.ext);
-      if (!e && !has(features, F.DUE_DATE) && !has(features, F.DUE_DATETIME) && !has(features, F.DESCRIPTION)) return nothing;
       return html`<div class="field">
         <span class="flabel">${icon("hard-hat", "lbl-ic")}Quem faz</span>
         <div class="chip-row ext-row">

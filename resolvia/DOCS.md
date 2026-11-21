@@ -143,7 +143,7 @@ Os pontos ficam pelo nome da tarefa em cada lista, então valem também quando u
 
 ## Serviço externo
 
-No item, **Quem faz** diz se é com vocês (**Nós mesmos**) ou um **Serviço externo**: uma pessoa ou empresa de fora vai fazer (eletricista, assistência técnica, diarista). Dá para escrever quem, ou deixar em branco. Não aparece nas listas sem prazo nem notas (como as de compras). A tarefa ganha uma etiqueta anil com o capacete e o nome; o **Buscar** acha por quem faz (ou por "serviço externo"), com **Incluir › Serviços externos** ligado (vem ligado); mover a tarefa leva junto; e o **Sugerir com IA** e a **Conversa** sabem que o que vocês fazem é chamar, marcar ou cobrar.
+No item, **Quem faz** diz se é com vocês (**Nós mesmos**) ou um **Serviço externo**: uma pessoa ou empresa de fora vai fazer (eletricista, assistência técnica, diarista). Dá para escrever quem, ou deixar em branco. Aparece em todas as listas. A tarefa ganha uma etiqueta anil com o capacete e o nome; o **Buscar** acha por quem faz (ou por "serviço externo"), com **Incluir › Serviços externos** ligado (vem ligado); mover a tarefa leva junto; e o **Sugerir com IA** e a **Conversa** sabem que o que vocês fazem é chamar, marcar ou cobrar.
 
 Para não usar, desligue **Mais › Configurações › Opções › Quem faz › Serviços externos**: somem o **Quem faz** do item, as etiquetas, o filtro do **Buscar** e o gráfico **Quem faz**, e a IA não fica sabendo quem faz. O que já estava marcado fica guardado (e acompanha a tarefa se ela mudar de nome ou de lista); religando, volta tudo.
 

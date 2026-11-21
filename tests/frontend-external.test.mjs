@@ -65,10 +65,10 @@ describe("external: the item sheet (Quem faz)", () => {
     click(p._renderExternalField(p._form), "Nós mesmos");
     assert.equal(p._form.ext, null);
   });
-  it("not on a plain list without dates and notes (shopping), unless the task already has one", () => {
+  it("2.84.0: on every list, also a plain one without dates and notes (the Alexa one)", () => {
     const p = panel();
     p._form = { ext: null };
-    assert.equal(p._renderExternalField(p._form, F.CREATE | F.UPDATE | F.DELETE | F.MOVE), nothing);
+    assert.deepEqual(labels(p._renderExternalField(p._form, F.CREATE | F.UPDATE | F.DELETE | F.MOVE)), ["Nós mesmos", "Serviço externo"]);
     assert.deepEqual(labels(p._renderExternalField(p._form, F.CREATE | F.DUE_DATETIME)), ["Nós mesmos", "Serviço externo"]);
     assert.deepEqual(labels(p._renderExternalField(p._form, F.CREATE | F.DESCRIPTION)), ["Nós mesmos", "Serviço externo"]);
     p._form = { ext: "Loja" };

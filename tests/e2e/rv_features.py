@@ -104,7 +104,7 @@ async def main():
         check(f["quick"] == 1 and f["grips"] == 3 and f["limpar"] == 1, f"Lista de compras: add, reorder, clear done ({f})")
         s = await sheet_of("Manteiga")
         # 2.58.0: a list that takes no date gets a deadline kept by the app
-        check(s["labels"] == ["Item", "Fotos", "Prazo", "Lista"] and s["trash"] == 1, f"Lista de compras: no notes, a deadline of the app ({s['labels']})")
+        check(s["labels"] == ["Item", "Fotos", "Prazo", "Quem faz", "Lista"] and s["trash"] == 1, f"Lista de compras: no notes, a deadline of the app ({s['labels']})")
         await close(); await pg.wait_for_timeout(300)
         keys0 = await pg.locator(".panel.items .item[data-drag]").evaluate_all("(els) => els.map((e) => e.dataset.key)")
         grip = await pg.locator(f".item[data-key='{keys0[-1]}'] .grip").bounding_box()
@@ -135,7 +135,7 @@ async def main():
         f = await facts()
         check(f["quick"] == 1 and f["grips"] == 0 and f["limpar"] == 1, f"Alexa: add and clear, no reorder ({f})")
         s = await sheet_of("Leite")
-        check(s["labels"] == ["Item", "Fotos", "Prazo", "Lista"] and s["trash"] == 1, f"Alexa: no notes, a deadline of the app ({s['labels']})")
+        check(s["labels"] == ["Item", "Fotos", "Prazo", "Quem faz", "Lista"] and s["trash"] == 1, f"Alexa: no notes, a deadline of the app ({s['labels']})")
         check(await pg.locator(".sheet .app-due").count() == 0, "Alexa: no hint before a date")
         # 2.69.0: Lista with the list where the item is marked (also when it takes no new item), without "(mover)"
         on = [t.strip() for t in await pg.locator(".sheet .pick.list.on").all_inner_texts()]
@@ -143,7 +143,7 @@ async def main():
         await pg.locator(".sheet .pick", has_text="Amanhã").click(); await pg.wait_for_timeout(150)
         hint = await pg.locator(".sheet .app-due").inner_text() if await pg.locator(".sheet .app-due").count() else ""
         check(hint.strip() == "Guardado no ResolvIA: a lista não aceita data.", f"Alexa: the date stays in the ResolvIA ({hint})")
-        check(await pg.locator(".sheet .field", has=pg.locator(".flabel", has_text="Quem faz")).count() == 0, "Alexa: no Quem faz, as before")
+        check(await pg.locator(".sheet .field", has=pg.locator(".flabel", has_text="Quem faz")).count() == 1, "Alexa: 2.84.0: Quem faz on every list")
         await pg.screenshot(path=f"{SP}/shots/rvf-alexa-prazo.png")
         await pg.locator(".sheet textarea").first.fill("Leite desnatado")
         await pg.locator(".sheet .btn.primary").click(); await pg.wait_for_timeout(600)
