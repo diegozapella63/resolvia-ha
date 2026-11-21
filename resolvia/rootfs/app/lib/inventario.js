@@ -10,11 +10,13 @@ const EVERY_MS = 10 * 60 * 1000;
 
 export class Inventario {
   /** enabled(): Mais › Configurações › Integrações › InventarIA › cômodos on; items(): equipamentos on (both off by default). */
-  constructor({ shareDir, log, enabled = () => false, items = () => false, onChange = () => {} }) {
+  constructor({ shareDir, log, enabled = () => false, items = () => false, bens = () => true, onChange = () => {} }) {
     this.file = path.join(shareDir, "inventario", "integracao.json");
     this.log = log;
     this.enabled = enabled;
     this.items = items;
+    // 2.79.0, Usar bens: off, the area Bens (and its items) stays out of everything here; state.bens says the InventarIA has it
+    this.bens = bens;
     this.onChange = onChange;
     this.state = { encontrado: false, comodos: [], itens: [], erro: null, versao: null, at: null };
     this.busy = null;
@@ -83,7 +85,17 @@ export class Inventario {
               itens = this.state.itens || [];
             }
           }
-          this.state = { encontrado: true, comodos, itens, erro, versao: out.versao || null, at: new Date().toISOString() };
+          const area = comodos.find((c) => c.tipo === "bens");
+          const semBens = area && !this.bens();
+          this.state = {
+            encontrado: true,
+            comodos: semBens ? comodos.filter((c) => c !== area) : comodos,
+            itens: semBens ? itens.filter((i) => i.comodo !== area.id) : itens,
+            erro,
+            versao: out.versao || null,
+            at: new Date().toISOString(),
+            ...(area ? { bens: true } : {}),
+          };
           this.lastLog = "";
         } catch (err) {
           // keep the rooms read before: a restart of the InventarIA should not empty the tasks

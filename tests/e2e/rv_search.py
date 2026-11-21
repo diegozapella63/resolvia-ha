@@ -115,6 +115,11 @@ async def main():
             await ws({"type": "resolvia/prefs/set_list", "entity_id": eid, "prefs": {"owner": quem}})
         await pg.goto(URL); await pg.wait_for_timeout(1300)
         await pg.locator(".tab", has_text="Buscar").click(); await pg.wait_for_timeout(400)
+        # 2.79.0: De quem é is an option (Opções › Exibição, off until turned on): off, no filter, even with a list of a person
+        check(await pg.locator(".who-filter").count() == 0, "2.79.0: De quem é off in Opções: no De quem é in Buscar, even with a list of a person")
+        await ws({"type": "resolvia/prefs/set_app", "prefs": {"owners_on": True}})
+        await pg.goto(URL); await pg.wait_for_timeout(1300)
+        await pg.locator(".tab", has_text="Buscar").click(); await pg.wait_for_timeout(400)
         who = pg.locator(".who-filter .pick")
         check([t.strip() for t in await who.all_inner_texts()] == ["Todos", "Ana", "Beto"] and (await pg.locator(".who-filter .pick.on").inner_text()).strip() == "Beto"
               and await pg.locator(".filters-sub svg.lbl-ic").count() == 1, f"De quem é: Todos and each person, with its icon; 2.69.0: never chosen, it starts on who uses the app ({await who.all_inner_texts()})")

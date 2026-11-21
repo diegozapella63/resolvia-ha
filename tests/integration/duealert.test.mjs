@@ -93,4 +93,20 @@ describe("De quem é (2.42.0)", () => {
     await ana.call("resolvia/prefs/set_list", { entity_id: "todo.casa", prefs: { owner: null } });
     assert.deepEqual(stack.presence().donos, { "todo.google_tasks": "Ana" });
   });
+
+  it("2.79.0: De quem é is an option: on since a list had a person; off, every list is everyone's and what was chosen is kept", async () => {
+    assert.equal((await ana.call("resolvia/prefs/get")).app.owners_on, true, "turned on once, with the owners that came from the CronologIA");
+    const base = (await ana.call("resolvia/due_alert/test")).today;
+    assert.ok(base > 0, "something due today on the list of the house");
+    await ana.call("resolvia/prefs/set_list", { entity_id: "todo.casa", prefs: { owner: "Beto" } });
+    assert.equal((await ana.call("resolvia/due_alert/test")).today, 0);
+    await ana.call("resolvia/prefs/set_app", { prefs: { owners_on: false } });
+    assert.deepEqual(stack.presence().donos || {}, {}, "off: no owners for the CronologIA");
+    assert.equal((await ana.call("resolvia/due_alert/test")).today, base, "off: the alert goes to everyone again");
+    assert.equal((await ana.call("resolvia/prefs/get")).lists["todo.casa"].owner, "Beto", "what was chosen is kept");
+    await ana.call("resolvia/prefs/set_app", { prefs: { owners_on: true } });
+    assert.deepEqual(stack.presence().donos, { "todo.google_tasks": "Ana", "todo.casa": "Beto" }, "on again: as it was");
+    assert.equal((await ana.call("resolvia/due_alert/test")).today, 0);
+    await ana.call("resolvia/prefs/set_list", { entity_id: "todo.casa", prefs: { owner: null } });
+  });
 });

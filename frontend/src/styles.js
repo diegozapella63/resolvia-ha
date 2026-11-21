@@ -417,13 +417,21 @@ export const styles = css`
   /* Casa ou Bens (2.62.0): before the rooms of an item, two halves of the same size */
   .seg.where {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr)); /* 2.79.0: Nenhum, Casa, Bens */
   }
   .seg.where button {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: 6px;
+    min-width: 0;
+    padding-left: 4px;
+    padding-right: 4px;
+  }
+  /* a site named in a text opens it (2.79.0) */
+  a.site {
+    color: var(--accent);
+    font-weight: 600;
   }
   .seg.where .i {
     width: 18px;

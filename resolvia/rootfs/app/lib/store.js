@@ -68,6 +68,11 @@ const APP_FIELDS = {
   rooms_on: ["boolean"],
   // Mais > Configurações > Integrações > InventarIA › Usar equipamentos: each task can point to an item of the InventarIA
   equips_on: ["boolean"],
+  // 2.79.0, InventarIA › Usar bens: false = the area Bens of the InventarIA (house, car) stays out (on unless turned off)
+  bens_on: ["boolean"],
+  // 2.79.0, Opções › Exibição › De quem é: true = each list can be of a person (off unless turned on; a house that
+  // already had a list with a person starts on: server.js turns it on once)
+  owners_on: ["boolean"],
   // Mais > Configurações > Opções > Quem faz › Serviços externos: true = off (no Quem faz, no tag, not in Buscar,
   // Gráficos nor the AI); what is kept (ext) stays, and comes back when turned on
   ext_off: ["boolean"],

@@ -145,10 +145,16 @@ const placar = new Placar({ shareDir: SHARE_DIR });
 const roomsOn = () => store.prefs.app.rooms_on === true;
 // … and the equipment (Mais › Configurações › Integrações › InventarIA › Usar equipamentos; off by default): an item for each task
 const equipsOn = () => store.prefs.app.equips_on === true;
-const inventario = new Inventario({ shareDir: SHARE_DIR, log, enabled: roomsOn, items: equipsOn, onChange: () => publishPresence() });
+// 2.79.0, InventarIA › Usar bens (on unless turned off): the area Bens of the InventarIA, when it has one
+const bensOn = () => store.prefs.app.bens_on !== false;
+const inventario = new Inventario({ shareDir: SHARE_DIR, log, enabled: roomsOn, items: equipsOn, bens: bensOn, onChange: () => publishPresence() });
+// 2.79.0, Opções › Exibição › De quem é (off unless turned on): off, every list is everyone's (what was chosen is kept)
+const ownersOn = () => store.prefs.app.owners_on === true;
+const ownerOf = (prefs) => (ownersOn() && prefs && prefs.owner) || "";
+if (store.prefs.app.owners_on === undefined && Object.keys(store.owners).length) store.setAppPrefs({ owners_on: true }); // a house that already used it
 /** What the screens need: what is on, the rooms and items of the InventarIA, and the room and item of each task. */
 function roomsState() {
-  return { on: roomsOn(), equips_on: equipsOn(), ...inventario.state, map: roomsOn() ? store.rooms : {}, emap: equipsOn() ? store.equips : {} };
+  return { on: roomsOn(), equips_on: equipsOn(), bens_on: bensOn(), ...inventario.state, map: roomsOn() ? store.rooms : {}, emap: equipsOn() ? store.equips : {} };
 }
 
 /**
@@ -245,7 +251,8 @@ const dueLists = () => {
   const out = new Map();
   for (const [id, st] of todoStates) {
     if (!st || st.state === "unavailable" || st.state === "unknown") continue;
-    const prefs = (store.prefs.lists || {})[id] || {};
+    const all = (store.prefs.lists || {})[id] || {};
+    const prefs = ownersOn() || !all.owner ? all : { ...all, owner: "" }; // De quem é off: the alert goes to everyone
     out.set(id, { name: prefs.name || (st.attributes && st.attributes.friendly_name) || id, features: Number((st.attributes && st.attributes.supported_features) || 0), prefs });
   }
   return out;
@@ -270,7 +277,7 @@ async function toolLists() {
   const rows = [...todoStates].map(([id, st]) => {
     const prefs = store.prefs.lists[id] || {};
     const features = Number(st.attributes.supported_features) || 0;
-    return { id, name: looks.get(id).name, features, hidden: !!prefs.hidden, owner: prefs.owner || "", unavailable: st.state === "unavailable" || st.state === "unknown", due: dueOn && !datesInfo(prefs, features) };
+    return { id, name: looks.get(id).name, features, hidden: !!prefs.hidden, owner: ownerOf(prefs), unavailable: st.state === "unavailable" || st.state === "unknown", due: dueOn && !datesInfo(prefs, features) };
   });
   const order = [...looks.keys()];
   return rows.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
@@ -317,6 +324,7 @@ function adoptOwners() {
   if (!p || !p.donos) return;
   const n = store.adoptOwners(p.donos);
   if (n) {
+    if (store.prefs.app.owners_on === undefined) store.setAppPrefs({ owners_on: true });
     log.info(`De quem é: ${n} lista(s) com dono vieram da CronologIA`);
     publishPresence();
   }
@@ -714,7 +722,8 @@ class Session {
       case "resolvia/prefs/set_app": {
         const prefs = store.setAppPrefs(msg.prefs);
         if ("points_on" in (msg.prefs || {}) || "due_off" in (msg.prefs || {})) publishPresence();
-        if ("rooms_on" in (msg.prefs || {}) || "equips_on" in (msg.prefs || {})) inventario.refresh().then(() => publishPresence()).catch(() => {});
+        if ("rooms_on" in (msg.prefs || {}) || "equips_on" in (msg.prefs || {}) || "bens_on" in (msg.prefs || {})) inventario.refresh().then(() => publishPresence()).catch(() => {});
+        if ("owners_on" in (msg.prefs || {})) publishPresence();
         // Sensores no Home Assistant: on creates the sensor now, off removes it
         if ("sensors_on" in (msg.prefs || {})) {
           (store.prefs.app.sensors_on === true ? usage.publish() : usage.remove()).catch(() => {});
@@ -1098,7 +1107,7 @@ async function handleReport(url, res, pdf = false) {
   const app = store.prefs.app;
   const looks = await lookOfLists();
   const lists = [...dueLists()]
-    .map(([id, l]) => ({ id, name: (looks.get(id) || {}).name || l.name, color: (looks.get(id) || {}).color || "", owner: l.prefs.owner || "", hidden: !!l.prefs.hidden, due: app.due_off !== true && !datesInfo(l.prefs, l.features) }))
+    .map(([id, l]) => ({ id, name: (looks.get(id) || {}).name || l.name, color: (looks.get(id) || {}).color || "", owner: ownerOf(l.prefs), hidden: !!l.prefs.hidden, due: app.due_off !== true && !datesInfo(l.prefs, l.features) }))
     .sort((a, b) => Number(a.hidden) - Number(b.hidden) || a.name.localeCompare(b.name, "pt-BR"));
   const rules = Object.values(store.rules || {});
   const repeatOn = app.repeat_on === undefined ? rules.length > 0 : app.repeat_on === true;
@@ -1266,7 +1275,7 @@ function publishPresence() {
     // equipamentos: the items of the InventarIA (with their room) and the item of each task
     const equipamentos = equipsOn() && inventario.state.itens.length ? { lista: inventario.state.itens.map((i) => ({ id: i.id, nome: i.nome, comodo: inventario.nameOf(i.comodo) || "" })), tarefas: store.equips } : null;
     // donos: whose each list is (De quem é, 2.42.0+): the CronologIA shows it only to that person
-    const donos = store.owners;
+    const donos = ownersOn() ? store.owners : {};
     // listas: the lists that take a new task, as Nova tarefa here shows them (the name and the color of the app, in its
     // order; not the ones unmarked in Mais › Listas) and whether they take a deadline: the InventarIA creates tasks with it
     const listas = publishedLists();

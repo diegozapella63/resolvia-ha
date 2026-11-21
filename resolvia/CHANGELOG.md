@@ -1,5 +1,14 @@
 # Mudanças
 
+## 2.79.0
+
+- **Novo item › Nenhum, Casa ou Bens**: a escolha ganhou o **Nenhum**, que vem primeiro e é onde um item novo começa. O **Cômodo** e o **Equipamento** só aparecem depois de escolher **Casa** ou **Bens**.
+- **InventarIA › Usar bens**: uma chave nova em **Integrações › InventarIA**. Desligada, a área Bens fica de fora (sem o Nenhum, Casa ou Bens). Se o InventarIA não usa bens, a chave fica presa e diz por quê.
+- **De quem é** virou uma opção, em **Opções › Exibição**. Desligada, o De quem é some do **Buscar** e do **Personalizar** da lista, e todas as listas valem para todos (o que estava escolhido fica guardado). Quem já tinha uma lista de uma pessoa continua com ela ligada.
+- **Selecionar**: sair da tela com itens selecionados desfaz a seleção.
+- **Falar › Como configurar**: o **Home Assistant Cloud** abre o site num toque.
+- **Dados**: os textos de cima no mesmo jeito dos outros apps.
+
 ## 2.78.0
 
 - **Novo item / Editar item**: as **Notas** ficam logo acima de **Lista** e fecham e abrem num toque no título, como os outros campos (o aparelho lembra). Fechadas, mostram o começo do que está escrito.

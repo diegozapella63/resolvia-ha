@@ -174,6 +174,15 @@ async def main():
         check(await a.locator(".item.selecting.picked", has_text="Queijo").count() == 1, "closing the sheet keeps the selection")
         await a.locator(".res-head .icon-btn[aria-label='Cancelar seleção']").click(); await pg.wait_for_timeout(200)
         check(await a.locator(".item.selecting").count() == 0, "X ends selecting")
+        # 2.79.0: leaving the screen with items selected ends Selecionar (the selection and the mode)
+        await a.locator(".res-head .text-btn", has_text="Selecionar").click(); await pg.wait_for_timeout(200)
+        await a.locator(".item.selecting", has_text="Queijo").click(); await pg.wait_for_timeout(150)
+        check(await a.locator(".item.selecting.picked").count() == 1 and await a.locator(".sel-bar").count() == 1, "selecting again, one picked")
+        await a.locator("nav .tab", has_text="Listas").click(); await pg.wait_for_timeout(500)
+        check(await a.locator(".sel-bar").count() == 0, "another tab: no Alterar bar")
+        await a.locator("nav .tab", has_text="Buscar").click(); await pg.wait_for_timeout(500)
+        check(await a.locator(".item.selecting").count() == 0 and await a.locator(".sel-bar").count() == 0 and await a.locator(".res-head .text-btn", has_text="Selecionar").count() == 1
+              and await a.evaluate("(el) => el._bsel") is None, "2.79.0: back in Buscar: nothing selected, and Selecionar again")
         check(not errs, f"no page errors {errs[:3]}")
         await b.close()
 try:

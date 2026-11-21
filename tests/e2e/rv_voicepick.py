@@ -82,6 +82,10 @@ async def main():
         await a.locator("#leitura-ia input[aria-label='Usar IA']").uncheck(); await pg.wait_for_timeout(800)
         check(await a.locator("#falar").count() == 0, "Usar IA off: no Falar panel")
         await a.locator("#leitura-ia input[aria-label='Usar IA']").check(); await pg.wait_for_timeout(800)
+        # 2.79.0: without a speech-to-text, Como configurar: the Home Assistant Cloud opens its site
+        await a.evaluate("(el) => { el._voice = { ready: false, reason: 'O Home Assistant não tem fala para texto.' }; el.requestUpdate(); }"); await pg.wait_for_timeout(300)
+        ln = await a.evaluate("(el) => [...el.shadowRoot.querySelectorAll('#falar a.site')].map((x) => [x.textContent, x.getAttribute('href'), x.target, x.rel, getComputedStyle(x).fontWeight])")
+        check(ln == [["Home Assistant Cloud", "https://www.nabucasa.com/", "_blank", "noopener noreferrer", "600"]], f"Como configurar: the Home Assistant Cloud is a link to its site ({ln})")
         check(not errs, f"no page errors {errs}")
         await b.close()
 try: asyncio.run(main())

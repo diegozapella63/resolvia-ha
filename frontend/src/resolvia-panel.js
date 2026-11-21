@@ -263,6 +263,8 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
 
   disconnectedCallback() {
     super.disconnectedCallback();
+    this._bsel = null; // leaving the app also ends Selecionar
+    this._sel = null;
     clearInterval(this._dayTimer);
     window.removeEventListener("popstate", this._onPopState);
     window.removeEventListener("resize", this._onResize);
@@ -294,6 +296,9 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     if (changed.has("route") && this.route) {
       this._path = this.route.path || "";
     }
+    // 2.79.0: leaving the screen (another tab, another list) ends Selecionar: the selection and the mode, in Buscar and in a list
+    if (this._bsel && this._bsel.path !== this._path) this._bsel = null;
+    if (this._sel && this._sel.path !== this._path) this._sel = null;
     if (changed.has("hass") && this.hass) {
       if (!this._prefsLoaded) {
         this._prefsLoaded = true;
@@ -629,7 +634,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
         icon: p.icon === "sem" ? null : p.icon || guessIcon(`${meta.name} ${meta.group || ""} ${id}`),
         iconPref: p.icon || null,
         hidden: !!p.hidden,
-        owner: p.owner || null,
+        owner: (this._ownersOn() && p.owner) || null, // 2.79.0: De quem é off, every list is everyone's
         features,
         canDue,
         // 2.58.0: the integration takes no date (the Alexa): the deadline is kept by the app
@@ -1322,7 +1327,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
         ? html`<div class="steps-box">
             <b>Como configurar</b>
             <ol class="steps">
-              <li>Com o Home Assistant Cloud, a fala para texto já vem pronta.</li>
+              <li>Com o <a class="site" href="https://www.nabucasa.com/" target="_blank" rel="noopener noreferrer">Home Assistant Cloud</a>, a fala para texto já vem pronta.</li>
               <li>Sem ele, instale um motor de fala: o app Whisper (local, de graça) com a integração Wyoming, ou a fala para texto de uma IA como Google Gemini ou OpenAI.</li>
               <li>Volte aqui, toque em Verificar de novo e escolha o motor na lista.</li>
             </ol>
@@ -1949,6 +1954,11 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
     return f.color === "sem" ? NO_COLOR : colorById(f.color) || l.autoColor || l.color;
   }
 
+  /** Opções › Exibição › De quem é (2.79.0; off unless turned on): each list can be of a person. */
+  _ownersOn() {
+    return this._app("owners_on", false) === true;
+  }
+
   _openCustomize(list) {
     this._openSheet("customize", {
       listId: list.id,
@@ -1985,7 +1995,8 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
       icon: f.icon || null,
       hidden: f.hidden ? true : null,
       dates_info: l && l.canDue && !f.deadlines ? true : null,
-      owner: (f.owner || "").trim() || null,
+      // De quem é off: what was chosen before is kept as it was
+      ...(this._ownersOn() ? { owner: (f.owner || "").trim() || null } : {}),
     });
   }
 
@@ -3393,6 +3404,10 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
             <div class="grow"><div class="label">${icon("notebook-pen", "lbl-ic")}Notas</div><div class="hint" style="white-space:normal">${this._notesOn() ? "Campo de notas em cada item." : "Desligado."}</div></div>
             ${sw(this._notesOn(), "Notas", (e) => this._saveAppPrefs({ notes_off: e.target.checked ? null : true }))}
           </div>
+          <div class="row">
+            <div class="grow"><div class="label">${icon("user-round", "lbl-ic")}De quem é</div><div class="hint" style="white-space:normal">${this._ownersOn() ? "Cada lista pode ser de uma pessoa." : "Desligado."}</div></div>
+            ${sw(this._ownersOn(), "De quem é", (e) => this._saveAppPrefs({ owners_on: e.target.checked ? true : false }))}
+          </div>
         </div>
         ${this._renderExternalOption(sw)}
         ${this._renderRulesPanels()}
@@ -4143,6 +4158,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(ExternalMixin(ChatMixin(Ro
    * of the house stays as a choice, so it isn't lost.
    */
   _renderOwnerPick(f) {
+    if (!this._ownersOn()) return nothing;
     const people = this._people || [];
     const names = f.owner && !people.some((n) => fold(n) === fold(f.owner)) ? [...people, f.owner] : people;
     if (!names.length) return nothing;

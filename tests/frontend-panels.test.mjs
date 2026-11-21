@@ -383,7 +383,11 @@ describe("data panel: Mais › Configurações › Dados", () => {
     const t = text(P()._renderDataPanel());
     const at = ["Exportar", "Backup na pasta share", "Importar", "Versões anteriores", "Onde ficam os dados", "Começar do zero"].map((h) => t.indexOf(h));
     assert.ok(at.every((x, i) => x >= 0 && (i === 0 || x > at[i - 1])), `in order (${at})`);
-    assert.match(t, /Começar do zero Apaga as repetições, os pontos, os cômodos, os equipamentos e quem faz\. Os itens das listas e os ajustes continuam\. Apagar tudo$/);
+    assert.match(t, /Começar do zero Apaga as repetições, os pontos, os cômodos, os equipamentos e quem faz\. Os itens das listas e os ajustes continuam\. Uma cópia fica em Versões anteriores\. Apagar tudo$/);
+    // 2.79.0: the common sentences like the other apps
+    assert.match(t, /Backup na pasta share Cópia completa em share\/resolvia\. Os backups do Home Assistant também incluem o ResolvIA\./);
+    assert.match(t, /antes de importar, restaurar ou começar do zero\. Ficam as 3 mais recentes\./);
+    assert.match(t, /em \/data\/resolvia\.json, no backup do Home Assistant\./);
   });
   it("Começar do zero asks first, then erases and reloads; an error says it", async () => {
     let erased = 0;

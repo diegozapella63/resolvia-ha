@@ -2,7 +2,7 @@
 import "./_lit.mjs";
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { text, click, fire, labels, fakeHass, hostOf } from "./_lit.mjs";
+import { text, click, fire, labels, controls, fakeHass, hostOf } from "./_lit.mjs";
 import { RoomsMixin, taskKey } from "../frontend/src/rooms.js";
 import { taskKey as serverKey } from "../resolvia/rootfs/app/lib/store.js";
 
@@ -237,9 +237,17 @@ describe("rooms: Casa ou Bens (2.62.0)", () => {
   it("Casa first: the rooms of the house only (no Bens chip), Todos is the house; the equipment of the house", () => {
     const p = panel(BENS());
     p._form = { room: null, rooms: [], equips: [] };
-    const f = p._renderRoomField(p._form);
-    assert.deepEqual(labels(f), ["Casa", "Bens", "Nenhum", "Todos", "Cozinha", "Quarto de hóspedes co…"]);
-    assert.match(text(f), /^Casa Bens Cômodo/);
+    // 2.79.0: Nenhum comes first and is where a new item starts: no rooms and no equipment until Casa or Bens
+    let f = p._renderRoomField(p._form);
+    assert.deepEqual(labels(f), ["Nenhum", "Casa", "Bens"]);
+    assert.equal(p._whereOf(p._form), "nenhum");
+    assert.equal(text(p._renderEquipField(p._form)), "", "Nenhum: no equipment to pick");
+    click(f, "Casa");
+    assert.equal(p._form.where, "casa");
+    f = p._renderRoomField(p._form);
+    assert.deepEqual(labels(f), ["Nenhum", "Casa", "Bens", "Nenhum", "Todos", "Cozinha", "Quarto de hóspedes co…"]);
+    assert.match(text(f), /^Nenhum Casa Bens Cômodo/);
+    assert.match(text(p._renderEquipField(p._form)), /^Equipamento/);
     click(f, "Todos");
     assert.deepEqual(p._form.rooms, ["cozinha", "quarto"], "Todos: the rooms of the house, not Bens");
     assert.equal(p._allRooms(["cozinha", "quarto"]), true);
@@ -250,7 +258,7 @@ describe("rooms: Casa ou Bens (2.62.0)", () => {
     p._form = { room: "cozinha", rooms: ["cozinha"], equips: ["geladeira"] };
     click(p._renderRoomField(p._form), "Bens");
     assert.deepEqual([p._form.where, p._form.rooms, p._form.equips], ["bens", ["bens"], []], "the equipment of the house goes");
-    assert.equal(text(p._renderRoomField(p._form)), "Casa Bens", "no rooms");
+    assert.equal(text(p._renderRoomField(p._form)), "Nenhum Casa Bens", "no rooms");
     const e = p._renderEquipField(p._form);
     assert.match(text(e), /^Bem /);
     assert.deepEqual(p._equipItems(p._form).map((i) => i.id), ["carro", "moto"]);
@@ -259,6 +267,28 @@ describe("rooms: Casa ou Bens (2.62.0)", () => {
     // back to Casa: the bem goes, no room
     click(p._renderRoomField(p._form), "Casa");
     assert.deepEqual([p._form.where, p._form.rooms, p._form.equips], ["casa", [], []]);
+    // 2.79.0, Nenhum: the room and the equipment go, and the fields too
+    p._form = { room: "cozinha", rooms: ["cozinha"], equips: ["geladeira"] };
+    assert.equal(p._whereOf(p._form), "casa", "an item of the house opens in Casa");
+    click(p._renderWhere(p._form), "Nenhum");
+    assert.deepEqual([p._form.where, p._form.room, p._form.rooms, p._form.equips], ["nenhum", null, [], []]);
+    assert.equal(text(p._renderRoomField(p._form)), "Nenhum Casa Bens");
+    assert.equal(text(p._renderEquipField(p._form)), "");
+    assert.deepEqual(p._formRooms(p._form), [], "nothing saved");
+    const antes = { ...p._form };
+    click(p._renderWhere(p._form), "Nenhum");
+    assert.deepEqual(p._form, antes, "the one that is on does nothing");
+  });
+  it("2.79.0: without the area Bens (or with Usar bens off) there is no Nenhum, Casa ou Bens: the fields as before", () => {
+    const p = panel();
+    p._form = { room: null, rooms: [], equips: [] };
+    assert.equal(p._whereOf(p._form), "casa");
+    assert.equal(text(p._renderWhere(p._form)), "");
+    assert.match(text(p._renderRoomField(p._form)), /^Cômodo Nenhum Todos Cozinha/);
+    assert.match(text(p._renderEquipField(p._form)), /^Equipamento/);
+    const off = panel({ ...BENS(), on: false, equips_on: false });
+    assert.equal(off._whereOf({}), "casa", "rooms and equipment off: nothing to choose");
+    assert.equal(text(off._renderWhere({})), "");
   });
   it("a task already in Bens opens in Bens; its tag says Bens", () => {
     const p = panel(BENS());
@@ -270,7 +300,7 @@ describe("rooms: Casa ou Bens (2.62.0)", () => {
   it("only equipment on (rooms off): the choice still splits the equipment", () => {
     const p = panel({ ...BENS(), on: false });
     p._form = { equips: [] };
-    assert.equal(text(p._renderRoomField(p._form)), "Casa Bens");
+    assert.equal(text(p._renderRoomField(p._form)), "Nenhum Casa Bens");
     click(p._renderRoomField(p._form), "Bens");
     assert.deepEqual(p._equipItems(p._form).map((i) => i.id), ["carro", "moto"]);
     assert.deepEqual(p._formRooms(p._form), [], "rooms off: no room saved");
@@ -287,6 +317,45 @@ describe("rooms: Mais › Configurações › Integrações › InventarIA", () 
     const t = text(panel()._renderRoomsPanel());
     assert.match(t, /Usar cômodos Desligado\. Usar equipamentos Desligado\./);
     assert.doesNotMatch(t, /Verificar de novo/);
+    assert.doesNotMatch(t, /Usar bens/, "2.79.0: Usar bens only with the rooms or the equipment on");
+  });
+  it("2.79.0: Usar bens, respecting the InventarIA: on from the start when it uses bens; locked, saying why, when it does not", async () => {
+    const p0 = panel();
+    p0._app_ = { rooms_on: true, equips_on: true };
+    assert.match(text(p0._renderRoomsPanel()), /Usar bens O InventarIA não usa bens\./, "the rooms of the test come without the area");
+    const calls = [];
+    const com = (prefs, r) => {
+      const p = panel(r);
+      p._app_ = prefs;
+      p._saveAppPrefs = async (c) => calls.push(c);
+      p._refreshRooms = async () => calls.push("refresh");
+      return p;
+    };
+    const r = { ...ROOMS(), comodos: [...ROOMS().comodos, { id: "bens", nome: "Bens", tipo: "bens" }], bens: true };
+    let p = com({ rooms_on: true, equips_on: true }, r);
+    let f = p._renderRoomsPanel();
+    assert.match(text(f), /Usar equipamentos Cada tarefa pode ser de um equipamento ou móvel[^.]*\. Usar bens Uma tarefa pode ser de um bem, como a casa ou o carro\./);
+    const st = (v) => {
+      const c = controls(v).find((x) => x.aria === "Usar bens");
+      return [/checked="true"/.test(c.attrs), /\bdisabled\b/.test(c.attrs)];
+    };
+    assert.deepEqual(st(f), [true, false]);
+    await fire(f, "Usar bens", "change", { target: { checked: false } });
+    assert.deepEqual(calls.splice(0), [{ bens_on: false }, "refresh"], "off: kept as false, and the InventarIA is read again");
+    // off: the server leaves the area out (r.bens still says the InventarIA has it)
+    p = com({ rooms_on: true, bens_on: false }, { ...ROOMS(), bens: true });
+    f = p._renderRoomsPanel();
+    assert.match(text(f), /Usar bens Desligado\./);
+    assert.deepEqual(st(f), [false, false]);
+    await fire(f, "Usar bens", "change", { target: { checked: true } });
+    assert.deepEqual(calls.splice(0), [{ bens_on: null }, "refresh"], "on again: the default");
+    assert.equal(p._bensId(), null, "off: no area Bens here");
+    // the InventarIA with its Usar bens off sends no area: the switch is locked and says why
+    p = com({ equips_on: true }, ROOMS());
+    f = p._renderRoomsPanel();
+    assert.match(text(f), /Usar bens O InventarIA não usa bens\./);
+    assert.deepEqual(st(f), [false, true]);
+    assert.match(text(com({ rooms_on: true }, { ...ROOMS(), encontrado: false, comodos: [], itens: [] })._renderRoomsPanel()), /Usar bens Desligado\./, "no InventarIA: just off");
   });
   it("on: what came from the InventarIA, or why nothing came", () => {
     const p = panel();

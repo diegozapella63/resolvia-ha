@@ -211,7 +211,7 @@ export const DataMixin = (Base) =>
           </ul>
         </div>
         <div class="panel">
-          ${this._secHead("archive", "Backup na pasta share", html`Cópia completa em <code>share/resolvia</code>.`)}
+          ${this._secHead("archive", "Backup na pasta share", html`Cópia completa em <code>share/resolvia</code>. Os backups do Home Assistant também incluem o ResolvIA.`)}
           <div class="btn-row sec-actions">
             <button class="btn primary sm" ?disabled=${this._dataBusy === "backup" || (b && b.available === false)} @click=${() => this._createBackup()}>${icon("archive")}${this._dataBusy === "backup" ? "Criando…" : "Criar backup"}</button>
           </div>
@@ -232,14 +232,14 @@ export const DataMixin = (Base) =>
           <div class="btn-row sec-actions"><button class="btn outline sm" @click=${() => this._pickDataImport()}>${icon("upload")}Escolher arquivo</button></div>
         </div>
         <div class="panel">
-          ${this._secHead("archive-restore", "Versões anteriores", "Uma cópia dos ajustes e das repetições a cada 10 minutos de uso e antes de importar, restaurar ou apagar. Ficam as 3 mais recentes.")}
+          ${this._secHead("archive-restore", "Versões anteriores", "Uma cópia dos ajustes e das repetições a cada 10 minutos de uso e antes de importar, restaurar ou começar do zero. Ficam as 3 mais recentes.")}
           <div class="btn-row sec-actions"><button class="btn outline sm" @click=${() => this._openVersions()}>${icon("archive-restore")}Ver versões</button></div>
         </div>
         <div class="panel">
-          ${this._secHead("database", "Onde ficam os dados", html`Os itens ficam nas listas do Home Assistant; os ajustes, em <code>/data/resolvia.json</code>.`)}
+          ${this._secHead("database", "Onde ficam os dados", html`Os itens ficam nas listas do Home Assistant; os ajustes, em <code>/data/resolvia.json</code>, no backup do Home Assistant.`)}
         </div>
         <div class="panel" id="zerar">
-          ${this._secHead("trash", "Começar do zero", "Apaga as repetições, os pontos, os cômodos, os equipamentos e quem faz. Os itens das listas e os ajustes continuam.")}
+          ${this._secHead("trash", "Começar do zero", "Apaga as repetições, os pontos, os cômodos, os equipamentos e quem faz. Os itens das listas e os ajustes continuam. Uma cópia fica em Versões anteriores.")}
           <div class="btn-row sec-actions"><button class="btn danger sm" @click=${() => this._confirmErase()}>${icon("trash")}Apagar tudo</button></div>
         </div>
         <input id="rv-data-import" class="sr" type="file" accept=".zip,.json,application/zip,application/json" tabindex="-1" aria-hidden="true" @change=${(e) => this._onDataImport(e)} />

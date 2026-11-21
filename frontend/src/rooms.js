@@ -62,32 +62,40 @@ export const RoomsMixin = (Base) =>
       return this._roomList().filter((c) => c.id !== b);
     }
 
-    /** The form is about a bem: chosen (f.where), or from its items or its room. */
-    _inBens(f) {
+    /**
+     * Where the form is (2.79.0): "nenhum" (no room and no item: where a new item starts), "casa" or "bens": chosen
+     * (f.where), or from its items or its rooms. Without the area Bens there is nothing to choose: "casa".
+     */
+    _whereOf(f) {
       const b = this._bensId();
-      if (!b) return false;
-      if (f.where) return f.where === "bens";
+      if (!b || !(this._roomsOn() || this._equipsOn())) return "casa";
+      if (f.where) return f.where;
       const ids = this._equipsOn() ? f.equips || [] : [];
-      return ids.length ? this._roomsOfEquips(ids).includes(b) : this._pickedRooms(f).includes(b);
+      const rooms = ids.length ? this._roomsOfEquips(ids) : this._pickedRooms(f);
+      return rooms.includes(b) ? "bens" : rooms.length || ids.length ? "casa" : "nenhum";
+    }
+
+    /** The form is about a bem. */
+    _inBens(f) {
+      return this._whereOf(f) === "bens";
     }
 
     /** Casa | Bens, before the rooms: only when the InventarIA has the area Bens. */
     _renderWhere(f) {
       const b = this._bensId();
       if (!b || !(this._roomsOn() || this._equipsOn())) return nothing;
-      const bens = this._inBens(f);
+      const now = this._whereOf(f);
       const equips = this._equipsOn() ? f.equips || [] : [];
-      const go = (toBens) => {
-        if (toBens === bens) return;
-        // each side keeps only its own items; Bens is the room of a bem
-        const keep = equips.filter((id) => ((this._equipOf(id) || {}).comodo === b) === toBens);
-        this._setForm({ where: toBens ? "bens" : "casa", equips: keep, equipQ: "", equipMore: false, equipAdding: false, ...(toBens ? { room: b, rooms: [b] } : { room: null, rooms: [] }) });
+      const go = (to) => {
+        if (to === now) return;
+        // each side keeps only its own items; Bens is the room of a bem; Nenhum: no room and no item
+        const keep = to === "nenhum" ? [] : equips.filter((id) => ((this._equipOf(id) || {}).comodo === b) === (to === "bens"));
+        this._setForm({ where: to, equips: keep, equipQ: "", equipMore: false, equipAdding: false, ...(to === "bens" ? { room: b, rooms: [b] } : { room: null, rooms: [] }) });
       };
+      const opt = (id, ic, label) => html`<button class=${now === id ? "on" : ""} aria-pressed=${now === id ? "true" : "false"} @click=${() => go(id)}>${icon(ic)}<span>${label}</span></button>`;
+      // 2.79.0: Nenhum first, and where a new item starts (the rooms and the items only show after Casa or Bens)
       return html`<div class="field where-field">
-        <div class="seg where" role="group" aria-label="Casa ou Bens">
-          <button class=${bens ? "" : "on"} aria-pressed=${bens ? "false" : "true"} @click=${() => go(false)}>${icon("house")}<span>Casa</span></button>
-          <button class=${bens ? "on" : ""} aria-pressed=${bens ? "true" : "false"} @click=${() => go(true)}>${icon("car")}<span>Bens</span></button>
-        </div>
+        <div class="seg where" role="group" aria-label="Nenhum, Casa ou Bens">${opt("nenhum", "x", "Nenhum")}${opt("casa", "house", "Casa")}${opt("bens", "car", "Bens")}</div>
       </div>`;
     }
 
@@ -156,7 +164,7 @@ export const RoomsMixin = (Base) =>
      * above (the others apart). With items, the room is theirs (one or several) and is locked.
      */
     _renderEquipField(f) {
-      if (!this._equipsOn()) return nothing;
+      if (!this._equipsOn() || this._whereOf(f) === "nenhum") return nothing;
       const ids = f.equips || [];
       const bens = this._inBens(f);
       // with every room (Todos), the search is the whole house; Bens: the bens
@@ -266,8 +274,8 @@ export const RoomsMixin = (Base) =>
     _renderRoomField(f, withWhere = true) {
       // 2.67.1: in the item sheet, Casa ou Bens comes before Prazo (it renders it there: withWhere false)
       const where = withWhere ? this._renderWhere(f) : nothing;
-      // Bens: no rooms (the bem says where it is)
-      if (!this._roomsOn() || this._inBens(f)) return where;
+      // Bens: no rooms (the bem says where it is); Nenhum: neither
+      if (!this._roomsOn() || this._whereOf(f) !== "casa") return where;
       const locked = this._equipsOn() && (f.equips || []).length > 0;
       const rooms = locked ? this._roomsOfEquips(f.equips) : this._pickedRooms(f);
       // without items, several rooms (a task of the whole house floor, say): each one turns on and off
@@ -299,10 +307,19 @@ export const RoomsMixin = (Base) =>
       const eon = this._app("equips_on", false) === true;
       const nr = (r.comodos || []).length;
       const ne = (r.itens || []).length;
-      const sw = (label, value, hint, change) => html`<div class="row switch-row">
-        <div class="grow"><div class="label">${icon(label === "Usar cômodos" ? "house" : "cpu", "lbl-ic")}${label}</div><div class="hint" style="white-space:normal">${value ? hint : "Desligado."}</div></div>
-        <label class="switch"><input type="checkbox" role="switch" .checked=${value} @change=${(e) => change(e.target.checked)} aria-label=${label} /><span class="track"></span></label>
+      const ICON = { "Usar cômodos": "house", "Usar equipamentos": "cpu", "Usar bens": "car" };
+      const sw = (label, value, hint, change, off = "Desligado.", locked = false) => html`<div class="row switch-row">
+        <div class="grow"><div class="label">${icon(ICON[label], "lbl-ic")}${label}</div><div class="hint" style="white-space:normal">${value ? hint : off}</div></div>
+        <label class="switch"><input type="checkbox" role="switch" .checked=${value} ?disabled=${locked} @change=${(e) => change(e.target.checked)} aria-label=${label} /><span class="track"></span></label>
       </div>`;
+      // 2.79.0, Usar bens: only with the rooms or the equipment on, and only when the InventarIA uses bens (its Usar bens)
+      const bon = this._app("bens_on", true) !== false;
+      const bens =
+        on || eon
+          ? r.bens
+            ? sw("Usar bens", bon, "Uma tarefa pode ser de um bem, como a casa ou o carro.", (v) => this._toggleBens(v))
+            : sw("Usar bens", false, "", () => {}, this._roomsBusy || !r.encontrado ? "Desligado." : "O InventarIA não usa bens.", true)
+          : nothing;
       let state = nothing;
       if (on || eon) {
         const got = [on && nr ? plural(nr, "cômodo", "cômodos") : "", eon && ne ? plural(ne, "equipamento", "equipamentos") : ""].filter(Boolean).join(" · ");
@@ -320,8 +337,14 @@ export const RoomsMixin = (Base) =>
         ${this._secHead("house", "InventarIA", "Para ligar uma tarefa a um cômodo ou a um equipamento da casa.")}
         ${sw("Usar cômodos", on, `Cada tarefa pode ter um cômodo${ai}.`, (v) => this._toggleRooms(v))}
         ${sw("Usar equipamentos", eon, `Cada tarefa pode ser de um equipamento ou móvel${ai}.`, (v) => this._toggleEquips(v))}
+        ${bens}
         ${state}
       </div>`;
+    }
+
+    async _toggleBens(on) {
+      await this._saveAppPrefs({ bens_on: on ? null : false });
+      await this._refreshRooms();
     }
 
     async _toggleEquips(on) {
