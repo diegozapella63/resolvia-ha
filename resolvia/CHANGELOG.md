@@ -1,5 +1,9 @@
 # Mudanças
 
+## 2.88.0
+
+- A **Memória da IA** do CorrerIA (Configurações › Integrações, lá) vale aqui também: o que a casa pediu para a IA lembrar entra na Conversa e na leitura por IA deste app, com a opção CorrerIA ligada.
+
 ## 2.87.0
 
 - **Ler foto ou PDF pelo CorrerIA**: mande no CorrerIA (ou no meio de uma ronda) a foto de uma lista, de um bilhete ou um PDF e peça as tarefas. A IA do ResolvIA lê, como no **Ler com a IA** daqui, e o CorrerIA mostra o que achou para você escolher o que criar. Precisa do CorrerIA 1.24.0 e do Usar IA ligado aqui.

@@ -15,7 +15,8 @@ import { Store, datesInfo, taskKey, PHOTO_RE, photoList } from "./lib/store.js";
 import { TaskSensors } from "./lib/sensors.js";
 import { pendencias, reportHtml, reportPdf, pdfName, listLooks } from "./lib/report.js";
 import { Recurring } from "./lib/recurring.js";
-import { AI } from "./lib/ai.js";
+import { AI, comLembrancas } from "./lib/ai.js";
+import { lembrancasTexto } from "./lib/lembrancas.js";
 import { AiUsage } from "./lib/usage.js";
 import { Ages } from "./lib/ages.js";
 import { Restore } from "./lib/restore.js";
@@ -309,6 +310,8 @@ const taskSensors = new TaskSensors({ rest: HA_REST, token: TOKEN, log, enabled:
 // Mais › Configurações › Integrações › CorrerIA (off by default; it does not need Usar IA): the WhatsApp, the Claude and
 // the Gemini read and change the lists through the tools (lib/ferramentas.js), with the key of share/resolvia/correria.json
 const correriaOn = () => store.prefs.app.correria_on === true;
+// as lembranças da casa (do CorrerIA) vão para a IA daqui, só com a opção CorrerIA ligada
+comLembrancas(() => (correriaOn() ? lembrancasTexto() : ""));
 const correria = new Correria({
   about: { app: "resolvia", nome: "ResolvIA", assunto: "listas de tarefas da casa: o que fazer, prazos, compras, repetição e pontos" },
   dir: path.join(SHARE_DIR, "resolvia"), dataDir: DATA_DIR, port: PORT, version: VERSION, log, enabled: correriaOn,
