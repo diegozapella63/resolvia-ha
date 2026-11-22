@@ -334,6 +334,12 @@ async function userOf(pessoa) {
   return (st && st.attributes.user_id) || null;
 }
 const ferramentas = new Ferramentas({
+  // 2.87.0: the reading of a photo or a PDF by the AI of this app (the same of Fotos e mensagens), for resolvia_ler_arquivo
+  ler: async ({ text, images, lists }) => {
+    if (store.prefs.app.ai_off) throw new Error("a IA está desligada no ResolvIA (Mais › Configurações › Integrações › Usar IA).");
+    const rooms = roomsOn() ? inventario.state.comodos.map((c) => ({ id: c.id, name: c.nome })) : [];
+    return ai.extract({ text, images, lists, rooms, equips: [] });
+  },
   // 2.82.0: a photo that came by the CorrerIA: kept as a file of the photos, like one sent by the screen
   addPhoto: (jpg) => {
     fs.mkdirSync(PHOTO_DIR, { recursive: true });
@@ -1233,7 +1239,7 @@ async function handleTools(req, res) {
   if (req.method !== "POST") return sendJson(res, 405, { erro: "Use GET ou POST." });
   let body;
   try {
-    const raw = await readRaw(req, 8 * 1024 * 1024); // 2.82.0: com a foto de anexar_foto (até 4 MB, em base64)
+    const raw = await readRaw(req, 22 * 1024 * 1024); // 2.82.0: com a foto de anexar_foto; 2.87.0: com o arquivo de ler_arquivo (até 15 MB, em base64)
     body = JSON.parse(raw.toString("utf8"));
     if (!body || typeof body !== "object") throw new Error("not an object");
   } catch (err) {

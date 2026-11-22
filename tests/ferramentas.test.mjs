@@ -162,7 +162,7 @@ const PLACAR = { placar: { ativo: true, periodo: "quinzena", participantes: ["An
 describe("ferramentas: the list", () => {
   it("everything on: 8 tools, the reads first, apagar marked", () => {
     const t = toolList(ON);
-    assert.deepEqual(t.map((x) => x.nome), ["resumo", "tarefas", "repeticoes", "pontos", "criar_tarefa", "editar_tarefa", "concluir_tarefa", "apagar_tarefa", "anexar_foto"]);
+    assert.deepEqual(t.map((x) => x.nome), ["resumo", "tarefas", "repeticoes", "pontos", "criar_tarefa", "editar_tarefa", "concluir_tarefa", "apagar_tarefa", "anexar_foto", "ler_arquivo"]);
     for (const x of t) {
       assert.match(x.nome, /^[a-z0-9_]{1,40}$/);
       assert.ok(x.titulo && x.descricao);
@@ -170,7 +170,7 @@ describe("ferramentas: the list", () => {
       assert.equal(x.entrada.additionalProperties, false);
       assert.equal(typeof x.grava, "boolean");
       assert.equal(x.apaga, x.nome === "apagar_tarefa");
-      assert.equal(x.grava, !["resumo", "tarefas", "repeticoes", "pontos"].includes(x.nome));
+      assert.equal(x.grava, !["resumo", "tarefas", "repeticoes", "pontos", "ler_arquivo"].includes(x.nome));
     }
     assert.deepEqual(Object.keys(t[4].entrada.properties), ["lista", "texto", "prazo", "horario", "notas", "repetir_dias", "pontos", "comodos", "equipamentos", "externo"]);
     assert.deepEqual(t[4].entrada.required, ["lista", "texto"]);
@@ -180,12 +180,12 @@ describe("ferramentas: the list", () => {
   });
   it("only what is on: no points, no repetition, no rooms", () => {
     const t = toolList(OFF);
-    assert.deepEqual(t.map((x) => x.nome), ["resumo", "tarefas", "criar_tarefa", "editar_tarefa", "concluir_tarefa", "apagar_tarefa", "anexar_foto"]);
+    assert.deepEqual(t.map((x) => x.nome), ["resumo", "tarefas", "criar_tarefa", "editar_tarefa", "concluir_tarefa", "apagar_tarefa", "anexar_foto", "ler_arquivo"]);
     assert.deepEqual(Object.keys(t[2].entrada.properties), ["lista", "texto", "notas"]);
     assert.deepEqual(Object.keys(t[3].entrada.properties), ["id", "lista", "texto", "notas", "mover_para"]);
     assert.deepEqual(Object.keys(t[4].entrada.properties), ["id", "lista", "concluida"]);
     assert.deepEqual(Object.keys(t[1].entrada.properties), ["lista", "busca", "situacao", "limite"]);
-    assert.equal(setup({ on: OFF }).tools.lista().length, 7);
+    assert.equal(setup({ on: OFF }).tools.lista().length, 8);
   });
   it("an unknown tool is a 404; arguments that are not an object count as none", async () => {
     const s = setup();
@@ -569,6 +569,40 @@ describe("ferramentas: concluir_tarefa", () => {
   });
   it("a list that does not let complete is said", async () => {
     await setup().fails("concluir_tarefa", { id: "Assembleia" }, /A lista Avisos do condomínio não deixa concluir tarefas/);
+  });
+});
+
+describe("ferramentas: ler_arquivo (2.87.0): the AI of the app reads the photo or the PDF of the conversation", () => {
+  const arq = (tipo = "image/jpeg", b64 = "data:image/jpeg;base64,/9j/AAAA") => ({ tipo, nome: "lista.jpg", b64 });
+  it("declares the files it reads and is a reading tool", () => {
+    const def = setup().tools.lista().find((t) => t.nome === "ler_arquivo");
+    assert.deepEqual([def.grava, def.apaga, def.anexo], [false, false, ["image/jpeg", "image/png", "image/webp", "application/pdf"]]);
+  });
+  it("gives back the items the AI found, with the suggested list; nothing is created", async () => {
+    const s = setup();
+    let got = null;
+    s.tools.c.ler = async (x) => {
+      got = x;
+      return { items: ["Trocar a lâmpada", "Comprar pilhas"], lists: ["todo.casa", null], provider: "IA de teste" };
+    };
+    const txt = await s.run("ler_arquivo", { dica: "a lista da geladeira" }, { anexo: arq() });
+    assert.equal(txt, "No arquivo (lido pela IA do ResolvIA, IA de teste) há 2 itens:\n- Trocar a lâmpada (lista sugerida: Casa)\n- Comprar pilhas\nNada foi criado. Mostre à pessoa e crie com resolvia_criar_tarefa os que ela quiser.");
+    assert.deepEqual([got.text, got.images], ["a lista da geladeira", [{ data: "/9j/AAAA", mime: "image/jpeg" }]]);
+    assert.ok(got.lists.some((l) => l.id === "todo.casa" && l.name === "Casa"));
+    assert.equal(s.calls.length, 0, "nothing written");
+    s.tools.c.ler = async () => ({ items: [], lists: [] });
+    assert.match(await s.run("ler_arquivo", {}, { anexo: arq("application/pdf", "JVBERi0=") }), /não achou nenhuma tarefa nem item/);
+  });
+  it("errors that say what to tell the person", async () => {
+    const s = setup();
+    s.tools.c.ler = async () => {
+      throw new Error("a IA está desligada no ResolvIA (Mais › Configurações › Integrações › Usar IA).");
+    };
+    await s.fails("ler_arquivo", {}, /Falta o arquivo/);
+    await s.fails("ler_arquivo", {}, /lê foto \(JPG, PNG ou WebP\) ou PDF/, { anexo: arq("image/heic") });
+    await s.fails("ler_arquivo", {}, /não conseguiu ler o arquivo: a IA está desligada no ResolvIA.*sem inventar/, { anexo: arq() });
+    s.tools.c.ler = null;
+    await s.fails("ler_arquivo", {}, /não está disponível/, { anexo: arq() });
   });
 });
 

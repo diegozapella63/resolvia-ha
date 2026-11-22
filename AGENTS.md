@@ -125,6 +125,8 @@ Pela pasta `/share` do Home Assistant e por eventos do HA. Mudar um formato aqui
 
 2.86.1: o mesmo link também pelo resto do endereço (`/app/<slug>/buscar/comodo/<nome>`), que o painel do Home Assistant passa por mensagem (`watchHaPath` e `haLink` no `deeplink.js`, como o InventarIA): vale para a tela que já estava aberta, onde o `?aba=` não é lido de novo.
 
+2.87.0: a ferramenta `ler_arquivo` (leitura; `anexo`: os tipos do `anexos.js`, foto ou PDF; o CorrerIA 1.24.0 manda o arquivo da conversa também às de leitura): o `ai.extract` da tela (`c.ler` no `server.js`, que respeita o Usar IA) e devolve os itens com a lista sugerida, sem criar nada; a IA do CorrerIA cria depois com `criar_tarefa`. O pedido da rota aceita 22 MB.
+
 ## Conversa com o dono
 
 Respostas curtas, em português. Ao terminar uma mudança: o que mudou, a versão e se está publicado.

@@ -201,6 +201,8 @@ Ao concluir uma tarefa que vale pontos, eles vão para quem está falando (a pes
 
 O cartão mostra quem usou por último (**Claude usou hoje às 09:41**). Desligando, o arquivo de conexão some e a chave deixa de valer na hora. Nada de fotos, backups ou ajustes passa pelo CorrerIA.
 
+**Ler foto ou PDF** (2.87.0, com o CorrerIA 1.24.0): mande no CorrerIA a foto de uma lista, de um bilhete ou um PDF e peça as tarefas. A IA do ResolvIA lê (como no Ler com a IA daqui; precisa do Usar IA ligado) e o CorrerIA mostra o que achou para você escolher o que criar.
+
 ## Prazos
 
 A **Agora** (a tela inicial) junta o que tem prazo nas listas que aparecem: **Atrasados** e **Hoje** no alto, depois o **Comece por aqui**, **Amanhã**, **Próximos 7 dias**, **Mais adiante** e o que vai voltar sozinho em **Voltam sozinhas**. O número na aba é o que está atrasado ou vence hoje.

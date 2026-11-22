@@ -1,5 +1,9 @@
 # Mudanças
 
+## 2.87.0
+
+- **Ler foto ou PDF pelo CorrerIA**: mande no CorrerIA (ou no meio de uma ronda) a foto de uma lista, de um bilhete ou um PDF e peça as tarefas. A IA do ResolvIA lê, como no **Ler com a IA** daqui, e o CorrerIA mostra o que achou para você escolher o que criar. Precisa do CorrerIA 1.24.0 e do Usar IA ligado aqui.
+
 ## 2.86.1
 
 - **Abrir pelas Rondas do CorrerIA**: o botão **Abrir no ResolvIA** agora leva ao Buscar com o cômodo da ronda também quando o ResolvIA já estava aberto no Home Assistant.

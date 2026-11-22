@@ -5,6 +5,7 @@
 // functions of the server: the to-do actions of Home Assistant, the rules of Recurring and what the Store keeps by
 // the name of the task (points, rooms, equipment, Serviço externo). The tools follow what is on in the app: without
 // points, no points; without rooms, no rooms (the same as the screens).
+import { MIMES } from "./anexos.js";
 import { taskKey, externalValue, MAX_PHOTOS } from "./store.js";
 import { dueText } from "./report.js";
 
@@ -163,6 +164,17 @@ export function toolList(on) {
       grava: true,
       anexo: ["image/jpeg"],
     },
+    {
+      // 2.87.0 (o dono: "todos os apps que tenham as funções de PDF ou imagem ou foto funcionem no correria/rondas"): o Ler
+      // com a IA da tela (Fotos e mensagens), pelo CorrerIA: a IA daqui lê o arquivo e devolve as tarefas; nada é criado
+      nome: "ler_arquivo",
+      titulo: "Ler foto ou PDF",
+      descricao:
+        "Lê com a IA do ResolvIA a foto, a imagem ou o PDF que a pessoa acabou de mandar na conversa (uma lista escrita à mão, um bilhete, um print, um orçamento) e devolve as tarefas ou os itens que há nele, com a lista sugerida para cada um. Não cria nada: depois, crie com resolvia_criar_tarefa os que a pessoa quiser. Só serve logo depois de a pessoa mandar o arquivo.",
+      entrada: obj({ dica: { type: "string", description: "O que a pessoa disse sobre o arquivo, se disse (ajuda a IA a ler)." } }),
+      grava: false,
+      anexo: Object.keys(MIMES),
+    },
   );
   return tools.map((t) => ({ ...t, apaga: !!t.apaga }));
 }
@@ -251,6 +263,7 @@ export class Ferramentas {
       concluir_tarefa: () => this.concluir(a, on, pessoa),
       apagar_tarefa: () => this.apagar(a),
       anexar_foto: () => this.anexarFoto(a, anexo),
+      ler_arquivo: () => this.lerArquivo(a, anexo),
     }[String(nome || "")];
     if (!run) throw new FerramentaDesconhecida(nome);
     return run();
@@ -778,6 +791,30 @@ export class Ferramentas {
   }
 
   /** 2.82.0: the photo the person sent in the conversation goes to a task: {tipo, nome, b64 (a data URL or plain)}. */
+  /** 2.87.0: what the AI of this app reads in the file the person sent (the same reading of Fotos e mensagens). */
+  async lerArquivo(a, anexo) {
+    const mime = anexo && typeof anexo === "object" ? String(anexo.tipo || "").toLowerCase() : "";
+    const data = anexo && typeof anexo.b64 === "string" ? anexo.b64.replace(/^data:[^,]*,/, "").replace(/\s+/g, "") : "";
+    if (!data) throw new ErroFerramenta("Falta o arquivo: peça para a pessoa mandar a foto ou o PDF na conversa e tente de novo.");
+    if (!MIMES[mime]) throw new ErroFerramenta("O ResolvIA lê foto (JPG, PNG ou WebP) ou PDF. Diga isso à pessoa.");
+    if (!this.c.ler) throw new ErroFerramenta("A leitura por IA não está disponível no ResolvIA.");
+    const lists = (await this.lists()).filter((l) => !l.hidden && !l.unavailable);
+    let out;
+    try {
+      out = await this.c.ler({ text: typeof a.dica === "string" ? a.dica.slice(0, 500) : "", images: [{ data, mime }], lists: lists.map((l) => ({ id: l.id, name: l.name })) });
+    } catch (err) {
+      throw new ErroFerramenta(`O ResolvIA não conseguiu ler o arquivo: ${err.message} Diga isso à pessoa, sem inventar o que há nele.`);
+    }
+    const items = (out && out.items) || [];
+    if (!items.length) return "A IA do ResolvIA leu o arquivo e não achou nenhuma tarefa nem item nele. Diga isso à pessoa e pergunte o que ela quer fazer.";
+    const nameOf = (id) => (lists.find((l) => l.id === id) || {}).name;
+    const lines = items.map((t, i) => {
+      const lista = nameOf(out.lists && out.lists[i]);
+      return `- ${t}${lista ? ` (lista sugerida: ${lista})` : ""}`;
+    });
+    return `No arquivo (lido pela IA do ResolvIA${out.provider ? `, ${out.provider}` : ""}) ${items.length === 1 ? "há 1 item" : `há ${items.length} itens`}:\n${lines.join("\n")}\nNada foi criado. Mostre à pessoa e crie com resolvia_criar_tarefa os que ela quiser.`;
+  }
+
   async anexarFoto(a, anexo) {
     const b64 = anexo && typeof anexo === "object" && typeof anexo.b64 === "string" ? anexo.b64.replace(/^data:[^,]*,/, "") : "";
     if (!b64) throw new ErroFerramenta("Falta a foto: peça para a pessoa mandar a foto na conversa e tente de novo.");

@@ -80,7 +80,7 @@ describe("CorrerIA on", () => {
     const body = await res.json();
     assert.equal(body.versao, APP_VERSION);
     assert.match(body.instrucoes, /^ResolvIA: .*resolvia_resumo/);
-    assert.deepEqual(body.ferramentas.map((t) => t.nome), ["resumo", "tarefas", "pontos", "criar_tarefa", "editar_tarefa", "concluir_tarefa", "apagar_tarefa", "anexar_foto"]);
+    assert.deepEqual(body.ferramentas.map((t) => t.nome), ["resumo", "tarefas", "pontos", "criar_tarefa", "editar_tarefa", "concluir_tarefa", "apagar_tarefa", "anexar_foto", "ler_arquivo"]);
     assert.ok(body.ferramentas.every((t) => t.titulo && t.descricao && t.entrada.type === "object" && typeof t.grava === "boolean" && typeof t.apaga === "boolean"));
     assert.equal((await list("errada")).status, 401);
     assert.equal((await fetch(`${stack.appUrl}${ROUTE}`)).status, 401);
@@ -192,7 +192,7 @@ describe("CorrerIA on", () => {
     assert.deepEqual(await call("voar"), { status: 404, body: { erro: "Ferramenta desconhecida: voar." } });
     assert.deepEqual(await call("", {}, { raw: "{não é json" }), { status: 400, body: { erro: "JSON inválido." } });
     assert.deepEqual(await call("", {}, { raw: "null" }), { status: 400, body: { erro: "JSON inválido." } });
-    assert.match(await rawPost(stack, ROUTE, 9 * 1024 * 1024, auth()), /^HTTP 413 \{"erro":"Pedido grande demais."\}$/);
+    assert.match(await rawPost(stack, ROUTE, 23 * 1024 * 1024, auth()), /^HTTP 413 \{"erro":"Pedido grande demais."\}$/);
   });
 
   it("the card knows who used it last", async () => {
