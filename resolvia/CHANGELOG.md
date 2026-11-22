@@ -1,5 +1,9 @@
 # Mudanças
 
+## 2.86.1
+
+- **Abrir pelas Rondas do CorrerIA**: o botão **Abrir no ResolvIA** agora leva ao Buscar com o cômodo da ronda também quando o ResolvIA já estava aberto no Home Assistant.
+
 ## 2.86.0
 
 - **Abrir pelas Rondas do CorrerIA**: o botão **Abrir no ResolvIA** de uma ronda abre o Buscar agrupado por cômodo, só com o cômodo da ronda aberto.

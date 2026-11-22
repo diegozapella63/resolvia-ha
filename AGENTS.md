@@ -123,6 +123,8 @@ Pela pasta `/share` do Home Assistant e por eventos do HA. Mudar um formato aqui
 
 2.86.0: `?aba=buscar&comodo=<nome>` (o link de uma ronda do CorrerIA 1.22.0; `deeplink.js`: `TABS_OPEN.buscar` e `openRoom()`): o Buscar agrupado por Cômodo só nessa visita (`_searchGroup`, sem gravar no aparelho), com os outros grupos fechados (`_openRoom`, no render do Buscar).
 
+2.86.1: o mesmo link também pelo resto do endereço (`/app/<slug>/buscar/comodo/<nome>`), que o painel do Home Assistant passa por mensagem (`watchHaPath` e `haLink` no `deeplink.js`, como o InventarIA): vale para a tela que já estava aberta, onde o `?aba=` não é lido de novo.
+
 ## Conversa com o dono
 
 Respostas curtas, em português. Ao terminar uma mudança: o que mudou, a versão e se está publicado.

@@ -1,4 +1,4 @@
-import { openTab, openRoom } from "./deeplink.js";
+import { openTab, openRoom, watchHaPath, haLink } from "./deeplink.js";
 import { aboutPage, aboutStyles } from "./about.js";
 import {
   LitElement,
@@ -266,6 +266,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(PhotosMixin(ExternalMixin(
 
   disconnectedCallback() {
     super.disconnectedCallback();
+    if (this._stopHaPath) this._stopHaPath();
     this._bsel = null; // leaving the app also ends Selecionar
     this._sel = null;
     clearInterval(this._dayTimer);
@@ -508,6 +509,20 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(PhotosMixin(ExternalMixin(
     // 2.86.0: ?aba=buscar&comodo=Cozinha (a round of the CorrerIA): the Buscar by room, with only that room open
     this._openRoom = openRoom();
     if (this._openRoom) this._searchGroup = "comodo";
+    // 2.86.1 (the owner: "não trouxe filtrado"): the same by the rest of the address (/app/<slug>/buscar/comodo/<name>), which
+    // the panel of the Home Assistant passes by message, also to a screen that was already open
+    if (!this._inHA()) {
+      this._stopHaPath = watchHaPath((p) => {
+        const to = haLink(p);
+        if (!to) return;
+        if (to.room) {
+          this._openRoom = to.room;
+          this._searchGroup = "comodo";
+        }
+        if (this._view().name !== "search" || this._path !== to.path) this._go(to.path);
+        else this.requestUpdate();
+      });
+    }
   }
 
   _checkHeight() {

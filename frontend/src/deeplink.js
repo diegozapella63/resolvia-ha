@@ -35,3 +35,42 @@ export function openTab(win = typeof window === "undefined" ? null : window, tab
   }
   return null;
 }
+
+/**
+ * 2.86.1: inside the Home Assistant (2026.2 or newer), the panel of the app (/app/<slug>/<the rest>) passes the rest of the
+ * address by message, at the start and whenever it changes, also to a screen that was already open (the ?aba= is only
+ * read when the screen loads). onPath gets each new rest once ("" is the app itself). Returns the function that stops.
+ */
+export function watchHaPath(onPath, win = typeof window === "undefined" ? null : window) {
+  if (!win || !win.parent || win.parent === win) return () => {};
+  let seen = null;
+  const on = (e) => {
+    if (e.source !== win.parent || !e.data || e.data.type !== "home-assistant/properties") return;
+    const p = String((e.data.route && e.data.route.path) || "").replace(/\/+$/, "");
+    if (p === seen) return;
+    seen = p;
+    if (p) onPath(p);
+  };
+  win.addEventListener("message", on);
+  try {
+    win.parent.postMessage({ type: "home-assistant/subscribe-properties" }, "*");
+  } catch (e) {
+    /* outside the Home Assistant */
+  }
+  return () => win.removeEventListener("message", on);
+}
+
+/** The screen of a rest of address: /buscar, /buscar/comodo/<name> (the Buscar on a room), /minhas-listas; or null. */
+export function haLink(p) {
+  const m = /^\/buscar(?:\/comodo\/(.+))?$/.exec(p || "");
+  if (m) {
+    let room = m[1] || "";
+    try {
+      room = decodeURIComponent(room);
+    } catch (e) {
+      /* as it came */
+    }
+    return { path: "/buscar", room: room.trim().slice(0, 80) };
+  }
+  return p === "/minhas-listas" ? { path: p, room: "" } : null;
+}

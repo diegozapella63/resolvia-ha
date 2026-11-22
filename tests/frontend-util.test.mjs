@@ -347,6 +347,40 @@ describe("2.86.0: ?aba=buscar&comodo= opens the Buscar on a room, once", async (
   });
 });
 
+describe("2.86.1: the rest of the address the Home Assistant panel passes by message", async () => {
+  const { watchHaPath, haLink } = await import("../frontend/src/deeplink.js");
+  const fakeWin = () => {
+    const parent = { posted: [], postMessage(m) { parent.posted.push(m); } };
+    const w = { parent, on: null, addEventListener(_t, f) { w.on = f; }, removeEventListener() { w.on = null; } };
+    return w;
+  };
+  it("each new rest once, only from the page around; stops when asked", () => {
+    const w = fakeWin(), got = [];
+    const stop = watchHaPath((p) => got.push(p), w);
+    assert.deepEqual(w.parent.posted, [{ type: "home-assistant/subscribe-properties" }]);
+    const msg = (path, source = w.parent) => w.on({ source, data: { type: "home-assistant/properties", route: { path } } });
+    msg("");
+    msg("/buscar/comodo/Sala");
+    msg("/buscar/comodo/Sala/");
+    msg("/outra", {});
+    w.on({ source: w.parent, data: { type: "other" } });
+    assert.deepEqual(got, ["/buscar/comodo/Sala"]);
+    stop();
+    assert.equal(w.on, null);
+    const alone = { addEventListener() { throw new Error("no"); } };
+    alone.parent = alone;
+    watchHaPath(() => {}, alone)();
+  });
+  it("haLink: the Buscar, the Buscar on a room, the Listas", () => {
+    assert.deepEqual(haLink("/buscar/comodo/Sala%20de%20estar"), { path: "/buscar", room: "Sala de estar" });
+    assert.deepEqual(haLink("/buscar/comodo/100%"), { path: "/buscar", room: "100%" });
+    assert.deepEqual(haLink("/buscar"), { path: "/buscar", room: "" });
+    assert.deepEqual(haLink("/minhas-listas"), { path: "/minhas-listas", room: "" });
+    assert.equal(haLink("/config"), null);
+    assert.equal(haLink(""), null);
+  });
+});
+
 describe("deeplink: ?aba= opens a tab once", async () => {
   const { openTab, TABS_OPEN } = await import("../frontend/src/deeplink.js");
   const win = (href, parent) => {
