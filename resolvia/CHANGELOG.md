@@ -1,5 +1,9 @@
 # Mudanças
 
+## 2.86.0
+
+- **Abrir pelas Rondas do CorrerIA**: o botão **Abrir no ResolvIA** de uma ronda abre o Buscar agrupado por cômodo, só com o cômodo da ronda aberto.
+
 ## 2.85.0
 
 - **Buscar › Agrupar por**: além de **Lista**, dá para ver os itens por **Prazo** (Atrasados, Hoje, Amanhã, Próximos 7 dias, Mais adiante e Sem prazo, como no Agora) ou por **Cômodo** (com os cômodos ligados). A escolha fica guardada no aparelho.

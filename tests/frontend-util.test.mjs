@@ -328,6 +328,25 @@ describe("parseListText: a pasted message into items (no AI)", () => {
 
 // ------------------------------------------------------------------ deeplink.js (the alert of Prazos opens Prazos)
 
+describe("2.86.0: ?aba=buscar&comodo= opens the Buscar on a room, once", async () => {
+  const { openTab, openRoom } = await import("../frontend/src/deeplink.js");
+  const win = (href) => {
+    const w = { location: { href }, history: { state: null, replaceState(_s, _t, h) { w.location.href = h; } } };
+    return w;
+  };
+  it("the path, the room and the address cleaned", () => {
+    const w = win("http://ha.local/app/x_resolvia?aba=buscar&comodo=Sala%20de%20estar");
+    assert.equal(openTab(w), "/buscar");
+    assert.equal(w.location.href, "http://ha.local/app/x_resolvia");
+    assert.equal(openRoom(), "Sala de estar");
+    assert.equal(openRoom(), "");
+  });
+  it("the room only goes with the Buscar", () => {
+    assert.equal(openTab(win("http://ha.local/app/x?aba=prazos&comodo=Sala")), "/prazos");
+    assert.equal(openRoom(), "");
+  });
+});
+
 describe("deeplink: ?aba= opens a tab once", async () => {
   const { openTab, TABS_OPEN } = await import("../frontend/src/deeplink.js");
   const win = (href, parent) => {
@@ -356,6 +375,6 @@ describe("deeplink: ?aba= opens a tab once", async () => {
     locked.parent = { get location() { throw new Error("cross-origin"); } };
     assert.equal(openTab(locked), null);
     assert.equal(openTab(null), null);
-    assert.deepEqual(Object.keys(TABS_OPEN), ["prazos", "listas"]);
+    assert.deepEqual(Object.keys(TABS_OPEN), ["prazos", "listas", "buscar"]);
   });
 });

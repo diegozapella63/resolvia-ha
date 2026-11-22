@@ -1,4 +1,4 @@
-import { openTab } from "./deeplink.js";
+import { openTab, openRoom } from "./deeplink.js";
 import { aboutPage, aboutStyles } from "./about.js";
 import {
   LitElement,
@@ -505,6 +505,9 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(PhotosMixin(ExternalMixin(
     const tab = openTab();
     // Listas over the start (Voltar goes to it); the alert of Prazos opens the start itself
     if (tab && !this._inHA()) this._go(tab, tab === "/prazos");
+    // 2.86.0: ?aba=buscar&comodo=Cozinha (a round of the CorrerIA): the Buscar by room, with only that room open
+    this._openRoom = openRoom();
+    if (this._openRoom) this._searchGroup = "comodo";
   }
 
   _checkHeight() {
@@ -2912,6 +2915,11 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(PhotosMixin(ExternalMixin(
     // the ones without a room, last). Each group: {id, name, color, rows: [{l, i}]}
     const how = this._searchGroupNow();
     const groups = how === "comodo" ? this._byRoom(results) : how === "prazo" ? this._byDue(results) : results.map(({ l, hits }) => ({ id: l.id, name: `${l.name}${l.group ? ` · ${l.group}` : ""}`, color: l.color, rows: hits.map((i) => ({ l, i })) }));
+    if (this._openRoom && how === "comodo") {
+      const g = groups.find((x) => fold(x.name) === fold(this._openRoom));
+      if (g) this._searchShut = new Set(groups.filter((x) => x !== g).map((x) => x.id));
+      this._openRoom = "";
+    }
     const shown = results.flatMap(({ l, hits }) => hits.filter((i) => !this._bulkLocked(l, i)).map((i) => this._bkey(l, i)));
     const n = selecting ? this._bulkRows().length : 0;
     const all = selecting && shown.length > 0 && shown.every((k) => this._bsel.keys.has(k));

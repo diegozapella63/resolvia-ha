@@ -121,6 +121,8 @@ Pela pasta `/share` do Home Assistant e por eventos do HA. Mudar um formato aqui
 
 2.85.0: **Buscar › Agrupar por** (`.agrupar`, dentro dos Filtros; `resolvia-buscar-agrupar` no aparelho): **Lista** (como sempre), **Prazo** (`_byDue`: os `DUE_GROUPS` do Agora, depois Sem prazo e, com os Concluídos, Concluídos; o mais próximo primeiro) e, com Usar cômodos, **Cômodo** (`_byRoom`: os cômodos na ordem do InventarIA, a tarefa de vários no primeiro, depois Sem cômodo). Cada grupo é um `.search-list` com `data-group` e fecha pelo nome; Selecionar vale igual. Testes: `tests/e2e/rv_agrupar.py` e o `rv_rooms.py`.
 
+2.86.0: `?aba=buscar&comodo=<nome>` (o link de uma ronda do CorrerIA 1.22.0; `deeplink.js`: `TABS_OPEN.buscar` e `openRoom()`): o Buscar agrupado por Cômodo só nessa visita (`_searchGroup`, sem gravar no aparelho), com os outros grupos fechados (`_openRoom`, no render do Buscar).
+
 ## Conversa com o dono
 
 Respostas curtas, em português. Ao terminar uma mudança: o que mudou, a versão e se está publicado.
