@@ -119,6 +119,8 @@ Pela pasta `/share` do Home Assistant e por eventos do HA. Mudar um formato aqui
 
 2.84.1: na Conversa, no celular (`noCelular()`: `(hover: none) and (pointer: coarse)`, o dedo como jeito principal), o Enter é uma linha nova e o botão envia (`enterkeyhint="enter"`); com teclado de verdade, o Enter envia. Vale em todos os apps da família. O foco ao abrir o Novo item vai com `preventScroll`.
 
+2.85.0: **Buscar › Agrupar por** (`.agrupar`, dentro dos Filtros; `resolvia-buscar-agrupar` no aparelho): **Lista** (como sempre), **Prazo** (`_byDue`: os `DUE_GROUPS` do Agora, depois Sem prazo e, com os Concluídos, Concluídos; o mais próximo primeiro) e, com Usar cômodos, **Cômodo** (`_byRoom`: os cômodos na ordem do InventarIA, a tarefa de vários no primeiro, depois Sem cômodo). Cada grupo é um `.search-list` com `data-group` e fecha pelo nome; Selecionar vale igual. Testes: `tests/e2e/rv_agrupar.py` e o `rv_rooms.py`.
+
 ## Conversa com o dono
 
 Respostas curtas, em português. Ao terminar uma mudança: o que mudou, a versão e se está publicado.

@@ -1,5 +1,9 @@
 # Mudanças
 
+## 2.85.0
+
+- **Buscar › Agrupar por**: além de **Lista**, dá para ver os itens por **Prazo** (Atrasados, Hoje, Amanhã, Próximos 7 dias, Mais adiante e Sem prazo, como no Agora) ou por **Cômodo** (com os cômodos ligados). A escolha fica guardada no aparelho.
+
 ## 2.84.1
 
 - **Conversa no celular**: o Enter do teclado vai para a próxima linha; quem envia é o botão. Com teclado de verdade, o Enter continua enviando.

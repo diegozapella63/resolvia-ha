@@ -115,6 +115,7 @@ export const foldKeyOf = (card) => {
 const FIELD_KEY = "resolvia-campos";
 // Buscar › Incluir: closed or open, and De quem é (the person whose lists are shown), kept on the device (2.68.0)
 const INCLUIR_KEY = "resolvia-incluir-fechado";
+const AGRUPAR_KEY = "resolvia-buscar-agrupar"; // 2.85.0: Buscar › Agrupar por (lista ou comodo), kept on the device
 const WHO_KEY = "resolvia-busca-quem";
 export const fieldKeyOf = (field) => {
   const l = field && field.querySelector(":scope > .flabel");
@@ -2803,6 +2804,60 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(PhotosMixin(ExternalMixin(
   }
 
   /** A Buscar › Incluir button, on or off. */
+  /**
+   * 2.85.0: Buscar › Agrupar por: Lista (as always), Prazo (the groups of Agora: Atrasados, Hoje, Amanhã, Próximos 7 dias,
+   * Mais adiante, then Sem prazo) or Cômodo (only with Usar cômodos on); the device keeps it.
+   */
+  _searchGroupNow() {
+    const k = this._searchGroup ?? store.get(AGRUPAR_KEY, "lista");
+    if (k === "prazo") return "prazo";
+    return k === "comodo" && this._roomsOn() && this._rooms && this._rooms.encontrado ? "comodo" : "lista";
+  }
+
+  _renderSearchGroup() {
+    const rooms = this._rooms && this._rooms.encontrado && this._roomsOn();
+    const cur = this._searchGroupNow();
+    const pick = (k) => {
+      this._haptic("light");
+      this._searchGroup = k;
+      store.set(AGRUPAR_KEY, k);
+      this._searchShut.clear();
+      this.requestUpdate();
+    };
+    const op = (k, ic, nome) => html`<button class="pick ${cur === k ? "on" : ""}" role="radio" aria-checked=${cur === k ? "true" : "false"} @click=${() => pick(k)}>${icon(ic)}<span>${nome}</span></button>`;
+    return html`<span class="filters-sub" id="agrupar-por">${icon("layers", "lbl-ic")}Agrupar por</span>
+      <div class="agrupar" role="radiogroup" aria-labelledby="agrupar-por">${op("lista", "list-checks", "Lista")}${op("prazo", "calendar-days", "Prazo")}${rooms ? op("comodo", "door-open", "Cômodo") : nothing}</div>`;
+  }
+
+  /** The hits of Buscar by when they are due, like the cards of Agora; the sooner first inside each group. */
+  _byDue(results) {
+    const now = new Date();
+    const by = new Map();
+    const put = (id, row) => (by.has(id) ? by.get(id) : by.set(id, []).get(id)).push(row);
+    for (const { l, hits } of results) {
+      for (const i of hits) {
+        const d = isDone(i) ? null : dueInfo(i.due, now);
+        put(isDone(i) ? "done" : d ? DUE_GROUPS.find((g) => g.test(d)).id : "none", { l, i, at: d ? d.at.getTime() : 0 });
+      }
+    }
+    const all = [...DUE_GROUPS.map((g) => [g.id, g.title]), ["none", "Sem prazo"], ["done", "Concluídos"]];
+    return all.filter(([id]) => by.has(id)).map(([id, name]) => ({ id: `prazo:${id}`, name, rows: by.get(id).sort((a, b) => a.at - b.at) }));
+  }
+
+  /** The hits of Buscar by room: in the order of the rooms of the InventarIA, then Sem cômodo. */
+  _byRoom(results) {
+    const by = new Map();
+    for (const { l, hits } of results) {
+      for (const i of hits) {
+        const id = this._roomIdOf(l.id, i.summary) || "";
+        if (!by.has(id)) by.set(id, []);
+        by.get(id).push({ l, i });
+      }
+    }
+    const order = this._roomList().map((c) => c.id).filter((id) => by.has(id));
+    return [...order.map((id) => ({ id: `comodo:${id}`, name: this._roomName(id), rows: by.get(id) })), ...(by.has("") ? [{ id: "comodo:", name: "Sem cômodo", rows: by.get("") }] : [])];
+  }
+
   _searchToggle(ic, label, on, toggle) {
     return html`<button class="pick ${on ? "on" : ""}" aria-pressed=${on ? "true" : "false"} @click=${toggle}>${icon(ic)}<span>${label}</span></button>`;
   }
@@ -2853,6 +2908,10 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(PhotosMixin(ExternalMixin(
         count += hits.length;
       }
     }
+    // 2.85.0: Agrupar por: the lists (as always), when they are due (_byDue) or the rooms of the InventarIA (a task in several rooms goes in the first;
+    // the ones without a room, last). Each group: {id, name, color, rows: [{l, i}]}
+    const how = this._searchGroupNow();
+    const groups = how === "comodo" ? this._byRoom(results) : how === "prazo" ? this._byDue(results) : results.map(({ l, hits }) => ({ id: l.id, name: `${l.name}${l.group ? ` · ${l.group}` : ""}`, color: l.color, rows: hits.map((i) => ({ l, i })) }));
     const shown = results.flatMap(({ l, hits }) => hits.filter((i) => !this._bulkLocked(l, i)).map((i) => this._bkey(l, i)));
     const n = selecting ? this._bulkRows().length : 0;
     const all = selecting && shown.length > 0 && shown.every((k) => this._bsel.keys.has(k));
@@ -2889,22 +2948,22 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(PhotosMixin(ExternalMixin(
           ${this._rooms && this._rooms.encontrado && this._equipsOn() ? this._searchToggle("package", "Equipamentos", this._searchEquips, () => (this._searchEquips = !this._searchEquips)) : nothing}
         </div>
         ${this._renderSearchWho()}
+        ${this._renderSearchGroup()}
         </div>
         ${results.length
           ? html`${head}
-              ${results.map(
-                ({ l, hits }) => {
-                  // 2.67.1: each list folds with a tap on its name (open again each time Buscar is entered)
-                  const shut = this._searchShut.has(l.id);
+              ${groups.map((g) => {
+                  // 2.67.1: each group folds with a tap on its name (open again each time Buscar is entered)
+                  const shut = this._searchShut.has(g.id);
                   return html`
-                  <div class="panel items search-list" style=${colorVars(l.color, this._dark)}>
+                  <div class="panel items search-list" data-group=${g.id} style=${g.color ? colorVars(g.color, this._dark) : ""}>
                     <button type="button" class="overline fold-over" aria-expanded=${shut ? "false" : "true"} @click=${() => {
                       this._haptic("light");
-                      if (shut) this._searchShut.delete(l.id);
-                      else this._searchShut.add(l.id);
+                      if (shut) this._searchShut.delete(g.id);
+                      else this._searchShut.add(g.id);
                       this.requestUpdate();
-                    }}><span>${l.name}${l.group ? ` · ${l.group}` : ""}${shut ? ` (${hits.length})` : ""}</span></button>
-                    ${shut ? nothing : repeat(hits, keyOf, (i) =>
+                    }}><span>${g.name}${shut ? ` (${g.rows.length})` : ""}</span></button>
+                    ${shut ? nothing : repeat(g.rows, ({ l, i }) => this._bkey(l, i), ({ l, i }) =>
                       selecting
                         ? this._renderItem(l, i, { selecting: true, selected: this._bsel.keys.has(this._bkey(l, i)), locked: this._bulkLocked(l, i), onToggle: () => this._toggleBulk(l, i) })
                         : this._renderItem(l, i, { query: q, onHold: isDone(i) || this._bulkLocked(l, i) ? null : () => this._startBulk(l, i) }),

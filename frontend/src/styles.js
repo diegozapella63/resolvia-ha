@@ -1500,6 +1500,21 @@ export const styles = css`
     text-align: center;
     line-height: 1.2;
   }
+  /* 2.85.0: Buscar › Agrupar por: Lista, Prazo and (with the rooms) Cômodo, side by side, the same size */
+  .agrupar {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    gap: 8px;
+    margin: 0 0 18px;
+  }
+  .agrupar .pick {
+    justify-content: center;
+    min-width: 0;
+    min-height: 42px;
+    padding-left: 8px;
+    padding-right: 8px;
+  }
   /* an odd one at the end (only Cômodos or only Equipamentos on) takes the whole row */
   .filters .pick:last-child:nth-child(odd) {
     grid-column: 1 / -1;

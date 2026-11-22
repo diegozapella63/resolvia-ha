@@ -223,6 +223,20 @@ async def main():
         fl = [t.strip() for t in await a.locator(".filters .pick").all_inner_texts()]
         check(fl == ["Concluídos", "Serviços externos", "Cômodos", "Equipamentos"] and (await a.locator(".filters-label").inner_text()).strip() == "Filtros", f"Buscar › Incluir: the switches ({fl})")
         check(await a.locator(".filters .pick.on", has_text="Cômodos").count() == 1 and await a.locator(".filters .pick.on", has_text="Equipamentos").count() == 1, "both on by default")
+        # 2.85.0: Agrupar por: with the rooms on, also Cômodo (the rooms in the order of the InventarIA, then Sem cômodo)
+        ops = [t.strip() for t in await a.locator(".agrupar .pick").all_inner_texts()]
+        check(ops == ["Lista", "Prazo", "Cômodo"], f"Agrupar por: Lista, Prazo and Cômodo ({ops})")
+        GR = "(el) => [...el.renderRoot.querySelectorAll('.search-list')].map((g) => [g.querySelector('.fold-over span').textContent.trim(), g.querySelectorAll('.item, .row').length, g.dataset.group])"
+        n_lista = sum(x[1] for x in await a.evaluate(GR))
+        await a.locator(".agrupar .pick", has_text="Cômodo").click(); await pg.wait_for_timeout(350)
+        gr = await a.evaluate(GR)
+        check(all(g.startswith("comodo:") for _, _, g in gr) and gr[-1][0] == "Sem cômodo" and len(gr) >= 2 and sum(x[1] for x in gr) == n_lista, f"by room: the rooms, then Sem cômodo, the same items ({[(x[0], x[1]) for x in gr]})")
+        coz = next((x for x in gr if x[0] == "Cozinha"), None)
+        check(coz and coz[1] >= 1 and "Limpar a geladeira" in await a.evaluate("(el) => [...el.renderRoot.querySelectorAll('.search-list')].find((g) => g.querySelector('.fold-over span').textContent.trim() === 'Cozinha').innerText"), f"the task of the kitchen under Cozinha ({coz})")
+        cx = await a.evaluate("(el) => [...el.renderRoot.querySelectorAll('.agrupar .pick')].map((b) => { const r = b.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.top)]; })")
+        check(len({tuple(c) for c in [(c[0], c[1]) for c in cx]} ) <= 3 and len({c[1] for c in cx}) == 1 and max(c[0] for c in cx) - min(c[0] for c in cx) <= 1, f"the three the same size, side by side ({cx})")
+        await a.locator(".agrupar").screenshot(path=f"{T}/agrupar.png")
+        await a.locator(".agrupar .pick", has_text="Lista").click(); await pg.wait_for_timeout(300)
         boxes = await a.locator(".filters .pick").evaluate_all("(els) => els.map((e) => { const r = e.getBoundingClientRect(); return [Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(r.height)]; })")
         check(len({b[2] for b in boxes}) == 1 and boxes[0][1] == boxes[1][1] and boxes[2][1] == boxes[3][1] and boxes[0][0] == boxes[2][0] and boxes[1][0] == boxes[3][0], f"two by row, all the same width and aligned ({boxes})")
         await box.fill("ar-cond"); await pg.wait_for_timeout(300)
@@ -259,6 +273,7 @@ async def main():
         await a.evaluate("(el) => el._go('/buscar')"); await pg.wait_for_timeout(600)
         fl = [t.strip() for t in await a.locator(".filters .pick").all_inner_texts()]
         check(fl == ["Concluídos", "Serviços externos"], f"off: no Cômodos nor Equipamentos in Incluir ({fl})")
+        check([t.strip() for t in await a.locator(".agrupar .pick").all_inner_texts()] == ["Lista", "Prazo"], "off: no Cômodo in Agrupar por")
         await box.fill("cozinha"); await pg.wait_for_timeout(300)
         t = await res(); check(not found(t, "Limpar a geladeira"), "off: not by the room")
         await a.locator(".filters").screenshot(path=f"{T}/search-off.png")
