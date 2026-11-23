@@ -1,5 +1,9 @@
 # Mudanças
 
+## 2.89.4
+
+- O **Voltar** do Relatório de pendências volta para o menu **Mais**, de onde ele foi aberto, e não mais para o Agora.
+
 ## 2.89.3
 
 - **Memória da IA**: dois apps gravando uma frase no mesmo instante não apagam mais a frase um do outro (cada um espera a sua vez).

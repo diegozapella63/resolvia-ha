@@ -99,6 +99,10 @@ async def main():
                 await pg.locator(".barra a", has_text="Voltar").click(); await pg.wait_for_timeout(600)
             await pg.wait_for_timeout(1500)
             check("/relatorio" not in pg.url and await pg.locator("resolvia-panel").count() == 1, f"{scheme}: Voltar returns to the app ({pg.url})")
+            # 2.89.4: and to the menu Mais, where the report was opened, not to the start
+            await pg.wait_for_timeout(900)
+            titulo = await pg.evaluate("(() => { const p = document.querySelector('resolvia-panel'); const h = p && p.renderRoot.querySelector('h1'); return h ? h.textContent.trim() : ''; })()")
+            check(titulo == "Mais", f"{scheme}: back on the menu Mais ({titulo!r})")
             check(not errs, f"{scheme}: no page errors {errs}")
             await ctx.close()
         # 2.47.1: in Home Assistant the report is in a frame, and the app Home Assistant on Android only downloads what the

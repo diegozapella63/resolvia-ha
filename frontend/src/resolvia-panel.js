@@ -187,7 +187,9 @@ class ResolviaPanel extends MemoriaIaMixin(CorreriaMixin(ChartsMixin(PhotosMixin
     this._prefs = { lists: {}, app: {} };
     this._prefsLoaded = false;
     this._prefsRemote = false;
-    this._path = "";
+    // 2.89.4: coming back from a page of the server (the Relatório), the app loads again: it opens where it was (the
+    // place is in the history entry), not at the start
+    this._path = (history.state && history.state.rvPath) || "";
     this._sheet = null;
     this._form = null;
     this._toast = null;
