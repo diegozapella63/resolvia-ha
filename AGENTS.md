@@ -133,6 +133,8 @@ Pela pasta `/share` do Home Assistant e por eventos do HA. Mudar um formato aqui
 
 2.89.1: o link da ronda (`_openRoom`) vale enquanto o Buscar está na tela e ninguém abre ou fecha um grupo: fechado é todo grupo que não é o cômodo do link (`only`, no render do Buscar), porque as listas e os cômodos chegam aos poucos e um conjunto de ids fechados feito num render deixava os de depois abertos (era o que o `rv_rooms` pegava no GitHub desde a 2.86.0). O primeiro toque num grupo vira o `_searchShut` de sempre; mudar o Agrupar por ou sair do Buscar acaba com ele.
 
+2.89.2: o cartão Memória da IA lê a lista de novo quando a última leitura tem mais de meio minuto (`MEMORIA_IA_RELER_MS`, `_memIaAt` no `frontend/src/memoria-ia.js`): antes lia uma vez só por abertura do app e não mostrava o que outro app escreveu.
+
 ## Conversa com o dono
 
 Respostas curtas, em português. Ao terminar uma mudança: o que mudou, a versão e se está publicado.

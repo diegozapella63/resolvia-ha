@@ -1,5 +1,9 @@
 # Mudanças
 
+## 2.89.2
+
+- **Memória da IA**: o cartão mostra o que foi escrito em outro app sem precisar fechar e abrir este (a lista é lida de novo ao voltar ao cartão).
+
 ## 2.89.1
 
 - O link de uma ronda do CorrerIA abre o Buscar só com o cômodo da ronda aberto: os outros cômodos, que chegavam depois, apareciam abertos também.
