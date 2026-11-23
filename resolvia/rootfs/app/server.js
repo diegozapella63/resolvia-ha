@@ -16,7 +16,7 @@ import { TaskSensors } from "./lib/sensors.js";
 import { pendencias, reportHtml, reportPdf, pdfName, listLooks } from "./lib/report.js";
 import { Recurring } from "./lib/recurring.js";
 import { AI, comLembrancas } from "./lib/ai.js";
-import { lembrancasTexto } from "./lib/lembrancas.js";
+import * as memoriaIa from "./lib/memoria-ia.js";
 import { AiUsage } from "./lib/usage.js";
 import { Ages } from "./lib/ages.js";
 import { Restore } from "./lib/restore.js";
@@ -311,7 +311,9 @@ const taskSensors = new TaskSensors({ rest: HA_REST, token: TOKEN, log, enabled:
 // the Gemini read and change the lists through the tools (lib/ferramentas.js), with the key of share/resolvia/correria.json
 const correriaOn = () => store.prefs.app.correria_on === true;
 // as lembranças da casa (do CorrerIA) vão para a IA daqui, só com a opção CorrerIA ligada
-comLembrancas(() => (correriaOn() ? lembrancasTexto() : ""));
+// 1 memória só, da casa, de todos os apps da família: na pasta share do Home Assistant, fora da pasta de cada app
+const MEMORIA_ARQ = process.env.MEMORIA_IA_ARQ || path.join(SHARE_DIR, "familia", "memoria_ia.json");
+comLembrancas(() => memoriaIa.memoriaTexto(MEMORIA_ARQ));
 const correria = new Correria({
   about: { app: "resolvia", nome: "ResolvIA", assunto: "listas de tarefas da casa: o que fazer, prazos, compras, repetição e pontos" },
   dir: path.join(SHARE_DIR, "resolvia"), dataDir: DATA_DIR, port: PORT, version: VERSION, log, enabled: correriaOn,
@@ -800,6 +802,12 @@ class Session {
         if ("correria_on" in (msg.prefs || {})) correria.publish();
         return this.result(id, prefs);
       }
+
+      // Mais › Configurações › Integrações › Memória da IA: uma memória só, da casa, de todos os apps (lib/memoria-ia.js)
+      case "resolvia/memoria_ia/get":
+      case "resolvia/memoria_ia/add":
+      case "resolvia/memoria_ia/del":
+        return this.result(id, memoriaIa.comando(type.split("/")[2], msg, "ResolvIA", (this.user && this.user.name) || "", MEMORIA_ARQ));
 
       // Mais › Configurações › Integrações › CorrerIA: on, and who used it last ({cliente, em, nome})
       case "resolvia/correria/get":

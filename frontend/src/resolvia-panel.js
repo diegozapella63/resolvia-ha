@@ -9,6 +9,7 @@ import {
   unsafeSVG,
 } from "../vendor/lit-all.min.js";
 import { ICONS } from "./icons.js";
+import { MemoriaIaMixin, memoriaIaStyles } from "./memoria-ia.js";
 import { ensureFonts } from "./fonts.js";
 import { appIcon } from "./appicon.js";
 import { offFold } from "./offfold.js";
@@ -131,7 +132,7 @@ const IN_MORE = ["listas", "graficos", "config", "sobre"];
 // Novo/Editar item › Horário: Dia todo, this one or another (2.48.0)
 const DEFAULT_TIME = "08:00";
 
-class ResolviaPanel extends CorreriaMixin(ChartsMixin(PhotosMixin(ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(PointsMixin(DataMixin(LitElement))))))))) {
+class ResolviaPanel extends MemoriaIaMixin(CorreriaMixin(ChartsMixin(PhotosMixin(ExternalMixin(ChatMixin(RoomsMixin(SuggestMixin(PointsMixin(DataMixin(LitElement)))))))))) {
   static properties = {
     _photoView: { state: true }, // 2.81.0: a photo of a task opened big
     hass: { attribute: false },
@@ -168,7 +169,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(PhotosMixin(ExternalMixin(
     env: { attribute: false },
   };
 
-  static styles = [styles, aboutStyles, unsafeCSS(usageStyles), unsafeCSS(lookStyles), unsafeCSS(equipPickerStyles), unsafeCSS(chatStyles), unsafeCSS(chartStyles), unsafeCSS(calendarStyles)];
+  static styles = [styles, aboutStyles, unsafeCSS(usageStyles), unsafeCSS(lookStyles), unsafeCSS(equipPickerStyles), unsafeCSS(chatStyles), unsafeCSS(chartStyles), unsafeCSS(calendarStyles), unsafeCSS(memoriaIaStyles)];
 
   constructor() {
     super();
@@ -3291,6 +3292,11 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(PhotosMixin(ExternalMixin(
   }
 
   /** Section heading of Mais, like the InventarIA: the icon in a soft square, a big title and, optionally, a line about it. */
+  /** Memória da IA: the command of the server (get, add, del) -> {lista, max}. */
+  _memoriaIaCall(acao, payload = {}) {
+    return this.hass.callWS({ type: `resolvia/memoria_ia/${acao}`, ...payload });
+  }
+
   _secHead(ic, title, lead = null) {
     return html`<div class="mais-head"><span class="mais-ic" aria-hidden="true">${icon(ic)}</span><h2>${title}</h2></div>${lead ? html`<p class="panel-lead">${lead}</p>` : nothing}`;
   }
@@ -3351,7 +3357,7 @@ class ResolviaPanel extends CorreriaMixin(ChartsMixin(PhotosMixin(ExternalMixin(
       this._go(this._configPath(k), true, history.state && history.state.rvUp ? { rvUp: true } : null);
     };
     let body;
-    if (tab === "integracoes") body = html`${this._renderRewardsPanel()} ${this._renderRoomsPanel()} ${this._renderCorreriaPanel()} ${this._renderAiPanel()} ${this.hass.resolvia && this.hass.resolvia.voiceStatus && this._aiOn() ? this._renderVoicePanel() : nothing} ${this.hass.resolvia && this._aiOn() ? this._renderUsage() : nothing} ${this._renderSensorsPanel()}`;
+    if (tab === "integracoes") body = html`${this._renderRewardsPanel()} ${this._renderRoomsPanel()} ${this._renderCorreriaPanel()} ${this._renderAiPanel()} ${this.hass.resolvia && this._aiOn() ? this._renderMemoriaIa() : nothing} ${this.hass.resolvia && this.hass.resolvia.voiceStatus && this._aiOn() ? this._renderVoicePanel() : nothing} ${this.hass.resolvia && this._aiOn() ? this._renderUsage() : nothing} ${this._renderSensorsPanel()}`;
     else if (tab === "dados") body = this._renderDataPanel();
     else if (tab === "aparencia") body = this._renderAppearanceTab();
     else body = this._renderOptionsTab();

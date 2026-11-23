@@ -372,6 +372,16 @@ export function createMockHass(onChange) {
         const em = `${t.getFullYear()}-${pad(t.getMonth() + 1)}-${pad(t.getDate())}T${pad(t.getHours())}:${pad(t.getMinutes())}:00`;
         return { on: !!prefs.app.correria_on, ultimo: prefs.app.correria_on ? { cliente: "Claude", em, nome: "resumo" } : null };
       }
+      // Memória da IA: an invented list that lives only in this page
+      if (/^resolvia\/memoria_ia\//.test(msg.type)) {
+        const m = (window.__memIa = window.__memIa || [{ id: "m1", texto: "O café é sempre o da marca azul", em: "2026-11-02T09:30:00-0300", app: "ResolvIA", quem: "Ana" }]);
+        if (msg.type.endsWith("/add")) {
+          const texto = String(msg.texto || "").replace(/\s+/g, " ").trim().slice(0, 240);
+          if (texto.length < 3) throw new Error("Escreva o que é para lembrar.");
+          m.push({ id: `m${m.length + 1}${Date.now()}`, texto, em: "2026-11-04T10:00:00-0300", app: "ResolvIA", quem: "Ana" });
+        } else if (msg.type.endsWith("/del")) window.__memIa = m.filter((x) => x.id !== msg.frase);
+        return { lista: window.__memIa.map((x) => ({ ...x })), max: 60 };
+      }
       throw new Error(`unknown command ${msg.type}`);
     },
     connection: {
