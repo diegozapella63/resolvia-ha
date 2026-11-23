@@ -1,5 +1,9 @@
 # Mudanças
 
+## 2.89.5
+
+- **Memória da IA**: o campo **O que lembrar** guarda o tamanho que você deixou, como os outros campos de texto.
+
 ## 2.89.4
 
 - O **Voltar** do Relatório de pendências volta para o menu **Mais**, de onde ele foi aberto, e não mais para o Agora.

@@ -139,6 +139,8 @@ Pela pasta `/share` do Home Assistant e por eventos do HA. Mudar um formato aqui
 
 2.89.4 (o dono: "clico em relatório e clico em voltar, ele não volta para o menu mais, volta para o início"): o Relatório é uma página do servidor (`location.href`); na volta o app carrega de novo, e agora abre onde estava: o construtor lê o `history.state.rvPath` (como a CronologIA e o MemorIA já faziam), em vez de começar sempre no Agora. O `tests/e2e/rv_report.py` confere que o Voltar cai no Mais.
 
+2.89.5 (o dono: "eu aumento o campo e quando volta, volta ao original; ele deve salvar o tamanho, isso era nosso padrão"): o campo do cartão Memória da IA tinha `data-size="off"` e ficava fora do `textareas.js`; saiu. O `data-size="off"` é só para o campo que cresce sozinho (a caixa da Conversa, as perguntas prontas, o item lido pela IA).
+
 ## Conversa com o dono
 
 Respostas curtas, em português. Ao terminar uma mudança: o que mudou, a versão e se está publicado.
