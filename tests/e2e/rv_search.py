@@ -122,7 +122,7 @@ async def main():
         await pg.locator(".tab", has_text="Buscar").click(); await pg.wait_for_timeout(400)
         who = pg.locator(".who-filter .pick")
         check([t.strip() for t in await who.all_inner_texts()] == ["Todos", "Ana", "Beto"] and (await pg.locator(".who-filter .pick.on").inner_text()).strip() == "Beto"
-              and await pg.locator(".filters-sub svg.lbl-ic").count() == 1, f"De quem é: Todos and each person, with its icon; 2.69.0: never chosen, it starts on who uses the app ({await who.all_inner_texts()})")
+              and await pg.locator("#incluir-quem svg.lbl-ic").count() == 1, f"De quem é: Todos and each person, with its icon; 2.69.0: never chosen, it starts on who uses the app ({await who.all_inner_texts()})")
         await who.filter(has_text="Todos").click(); await pg.wait_for_timeout(300)
         n_all = len(await groups())
         await who.filter(has_text="Ana").click(); await pg.wait_for_timeout(300)

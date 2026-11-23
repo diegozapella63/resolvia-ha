@@ -376,6 +376,8 @@ class ResolviaPanel extends MemoriaIaMixin(CorreriaMixin(ChartsMixin(PhotosMixin
       if (tab === "dados") this._loadBackups();
     }
     // Buscar: the lists of the results open again each time Buscar is entered (Incluir is kept, 2.68.0)
+    // 2.89.0: the link of a round (_openRoom) keeps only that room open while the Buscar is on the screen
+    if (changed.has("_path") && this._view().name !== "search") this._openRoom = "";
     if (changed.has("_path") && this._view().name === "search" && this._searchShut.size) {
       this._searchShut.clear();
       this.requestUpdate();
@@ -2839,6 +2841,7 @@ class ResolviaPanel extends MemoriaIaMixin(CorreriaMixin(ChartsMixin(PhotosMixin
     const pick = (k) => {
       this._haptic("light");
       this._searchGroup = k;
+      this._openRoom = "";
       store.set(AGRUPAR_KEY, k);
       this._searchShut.clear();
       this.requestUpdate();
@@ -2931,11 +2934,9 @@ class ResolviaPanel extends MemoriaIaMixin(CorreriaMixin(ChartsMixin(PhotosMixin
     // the ones without a room, last). Each group: {id, name, color, rows: [{l, i}]}
     const how = this._searchGroupNow();
     const groups = how === "comodo" ? this._byRoom(results) : how === "prazo" ? this._byDue(results) : results.map(({ l, hits }) => ({ id: l.id, name: `${l.name}${l.group ? ` · ${l.group}` : ""}`, color: l.color, rows: hits.map((i) => ({ l, i })) }));
-    if (this._openRoom && how === "comodo") {
-      const g = groups.find((x) => fold(x.name) === fold(this._openRoom));
-      if (g) this._searchShut = new Set(groups.filter((x) => x !== g).map((x) => x.id));
-      this._openRoom = "";
-    }
+    // 2.89.0: the link of a round: while nobody opens or closes a group, only the room of the link is open (the lists and
+    // the rooms of the InventarIA arrive little by little: a set of closed ids made in one render would miss the later ones)
+    const only = this._openRoom && how === "comodo" && groups.some((x) => fold(x.name) === fold(this._openRoom)) ? fold(this._openRoom) : "";
     const shown = results.flatMap(({ l, hits }) => hits.filter((i) => !this._bulkLocked(l, i)).map((i) => this._bkey(l, i)));
     const n = selecting ? this._bulkRows().length : 0;
     const all = selecting && shown.length > 0 && shown.every((k) => this._bsel.keys.has(k));
@@ -2978,11 +2979,15 @@ class ResolviaPanel extends MemoriaIaMixin(CorreriaMixin(ChartsMixin(PhotosMixin
           ? html`${head}
               ${groups.map((g) => {
                   // 2.67.1: each group folds with a tap on its name (open again each time Buscar is entered)
-                  const shut = this._searchShut.has(g.id);
+                  const shut = only ? fold(g.name) !== only : this._searchShut.has(g.id);
                   return html`
                   <div class="panel items search-list" data-group=${g.id} style=${g.color ? colorVars(g.color, this._dark) : ""}>
                     <button type="button" class="overline fold-over" aria-expanded=${shut ? "false" : "true"} @click=${() => {
                       this._haptic("light");
+                      if (only) {
+                        this._searchShut = new Set(groups.filter((x) => fold(x.name) !== only).map((x) => x.id));
+                        this._openRoom = "";
+                      }
                       if (shut) this._searchShut.delete(g.id);
                       else this._searchShut.add(g.id);
                       this.requestUpdate();

@@ -1,5 +1,9 @@
 # Mudanças
 
+## 2.89.1
+
+- O link de uma ronda do CorrerIA abre o Buscar só com o cômodo da ronda aberto: os outros cômodos, que chegavam depois, apareciam abertos também.
+
 ## 2.89.0
 
 - **Memória da IA** (Mais › Configurações › Integrações, depois do IA): agora o cartão existe aqui. É uma memória só, da casa, compartilhada por todos os apps: o que você escreve aqui a IA lembra em toda conversa, em qualquer um deles, e o que foi escrito nos outros aparece aqui, com o nome do app.
