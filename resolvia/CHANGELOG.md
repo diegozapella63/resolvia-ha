@@ -1,5 +1,9 @@
 # Mudanças
 
+## 2.90.1
+
+- **Mais › Sobre**: o **OdisseIA** (os filmes e as séries da casa) entra na lista dos apps.
+
 ## 2.90.0
 
 - **Agora › Comece por aqui** (IA): um **serviço externo sem prazo** ainda não foi combinado com ninguém, então não é coisa para agora. A IA passa a escolher primeiro o que dá para resolver em casa e o que tem prazo; de serviço externo sem prazo entra no máximo um, por último, com o primeiro passo (pedir um orçamento ou marcar o dia). Com prazo, o serviço externo entra pelo prazo.
