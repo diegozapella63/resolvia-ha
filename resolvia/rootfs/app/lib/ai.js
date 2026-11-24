@@ -212,9 +212,22 @@ export function cleanSuggestItems(raw) {
       equipamento: oneLine(i.equipamento, 120),
       // Serviço externo: someone from outside does it ("Eletricista"; "sim" when not said)
       externo: oneLine(i.externo, 60),
+      // 2.90.0: days until the due date (0 today, negative late); null without one
+      prazo: Number.isInteger(i.prazo) && Math.abs(i.prazo) <= 9999 ? i.prazo : null,
     });
   }
   return out;
+}
+
+/** 2.90.0 (o dono: "ele só me sugeriu serviços externos… serviço externo não é de uma hora para outra; se já tivesse um prazo, ok,
+ *  mas não tem prazo, ou seja, ainda não combinei com ninguém"): um serviço externo sem prazo não é coisa para agora. Do que a
+ *  IA escolheu, fica no máximo um deles, e por último; o que a família resolve sozinha e o que tem prazo vêm antes. */
+export function tameExternal(picks, items) {
+  const loose = (p) => {
+    const i = items[p.n - 1];
+    return !!(i && i.externo && i.prazo == null);
+  };
+  return [...picks.filter((p) => !loose(p)), ...picks.filter(loose).slice(0, 1)];
 }
 
 export function suggestInstructions(items, now = new Date()) {
@@ -230,6 +243,7 @@ export function suggestInstructions(items, now = new Date()) {
       i.comodo ? `cômodo: ${i.comodo}` : "",
       i.equipamento ? `equipamento: ${i.equipamento}` : "",
       i.externo ? `serviço externo: ${i.externo}` : "",
+      i.prazo == null ? (i.externo ? "sem prazo" : "") : i.prazo === 0 ? "vence hoje" : i.prazo < 0 ? `atrasado há ${-i.prazo} ${i.prazo === -1 ? "dia" : "dias"}` : `vence em ${i.prazo} ${i.prazo === 1 ? "dia" : "dias"}`,
     ]
       .filter((x) => x !== "")
       .join(" | "),
@@ -237,11 +251,15 @@ export function suggestInstructions(items, now = new Date()) {
   return [
     "Você ajuda uma família a decidir o que resolver agora nas listas de tarefas da casa.",
     `Agora é ${when}.`,
-    "Abaixo estão os itens pendentes, um por linha: número | lista | item | há quanto tempo está na lista | pontos | repetição | cômodo | equipamento.",
-    "Escolha até 5 itens que valem a pena resolver agora. Dê preferência ao que está parado há muito tempo, ao que é rápido de fazer, ao que fecha uma lista, ao que vale pontos e ao que combina com o dia e a hora.",
+    `Abaixo estão os itens pendentes, um por linha: número | lista | item | há quanto tempo está na lista | pontos | repetição | cômodo | equipamento${items.some((i) => i.externo) ? " | serviço externo" : ""} | prazo.`,
+    "Escolha até 5 itens que valem a pena resolver agora, por quem está em casa. Dê preferência ao que está atrasado ou vence hoje, ao que está parado há muito tempo, ao que é rápido de fazer, ao que fecha uma lista, ao que vale pontos e ao que combina com o dia e a hora.",
     "Itens de listas de compras só entram se a lista estiver cheia ou parada há muito tempo; nesse caso escolha um deles e diga para ir às compras.",
     items.some((i) => i.comodo) ? "Itens do mesmo cômodo podem ser feitos de uma vez: quando fizer sentido, escolha juntos e diga isso no motivo." : "",
-    items.some((i) => i.externo) ? "Um item de serviço externo é feito por outra pessoa (um profissional, uma loja): o que a família faz é chamar, marcar ou cobrar; diga isso no motivo." : "",
+    items.some((i) => i.externo)
+      ? "Um item de serviço externo é feito por outra pessoa (um profissional, uma loja): o que a família faz é chamar, marcar ou cobrar; diga isso no motivo. " +
+        "Com prazo, ele já está combinado e entra pelo prazo. Sem prazo, ainda não foi combinado com ninguém e não se resolve agora: escolha no máximo um desses, " +
+        "por último, e só depois do que a própria família consegue fazer; o motivo dele é o primeiro passo (pedir um orçamento ou marcar o dia)."
+      : "",
     'Responda um elemento por item escolhido, do mais importante para o menos, no formato "número | motivo". O motivo explica por que começar por ele (até 100 caracteres), todo em português do Brasil (sem palavras em inglês), fala com a família e não repete o texto do item.',
     "Não invente itens nem números.",
     `\nItens:\n"""\n${rows.join("\n")}\n"""`,
@@ -459,7 +477,7 @@ export class AI {
         120000,
       );
       out = res && res.response ? res.response.data : null;
-      const picks = parseSuggestions(out, items.length).map((p) => ({ key: items[p.n - 1].key, motivo: p.motivo }));
+      const picks = tameExternal(parseSuggestions(out, items.length), items).map((p) => ({ key: items[p.n - 1].key, motivo: p.motivo }));
       if (!picks.length) throw coded("formato", "A IA não devolveu sugestões no formato esperado. Tente de novo.");
       return { picks, provider: entity.name };
     } catch (err) {

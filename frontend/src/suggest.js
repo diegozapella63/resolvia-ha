@@ -193,6 +193,8 @@ export const SuggestMixin = (Base) =>
             comodo: this._roomIdsOf(l.id, i.summary).map((id) => this._roomName(id)).filter(Boolean).join(", "),
             equipamento: this._equipIdsOf(l.id, i.summary).map((id) => (this._equipOf(id) || {}).nome).filter(Boolean).join(", "),
             externo: ((e) => (e === true ? "sim" : e || ""))(this._externalOf(l.id, i.summary)),
+            // 2.90.0: os dias até o prazo (0 hoje, negativo atrasado); sem prazo, nada
+            prazo: l.canDue && i.due && parseDue(i.due) ? dayDiff(parseDue(i.due).date, now) : null,
           });
         }
       }

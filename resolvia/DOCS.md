@@ -207,6 +207,8 @@ O cartão mostra quem usou por último (**Claude usou hoje às 09:41**). Desliga
 
 A **Agora** (a tela inicial) junta o que tem prazo nas listas que aparecem: **Atrasados** e **Hoje** no alto, depois o **Comece por aqui**, **Amanhã**, **Próximos 7 dias**, **Mais adiante** e o que vai voltar sozinho em **Voltam sozinhas**. O número na aba é o que está atrasado ou vence hoje.
 
+No **Comece por aqui**, a IA dá preferência ao que está atrasado ou vence hoje e ao que dá para resolver em casa. Um **serviço externo sem prazo** ainda não foi combinado com ninguém: entra no máximo um, por último, com o primeiro passo (pedir um orçamento ou marcar o dia). Com prazo, ele entra pelo prazo.
+
 Prazo é só o que você define. Algumas integrações preenchem sozinhas a data dos itens: a Problem List da Análise dos Dispositivos, por exemplo, põe ali desde quando o aparelho está fora do ar. Como essas listas não deixam você definir prazo, a data delas aparece só como informação (em cinza, com um relógio apagado): não fica vermelha, não entra na **Agora** como prazo nem no número da aba, e o CronologIA também não a trata como tarefa com prazo.
 
 Nas listas em que você define prazo, dá para desligar os prazos em **⋯ › Personalizar › Prazos**.

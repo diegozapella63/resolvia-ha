@@ -145,6 +145,8 @@ Pela pasta `/share` do Home Assistant e por eventos do HA. Mudar um formato aqui
 
 2.89.6 (o dono: "sempre que eu clicar na conversa da IA deve iniciar com o chat"; vale em todos os apps): `chatFresh()` no `chat.js` (igual nos três) fecha as perguntas prontas, o Editar perguntas e o menu do clipe; o `_openChat` do `chat-panel.js` chama. No Personalizar de uma lista saiu o `.preview-tile` (o dono: "se eu já tenho campo nome, não preciso logo acima ter o nome"); a cor escolhida aparece no ícone do título. Testes: `rv_chat`, `rv_lists`, `rv_listmenu`.
 
+2.90.0 (o dono, no Comece por aqui: "ele só me sugeriu serviços externos… serviço externo não é de uma hora para outra; se o serviço já tivesse um prazo, ok, mas não tem prazo, ou seja, ainda não combinei com ninguém"): a tela manda o `prazo` de cada item (`suggest.js`: os dias até o prazo, 0 hoje, negativo atrasado; sem prazo, `null`); o `cleanSuggestItems` guarda, a linha do item diz «sem prazo», «vence hoje», «atrasado há N dias» ou «vence em N dias», e o `suggestInstructions` dá preferência ao atrasado e ao de hoje e diz que o serviço externo sem prazo não se resolve agora (no máximo um, por último, com o primeiro passo no motivo). Além do pedido, o app garante: `tameExternal(picks, items)` deixa no máximo um serviço externo sem prazo, no fim. Testes no `tests/ai.test.mjs`.
+
 ## Conversa com o dono
 
 Respostas curtas, em português. Ao terminar uma mudança: o que mudou, a versão e se está publicado.

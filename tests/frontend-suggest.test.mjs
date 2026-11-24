@@ -146,8 +146,8 @@ describe("suggest: the AI", () => {
     const m = p.hass.calls[0];
     assert.equal(m.type, "resolvia/ai/suggest");
     assert.deepEqual(m.items, [
-      { key: "todo.casa|todo.casa-0", lista: "casa", texto: "Trocar lâmpada", dias: 10, pontos: 0, repete: 30, compras: false, comodo: "", equipamento: "", externo: "Eletricista" },
-      { key: "todo.mercado|todo.mercado-0", lista: "mercado", texto: "leite", dias: null, pontos: 0, repete: 0, compras: true, comodo: "", equipamento: "", externo: "" },
+      { key: "todo.casa|todo.casa-0", lista: "casa", texto: "Trocar lâmpada", dias: 10, pontos: 0, repete: 30, compras: false, comodo: "", equipamento: "", externo: "Eletricista", prazo: null },
+      { key: "todo.mercado|todo.mercado-0", lista: "mercado", texto: "leite", dias: null, pontos: 0, repete: 0, compras: true, comodo: "", equipamento: "", externo: "", prazo: null },
     ]);
     assert.deepEqual([p._aiBusy, p._aiAsking, p.haptics], [false, false, ["light"]]);
     assert.deepEqual(p._aiRows().map((r) => [r.i.summary, r.why, r.ai]), [["Trocar lâmpada", "Rápido", true]]);

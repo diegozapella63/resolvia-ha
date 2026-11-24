@@ -193,10 +193,34 @@ describe("cleanItemsWithLists", () => {
 });
 
 describe("cleanSuggestItems", () => {
-  const ok = { key: "todo.casa|u1", lista: "Casa", texto: "Varrer", dias: 3, pontos: 10, repete: 7, compras: false, comodo: "Sala", equipamento: "Aspirador (Sala)", externo: "Diarista" };
+  const ok = { key: "todo.casa|u1", lista: "Casa", texto: "Varrer", dias: 3, pontos: 10, repete: 7, compras: false, comodo: "Sala", equipamento: "Aspirador (Sala)", externo: "Diarista", prazo: 2 };
 
   it("keeps the known fields of a valid item", () => {
     assert.deepEqual(cleanSuggestItems([ok]), [ok]);
+  });
+
+  it("2.90.0: prazo is the days until the due date (0 today, negative late), null without one", () => {
+    assert.deepEqual([0, -3, 12, undefined, null, "2", 1.5, 99999].map((prazo) => cleanSuggestItems([{ ...ok, prazo }])[0].prazo), [0, -3, 12, null, null, null, null, null]);
+  });
+
+  it("2.90.0: an outside service with no due date is not for now: at most one of them, the last; with a date it stays where the AI put it", async () => {
+    const { tameExternal } = await import("../resolvia/rootfs/app/lib/ai.js");
+    const its = [
+      { texto: "Arrumar o piso", externo: "sim", prazo: null },
+      { texto: "Arrumar a lava-louça", externo: "Assistência", prazo: null },
+      { texto: "Regar as plantas", externo: "", prazo: null },
+      { texto: "Receber o eletricista", externo: "Eletricista", prazo: 0 },
+      { texto: "Rejunte", externo: "sim", prazo: null },
+    ];
+    const picks = [1, 2, 5, 4, 3].map((n) => ({ n, motivo: "m" + n }));
+    assert.deepEqual(tameExternal(picks, its).map((p) => p.n), [4, 3, 1]);
+    assert.deepEqual(tameExternal([{ n: 3, motivo: "" }, { n: 4, motivo: "" }], its).map((p) => p.n), [3, 4], "nothing to tame");
+    assert.deepEqual(tameExternal([{ n: 2, motivo: "" }, { n: 1, motivo: "" }], its).map((p) => p.n), [2], "only outside services with no date: one");
+    const p = suggestInstructions(cleanSuggestItems(its.map((i, k) => ({ ...i, key: `todo.casa|u${k}`, lista: "Casa", dias: 13 }))), new Date(2026, 10, 24, 13, 0));
+    assert.match(p, /1 \| Casa \| Arrumar o piso \| 13 dias na lista \| serviço externo: sim \| sem prazo/);
+    assert.match(p, /4 \| Casa \| Receber o eletricista \| 13 dias na lista \| serviço externo: Eletricista \| vence hoje/);
+    assert.match(p, /Sem prazo, ainda não foi combinado com ninguém e não se resolve agora: escolha no máximo um desses, por último/);
+    assert.match(suggestInstructions(cleanSuggestItems([{ ...ok, prazo: -1 }, { ...ok, key: "todo.casa|u2", prazo: 5 }])), /atrasado há 1 dia[\s\S]*vence em 5 dias/);
   });
 
   it("rejects items without a valid key or text", () => {

@@ -1,5 +1,10 @@
 # Mudanças
 
+## 2.90.0
+
+- **Agora › Comece por aqui** (IA): um **serviço externo sem prazo** ainda não foi combinado com ninguém, então não é coisa para agora. A IA passa a escolher primeiro o que dá para resolver em casa e o que tem prazo; de serviço externo sem prazo entra no máximo um, por último, com o primeiro passo (pedir um orçamento ou marcar o dia). Com prazo, o serviço externo entra pelo prazo.
+- A IA agora sabe o prazo de cada tarefa (atrasada, vence hoje, vence em N dias ou sem prazo) e dá preferência ao que está atrasado ou vence hoje.
+
 ## 2.89.6
 
 - **Conversa**: abre sempre no chat. As perguntas prontas ou o **Editar perguntas** que ficaram abertos fecham ao sair.
