@@ -123,6 +123,12 @@ async def main():
         # Editar perguntas: take one out, add one, Pronto; kept on the device; Padrão brings the app's back
         await qb.click(); await pg.wait_for_timeout(250)
         await chat.locator(".chat-quick .chat-ed-open").click(); await pg.wait_for_timeout(250)
+        # 2.89.6: closing and opening the Conversa again starts in the chat, not in the Editar perguntas left open
+        await sheet.locator(".chat-head .icon-btn[aria-label='Fechar']").click(); await pg.wait_for_timeout(500)
+        await a.locator(".chat-top").first.click(); await pg.wait_for_timeout(400)
+        check(await chat.locator(".chat-ed").count() == 0 and await chat.locator(".chat-quick").count() == 0, "the Conversa opens in the chat")
+        await qb.click(); await pg.wait_for_timeout(250)
+        await chat.locator(".chat-quick .chat-ed-open").click(); await pg.wait_for_timeout(250)
         rows = await chat.locator(".chat-ed > .chat-ed-row:not(.chat-ed-modelo) > .chat-ed-txt").evaluate_all("els => els.map(e => e.value)")
         check(rows == qk, f"Editar: the questions as a list ({rows})")
         mods = [t.strip() for t in await chat.locator(".chat-ed-modelo").all_inner_texts()]

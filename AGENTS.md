@@ -141,6 +141,10 @@ Pela pasta `/share` do Home Assistant e por eventos do HA. Mudar um formato aqui
 
 2.89.5 (o dono: "eu aumento o campo e quando volta, volta ao original; ele deve salvar o tamanho, isso era nosso padrão"): o campo do cartão Memória da IA tinha `data-size="off"` e ficava fora do `textareas.js`; saiu. O `data-size="off"` é só para o campo que cresce sozinho (a caixa da Conversa, as perguntas prontas, o item lido pela IA).
 
+2.89.6 (o dono: "esses campos com scroll quebram as pernas"): o campo da Memória da IA cresce com o texto (`field-sizing: content`, até 40vh), sem rolagem dentro dele; uma linha continua com 50 px e o tamanho puxado pelo canto continua guardado.
+
+2.89.6 (o dono: "sempre que eu clicar na conversa da IA deve iniciar com o chat"; vale em todos os apps): `chatFresh()` no `chat.js` (igual nos três) fecha as perguntas prontas, o Editar perguntas e o menu do clipe; o `_openChat` do `chat-panel.js` chama. No Personalizar de uma lista saiu o `.preview-tile` (o dono: "se eu já tenho campo nome, não preciso logo acima ter o nome"); a cor escolhida aparece no ícone do título. Testes: `rv_chat`, `rv_lists`, `rv_listmenu`.
+
 ## Conversa com o dono
 
 Respostas curtas, em português. Ao terminar uma mudança: o que mudou, a versão e se está publicado.

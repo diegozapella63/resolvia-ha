@@ -2122,18 +2122,6 @@ export const styles = css`
     font-weight: 400;
     font-size: 14px;
   }
-  .preview-tile {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 14px;
-    border-radius: 18px;
-    background: var(--rv-bg);
-    margin-bottom: 18px;
-  }
-  .preview-tile .lc-title {
-    font-size: 17px;
-  }
   .confirm-text {
     color: var(--rv-text-2);
     font-size: 16px;

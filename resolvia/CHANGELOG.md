@@ -1,5 +1,11 @@
 # Mudanças
 
+## 2.89.6
+
+- **Conversa**: abre sempre no chat. As perguntas prontas ou o **Editar perguntas** que ficaram abertos fecham ao sair.
+- **Personalizar** (uma lista): saiu o cartão de cima, que repetia o nome que já está no campo **Nome**.
+- **Memória da IA**: o campo **O que lembrar** cresce com o texto, sem a barra de rolagem dentro dele.
+
 ## 2.89.5
 
 - **Memória da IA**: o campo **O que lembrar** guarda o tamanho que você deixou, como os outros campos de texto.

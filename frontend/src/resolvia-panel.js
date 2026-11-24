@@ -4229,14 +4229,11 @@ class ResolviaPanel extends MemoriaIaMixin(CorreriaMixin(ChartsMixin(PhotosMixin
     if (!l) return nothing;
     const color = this._formColor(f, l);
     const ic = f.icon === "sem" ? null : f.icon || guessIcon(`${l.origName} ${l.group || ""} ${l.id}`);
+    // 2.89.6 (o dono: "se eu já tenho campo nome, não preciso logo acima ter o nome"): sem o cartão de cima; a cor escolhida aparece no ícone do título
     return html`
       <div class="sheet-head">
         <h3 class="display">${icon("sliders-horizontal", "sh-ic")}Personalizar</h3>
         <button class="icon-btn" @click=${() => this._closeSheet()} aria-label="Fechar">${icon("x")}</button>
-      </div>
-      <div class="preview-tile" style=${colorVars(color, this._dark)}>
-        ${ic ? html`<span class="tile">${icon(ic)}</span>` : nothing}
-        <span class="lc-main"><span class="lc-title">${(f.name || "").trim() || l.origName}</span><span class="lc-meta">${l.group || l.id}</span></span>
       </div>
       <label class="field">
         <span class="flabel">${icon("pencil", "lbl-ic")}Nome</span>

@@ -1,2 +1,2 @@
 // Gerado por frontend/build.mjs a partir de resolvia/config.yaml (version:). Não edite: suba a versão lá e rode o build.
-export const VERSION = "2.89.5";
+export const VERSION = "2.89.6";
