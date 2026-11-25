@@ -1,5 +1,12 @@
 # Mudanças
 
+## 2.93.0
+
+- No item, **Nenhum**, **Casa** e **Bens** ganharam o título **Onde** e retraem como os outros campos (fechado:
+  **Onde · Casa**).
+- As etiquetas de cada item (a lista, o serviço externo, o cômodo, o equipamento, o prazo…) ficam duas por linha, todas
+  do mesmo tamanho; um nome comprido termina em reticências em vez de entortar a linha.
+
 ## 2.92.0
 
 - No **Novo item** (e nas outras janelas), um campo fechado mostra ao lado do título o que está escolhido: **Lista ·

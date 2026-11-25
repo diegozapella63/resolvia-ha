@@ -183,6 +183,11 @@ async def main():
         row = a.locator(".item", has_text="Limpar o filtro")
         tags = [" ".join(t.split()) for t in await row.locator(".tag.room").all_inner_texts()]
         check(tags == ["Vários equipamentos"], f"two equipments: one tag, Vários equipamentos (2.51.1), no rooms ({tags})")
+        # 2.93.0: the tags of a row in two columns of the same width; one that does not fit ends in "…", nothing past the row
+        grade = await a.evaluate("""(el) => [...el.shadowRoot.querySelectorAll('.item .it-body > .chips')].map((c) => { const cr = c.getBoundingClientRect();
+          return [...c.children].map((t) => { const r = t.getBoundingClientRect(), cs = getComputedStyle(t); return [Math.round(r.width), Math.round(r.right - cr.right), cs.textOverflow, cs.whiteSpace]; }); })""")
+        larguras = {w for linha in grade for (w, _, _, _) in linha}
+        check(grade and len(larguras) == 1 and all(d <= 1 and o == "ellipsis" and ws == "nowrap" for linha in grade for (_, d, o, ws) in linha), f"the tags: two per line, the same width, with … ({grade[:3]})")
         await pg.screenshot(path=f"{T}/list2.png")
         # the AI picks the equipment too
         await a.evaluate("(el) => el._openImport('todo.casa', 'text')"); await pg.wait_for_timeout(400)

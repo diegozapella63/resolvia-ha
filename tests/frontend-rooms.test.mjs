@@ -246,7 +246,7 @@ describe("rooms: Casa ou Bens (2.62.0)", () => {
     assert.equal(p._form.where, "casa");
     f = p._renderRoomField(p._form);
     assert.deepEqual(labels(f), ["Nenhum", "Casa", "Bens", "Nenhum", "Todos", "Cozinha", "Quarto de hóspedes co…"]);
-    assert.match(text(f), /^Nenhum Casa Bens Cômodo/);
+    assert.match(text(f), /^Onde Nenhum Casa Bens Cômodo/);
     assert.match(text(p._renderEquipField(p._form)), /^Equipamento/);
     click(f, "Todos");
     assert.deepEqual(p._form.rooms, ["cozinha", "quarto"], "Todos: the rooms of the house, not Bens");
@@ -258,7 +258,7 @@ describe("rooms: Casa ou Bens (2.62.0)", () => {
     p._form = { room: "cozinha", rooms: ["cozinha"], equips: ["geladeira"] };
     click(p._renderRoomField(p._form), "Bens");
     assert.deepEqual([p._form.where, p._form.rooms, p._form.equips], ["bens", ["bens"], []], "the equipment of the house goes");
-    assert.equal(text(p._renderRoomField(p._form)), "Nenhum Casa Bens", "no rooms");
+    assert.equal(text(p._renderRoomField(p._form)), "Onde Nenhum Casa Bens", "no rooms");
     const e = p._renderEquipField(p._form);
     assert.match(text(e), /^Bem /);
     assert.deepEqual(p._equipItems(p._form).map((i) => i.id), ["carro", "moto"]);
@@ -272,7 +272,7 @@ describe("rooms: Casa ou Bens (2.62.0)", () => {
     assert.equal(p._whereOf(p._form), "casa", "an item of the house opens in Casa");
     click(p._renderWhere(p._form), "Nenhum");
     assert.deepEqual([p._form.where, p._form.room, p._form.rooms, p._form.equips], ["nenhum", null, [], []]);
-    assert.equal(text(p._renderRoomField(p._form)), "Nenhum Casa Bens");
+    assert.equal(text(p._renderRoomField(p._form)), "Onde Nenhum Casa Bens");
     assert.equal(text(p._renderEquipField(p._form)), "");
     assert.deepEqual(p._formRooms(p._form), [], "nothing saved");
     const antes = { ...p._form };
@@ -300,7 +300,7 @@ describe("rooms: Casa ou Bens (2.62.0)", () => {
   it("only equipment on (rooms off): the choice still splits the equipment", () => {
     const p = panel({ ...BENS(), on: false });
     p._form = { equips: [] };
-    assert.equal(text(p._renderRoomField(p._form)), "Nenhum Casa Bens");
+    assert.equal(text(p._renderRoomField(p._form)), "Onde Nenhum Casa Bens");
     click(p._renderRoomField(p._form), "Bens");
     assert.deepEqual(p._equipItems(p._form).map((i) => i.id), ["carro", "moto"]);
     assert.deepEqual(p._formRooms(p._form), [], "rooms off: no room saved");

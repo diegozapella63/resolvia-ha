@@ -757,6 +757,25 @@ export const styles = css`
     width: 13px;
     height: 13px;
   }
+  /* 2.93.0 (o dono: "os botões das infos em tamanho fixo, 2 por linha, e com ... se cortar"): na linha de um item, as
+     etiquetas numa grade de duas colunas iguais; a que não cabe corta no fim, com reticências */
+  .item .it-body > .chips {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-width: 440px;
+  }
+  .item .it-body > .chips > .tag {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .item .it-body > .chips > .tag > .i {
+    display: inline-block;
+    margin-right: 5px;
+    vertical-align: -2px;
+  }
   .tag.late {
     border-color: transparent;
     background: var(--rv-late-soft);

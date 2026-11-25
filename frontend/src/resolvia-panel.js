@@ -445,8 +445,8 @@ class ResolviaPanel extends MemoriaIaMixin(CorreriaMixin(ChartsMixin(PhotosMixin
     for (const field of root.querySelectorAll(".sheet .field")) {
       const lab = field.querySelector(":scope > .flabel");
       // 2.76.0: a Cor e o Ícone do Personalizar também
-      // 2.78.0: as Notas também (o textarea marcado com data-fold)
-      if (!lab || !field.querySelector(":scope > .chip-row, :scope > .imp-tiles, :scope > .eq-pick, :scope > .swatches, :scope > .icon-grid, :scope > .opt-rows, :scope > textarea[data-fold]")) continue;
+      // 2.78.0: as Notas também (o textarea marcado com data-fold); 2.93.0: e o Onde (Nenhum, Casa ou Bens: o .seg)
+      if (!lab || !field.querySelector(":scope > .chip-row, :scope > .imp-tiles, :scope > .eq-pick, :scope > .swatches, :scope > .icon-grid, :scope > .opt-rows, :scope > .seg, :scope > textarea[data-fold]")) continue;
       const key = fieldKeyOf(field);
       if (!key) continue;
       const off = shut.has(key);

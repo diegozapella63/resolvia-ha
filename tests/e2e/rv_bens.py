@@ -62,6 +62,14 @@ async def main():
         check(len(w) == 3 and max(x[0] for x in w) - min(x[0] for x in w) <= 1 and len({x[1] for x in w}) == 1 and not any(x[2] for x in w) and all(x[3] for x in w), f"the three of the same size, side by side, with the icon, nothing cut ({w})")
         await sheet.locator(".seg.where").scroll_into_view_if_needed()
         await pg.screenshot(path=f"{SP}/shots/rvb-nenhum.png")
+        # 2.93.0: Nenhum | Casa | Bens has its title (Onde) and folds like the other fields; closed, Onde · Nenhum
+        onde = sheet.locator(".field.where-field")
+        check(await onde.locator(":scope > .flabel").inner_text() == "Onde" and "dobravel" in (await onde.get_attribute("class") or ""), "Onde: a title that folds")
+        await onde.locator(":scope > .flabel").click(); await pg.wait_for_timeout(250)
+        check(not await sheet.locator(".seg.where").is_visible() and await onde.locator(":scope > .flabel").get_attribute("data-val") == "Nenhum", "Onde closed: · Nenhum after the title")
+        await pg.screenshot(path=f"{SP}/shots/rvb-onde-fechado.png")
+        await onde.locator(":scope > .flabel").click(); await pg.wait_for_timeout(250)
+        check(await sheet.locator(".seg.where").is_visible(), "and it opens again")
         await seg.nth(1).click(); await pg.wait_for_timeout(250)
         labels = [t.strip() for t in await sheet.locator(".flabel").all_inner_texts()]
         picks = await a.evaluate(PICKS)

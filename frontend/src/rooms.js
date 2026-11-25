@@ -94,7 +94,9 @@ export const RoomsMixin = (Base) =>
       };
       const opt = (id, ic, label) => html`<button class=${now === id ? "on" : ""} aria-pressed=${now === id ? "true" : "false"} @click=${() => go(id)}>${icon(ic)}<span>${label}</span></button>`;
       // 2.79.0: Nenhum first, and where a new item starts (the rooms and the items only show after Casa or Bens)
+      // 2.93.0: with its title (Onde), so it folds like the other fields ("Onde · Casa")
       return html`<div class="field where-field">
+        <span class="flabel">${icon("pin", "lbl-ic")}Onde</span>
         <div class="seg where" role="group" aria-label="Nenhum, Casa ou Bens">${opt("nenhum", "x", "Nenhum")}${opt("casa", "house", "Casa")}${opt("bens", "car", "Bens")}</div>
       </div>`;
     }
