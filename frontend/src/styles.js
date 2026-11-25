@@ -537,18 +537,20 @@ export const styles = css`
   .sheet .field.dobravel.shut > :not(.flabel) {
     display: none !important;
   }
-  /* 2.78.0: as Notas fechadas mostram o começo do que há nelas (uma linha), para não esconder que existem */
-  .sheet .field > .shut-val {
-    display: none;
+  /* 2.92.0: closed, what is chosen or written comes after the title, in one line (campovalor.js: data-val) */
+  .sheet .field.dobravel > .flabel::after {
+    order: 2;
   }
-  .sheet .field.dobravel.shut > .shut-val {
-    display: block !important;
-    margin: 4px 0 0 26px;
-    font-size: 14px;
-    color: var(--rv-muted);
-    white-space: nowrap;
+  .sheet .field.dobravel.shut > .flabel[data-val]::before {
+    content: "· " attr(data-val);
+    order: 1;
+    flex: 0 1 auto;
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--rv-muted);
+    font-weight: 500;
   }
   .sheet .field.dobravel > .flabel:focus-visible {
     outline: 2px solid var(--rv-accent);

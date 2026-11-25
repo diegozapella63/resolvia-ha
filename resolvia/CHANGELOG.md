@@ -1,5 +1,12 @@
 # Mudanças
 
+## 2.92.0
+
+- No **Novo item** (e nas outras janelas), um campo fechado mostra ao lado do título o que está escolhido: **Lista ·
+  Casa**, **Prazo · Amanhã**, **Quem faz · Nós mesmos**, como na CronologIA. As **Notas** fechadas também: o começo do
+  texto vai ao lado do título, não mais embaixo.
+- Em **Mais › Sobre**, a linha do OdisseIA ficou mais curta.
+
 ## 2.91.1
 
 - Em **Mais › Sobre**, o OdisseIA aparece com os jogos.

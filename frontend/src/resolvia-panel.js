@@ -1,4 +1,5 @@
 import { openTab, openRoom, watchHaPath, haLink } from "./deeplink.js";
+import { paintFieldVals } from "./campovalor.js";
 import { aboutPage, aboutStyles } from "./about.js";
 import {
   LitElement,
@@ -348,6 +349,8 @@ class ResolviaPanel extends MemoriaIaMixin(CorreriaMixin(ChartsMixin(PhotosMixin
     this._markTabs();
     this._applyFolds();
     this._applyFieldFolds();
+    // what a closed field shows is read again after the elements inside it draw
+    requestAnimationFrame(() => paintFieldVals(this.renderRoot));
     this._chatAfterRender();
     const view = this._view();
     // an address of Mais before 2.37 (/mais/dados): the new one in its place (/config/dados)
@@ -453,6 +456,8 @@ class ResolviaPanel extends MemoriaIaMixin(CorreriaMixin(ChartsMixin(PhotosMixin
       lab.setAttribute("tabindex", "0");
       lab.setAttribute("aria-expanded", off ? "false" : "true");
     }
+    // 2.92.0: closed, what is chosen or written comes after the title ("Lista · Casa"), as in the CronologIA
+    paintFieldVals(root);
   }
 
   _toggleField(lab) {
@@ -3937,7 +3942,7 @@ class ResolviaPanel extends MemoriaIaMixin(CorreriaMixin(ChartsMixin(PhotosMixin
       ${f.mode === "add" && this._canImport() ? nothing : this._renderPhotosField(f)}
       ${this._renderWhere(f)}
       ${canDate
-        ? html`<div class="field">
+        ? html`<div class="field" data-vazio="Sem prazo">
             <span class="flabel">${icon("calendar", "lbl-ic")}Prazo</span>
             <div class="chip-row grid">
               ${quick.map((q) => html`<button class="pick ${f.date === q.date ? "on" : ""}" @click=${() => this._setForm({ date: f.date === q.date ? null : q.date, cal: null })}>${icon(quickIc(q.label))}<span>${q.label}</span></button>`)}
@@ -3991,10 +3996,10 @@ class ResolviaPanel extends MemoriaIaMixin(CorreriaMixin(ChartsMixin(PhotosMixin
       ${this._renderPointsField(f)}
       ${canDesc && (this._notesOn() || f.hadNotes)
         ? // 2.78.0: logo acima de Lista, e fecha e abre pelo título como os outros campos; fechado, mostra o começo do que há
+          // ao lado do título (2.92.0, o campovalor.js)
           html`<div class="field notes-field">
             <span class="flabel">${icon("notebook-pen", "lbl-ic")}Notas</span>
             <textarea rows="3" data-fold aria-label="Notas" .value=${f.description} @input=${(e) => this._setForm({ description: e.target.value })} placeholder="Detalhes, links…"></textarea>
-            ${(f.description || "").trim() ? html`<p class="shut-val">${(f.description || "").trim().split("\n")[0]}</p>` : nothing}
           </div>`
         : nothing}
       ${targets.length > 1

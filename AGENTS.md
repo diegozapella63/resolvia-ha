@@ -149,6 +149,8 @@ Pela pasta `/share` do Home Assistant e por eventos do HA. Mudar um formato aqui
 
 2.91.0 (o dono, à lista do que a IA não fazia: "todas"): as ferramentas `comece_por_aqui` (leitura: o `lastSuggest`, `ctx.suggest`, só o que ainda está pendente), `nova_lista` (`ctx.createList`: o config flow do `local_todo` pela API REST, `HA_REST`, como o Adicionar integração › Lista de tarefas local; a cor no `setListPrefs`) e `editar_lista` (o Personalizar: `name`, `color`, `owner` com `on.owners`, `hidden`; `setListPrefs` e `publishPresence`). Ficam no fim da lista. Testes: os de 2.91.0 no `tests/ferramentas.test.mjs`.
 
+2.92.0 (o dono: "esse adicionar com essas opçõezinhas de retrair tem que mostrar o que foi selecionado do ladinho, quando eu retraio"; vale em todos os apps): fechado, o campo mostra o escolhido ou escrito depois do título: `frontend/src/campovalor.js` (igual na CronologIA e no MemorIA, em `tools/iguais.py`: `fieldValOf`, os botões marcados, senão o texto, senão o `data-vazio` do campo, como o `Sem prazo` do Prazo; `paintFieldVals` põe no `data-val` do `.flabel`), chamado no fim do `_applyFieldFolds` e num `requestAnimationFrame` no `updated`; o CSS desenha com o `::before` (`order: 1`). A `.shut-val` das Notas (o começo do texto embaixo do título) saiu: o começo vai ao lado, como nos outros campos. Os testes `rv_due` e `rv_features` tiram a entrada do histórico (`history.replaceState(null, '')`) antes do `reload`, que desde a 2.89.4 volta para onde estava (o `goto` para o mesmo endereço guarda a entrada); o `rv_about` olha a linha do CorrerIA na 8ª posição (o OdisseIA entrou antes dele). Teste: `rv_features`.
+
 ## Conversa com o dono
 
 Respostas curtas, em português. Ao terminar uma mudança: o que mudou, a versão e se está publicado.
