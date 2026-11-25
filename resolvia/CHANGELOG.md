@@ -1,5 +1,9 @@
 # Mudanças
 
+## 2.91.1
+
+- Em **Mais › Sobre**, o OdisseIA aparece com os jogos.
+
 ## 2.91.0
 
 - **Pelo CorrerIA**, a IA agora também:
