@@ -195,7 +195,9 @@ Pelo CorrerIA dá para:
 - ver o resumo do dia (o que está atrasado, vence hoje e nos próximos 7 dias) e buscar tarefas por lista, texto, prazo ou cômodo;
 - ver as tarefas que se repetem e quanto vale cada tarefa no placar (com **Repetir depois de concluir** e **Usar recompensas** ligados);
 - criar tarefas (várias de uma vez, uma por linha) com prazo, horário, notas, repetição, pontos, cômodos, equipamentos e quem faz, conforme o que a lista aceita e o que está ligado no app;
-- editar, mover para outra lista, concluir e desfazer, e apagar (apagar tira também a repetição).
+- editar, mover para outra lista, concluir e desfazer, e apagar (apagar tira também a repetição);
+- ver o **Comece por aqui** do Agora (as tarefas que a IA escolheu, com o porquê);
+- criar uma **lista** nova (uma Lista de tarefas local no Home Assistant, com a cor) e **personalizar** uma lista (o nome no app, a cor, de quem é e se fica ativa).
 
 Ao concluir uma tarefa que vale pontos, eles vão para quem está falando (a pessoa do Home Assistant ligada ao placar do CronologIA) ou para quem a pessoa disser; sem saber quem foi, o CorrerIA pergunta. As manutenções e rotinas do CronologIA se concluem por aqui, mas se editam lá.
 

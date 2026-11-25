@@ -65,6 +65,7 @@ const obj = (props, required = []) => ({ type: "object", properties: props, requ
 const DATA = { type: "string", description: "AAAA-MM-DD, hoje ou amanhã." };
 const ID = { type: "string", description: "O id da tarefa (todo.lista:…, de resolvia_resumo ou resolvia_tarefas) ou o nome dela." };
 const LISTA = { type: "string", description: "O id da lista (todo.…) ou o nome dela." };
+const CORES = ["vermelho", "coral", "laranja", "ouro", "verde", "menta", "turquesa", "azul", "indigo", "lilas", "rosa", "grafite"];
 
 /** What can be set on a task, by what is on in the app (on: {due, repeat, points, rooms, equips, ext}). */
 function taskProps(on, edit) {
@@ -176,6 +177,39 @@ export function toolList(on) {
       anexo: Object.keys(MIMES),
     },
   );
+  // 2.91.0 (o dono, à lista do que a IA não fazia: "todas"): o Comece por aqui do Agora e as listas (nova e Personalizar)
+  tools.push({
+    nome: "comece_por_aqui",
+    titulo: "Comece por aqui",
+    descricao: "As tarefas que a IA do ResolvIA escolheu para começar agora (o Comece por aqui do Agora), com o porquê de cada uma e quando escolheu. Use para \"o que eu faço agora?\".",
+    entrada: obj({}),
+    grava: false,
+  });
+  tools.push(
+    {
+      nome: "nova_lista",
+      titulo: "Nova lista",
+      descricao: "Cria uma lista de tarefas no Home Assistant (uma Lista de tarefas local), com a cor no app.",
+      entrada: obj({ nome: { type: "string" }, cor: { type: "string", enum: CORES } }, ["nome"]),
+      grava: true,
+    },
+    {
+      nome: "editar_lista",
+      titulo: "Personalizar lista",
+      descricao: `Muda o nome que a lista tem no app, a cor${on.owners ? ", de quem é" : ""} e se fica ativa (desmarcada, sai do Agora e vai para o fim, recolhida), como o Personalizar da tela.`,
+      entrada: obj(
+        {
+          lista: LISTA,
+          nome: { type: "string", description: "O nome novo (só no app)." },
+          cor: { type: "string", enum: CORES },
+          ...(on.owners ? { de_quem: { type: "string", description: "O nome de uma pessoa da casa; vazio ou todos: de todos." } } : {}),
+          ativa: { type: "boolean" },
+        },
+        ["lista"],
+      ),
+      grava: true,
+    },
+  );
   return tools.map((t) => ({ ...t, apaga: !!t.apaga }));
 }
 
@@ -263,10 +297,86 @@ export class Ferramentas {
       concluir_tarefa: () => this.concluir(a, on, pessoa),
       apagar_tarefa: () => this.apagar(a),
       anexar_foto: () => this.anexarFoto(a, anexo),
+      comece_por_aqui: () => this.comece(),
+      nova_lista: () => this.novaLista(a),
+      editar_lista: () => this.editarLista(a, on),
       ler_arquivo: () => this.lerArquivo(a, anexo),
     }[String(nome || "")];
     if (!run) throw new FerramentaDesconhecida(nome);
     return run();
+  }
+
+  // ---------------------------------------------------------------- 2.91.0: Comece por aqui e as listas
+
+  async comece() {
+    const s = this.c.suggest ? this.c.suggest() : null;
+    if (!s || !s.picks || !s.picks.length) return "A IA ainda não escolheu por onde começar: abra o Agora no ResolvIA (o Comece por aqui pede à IA).";
+    const lists = await this.lists();
+    const out = [];
+    for (const p of s.picks) {
+      const [lid, uid] = String(p.key || "").split("|");
+      const list = lists.find((l) => l.id === lid);
+      if (!list) continue;
+      const item = (await this.items(list)).find((i) => i.uid === uid && i.status !== "completed");
+      if (item) out.push(`- ${stripMark(item.summary)} (${list.name}; id ${list.id}:${item.uid})${p.motivo ? `: ${line(p.motivo, 200)}` : ""}`);
+    }
+    const quando = new Date(s.at);
+    const dia = ymd(quando) === ymd(this.now()) ? `hoje às ${pad(quando.getHours())}:${pad(quando.getMinutes())}` : `em ${pad(quando.getDate())}/${pad(quando.getMonth() + 1)}`;
+    if (!out.length) return `As tarefas que a IA escolheu (${dia}) já foram feitas. Abra o Agora no ResolvIA para ela escolher de novo.`;
+    return [`Comece por aqui (escolhidas pela IA ${dia}):`, ...out].join("\n");
+  }
+
+  async novaLista(a) {
+    const nome = line(a.nome, 60);
+    if (!nome) throw err("Falta o nome da lista.");
+    if (a.cor !== undefined && !CORES.includes(a.cor)) throw err(`cor: ${CORES.join(", ")}.`);
+    const lists = await this.lists();
+    const igual = lists.find((l) => fold(l.name) === fold(nome));
+    if (igual) throw err(`Já existe a lista ${igual.name} (${igual.id}).`);
+    if (!this.c.createList) throw err("Não dá para criar a lista daqui: crie no Home Assistant, em Configurações › Dispositivos e serviços › Adicionar integração › Lista de tarefas local.");
+    let id;
+    try {
+      id = await this.c.createList(nome);
+    } catch (e) {
+      throw err(`O Home Assistant não criou a lista (${line(e.message, 120)}). Crie em Configurações › Dispositivos e serviços › Adicionar integração › Lista de tarefas local.`);
+    }
+    if (id && a.cor) this.c.store.setListPrefs(id, { color: a.cor });
+    if (this.c.changed) this.c.changed();
+    return `Lista criada: ${nome}${id ? ` (${id})` : ""}${a.cor ? `, ${a.cor}` : ""}.`;
+  }
+
+  async editarLista(a, on) {
+    const lists = await this.lists();
+    const list = this.findList(lists, a.lista);
+    const ch = {};
+    const mud = [];
+    if (a.nome !== undefined) {
+      const nome = line(a.nome, 80);
+      if (!nome) throw err("O nome ficou vazio.");
+      if (lists.some((l) => l.id !== list.id && fold(l.name) === fold(nome))) throw err(`Já existe a lista ${nome}.`);
+      ch.name = nome;
+      mud.push(`nome ${nome}`);
+    }
+    if (a.cor !== undefined) {
+      if (!CORES.includes(a.cor)) throw err(`cor: ${CORES.join(", ")}.`);
+      ch.color = a.cor;
+      mud.push(`cor ${a.cor}`);
+    }
+    if (a.de_quem !== undefined) {
+      if (!on.owners) throw err("O De quem é está desligado no ResolvIA (Mais › Configurações › Opções › Exibição).");
+      const q = line(a.de_quem, 80);
+      ch.owner = !q || fold(q) === "todos" ? "" : q;
+      mud.push(ch.owner ? `de ${ch.owner}` : "de todos");
+    }
+    if (a.ativa !== undefined) {
+      if (typeof a.ativa !== "boolean") throw err("ativa: true ou false.");
+      ch.hidden = !a.ativa;
+      mud.push(a.ativa ? "ativa" : "desmarcada (no fim, recolhida)");
+    }
+    if (!mud.length) throw err(`Diga o que muda: nome, cor${on.owners ? ", de_quem" : ""} ou ativa.`);
+    this.c.store.setListPrefs(list.id, ch);
+    if (this.c.changed) this.c.changed();
+    return `Lista ${list.name}: ${mud.join(", ")}.`;
   }
 
   // ---------------------------------------------------------------- helpers

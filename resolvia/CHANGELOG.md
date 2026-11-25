@@ -1,5 +1,13 @@
 # Mudanças
 
+## 2.91.0
+
+- **Pelo CorrerIA**, a IA agora também:
+  - diz o **Comece por aqui** do Agora (as tarefas que a IA escolheu, com o porquê de cada uma);
+  - **cria uma lista** nova no Home Assistant (com a cor);
+  - **personaliza uma lista**: o nome no app, a cor, de quem é e se fica ativa.
+- Como toda mudança pelo CorrerIA, só depois do seu sim.
+
 ## 2.90.1
 
 - **Mais › Sobre**: o **OdisseIA** (os filmes e as séries da casa) entra na lista dos apps.

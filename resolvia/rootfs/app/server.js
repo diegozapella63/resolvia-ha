@@ -331,6 +331,28 @@ async function toolLists() {
   const order = [...looks.keys()];
   return rows.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
 }
+/**
+ * 2.91.0: a new list in Home Assistant, as the person does on the screen (Adicionar integração › Lista de tarefas local):
+ * the config flow of local_todo, by the REST API. Returns the id of the new to-do entity (or "" when it is not there yet).
+ */
+async function createList(name) {
+  const post = async (url, body) => {
+    const res = await fetch(`${HA_REST}${url}`, { method: "POST", headers: { Authorization: `Bearer ${TOKEN}`, "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+  };
+  const flow = await post("/config/config_entries/flow", { handler: "local_todo", show_advanced_options: false });
+  const done = await post(`/config/config_entries/flow/${encodeURIComponent(flow.flow_id)}`, { todo_list_name: name });
+  if (!done || done.type !== "create_entry") throw new Error((done && (done.reason || JSON.stringify(done.errors || {}))) || "sem resposta");
+  const entry = done.result && done.result.entry_id;
+  for (let i = 0; i < 10 && entry; i++) {
+    const reg = await ha.send({ type: "config/entity_registry/list" }).catch(() => []);
+    const e = (reg || []).find((x) => x.config_entry_id === entry && String(x.entity_id).startsWith("todo."));
+    if (e) return e.entity_id;
+    await new Promise((r) => setTimeout(r, 300));
+  }
+  return "";
+}
 /** The user of Home Assistant of a person ({id: "person.ana"}), for who is who in the scoreboard. */
 async function userOf(pessoa) {
   const id = String((pessoa && pessoa.id) || "");
@@ -359,7 +381,10 @@ const ferramentas = new Ferramentas({
   recurring,
   placar,
   inventario,
-  on: () => ({ due: store.prefs.app.due_off !== true, repeat: repeatOn(), points: !!store.prefs.app.points_on, rooms: roomsOn(), equips: equipsOn(), ext: store.prefs.app.ext_off !== true }),
+  on: () => ({ due: store.prefs.app.due_off !== true, repeat: repeatOn(), points: !!store.prefs.app.points_on, rooms: roomsOn(), equips: equipsOn(), ext: store.prefs.app.ext_off !== true, owners: ownersOn() }),
+  // 2.91.0: o Comece por aqui (a última escolha da IA) e uma lista nova no Home Assistant, para as ferramentas do CorrerIA
+  suggest: () => lastSuggest,
+  createList,
   userOf,
   pointsPlan,
   pointsDone,

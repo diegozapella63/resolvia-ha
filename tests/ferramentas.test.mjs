@@ -50,7 +50,7 @@ function baseLists() {
 }
 
 /** The tools over lists in memory. opts: {on, lists, placar (the file of the CronologIA), mangle (add_item keeps another name), broken (a list id whose items fail)}. */
-function setup({ on = ON, lists = baseLists(), placar = null, mangle = false, broken = null, users = { "person.ana": "u-ana" }, comodos = null } = {}) {
+function setup({ on = ON, lists = baseLists(), placar = null, mangle = false, broken = null, users = { "person.ana": "u-ana" }, comodos = null, suggest = null } = {}) {
   const dir = tmpDir();
   const log = fakeLog();
   const store = new Store(path.join(dir, "data"), log);
@@ -96,6 +96,7 @@ function setup({ on = ON, lists = baseLists(), placar = null, mangle = false, br
   };
   let changed = 0;
   const fotos = [];
+  const criadas = [];
   const tools = new Ferramentas({
     lists: async () => lists.map(({ items, datesInfo, ...l }) => ({ hidden: false, owner: "", unavailable: false, ...l, due: on.due && !datesInfo && !!(l.features & (F.DUE_DATE | F.DUE_DATETIME)) })),
     items: async (id) => {
@@ -140,6 +141,12 @@ function setup({ on = ON, lists = baseLists(), placar = null, mangle = false, br
       if (rooms.length) store.setRoom(list, summary, rooms);
     },
     changed: () => changed++,
+    suggest: () => suggest,
+    createList: async (nome) => {
+      if (nome === "Falha") throw new Error("HTTP 401");
+      criadas.push(nome);
+      return `todo.${nome.toLowerCase().replace(/[^a-z]+/g, "_")}`;
+    },
     addPhoto: (jpg) => (fotos.push(jpg), `${String(fotos.length).padStart(16, "0")}.jpg`),
     now: () => NOW.getTime(),
   });
@@ -154,7 +161,7 @@ function setup({ on = ON, lists = baseLists(), placar = null, mangle = false, br
     });
   };
   const item = (listId, summary) => byId.get(listId).items.find((i) => i.summary === summary);
-  return { tools, run, read, fails, calls, done, store, recurring, lists, byId, item, fotos, changed: () => changed };
+  return { tools, run, read, fails, calls, done, store, recurring, lists, byId, item, fotos, criadas, changed: () => changed };
 }
 
 const PLACAR = { placar: { ativo: true, periodo: "quinzena", participantes: ["Ana", "Beto"], usuarios: { "u-ana": "Ana" } }, espelho: { "todo.casa": { cr1: { pontos: 7, tipo: "rotina" } } } };
@@ -162,7 +169,7 @@ const PLACAR = { placar: { ativo: true, periodo: "quinzena", participantes: ["An
 describe("ferramentas: the list", () => {
   it("everything on: 8 tools, the reads first, apagar marked", () => {
     const t = toolList(ON);
-    assert.deepEqual(t.map((x) => x.nome), ["resumo", "tarefas", "repeticoes", "pontos", "criar_tarefa", "editar_tarefa", "concluir_tarefa", "apagar_tarefa", "anexar_foto", "ler_arquivo"]);
+    assert.deepEqual(t.map((x) => x.nome), ["resumo", "tarefas", "repeticoes", "pontos", "criar_tarefa", "editar_tarefa", "concluir_tarefa", "apagar_tarefa", "anexar_foto", "ler_arquivo", "comece_por_aqui", "nova_lista", "editar_lista"]);
     for (const x of t) {
       assert.match(x.nome, /^[a-z0-9_]{1,40}$/);
       assert.ok(x.titulo && x.descricao);
@@ -170,7 +177,7 @@ describe("ferramentas: the list", () => {
       assert.equal(x.entrada.additionalProperties, false);
       assert.equal(typeof x.grava, "boolean");
       assert.equal(x.apaga, x.nome === "apagar_tarefa");
-      assert.equal(x.grava, !["resumo", "tarefas", "repeticoes", "pontos", "ler_arquivo"].includes(x.nome));
+      assert.equal(x.grava, !["resumo", "tarefas", "repeticoes", "pontos", "ler_arquivo", "comece_por_aqui"].includes(x.nome));
     }
     assert.deepEqual(Object.keys(t[4].entrada.properties), ["lista", "texto", "prazo", "horario", "notas", "repetir_dias", "pontos", "comodos", "equipamentos", "externo"]);
     assert.deepEqual(t[4].entrada.required, ["lista", "texto"]);
@@ -180,12 +187,14 @@ describe("ferramentas: the list", () => {
   });
   it("only what is on: no points, no repetition, no rooms", () => {
     const t = toolList(OFF);
-    assert.deepEqual(t.map((x) => x.nome), ["resumo", "tarefas", "criar_tarefa", "editar_tarefa", "concluir_tarefa", "apagar_tarefa", "anexar_foto", "ler_arquivo"]);
+    assert.deepEqual(t.map((x) => x.nome), ["resumo", "tarefas", "criar_tarefa", "editar_tarefa", "concluir_tarefa", "apagar_tarefa", "anexar_foto", "ler_arquivo", "comece_por_aqui", "nova_lista", "editar_lista"]);
     assert.deepEqual(Object.keys(t[2].entrada.properties), ["lista", "texto", "notas"]);
     assert.deepEqual(Object.keys(t[3].entrada.properties), ["id", "lista", "texto", "notas", "mover_para"]);
     assert.deepEqual(Object.keys(t[4].entrada.properties), ["id", "lista", "concluida"]);
     assert.deepEqual(Object.keys(t[1].entrada.properties), ["lista", "busca", "situacao", "limite"]);
-    assert.equal(setup({ on: OFF }).tools.lista().length, 8);
+    assert.equal(setup({ on: OFF }).tools.lista().length, 11);
+    assert.deepEqual(Object.keys(t[10].entrada.properties), ["lista", "nome", "cor", "ativa"], "sem De quem é: sem de_quem");
+    assert.ok("de_quem" in toolList({ ...OFF, owners: true })[10].entrada.properties);
   });
   it("an unknown tool is a 404; arguments that are not an object count as none", async () => {
     const s = setup();
@@ -694,5 +703,40 @@ describe("ferramentas: the corners", () => {
     const s = setup({ on: OFF });
     s.recurring.setRule({ entity_id: "todo.casa", uid: "u5", summary: "Passar pano", days: 7 });
     assert.equal(await s.run("concluir_tarefa", { id: "Passar pano" }), "Concluída: Passar pano (Casa).");
+  });
+});
+
+describe("ferramentas: 2.91.0, Comece por aqui and the lists", () => {
+  it("comece_por_aqui: the last pick of the AI, only what is still pending", async () => {
+    assert.match(await setup().run("comece_por_aqui", {}), /ainda não escolheu.*abra o Agora/);
+    const at = new Date(2026, 10, 8, 9, 5).getTime();
+    const s = setup({ suggest: { at, picks: [{ key: "todo.casa|u1", motivo: "Está atrasada." }, { key: "todo.casa|u6", motivo: "x" }, { key: "todo.nada|z" }, { key: "todo.mercado|m2" }] } });
+    const txt = await s.run("comece_por_aqui", {});
+    assert.equal(txt, "Comece por aqui (escolhidas pela IA hoje às 09:05):\n- Pagar conta de luz (Casa; id todo.casa:u1): Está atrasada.\n- Café (Lista de compras; id todo.mercado:m2)");
+    const feitas = setup({ suggest: { at: new Date(2026, 10, 1).getTime(), picks: [{ key: "todo.casa|u6" }] } });
+    assert.match(await feitas.run("comece_por_aqui", {}), /^As tarefas que a IA escolheu \(em 01\/11\) já foram feitas/);
+  });
+  it("nova_lista: by Home Assistant, with the color; a name already used or a failure says what to do", async () => {
+    const s = setup();
+    assert.equal(await s.run("nova_lista", { nome: "Viagem", cor: "turquesa" }), "Lista criada: Viagem (todo.viagem), turquesa.");
+    assert.deepEqual(s.criadas, ["Viagem"]);
+    assert.equal(s.store.prefs.lists["todo.viagem"].color, "turquesa");
+    assert.equal(s.changed(), 1);
+    await s.fails("nova_lista", { nome: "lista de compras" }, /Já existe a lista Lista de compras/);
+    await s.fails("nova_lista", { nome: "Falha" }, /não criou a lista \(HTTP 401\).*Lista de tarefas local/);
+    await s.fails("nova_lista", { nome: "X", cor: "roxo" }, /^cor: /);
+    await s.fails("nova_lista", { nome: " " }, /Falta o nome/);
+  });
+  it("editar_lista: the name in the app, the color, whose it is and active, as Personalizar", async () => {
+    const s = setup({ on: { ...ON, owners: true } });
+    assert.equal(await s.run("editar_lista", { lista: "compras", nome: "Mercado", cor: "verde", de_quem: "Ana", ativa: false }), "Lista Lista de compras: nome Mercado, cor verde, de Ana, desmarcada (no fim, recolhida).");
+    assert.deepEqual(s.store.prefs.lists["todo.mercado"], { name: "Mercado", color: "verde", owner: "Ana", hidden: true });
+    await s.run("editar_lista", { lista: "todo.mercado", de_quem: "todos", ativa: true });
+    assert.equal(s.store.prefs.lists["todo.mercado"].hidden, false);
+    assert.equal(s.store.prefs.lists["todo.mercado"].owner || "", "");
+    await s.fails("editar_lista", { lista: "todo.mercado" }, /Diga o que muda: nome, cor, de_quem ou ativa/);
+    await s.fails("editar_lista", { lista: "todo.mercado", nome: "google tasks" }, /Já existe a lista/);
+    await s.fails("editar_lista", { lista: "todo.mercado", ativa: "sim" }, /ativa: true ou false/);
+    await setup().fails("editar_lista", { lista: "todo.mercado", de_quem: "Ana" }, /De quem é está desligado/);
   });
 });

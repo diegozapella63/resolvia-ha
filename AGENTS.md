@@ -147,6 +147,8 @@ Pela pasta `/share` do Home Assistant e por eventos do HA. Mudar um formato aqui
 
 2.90.0 (o dono, no Comece por aqui: "ele só me sugeriu serviços externos… serviço externo não é de uma hora para outra; se o serviço já tivesse um prazo, ok, mas não tem prazo, ou seja, ainda não combinei com ninguém"): a tela manda o `prazo` de cada item (`suggest.js`: os dias até o prazo, 0 hoje, negativo atrasado; sem prazo, `null`); o `cleanSuggestItems` guarda, a linha do item diz «sem prazo», «vence hoje», «atrasado há N dias» ou «vence em N dias», e o `suggestInstructions` dá preferência ao atrasado e ao de hoje e diz que o serviço externo sem prazo não se resolve agora (no máximo um, por último, com o primeiro passo no motivo). Além do pedido, o app garante: `tameExternal(picks, items)` deixa no máximo um serviço externo sem prazo, no fim. Testes no `tests/ai.test.mjs`.
 
+2.91.0 (o dono, à lista do que a IA não fazia: "todas"): as ferramentas `comece_por_aqui` (leitura: o `lastSuggest`, `ctx.suggest`, só o que ainda está pendente), `nova_lista` (`ctx.createList`: o config flow do `local_todo` pela API REST, `HA_REST`, como o Adicionar integração › Lista de tarefas local; a cor no `setListPrefs`) e `editar_lista` (o Personalizar: `name`, `color`, `owner` com `on.owners`, `hidden`; `setListPrefs` e `publishPresence`). Ficam no fim da lista. Testes: os de 2.91.0 no `tests/ferramentas.test.mjs`.
+
 ## Conversa com o dono
 
 Respostas curtas, em português. Ao terminar uma mudança: o que mudou, a versão e se está publicado.
