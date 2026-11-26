@@ -23,7 +23,7 @@ app = subprocess.Popen(["node", f"{REPO}/resolvia/rootfs/app/server.js"], env=di
 time.sleep(1.2)
 
 
-GRUPOS = "(el) => [...el.renderRoot.querySelectorAll('.search-list')].map((g) => [g.querySelector('.fold-over span').textContent.trim(), g.querySelectorAll('.item, .row').length, g.dataset.group])"
+GRUPOS = "(el) => [...el.renderRoot.querySelectorAll('.search-list')].map((g) => [g.querySelector('.grp-h b').textContent.trim(), g.querySelectorAll('.item, .row').length, g.dataset.group])"
 
 async def main():
     async with async_playwright() as p:
@@ -38,25 +38,25 @@ async def main():
             async def go(path):
                 await a.evaluate("(el, p) => el._go(p)", path); await pg.wait_for_timeout(500)
             await go("/buscar")
-            ops = [t.strip() for t in await a.locator(".agrupar .pick").all_inner_texts()]
+            ops = [t.strip() for t in await a.locator(".agrupar-seg button").all_inner_texts()]
             check(ops == ["Lista", "Prazo"], f"{w}: Agrupar por: Lista e Prazo (sem os cômodos, sem Cômodo) ({ops})")
-            check((await a.locator("#agrupar-por").inner_text()).strip() == "Agrupar por" and await a.locator("#agrupar-por svg").count() == 1 and await a.locator(".agrupar .pick svg").count() == 2, f"{w}: o título e os botões com ícone")
-            check(await a.locator(".agrupar .pick[aria-checked=true]").inner_text() == "Lista", f"{w}: começa por Lista")
+            check((await a.locator("#agrupar-por").inner_text()).strip() == "Agrupar por" and await a.locator("#agrupar-por svg").count() == 1 and await a.locator(".agrupar-seg button svg").count() == 2, f"{w}: o título e os botões com ícone")
+            check(await a.locator(".agrupar-seg button[aria-checked=true]").inner_text() == "Lista", f"{w}: começa por Lista")
             # 2.94.0 (o dono: "tirar dos Filtros, deixar separado e com opção de retrair")
             fora = await a.evaluate("(el) => { const g = el.renderRoot.querySelector('#agrupar-por'); return !g.closest('.incluir') && g.parentElement.querySelector('#incluir') !== null; }")
             check(fora, f"{w}: o Agrupar por fora dos Filtros, um bloco dele")
             await a.locator("#agrupar-por").click(); await pg.wait_for_timeout(200)
-            check(await a.locator(".agrupar").count() == 0 or not await a.locator(".agrupar").is_visible(), f"{w}: fecha pelo título")
+            check(await a.locator(".agrupar-seg").count() == 0 or not await a.locator(".agrupar-seg").is_visible(), f"{w}: fecha pelo título")
             check((await a.locator("#agrupar-por").inner_text()).split() == ["Agrupar", "por", "·", "Lista"], f"{w}: fechado, o escolhido ao lado")
             check(await pg.evaluate("() => localStorage.getItem('resolvia-agrupar-fechado')") == "true", f"{w}: o aparelho lembra")
             await a.locator("#agrupar-por").click(); await pg.wait_for_timeout(200)
-            check(await a.locator(".agrupar").is_visible(), f"{w}: abre de novo")
+            check(await a.locator(".agrupar-seg").is_visible(), f"{w}: abre de novo")
             listas = await a.evaluate(GRUPOS)
             total = sum(n for _, n, _ in listas)
             check(len(listas) > 1 and all(not g.startswith("prazo:") for _, _, g in listas), f"{w}: por lista, como sempre ({[x[0] for x in listas]})")
-            cx = await a.evaluate("(el) => [...el.renderRoot.querySelectorAll('.agrupar .pick')].map((b) => { const r = b.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.top), Math.round(r.height)]; })")
+            cx = await a.evaluate("(el) => [...el.renderRoot.querySelectorAll('.agrupar-seg button')].map((b) => { const r = b.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.top), Math.round(r.height)]; })")
             check(cx[0] == cx[1], f"{w}: os botões do mesmo tamanho, lado a lado ({cx})")
-            await a.locator(".agrupar .pick", has_text="Prazo").click(); await pg.wait_for_timeout(350)
+            await a.locator(".agrupar-seg button", has_text="Prazo").click(); await pg.wait_for_timeout(350)
             prazo = await a.evaluate(GRUPOS)
             nomes = [x[0] for x in prazo]
             ordem = ["Atrasados", "Hoje", "Amanhã", "Próximos 7 dias", "Mais adiante", "Sem prazo"]
@@ -68,8 +68,9 @@ async def main():
             # um grupo fecha pelo nome, como as listas
             g = a.locator('.search-list[data-group="prazo:none"]')
             n0 = await g.locator(".item, .row").count()
-            await g.locator(".fold-over").click(); await pg.wait_for_timeout(250)
-            check(n0 > 0 and await g.locator(".item, .row").count() == 0 and (await g.locator(".fold-over").inner_text()).strip() == f"Sem prazo ({n0})".upper() or (await g.locator(".fold-over").inner_text()).strip().lower() == f"sem prazo ({n0})", f"{w}: o grupo fecha pelo nome, com a contagem")
+            await g.locator(".grp-h").click(); await pg.wait_for_timeout(250)
+            check(n0 > 0 and await g.locator(".item, .row").count() == 0 and (await g.locator(".grp-h b").inner_text()).strip() == "Sem prazo"
+                  and (await g.locator(".grp-h .grp-n").inner_text()).strip() == (f"{n0} itens" if n0 > 1 else "1 item"), f"{w}: o grupo fecha pelo nome, com a contagem (2.95.0: sempre à vista)")
             # Selecionar continua valendo, com todos
             await a.locator(".res-head .text-btn").click(); await pg.wait_for_timeout(300)
             await a.locator(".sel-head .text-btn").click(); await pg.wait_for_timeout(300)
@@ -78,12 +79,12 @@ async def main():
             await a.locator(".sel-head .icon-btn").click(); await pg.wait_for_timeout(300)
             # fica guardado no aparelho
             await pg.reload(); await pg.wait_for_timeout(1300); await go("/buscar")
-            check(await a.locator(".agrupar .pick[aria-checked=true]").inner_text() == "Prazo" and await pg.evaluate("() => localStorage.getItem('resolvia-buscar-agrupar')") == '"prazo"', f"{w}: a escolha fica guardada no aparelho")
+            check(await a.locator(".agrupar-seg button[aria-checked=true]").inner_text() == "Prazo" and await pg.evaluate("() => localStorage.getItem('resolvia-buscar-agrupar')") == '"prazo"', f"{w}: a escolha fica guardada no aparelho")
             # com os concluídos, eles vão num grupo no fim
             await a.locator(".filters .pick", has_text="Concluídos").click(); await pg.wait_for_timeout(400)
             nomes = [x[0] for x in await a.evaluate(GRUPOS)]
             check("Concluídos" not in nomes or nomes[-1] == "Concluídos", f"{w}: os concluídos, se houver, por último ({nomes})")
-            await a.locator(".agrupar .pick", has_text="Lista").click(); await pg.wait_for_timeout(300)
+            await a.locator(".agrupar-seg button", has_text="Lista").click(); await pg.wait_for_timeout(300)
             check(all(not g.startswith("prazo:") for _, _, g in await a.evaluate(GRUPOS)), f"{w}: de volta à Lista")
             await ctx.close()
         check(not errs, f"no page errors {errs[:3]}")

@@ -20,7 +20,7 @@ O **Mais** (os três pontos na barra) é um menu, como no InventarIA. Cada linha
 
 A barra de baixo tem **Agora** (a primeira, onde o app abre; até a 2.59, Sugestões), **Buscar**, **Adicionar**, **Listas** e **Mais**. No celular, arrastar para o lado troca de aba, na mesma ordem.
 
-No **Buscar**, logo abaixo dos **Filtros**, o **Agrupar por** (que fecha e abre pelo título, como os Filtros; fechado, mostra o escolhido) mostra os itens por **Lista** (de início), por **Prazo** (Atrasados, Hoje, Amanhã, Próximos 7 dias, Mais adiante e Sem prazo, como no Agora) ou, com os cômodos ligados, por **Cômodo** (os sem cômodo ficam no fim). A escolha fica guardada no aparelho.
+No **Buscar**, logo abaixo dos **Filtros**, o **Agrupar por** (que fecha e abre pelo título, como os Filtros; fechado, mostra o escolhido) mostra os itens por **Lista** (de início), por **Prazo** (Atrasados, Hoje, Amanhã, Próximos 7 dias, Mais adiante e Sem prazo, como no Agora) ou, com os cômodos ligados, por **Cômodo** (os sem cômodo ficam no fim). Cada grupo começa com o ícone, o nome e quantos itens tem, e fecha num toque no título. A escolha fica guardada no aparelho.
 
 As caixas de seleção (como **Fala para texto**, o horário do aviso ou a lista de um item ao importar) abrem uma janela de baixo para cima com as opções; a atual vem marcada. O Voltar do celular, o **X** ou tocar fora fecham sem mudar nada. No computador, a janela abre no meio da tela, e dá para escolher com as setas e Enter. Nada abre a janela do próprio celular: a data (**Outra data**) abre um mês no visual do app, e os horários vêm de meia em meia hora, sem AM/PM.
 

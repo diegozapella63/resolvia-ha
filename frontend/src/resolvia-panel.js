@@ -2863,18 +2863,19 @@ class ResolviaPanel extends MemoriaIaMixin(CorreriaMixin(ChartsMixin(PhotosMixin
       this._searchShut.clear();
       this.requestUpdate();
     };
-    const op = (k, ic, nome) => html`<button class="pick ${cur === k ? "on" : ""}" role="radio" aria-checked=${cur === k ? "true" : "false"} @click=${() => pick(k)}>${icon(ic)}<span>${nome}</span></button>`;
+    // 2.95.0 (o dono: "deixa tudo bem bonito nesse padrão", o dos Consumíveis do InventarIA): as escolhas numa barra só, do mesmo tamanho
+    const op = (k, ic, nome) => html`<button type="button" class=${cur === k ? "on" : ""} role="radio" aria-checked=${cur === k ? "true" : "false"} @click=${() => pick(k)}>${icon(ic)}<span>${nome}</span></button>`;
     // 2.94.0 (o dono: "Agrupar ficou bom, mas tirar dos Filtros, deixar separado e com opção de retrair"): um bloco dele,
     // embaixo dos Filtros, que fecha e abre pelo título como eles (o aparelho lembra); fechado, o escolhido ao lado
     const nome = { lista: "Lista", prazo: "Prazo", comodo: "Cômodo" }[cur];
-    return html`<button type="button" class="filters-label" id="agrupar-por" aria-expanded=${this._agruparShut ? "false" : "true"} @click=${() => {
+    return html`<button type="button" class="filters-label agrupar-l" id="agrupar-por" aria-expanded=${this._agruparShut ? "false" : "true"} @click=${() => {
         this._haptic("light");
         this._agruparShut = !this._agruparShut;
         store.set(AGRUPAR_FECHADO_KEY, this._agruparShut);
         this.requestUpdate();
       }}>${icon("layers", "lbl-ic")}Agrupar por${this._agruparShut ? html`<span class="filters-val">· ${nome}</span>` : nothing}</button>
       <div class="incluir ${this._agruparShut ? "shut" : ""}">
-        <div class="agrupar" role="radiogroup" aria-labelledby="agrupar-por">${op("lista", "list-checks", "Lista")}${op("prazo", "calendar-days", "Prazo")}${rooms ? op("comodo", "door-open", "Cômodo") : nothing}</div>
+        <div class="seg agrupar-seg" role="radiogroup" aria-labelledby="agrupar-por" style="--n:${rooms ? 3 : 2}">${op("lista", "list-checks", "Lista")}${op("prazo", "calendar-days", "Prazo")}${rooms ? op("comodo", "door-open", "Cômodo") : nothing}</div>
       </div>`;
   }
 
@@ -2890,7 +2891,8 @@ class ResolviaPanel extends MemoriaIaMixin(CorreriaMixin(ChartsMixin(PhotosMixin
       }
     }
     const all = [...DUE_GROUPS.map((g) => [g.id, g.title]), ["none", "Sem prazo"], ["done", "Concluídos"]];
-    return all.filter(([id]) => by.has(id)).map(([id, name]) => ({ id: `prazo:${id}`, name, rows: by.get(id).sort((a, b) => a.at - b.at) }));
+    const ics = { ...Object.fromEntries(DUE_GROUPS.map((g) => [g.id, g.icon])), none: "calendar-off", done: "circle-check" };
+    return all.filter(([id]) => by.has(id)).map(([id, name]) => ({ id: `prazo:${id}`, name, icon: ics[id], rows: by.get(id).sort((a, b) => a.at - b.at) }));
   }
 
   /** The hits of Buscar by room: in the order of the rooms of the InventarIA, then Sem cômodo. */
@@ -2904,7 +2906,7 @@ class ResolviaPanel extends MemoriaIaMixin(CorreriaMixin(ChartsMixin(PhotosMixin
       }
     }
     const order = this._roomList().map((c) => c.id).filter((id) => by.has(id));
-    return [...order.map((id) => ({ id: `comodo:${id}`, name: this._roomName(id), rows: by.get(id) })), ...(by.has("") ? [{ id: "comodo:", name: "Sem cômodo", rows: by.get("") }] : [])];
+    return [...order.map((id) => ({ id: `comodo:${id}`, name: this._roomName(id), icon: "door-open", rows: by.get(id) })), ...(by.has("") ? [{ id: "comodo:", name: "Sem cômodo", icon: "ban", rows: by.get("") }] : [])];
   }
 
   _searchToggle(ic, label, on, toggle) {
@@ -2960,7 +2962,7 @@ class ResolviaPanel extends MemoriaIaMixin(CorreriaMixin(ChartsMixin(PhotosMixin
     // 2.85.0: Agrupar por: the lists (as always), when they are due (_byDue) or the rooms of the InventarIA (a task in several rooms goes in the first;
     // the ones without a room, last). Each group: {id, name, color, rows: [{l, i}]}
     const how = this._searchGroupNow();
-    const groups = how === "comodo" ? this._byRoom(results) : how === "prazo" ? this._byDue(results) : results.map(({ l, hits }) => ({ id: l.id, name: `${l.name}${l.group ? ` · ${l.group}` : ""}`, color: l.color, rows: hits.map((i) => ({ l, i })) }));
+    const groups = how === "comodo" ? this._byRoom(results) : how === "prazo" ? this._byDue(results) : results.map(({ l, hits }) => ({ id: l.id, name: `${l.name}${l.group ? ` · ${l.group}` : ""}`, color: l.color, icon: l.icon || "list-checks", rows: hits.map((i) => ({ l, i })) }));
     // 2.89.0: the link of a round: while nobody opens or closes a group, only the room of the link is open (the lists and
     // the rooms of the InventarIA arrive little by little: a set of closed ids made in one render would miss the later ones)
     const only = this._openRoom && how === "comodo" && groups.some((x) => fold(x.name) === fold(this._openRoom)) ? fold(this._openRoom) : "";
@@ -3009,7 +3011,7 @@ class ResolviaPanel extends MemoriaIaMixin(CorreriaMixin(ChartsMixin(PhotosMixin
                   const shut = only ? fold(g.name) !== only : this._searchShut.has(g.id);
                   return html`
                   <div class="panel items search-list" data-group=${g.id} style=${g.color ? colorVars(g.color, this._dark) : ""}>
-                    <button type="button" class="overline fold-over" aria-expanded=${shut ? "false" : "true"} @click=${() => {
+                    <button type="button" class="grp-h" aria-expanded=${shut ? "false" : "true"} @click=${() => {
                       this._haptic("light");
                       if (only) {
                         this._searchShut = new Set(groups.filter((x) => fold(x.name) !== only).map((x) => x.id));
@@ -3018,7 +3020,7 @@ class ResolviaPanel extends MemoriaIaMixin(CorreriaMixin(ChartsMixin(PhotosMixin
                       if (shut) this._searchShut.delete(g.id);
                       else this._searchShut.add(g.id);
                       this.requestUpdate();
-                    }}><span>${g.name}${shut ? ` (${g.rows.length})` : ""}</span></button>
+                    }}><span class="tile">${icon(g.icon)}</span><b>${g.name}</b><span class="grp-n">${plural(g.rows.length, "item", "itens")}</span></button>
                     ${shut ? nothing : repeat(g.rows, ({ l, i }) => this._bkey(l, i), ({ l, i }) =>
                       selecting
                         ? this._renderItem(l, i, { selecting: true, selected: this._bsel.keys.has(this._bkey(l, i)), locked: this._bulkLocked(l, i), onToggle: () => this._toggleBulk(l, i) })

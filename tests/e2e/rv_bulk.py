@@ -62,7 +62,7 @@ async def main():
             return {i["summary"]: i for i in (await ws([{"type": "todo/item/list", "entity_id": eid}]))[0]["items"]}
         await a.locator("nav .tab", has_text="Buscar").click(); await pg.wait_for_timeout(500)
         sub = (await a.locator(".res-head .page-sub").inner_text()).strip()
-        groups = await a.locator(".page .panel.items .overline").all_text_contents()
+        groups = await a.locator(".page .panel.items .grp-h b").all_text_contents()
         check(sub == "15 pendentes" and len(groups) == 8, f"Buscar opens with everything pending, by list ({sub}, {groups})")
         check(await a.locator(".res-head .text-btn", has_text="Selecionar").count() == 1, "Selecionar at the right of the count")
         await a.locator(".search-box input").fill("pão"); await pg.wait_for_timeout(300)

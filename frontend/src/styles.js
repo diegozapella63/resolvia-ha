@@ -1526,20 +1526,89 @@ export const styles = css`
     text-align: center;
     line-height: 1.2;
   }
-  /* 2.85.0: Buscar › Agrupar por: Lista, Prazo and (with the rooms) Cômodo, side by side, the same size */
-  .agrupar {
+  /* 2.85.0: Buscar › Agrupar por; 2.95.0, no padrão da família (o dos Consumíveis do InventarIA): as escolhas numa barra só,
+     do mesmo tamanho, e cada grupo com o ícone, o nome, quantos e a seta */
+  .seg.agrupar-seg {
     display: grid;
-    grid-auto-flow: column;
-    grid-auto-columns: minmax(0, 1fr);
-    gap: 8px;
+    grid-template-columns: repeat(var(--n, 3), minmax(0, 1fr));
     margin: 0 0 18px;
   }
-  .agrupar .pick {
-    justify-content: center;
+  .seg.agrupar-seg button {
     min-width: 0;
-    min-height: 42px;
-    padding-left: 8px;
-    padding-right: 8px;
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+  .seg.agrupar-seg button > span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  @media (max-width: 380px) {
+    .seg.agrupar-seg button .i {
+      display: none;
+    }
+  }
+  .panel.search-list > .grp-h {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 0 0 12px;
+    margin: 0;
+    background: none;
+    border: 0;
+    text-align: left;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .panel.search-list > .grp-h .tile {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+  }
+  /* sem a cor de uma lista (Prazo, Cômodo): o ícone na cor do app */
+  .panel.search-list:not([style*="--cs"]) > .grp-h .tile {
+    background: var(--rv-accent-soft);
+    color: var(--rv-accent-ink);
+  }
+  .panel.search-list > .grp-h .tile .i {
+    width: 18px;
+    height: 18px;
+  }
+  .panel.search-list > .grp-h > b {
+    flex: 1;
+    min-width: 0;
+    font-family: var(--rv-display);
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .panel.search-list > .grp-h > .grp-n {
+    flex: none;
+    color: var(--rv-muted);
+    font-size: 14px;
+  }
+  .panel.search-list > .grp-h::after {
+    content: "";
+    flex: none;
+    width: 18px;
+    height: 18px;
+    background: var(--rv-muted);
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") center / 18px no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") center / 18px no-repeat;
+    transition: transform 0.2s;
+  }
+  .panel.search-list > .grp-h[aria-expanded="false"] {
+    padding-bottom: 0;
+  }
+  .panel.search-list > .grp-h[aria-expanded="false"]::after {
+    transform: rotate(-90deg);
   }
   /* an odd one at the end (only Cômodos or only Equipamentos on) takes the whole row */
   .filters .pick:last-child:nth-child(odd) {

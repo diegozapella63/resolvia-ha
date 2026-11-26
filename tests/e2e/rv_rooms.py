@@ -233,24 +233,24 @@ async def main():
         check(fl == ["Concluídos", "Serviços externos", "Cômodos", "Equipamentos"] and (await a.locator("#incluir").inner_text()).strip() == "Filtros", f"Buscar › Incluir: the switches ({fl})")
         check(await a.locator(".filters .pick.on", has_text="Cômodos").count() == 1 and await a.locator(".filters .pick.on", has_text="Equipamentos").count() == 1, "both on by default")
         # 2.85.0: Agrupar por: with the rooms on, also Cômodo (the rooms in the order of the InventarIA, then Sem cômodo)
-        ops = [t.strip() for t in await a.locator(".agrupar .pick").all_inner_texts()]
+        ops = [t.strip() for t in await a.locator(".agrupar-seg button").all_inner_texts()]
         check(ops == ["Lista", "Prazo", "Cômodo"], f"Agrupar por: Lista, Prazo and Cômodo ({ops})")
-        GR = "(el) => [...el.renderRoot.querySelectorAll('.search-list')].map((g) => [g.querySelector('.fold-over span').textContent.trim(), g.querySelectorAll('.item, .row').length, g.dataset.group])"
+        GR = "(el) => [...el.renderRoot.querySelectorAll('.search-list')].map((g) => [g.querySelector('.grp-h b').textContent.trim(), g.querySelectorAll('.item, .row').length, g.dataset.group])"
         n_lista = sum(x[1] for x in await a.evaluate(GR))
-        await a.locator(".agrupar .pick", has_text="Cômodo").click(); await pg.wait_for_timeout(350)
+        await a.locator(".agrupar-seg button", has_text="Cômodo").click(); await pg.wait_for_timeout(350)
         gr = await a.evaluate(GR)
         check(all(g.startswith("comodo:") for _, _, g in gr) and gr[-1][0] == "Sem cômodo" and len(gr) >= 2 and sum(x[1] for x in gr) == n_lista, f"by room: the rooms, then Sem cômodo, the same items ({[(x[0], x[1]) for x in gr]})")
         coz = next((x for x in gr if x[0] == "Cozinha"), None)
-        check(coz and coz[1] >= 1 and "Limpar a geladeira" in await a.evaluate("(el) => [...el.renderRoot.querySelectorAll('.search-list')].find((g) => g.querySelector('.fold-over span').textContent.trim() === 'Cozinha').innerText"), f"the task of the kitchen under Cozinha ({coz})")
-        cx = await a.evaluate("(el) => [...el.renderRoot.querySelectorAll('.agrupar .pick')].map((b) => { const r = b.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.top)]; })")
+        check(coz and coz[1] >= 1 and "Limpar a geladeira" in await a.evaluate("(el) => [...el.renderRoot.querySelectorAll('.search-list')].find((g) => g.querySelector('.grp-h b').textContent.trim() === 'Cozinha').innerText"), f"the task of the kitchen under Cozinha ({coz})")
+        cx = await a.evaluate("(el) => [...el.renderRoot.querySelectorAll('.agrupar-seg button')].map((b) => { const r = b.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.top)]; })")
         check(len({tuple(c) for c in [(c[0], c[1]) for c in cx]} ) <= 3 and len({c[1] for c in cx}) == 1 and max(c[0] for c in cx) - min(c[0] for c in cx) <= 1, f"the three the same size, side by side ({cx})")
-        await a.locator(".agrupar").screenshot(path=f"{T}/agrupar.png")
-        await a.locator(".agrupar .pick", has_text="Lista").click(); await pg.wait_for_timeout(300)
+        await a.locator(".agrupar-seg").screenshot(path=f"{T}/agrupar.png")
+        await a.locator(".agrupar-seg button", has_text="Lista").click(); await pg.wait_for_timeout(300)
         # 2.86.0: the link of a round of the CorrerIA: ?aba=buscar&comodo=<name> opens the Buscar by room, only that room open
         pg2 = await b.new_page(viewport={"width": 390, "height": 844}, device_scale_factor=2, color_scheme="dark")
         await pg2.goto("http://127.0.0.1:8099/?aba=buscar&comodo=cozinha"); await pg2.wait_for_timeout(2500)
         a2 = pg2.locator("resolvia-panel")
-        estado = await a2.evaluate("(el) => [...el.renderRoot.querySelectorAll('.search-list')].map((g) => [g.querySelector('.fold-over span').textContent.trim().replace(/ \\(\\d+\\)$/, ''), !!g.querySelector('.fold-over[aria-expanded=\"true\"]')])")
+        estado = await a2.evaluate("(el) => [...el.renderRoot.querySelectorAll('.search-list')].map((g) => [g.querySelector('.grp-h b').textContent.trim(), !!g.querySelector('.grp-h[aria-expanded=\"true\"]')])")
         print("link:", estado, pg2.url, flush=True)
         check([n for n, _ in estado][:1] == ["Cozinha"], f"the link opens the Buscar grouped by room ({estado})")
         check([n for n, aberto in estado if aberto] == ["Cozinha"], f"only the room of the link open ({estado})")
@@ -293,7 +293,7 @@ async def main():
         await a.evaluate("(el) => el._go('/buscar')"); await pg.wait_for_timeout(600)
         fl = [t.strip() for t in await a.locator(".filters .pick").all_inner_texts()]
         check(fl == ["Concluídos", "Serviços externos"], f"off: no Cômodos nor Equipamentos in Incluir ({fl})")
-        check([t.strip() for t in await a.locator(".agrupar .pick").all_inner_texts()] == ["Lista", "Prazo"], "off: no Cômodo in Agrupar por")
+        check([t.strip() for t in await a.locator(".agrupar-seg button").all_inner_texts()] == ["Lista", "Prazo"], "off: no Cômodo in Agrupar por")
         await box.fill("cozinha"); await pg.wait_for_timeout(300)
         t = await res(); check(not found(t, "Limpar a geladeira"), "off: not by the room")
         await a.locator(".filters").screenshot(path=f"{T}/search-off.png")

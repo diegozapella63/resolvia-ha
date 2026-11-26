@@ -114,13 +114,13 @@ async def main():
             # each list of the results folds by its name
             lst = a.locator(".search-list").first
             n0 = await lst.locator(".item, .row").count()
-            await lst.locator(".fold-over").click(); await pg.wait_for_timeout(250)
+            await lst.locator(".grp-h").click(); await pg.wait_for_timeout(250)
             n1 = await lst.locator(".item, .row").count()
-            name = (await lst.locator(".fold-over").inner_text()).strip()
-            check(n0 > 0 and n1 == 0 and await lst.locator(".fold-over").get_attribute("aria-expanded") == "false" and name.endswith(f"({n0})"), f"{scheme}: a list of Buscar closes by its name, with how many ({name}, {n0} → {n1})")
+            name = (await lst.locator(".grp-h .grp-n").inner_text()).strip()
+            check(n0 > 0 and n1 == 0 and await lst.locator(".grp-h").get_attribute("aria-expanded") == "false" and name == (f"{n0} itens" if n0 > 1 else "1 item"), f"{scheme}: a list of Buscar closes by its name, with how many ({name}, {n0} → {n1})")
             await go("/listas"); await go("/buscar")
             check(await a.locator("#incluir").get_attribute("aria-expanded") == "false" and await a.locator(".filters .pick:visible").count() == 0
-                  and await a.locator(".search-list .fold-over[aria-expanded=false]").count() == 0, f"{scheme}: back to Buscar, Incluir still closed (kept), the lists open again")
+                  and await a.locator(".search-list .grp-h[aria-expanded=false]").count() == 0, f"{scheme}: back to Buscar, Incluir still closed (kept), the lists open again")
             await pg.reload(); await pg.wait_for_timeout(1200); await go("/buscar")
             check(await a.locator("#incluir").get_attribute("aria-expanded") == "false" and await pg.evaluate("() => localStorage.getItem('resolvia-incluir-fechado')") == "true", f"{scheme}: after reopening the app too")
             await a.locator("#incluir").click(); await pg.wait_for_timeout(250)

@@ -143,3 +143,6 @@ Pela pasta `/share` do Home Assistant e por eventos do HA. Mudar um formato aqui
 ## Conversa com o dono
 
 Respostas curtas, em português. Ao terminar uma mudança: o que mudou, a versão e se está publicado.
+
+2.95.0 (o dono: "do mesmo jeito que criamos esse agrupar por… [nos Consumíveis do InventarIA]… se tiver alguma já fora do padrão, deixa nesse padrão"): no `_renderSearchGroup`, as escolhas são o `.seg.agrupar-seg` (`--n` colunas iguais; até 380 px, sem os ícones) e o título, `.filters-label.agrupar-l`; cada grupo do Buscar começa pelo `.grp-h` (o `.tile` com o ícone da lista, do prazo, `DUE_GROUPS`, ou do cômodo; o nome em `b`; `.grp-n` com quantos itens; a seta), no lugar do `.overline.fold-over`. Testes: `rv_agrupar`, `rv_rooms`, `rv_fold` e `rv_bulk`.
+

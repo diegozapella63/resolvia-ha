@@ -1,5 +1,10 @@
 # Mudanças
 
+## 2.95.0
+
+- **Buscar › Agrupar por** no mesmo jeito dos outros apps da família: **Lista**, **Prazo** e **Cômodo** ficam numa barra só, do mesmo tamanho.
+- Cada grupo (uma lista, um prazo ou um cômodo) começa com o ícone, o nome, quantos itens tem e a seta, e fecha num toque no título.
+
 ## 2.94.1
 
 - Em **Configurações › Opções**, as **Tarefas que se repetem** ficam dentro de **Repetição**, num quadro logo abaixo da chave **Repetir depois de concluir**, com a contagem ao lado do título (antes eram um cartão separado).
