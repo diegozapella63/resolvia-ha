@@ -3454,10 +3454,12 @@ class ResolviaPanel extends MemoriaIaMixin(CorreriaMixin(ChartsMixin(PhotosMixin
     `;
   }
 
-  /** Mais › Configurações › Opções › Repetição: the tasks that come back by themselves (once the server has them). */
+  /** Mais › Configurações › Opções › Repetição: the switch and, in the box under it, the tasks that come back by
+   *  themselves (2.94.1: a sub-section of the switch, not a card of its own). */
   _renderRulesPanels() {
     if (!this._rulesOk) return nothing;
     const on = this._repeatOn();
+    const n = this._rules.length;
     return html`<div class="panel" id="repeticao">
               ${this._secHead("repeat", "Repetição")}
               <div class="row switch-row">
@@ -3469,30 +3471,30 @@ class ResolviaPanel extends MemoriaIaMixin(CorreriaMixin(ChartsMixin(PhotosMixin
                 </div>
                 <label class="switch"><input type="checkbox" role="switch" .checked=${on} @change=${(e) => this._toggleRepeat(e)} aria-label="Repetir depois de concluir" /><span class="track"></span></label>
               </div>
-            </div>
-            ${!on && !this._rules.length
-              ? nothing
-              : html`<div class="panel ${on ? "" : "paused"}">
-              ${this._secHead("rotate-ccw", "Tarefas que se repetem")}
-              ${!on && this._rules.length
-                ? html`<p class="panel-lead">Não voltam mais sozinhas. Apague para limpar.</p>
-                    <div class="btn-row sec-actions"><button class="btn danger sm" @click=${() => this._confirmClearRules(false)}>${icon("trash")}Apagar ${plural(this._rules.length, "repetição", "repetições")}</button></div>`
-                : nothing}
-              ${this._rules.length
-                ? this._rules.map((r) => {
-                    const l = this._list(r.entity_id);
-                    if (!l) return nothing;
-                    return html`<div class="row" style=${colorVars(l.color, this._dark)}>
-                      <span class="tile">${icon("repeat")}</span>
-                      <button class="grow" style="text-align:left" @click=${() => this._go(`/lista/${l.id}`)}>
-                        <div class="label">${r.summary || r.match}</div>
-                        <div class="hint">${l.name} · ${this._everyLabel(r.days)}${!on ? " · desligada" : r.reopen_at ? ` · volta ${this._returnLabel(r.reopen_at)}` : ""}</div>
-                      </button>
-                      <button class="icon-btn" style="color:var(--rv-muted)" aria-label="Parar de repetir" @click=${() => this._setRule(r.entity_id, { uid: r.uid, summary: r.match || r.summary, days: null })}>${icon("x")}</button>
-                    </div>`;
-                  })
-                : html`<div class="row"><div class="hint" style="white-space:normal">Nenhuma ainda. Abra um item e escolha “Repetir depois de concluir”.</div></div>`}
-            </div>`}`;
+              ${!on && !n
+                ? nothing
+                : html`<div class="sub-op"><div class="sub-box rep-list ${on ? "" : "paused"}" id="repetem">
+                    <div class="sub-tit">${icon("rotate-ccw", "lbl-ic")}<span>Tarefas que se repetem</span>${n ? html`<small>${n}</small>` : nothing}</div>
+                    ${!on && n
+                      ? html`<p class="panel-lead">Não voltam mais sozinhas. Apague para limpar.</p>
+                          <div class="btn-row sec-actions"><button class="btn danger sm" @click=${() => this._confirmClearRules(false)}>${icon("trash")}Apagar ${plural(n, "repetição", "repetições")}</button></div>`
+                      : nothing}
+                    ${n
+                      ? this._rules.map((r) => {
+                          const l = this._list(r.entity_id);
+                          if (!l) return nothing;
+                          return html`<div class="row" style=${colorVars(l.color, this._dark)}>
+                            <span class="tile">${icon("repeat")}</span>
+                            <button class="grow" style="text-align:left" @click=${() => this._go(`/lista/${l.id}`)}>
+                              <div class="label">${r.summary || r.match}</div>
+                              <div class="hint">${l.name} · ${this._everyLabel(r.days)}${!on ? " · desligada" : r.reopen_at ? ` · volta ${this._returnLabel(r.reopen_at)}` : ""}</div>
+                            </button>
+                            <button class="icon-btn" style="color:var(--rv-muted)" aria-label="Parar de repetir" @click=${() => this._setRule(r.entity_id, { uid: r.uid, summary: r.match || r.summary, days: null })}>${icon("x")}</button>
+                          </div>`;
+                        })
+                      : html`<div class="row"><div class="hint" style="white-space:normal">Nenhuma ainda. Abra um item e escolha “Repetir depois de concluir”.</div></div>`}
+                  </div></div>`}
+            </div>`;
   }
 
   /** Repetir depois de concluir: turning it off with repetitions asks first, and deletes them. */

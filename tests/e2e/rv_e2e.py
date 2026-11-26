@@ -136,9 +136,13 @@ async def main():
         # Mais › Configurações › Opções › Repetição
         await pg.locator(".tab", has_text="Mais").click(); await pg.wait_for_timeout(400)
         await pg.locator(".more-row", has_text="Configurações").click(); await pg.wait_for_timeout(300); await pg.get_by_role("tab", name="Opções", exact=True).click(); await pg.wait_for_timeout(300)
-        labels = await pg.locator(".panel", has_text="Tarefas que se repetem").locator(".row .label").all_inner_texts()
+        labels = await pg.locator("#repeticao .sub-op #repetem .row .label").all_inner_texts()
         check(sorted(labels) == ["Passar pano na casa", "Trocar roupa de cama"], f"rules in Mais ({labels})")
-        hints = await pg.locator(".panel", has_text="Tarefas que se repetem").locator(".row .hint").all_inner_texts()
+        # 2.94.1: in the box under the switch of Repetição, not a card of its own
+        heads = [h.strip() for h in await pg.locator("[role=tabpanel] .mais-head h2").all_inner_texts()]
+        check("Tarefas que se repetem" not in heads and "Repetição" in heads, f"no card of its own ({heads})")
+        check((await pg.locator("#repetem .sub-tit").inner_text()).split() == ["Tarefas", "que", "se", "repetem", "2"], "the title of the box, with the count")
+        hints = await pg.locator("#repetem .row .hint").all_inner_texts()
         check(sorted(hints) == sorted(["Casa · todo dia", "Casa · toda semana"]), f"each with its list and frequency ({hints})")
         await pg.screenshot(path=f"{SP}/shots/rve-mais.png")
 

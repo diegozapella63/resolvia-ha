@@ -1,5 +1,9 @@
 # Mudanças
 
+## 2.94.1
+
+- Em **Configurações › Opções**, as **Tarefas que se repetem** ficam dentro de **Repetição**, num quadro logo abaixo da chave **Repetir depois de concluir**, com a contagem ao lado do título (antes eram um cartão separado).
+
 ## 2.94.0
 
 - **Fotos da tarefa** no app do Home Assistant no Android: **Tirar foto** abre a câmera do próprio app (a mesma do Digitalizar com IA; antes abria a galeria) e **Escolher fotos** pega uma foto de cada vez (escolhendo várias, o app do Android não entregava nenhuma, e nada acontecia).

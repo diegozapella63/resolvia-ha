@@ -34,14 +34,28 @@ async def main():
         # like 2.12: on, two rules, then switched off (rules kept)
         await pg.evaluate(WS, [{"type": "resolvia/prefs/set_app", "prefs": {"repeat_on": True}},
                                {"type": "resolvia/recurring/set", "entity_id": "todo.casa", "summary": "Passar pano na casa", "days": 2},
-                               {"type": "resolvia/recurring/set", "entity_id": "todo.casa", "summary": "Trocar roupa de cama", "days": 7},
-                               {"type": "resolvia/prefs/set_app", "prefs": {"repeat_on": False}}])
+                               {"type": "resolvia/recurring/set", "entity_id": "todo.casa", "summary": "Trocar roupa de cama", "days": 7}])
+        # 2.94.1: on, the tasks that repeat are in the box under the switch, also at 320 px
         await pg.reload(); await pg.wait_for_timeout(1200)
+        await pg.locator(".tab", has_text="Mais").click(); await pg.wait_for_timeout(300)
+        await pg.locator(".more-row", has_text="Configurações").click(); await pg.wait_for_timeout(300); await pg.get_by_role("tab", name="Opções", exact=True).click(); await pg.wait_for_timeout(500)
+        box = pg.locator("#repeticao .sub-op #repetem")
+        check(await box.locator(".row").count() == 2 and "Tarefas que se repetem" in await box.locator(".sub-tit").inner_text(), "on: the two repetitions in the box under the switch")
+        for w in (390, 320):
+            await pg.set_viewport_size({"width": w, "height": 844}); await pg.wait_for_timeout(300)
+            await pg.locator("#repeticao").scroll_into_view_if_needed()
+            wide = await pg.evaluate("""() => { const a = document.querySelector('resolvia-panel').shadowRoot || document; const b = a.querySelector('#repetem'); const r = b.getBoundingClientRect(); return r.right <= innerWidth && [...b.querySelectorAll('.row')].every((x) => x.getBoundingClientRect().right <= r.right + 0.5); }""")
+            check(wide, f"{w} px: the box fits")
+            await pg.locator("#repeticao").screenshot(path=f"{SP}/shots/rvl-repetem-{w}.png")
+        await pg.set_viewport_size({"width": 390, "height": 844})
+        await pg.evaluate(WS, [{"type": "resolvia/prefs/set_app", "prefs": {"repeat_on": False}}])
+        await pg.goto("http://127.0.0.1:8099/?aba=listas"); await pg.wait_for_timeout(1200)
         check(len(stored()["rules"]) == 2, "two leftover repetitions")
         await pg.locator(".tab", has_text="Mais").click(); await pg.wait_for_timeout(300)
         await pg.locator(".more-row", has_text="Configurações").click(); await pg.wait_for_timeout(300); await pg.get_by_role("tab", name="Opções", exact=True).click(); await pg.wait_for_timeout(500)
         txt = await pg.locator("main .page").inner_text()
         check("Não voltam mais sozinhas" in txt and await pg.locator(".btn.danger", has_text="Apagar 2 repetições").count() == 1, "leftovers: a button to delete them")
+        check(await pg.locator("#repeticao .sub-op #repetem.paused .row").count() == 2, "2.94.1: the leftovers in the box under the switch, dimmed")
         await pg.screenshot(path=f"{SP}/shots/rvl-leftover.png")
         await pg.locator(".btn.danger", has_text="Apagar 2 repetições").click(); await pg.wait_for_timeout(400)
         check("Apagar as repetições?" in await pg.locator(".sheet").inner_text(), "it asks first")

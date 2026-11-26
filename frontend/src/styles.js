@@ -4239,4 +4239,50 @@ export const styles = css`
   .sub-box > .ai-actions {
     margin-top: 12px;
   }
+  /* Opções › Repetição: as tarefas que se repetem no quadro da chave (2.94.1) */
+  .sub-box.rep-list {
+    padding: 4px 14px;
+  }
+  .sub-tit {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 0 8px;
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .sub-tit > span {
+    flex: 1;
+    min-width: 0;
+  }
+  .sub-tit > small {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--rv-muted);
+  }
+  .sub-tit + .row,
+  .sub-tit + .panel-lead {
+    border-top: 0;
+  }
+  .sub-box.rep-list > .panel-lead {
+    margin: 0 0 10px;
+  }
+  .sub-box.paused > .row {
+    opacity: 0.55;
+  }
+  .sub-box.rep-list > .row {
+    gap: 12px;
+  }
+  .sub-box.rep-list > .row .tile {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+  }
+  .sub-box.rep-list > .row .tile .i {
+    width: 18px;
+    height: 18px;
+  }
+  .sub-box.rep-list > .row .hint {
+    white-space: normal;
+  }
 `;

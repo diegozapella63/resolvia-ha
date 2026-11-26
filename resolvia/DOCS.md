@@ -117,7 +117,7 @@ Sem IA configurada, a mensagem colada é separada por linhas, vírgulas e "e"; s
 
 ## Tarefas que voltam sozinhas
 
-Ligue em **Mais › Configurações › Opções › Repetição › Repetir depois de concluir** (numa instalação nova começa desligado; quem já tinha repetições continua com ela ligada). Depois, abra um item e escolha **Repetir depois de concluir** (todo dia, 2 ou 3 dias, 1 ou 2 semanas, 1 mês ou outro número de dias).
+Ligue em **Mais › Configurações › Opções › Repetição › Repetir depois de concluir** (numa instalação nova começa desligado; quem já tinha repetições continua com ela ligada). Depois, abra um item e escolha **Repetir depois de concluir** (todo dia, 2 ou 3 dias, 1 ou 2 semanas, 1 mês ou outro número de dias). As tarefas que se repetem aparecem no quadro logo abaixo da chave, com a lista e a frequência de cada uma; o **X** para de repetir.
 
 Para desligar com repetições já criadas, o app avisa quantas são e que **serão apagadas**; confirmando, ele apaga todas e desliga (os itens continuam nas listas, só não voltam mais sozinhos). Repetições que ficaram "pausadas" de versões anteriores aparecem em Mais › Configurações › Opções › Repetição com o botão **Apagar**. Para o que se repete com dia certo, ou N dias depois de feito com pontos, dá para usar a **Rotina da casa** do CronologIA (1.11.0 ou mais novo, frequência **Depois de feita**).
 
