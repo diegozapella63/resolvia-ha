@@ -1,5 +1,12 @@
 # Mudanças
 
+## 2.96.0
+
+- **Agrupar por dentro de cada lista**, o mesmo do Buscar.
+  - **Nenhum** (a ordem da lista, que se arrasta, como sempre), **Prazo** (Atrasados, Hoje, Amanhã, Próximos 7 dias, Mais adiante, Sem prazo), **Cômodo** (com Usar cômodos) ou **Quem faz** (Nós mesmos, quem foi chamado, Serviço externo).
+  - Cada grupo mostra o ícone, o nome e quantos itens, e fecha num toque no título.
+  - A escolha vale para todas as listas. O título **Agrupar por** fecha o bloco e mostra ao lado o escolhido. O aparelho lembra.
+
 ## 2.95.1
 
 - **Buscar**: o título de cada grupo (Lista, Prazo, Cômodo) ganhou respiro em cima e embaixo; fechado, o ícone e o nome não ficam mais colados na borda.

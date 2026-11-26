@@ -46,6 +46,8 @@ Com a tela larga (1000 pixels ou mais, como no InventarIA), as abas de baixo vir
 
 Segure um item (ou use **⋯ › Selecionar itens**) para selecionar: toque nos outros que vão junto, ou em **Todos**, e depois em **Mover para outra lista**. Cada item vai com o prazo, a repetição, os pontos, os cômodos, os equipamentos e quem faz. O **×** sai da seleção.
 
+**Agrupar por** (embaixo do Adicionar item): **Nenhum** (a ordem da lista, que se arrasta), **Prazo**, **Cômodo** (com Usar cômodos) ou **Quem faz** (com Serviços externos). Cada grupo mostra quantos itens e fecha num toque no título; a escolha vale para todas as listas e fica no aparelho.
+
 ### Buscar
 
 A aba **Buscar** abre com todos os pendentes das listas que aparecem (as ocultas ficam fora), separados por lista, como no InventarIA. Digitar procura no texto e nas notas, sem ligar para acentos. Em **Filtros** ficam **Concluídos**, **Serviços externos** (acha por quem faz; só com **Serviços externos** ligado em Opções) e, com o InventarIA, **Cômodos** e **Equipamentos** (acha pelo nome ou pela zona; só aparecem com **Usar cômodos** e **Usar equipamentos** ligados). Quando alguma lista é de uma pessoa (**Personalizar › De quem é**), o **Filtros** ganha **De quem é**: **Todos** mostra todas as listas; uma pessoa mostra as listas dela junto com as de todos (as sem dono), sem as das outras pessoas. Abre sempre em quem está usando o app (as listas dela e as de todos); outra escolha vale até fechar o app.

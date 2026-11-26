@@ -119,6 +119,10 @@ const FIELD_KEY = "resolvia-campos";
 const INCLUIR_KEY = "resolvia-incluir-fechado";
 const AGRUPAR_KEY = "resolvia-buscar-agrupar"; // 2.85.0: Buscar › Agrupar por (lista ou comodo), kept on the device
 const AGRUPAR_FECHADO_KEY = "resolvia-agrupar-fechado"; // 2.94.0: o bloco Agrupar por fechado
+// 2.96.0: Agrupar por dentro de uma lista (a escolha vale para todas as listas; o bloco e os grupos fechados também ficam)
+const LISTA_AGRUPAR_KEY = "resolvia-lista-agrupar";
+const LISTA_AGRUPAR_FECHADO_KEY = "resolvia-lista-agrupar-fechado";
+const LISTA_GRUPOS_KEY = "resolvia-lista-grupos";
 const WHO_KEY = "resolvia-busca-quem";
 export const fieldKeyOf = (field) => {
   const l = field && field.querySelector(":scope > .flabel");
@@ -2477,9 +2481,11 @@ class ResolviaPanel extends MemoriaIaMixin(CorreriaMixin(ChartsMixin(PhotosMixin
           : !items
             ? html`<div class="panel">${[70, 52, 84].map((w) => html`<div class="skeleton" style="width:${w}%"></div>`)}</div>`
             : pending.length
-              ? html`<div class="panel items">
+              ? html`${this._renderListAgrupar(l, pending)}${this._listGroupNow(pending)
+                  ? this._renderListGroups(l, pending, { selectable: canDelete })
+                  : html`<div class="panel items">
                   ${repeat(pending, keyOf, (i) => this._renderItem(l, i, { draggable: canMove && canUpdate && !isDone(i), selectable: canDelete && !isDone(i) }))}
-                </div>`
+                </div>`}`
               : html`<div class="panel">
                   <div class="empty">
                     ${total
@@ -2507,6 +2513,99 @@ class ResolviaPanel extends MemoriaIaMixin(CorreriaMixin(ChartsMixin(PhotosMixin
           : nothing}
       </section>
     `;
+  }
+
+  // ---------- 2.96.0: Agrupar por dentro de uma lista (o dono: "aqui também ter o agrupamento"): Nenhum (a ordem da lista,
+  // que se arrasta), Prazo, Cômodo (com Usar cômodos) e Quem faz (com Serviços externos); o mesmo bloco do Buscar
+
+  _listGroupOps() {
+    return [
+      ["", "Nenhum", "list-checks"],
+      ["prazo", "Prazo", "calendar-days"],
+      ...(this._rooms && this._rooms.encontrado && this._roomsOn() ? [["comodo", "Cômodo", "door-open"]] : []),
+      ...(this._extOn() ? [["quem", "Quem faz", "hard-hat"]] : []),
+    ];
+  }
+
+  /** The grouping chosen for the lists ("" = Nenhum); only with more than one item. */
+  _listGroupNow(rows = null) {
+    if (rows && rows.length < 2) return "";
+    const v = store.get(LISTA_AGRUPAR_KEY, "") || "";
+    return this._listGroupOps().some(([k]) => k === v) ? v : "";
+  }
+
+  _renderListAgrupar(l, rows) {
+    if (rows.length < 2) return nothing;
+    const ops = this._listGroupOps();
+    const cur = this._listGroupNow(rows);
+    const shut = store.get(LISTA_AGRUPAR_FECHADO_KEY, false) === true;
+    const nome = (ops.find(([k]) => k === cur) || ops[0])[1];
+    const pick = (k) => {
+      this._haptic("light");
+      store.set(LISTA_AGRUPAR_KEY, k);
+      this.requestUpdate();
+    };
+    return html`<button type="button" class="filters-label agrupar-l" id="lista-agrupar" aria-expanded=${shut ? "false" : "true"} @click=${() => {
+        this._haptic("light");
+        store.set(LISTA_AGRUPAR_FECHADO_KEY, !shut);
+        this.requestUpdate();
+      }}>${icon("layers", "lbl-ic")}Agrupar por${shut ? html`<span class="filters-val">· ${nome}</span>` : nothing}</button>
+      <div class="incluir ${shut ? "shut" : ""}">
+        <div class="seg agrupar-seg" role="radiogroup" aria-labelledby="lista-agrupar" style="--n:${ops.length}">
+          ${ops.map(([k, n, ic]) => html`<button type="button" class=${cur === k ? "on" : ""} role="radio" aria-checked=${cur === k ? "true" : "false"} @click=${() => pick(k)}>${icon(ic)}<span>${n}</span></button>`)}
+        </div>
+      </div>`;
+  }
+
+  /** The items of a list in groups: [{id, name, icon, rows}], in order (the sooner first inside Prazo). */
+  _listGroups(l, rows, how) {
+    const by = new Map();
+    const put = (id, row) => (by.has(id) ? by.get(id) : by.set(id, []).get(id)).push(row);
+    if (how === "prazo") {
+      const now = new Date();
+      for (const i of rows) {
+        const d = dueInfo(i.due, now);
+        put(d ? DUE_GROUPS.find((g) => g.test(d)).id : "none", { i, at: d ? d.at.getTime() : 0 });
+      }
+      const all = [...DUE_GROUPS.map((g) => [g.id, g.title, g.icon]), ["none", "Sem prazo", "calendar-off"]];
+      return all.filter(([id]) => by.has(id)).map(([id, name, ic]) => ({ id: `prazo:${id}`, name, icon: ic, rows: by.get(id).sort((a, b) => a.at - b.at).map((x) => x.i) }));
+    }
+    if (how === "comodo") {
+      for (const i of rows) put(this._roomIdOf(l.id, i.summary) || "", i);
+      const order = this._roomList().map((c) => c.id).filter((id) => by.has(id));
+      return [...order.map((id) => ({ id: `comodo:${id}`, name: this._roomName(id), icon: "door-open", rows: by.get(id) })), ...(by.has("") ? [{ id: "comodo:", name: "Sem cômodo", icon: "ban", rows: by.get("") }] : [])];
+    }
+    const names = new Map();
+    for (const i of rows) {
+      const e = this._externalOf(l.id, i.summary);
+      const k = !e ? "casa" : e === true ? "ext" : `ext:${fold(e)}`;
+      if (typeof e === "string" && !names.has(k)) names.set(k, e);
+      put(k, i);
+    }
+    const named = [...names.entries()].sort((a, b) => a[1].localeCompare(b[1], "pt-BR"));
+    return [
+      ...(by.has("casa") ? [{ id: "quem:casa", name: "Nós mesmos", icon: "house", rows: by.get("casa") }] : []),
+      ...named.map(([k, n]) => ({ id: `quem:${k}`, name: n, icon: "hard-hat", rows: by.get(k) })),
+      ...(by.has("ext") ? [{ id: "quem:ext", name: "Serviço externo", icon: "hard-hat", rows: by.get("ext") }] : []),
+    ];
+  }
+
+  /** The groups of a list: each a card with the icon, the name and how many, folding by its title (kept on the device). */
+  _renderListGroups(l, rows, { selectable }) {
+    const shut = new Set(store.get(LISTA_GRUPOS_KEY, []) || []);
+    return this._listGroups(l, rows, this._listGroupNow(rows)).map((g) => {
+      const id = `${l.id}|${g.id}`;
+      const off = shut.has(id);
+      return html`<div class="panel items search-list list-grp" data-group=${g.id} style=${colorVars(l.color, this._dark)}>
+        <button type="button" class="grp-h" aria-expanded=${off ? "false" : "true"} @click=${() => {
+          this._haptic("light");
+          off ? shut.delete(id) : shut.add(id);
+          store.set(LISTA_GRUPOS_KEY, [...shut]);
+          this.requestUpdate();
+        }}><span class="tile">${icon(g.icon)}</span><b>${g.name}</b><span class="grp-n">${plural(g.rows.length, "item", "itens")}</span></button>
+        ${off ? nothing : repeat(g.rows, keyOf, (i) => this._renderItem(l, i, { selectable: selectable && !isDone(i) }))}
+      </div>`;
+    });
   }
 
   // ---------- Selecionar: several items of a list, moved to another list at once
