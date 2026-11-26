@@ -146,3 +146,4 @@ Respostas curtas, em português. Ao terminar uma mudança: o que mudou, a versã
 
 2.95.0 (o dono: "do mesmo jeito que criamos esse agrupar por… [nos Consumíveis do InventarIA]… se tiver alguma já fora do padrão, deixa nesse padrão"): no `_renderSearchGroup`, as escolhas são o `.seg.agrupar-seg` (`--n` colunas iguais; até 380 px, sem os ícones) e o título, `.filters-label.agrupar-l`; cada grupo do Buscar começa pelo `.grp-h` (o `.tile` com o ícone da lista, do prazo, `DUE_GROUPS`, ou do cômodo; o nome em `b`; `.grp-n` com quantos itens; a seta), no lugar do `.overline.fold-over`. Testes: `rv_agrupar`, `rv_rooms`, `rv_fold` e `rv_bulk`.
 
+2.95.1 (o dono: "aumentar um pouco a borda dos itens, veja como ficou colado com os textos"): o `.panel.search-list > .grp-h` tem 12 px em cima e embaixo, aberto ou fechado. Teste: `rv_agrupar`.

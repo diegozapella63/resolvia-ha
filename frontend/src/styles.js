@@ -1554,7 +1554,7 @@ export const styles = css`
     align-items: center;
     gap: 12px;
     width: 100%;
-    padding: 0 0 12px;
+    padding: 12px 0;
     margin: 0;
     background: none;
     border: 0;
@@ -1604,8 +1604,10 @@ export const styles = css`
     mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") center / 18px no-repeat;
     transition: transform 0.2s;
   }
+  /* 2.95.1 (o dono: "aumentar um pouco a borda dos itens… ficou colado com os textos"): o mesmo respiro em cima e embaixo,
+     aberto ou fechado */
   .panel.search-list > .grp-h[aria-expanded="false"] {
-    padding-bottom: 0;
+    padding: 12px 0;
   }
   .panel.search-list > .grp-h[aria-expanded="false"]::after {
     transform: rotate(-90deg);

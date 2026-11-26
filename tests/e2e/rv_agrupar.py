@@ -71,6 +71,10 @@ async def main():
             await g.locator(".grp-h").click(); await pg.wait_for_timeout(250)
             check(n0 > 0 and await g.locator(".item, .row").count() == 0 and (await g.locator(".grp-h b").inner_text()).strip() == "Sem prazo"
                   and (await g.locator(".grp-h .grp-n").inner_text()).strip() == (f"{n0} itens" if n0 > 1 else "1 item"), f"{w}: o grupo fecha pelo nome, com a contagem (2.95.0: sempre à vista)")
+            # 2.95.1 (o dono: "ficou colado com os textos"): fechado, o ícone com folga da borda do cartão, em cima e embaixo
+            folga = await g.evaluate("(p) => { const c = p.getBoundingClientRect(), t = p.querySelector('.grp-h .tile').getBoundingClientRect(); return [Math.round(t.top - c.top), Math.round(c.bottom - t.bottom)]; }")
+            check(min(folga) >= 14 and abs(folga[0] - folga[1]) <= 2, f"{w}: fechado, a folga do ícone para a borda ({folga})")
+            await pg.screenshot(path=f"{SP}/shots/rvag-fechado-{w}.png")
             # Selecionar continua valendo, com todos
             await a.locator(".res-head .text-btn").click(); await pg.wait_for_timeout(300)
             await a.locator(".sel-head .text-btn").click(); await pg.wait_for_timeout(300)

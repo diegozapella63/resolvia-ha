@@ -1,5 +1,9 @@
 # Mudanças
 
+## 2.95.1
+
+- **Buscar**: o título de cada grupo (Lista, Prazo, Cômodo) ganhou respiro em cima e embaixo; fechado, o ícone e o nome não ficam mais colados na borda.
+
 ## 2.95.0
 
 - **Buscar › Agrupar por** no mesmo jeito dos outros apps da família: **Lista**, **Prazo** e **Cômodo** ficam numa barra só, do mesmo tamanho.
