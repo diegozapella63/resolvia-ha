@@ -153,6 +153,8 @@ Pela pasta `/share` do Home Assistant e por eventos do HA. Mudar um formato aqui
 
 2.93.0 (o dono: "Nenhum, Casa e Bens também deve estar em bloco retraível"; "os botões das infos deixa em tamanho fixo, 2 por linha, e com ... se cortar"): o `_renderWhere` (`rooms.js`) tem o `.flabel` **Onde** (o ícone `pin`), e o `_applyFieldFolds` dobra também o campo com `.seg` (o Onde do item e o do Alterar vários); fechado, **Onde · Casa**. Na linha de um item, `.item .it-body > .chips` é uma grade de duas colunas iguais (até 440 px) e cada `.tag` é um bloco com `text-overflow: ellipsis`. Testes: `rv_bens` (o Onde) e `rv_rooms` (a grade das etiquetas).
 
+2.93.1 (o dono: "revisar as 20 perguntas padrões da IA, tem algumas muito específicas"): as **perguntas prontas** da Conversa (as 6 à vista e as 20 do Mais perguntas) são gerais e valem em qualquer casa: nada de itens, valores, compromissos, cômodos ou nomes inventados («Adiciona leite na lista», «Marca dentista sexta às 15h», «Onde está o liquidificador?»); o pedido com o detalhe é o que a pessoa escreve. Vale em todos os apps da família.
+
 ## Conversa com o dono
 
 Respostas curtas, em português. Ao terminar uma mudança: o que mudou, a versão e se está publicado.

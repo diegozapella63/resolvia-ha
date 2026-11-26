@@ -1,5 +1,9 @@
 # Mudanças
 
+## 2.93.1
+
+- As **perguntas prontas** da Conversa (e as **Mais perguntas** do **Editar perguntas**) ficaram gerais, para valer em qualquer casa: saíram as que citavam itens, valores, compromissos ou cômodos inventados, como «Adiciona leite na lista de compras» e «O que tem para fazer na cozinha?». As perguntas que você já editou continuam como estão.
+
 ## 2.93.0
 
 - No item, **Nenhum**, **Casa** e **Bens** ganharam o título **Onde** e retraem como os outros campos (fechado:
