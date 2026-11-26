@@ -41,7 +41,7 @@ async def main():
             return next((i for i in (await ws({"type": "todo/item/list", "entity_id": eid}))["items"] if i["summary"] == summary), None)
         box = pg.locator("input[data-q='buscar']")
         sub = lambda: pg.locator(".page .page-sub").inner_text()
-        groups = lambda: pg.locator(".page .panel.items .overline").all_text_contents()  # (shown in capitals by the CSS)
+        groups = lambda: pg.locator(".page .panel.search-list .grp-h b").all_text_contents()  # 2.95.0: o nome do grupo
         hits = lambda: pg.locator(".page .panel.items .item .it-text").all_inner_texts()
         async def search(q):
             await box.fill(q); await pg.wait_for_timeout(250)
