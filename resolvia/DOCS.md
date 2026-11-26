@@ -46,7 +46,7 @@ Com a tela larga (1000 pixels ou mais, como no InventarIA), as abas de baixo vir
 
 Segure um item (ou use **⋯ › Selecionar itens**) para selecionar: toque nos outros que vão junto, ou em **Todos**, e depois em **Mover para outra lista**. Cada item vai com o prazo, a repetição, os pontos, os cômodos, os equipamentos e quem faz. O **×** sai da seleção.
 
-**Agrupar por** (embaixo do Adicionar item): **Nenhum** (a ordem da lista, que se arrasta), **Prazo**, **Cômodo** (com Usar cômodos) ou **Quem faz** (com Serviços externos). Cada grupo mostra quantos itens e fecha num toque no título; a escolha vale para todas as listas e fica no aparelho.
+**Agrupar por** (embaixo do Adicionar item): **Prazo** (de início), **Cômodo** (com Usar cômodos) ou **Quem faz** (com Serviços externos). Arrastar para mudar a ordem vale dentro do grupo quando ele segue a ordem da lista (por Cômodo, por Quem faz e no Sem prazo). Cada grupo mostra quantos itens e fecha num toque no título; a escolha vale para todas as listas e fica no aparelho.
 
 ### Buscar
 

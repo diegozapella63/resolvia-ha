@@ -1,7 +1,7 @@
 # ResolvIA 2.96.0 (o dono, na tela de uma lista: "aqui também ter o agrupamento"): dentro da lista, o Agrupar por do Buscar:
-# Nenhum (a ordem da lista, como sempre), Prazo, Cômodo (com Usar cômodos) e Quem faz (com Serviços externos); cada grupo
-# com o ícone, o nome e quantos, que fecha pelo título; o título Agrupar por fecha o bloco; o aparelho lembra. A casa do HA
-# simulado (dev/fake-ha.mjs), inventada.
+# Prazo, Cômodo (com Usar cômodos) e Quem faz (com Serviços externos); cada grupo com o ícone, o nome e quantos, que fecha
+# pelo título; o título Agrupar por fecha o bloco; o aparelho lembra. 2.96.1 (o dono: "tira o nenhum e deixa o prazo por
+# padrão"): sem o Nenhum, Prazo de início; arrastar só onde a ordem é a da lista. A casa do HA simulado, inventada.
 import os as _os
 RESOLVIA = _os.environ.get("E2E_RESOLVIA", "")
 import asyncio, os, subprocess, time, shutil
@@ -43,12 +43,13 @@ async def main():
             await a.evaluate("(el, p) => el._go(p)", "/lista/" + lid); await pg.wait_for_timeout(600)
             pend = await a.locator(".panel.items .item").count()
             ops = [t.strip() for t in await a.locator(".agrupar-seg button").all_inner_texts()]
-            check(ops[:2] == ["Nenhum", "Prazo"] and ops[-1] == "Quem faz", f"{w}: Nenhum, Prazo… e Quem faz ({ops})")
-            check(await a.locator(".agrupar-seg button[aria-checked=true]").inner_text() == "Nenhum" and await a.locator(".list-grp").count() == 0, f"{w}: Nenhum: a lista como sempre")
+            check(ops[0] == "Prazo" and ops[-1] == "Quem faz" and "Nenhum" not in ops, f"{w}: Prazo… e Quem faz, sem o Nenhum ({ops})")
+            check(await a.locator(".agrupar-seg button[aria-checked=true]").inner_text() == "Prazo" and await a.locator(".list-grp").count() > 0, f"{w}: Prazo de início")
             cx = await a.evaluate("(el) => [...el.renderRoot.querySelectorAll('.agrupar-seg button')].map((b) => { const r = b.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.top)]; })")
             check(len({c[0] for c in cx}) == 1 and len({c[1] for c in cx}) == 1, f"{w}: numa linha, do mesmo tamanho ({cx})")
+            cortados = await a.evaluate("(el) => [...el.renderRoot.querySelectorAll('.agrupar-seg button span')].filter((s) => s.scrollWidth > s.clientWidth + 1).map((s) => s.textContent)")
+            check(not cortados, f"{w}: os nomes inteiros, sem reticências ({cortados})")
             # Prazo
-            await a.locator(".agrupar-seg button", has_text="Prazo").click(); await pg.wait_for_timeout(350)
             gs = await a.evaluate(GRUPOS)
             nomes = [g[0] for g in gs]
             check(gs and all(n in PRAZOS for n in nomes) and nomes == sorted(nomes, key=PRAZOS.index), f"{w}: Prazo: na ordem do Agora ({nomes})")
@@ -56,6 +57,8 @@ async def main():
             nums = [t.strip() for t in await a.locator(".list-grp .grp-h .grp-n").all_inner_texts()]
             check(nums == [f"{g[1]} itens" if g[1] != 1 else "1 item" for g in gs], f"{w}: quantos no título ({nums})")
             check(not await pg.evaluate("() => document.documentElement.scrollWidth > innerWidth"), f"{w}: nada passa da largura")
+            arrasta = await a.evaluate("(el) => [...el.renderRoot.querySelectorAll('.list-grp')].map((g) => [g.dataset.group, g.querySelectorAll('.item[data-drag]').length])")
+            check(all((n == 0) == (gid != "prazo:none") for gid, n in arrasta if gid), f"{w}: por Prazo, arrastar só no Sem prazo, que segue a ordem da lista ({arrasta})")
             await pg.screenshot(path=f"{SP}/shots/rvla-prazo-{w}.png")
             # um grupo fecha pelo título
             g0 = a.locator(".list-grp").first
@@ -65,6 +68,7 @@ async def main():
             await a.locator(".agrupar-seg button", has_text="Quem faz").click(); await pg.wait_for_timeout(350)
             qs = await a.evaluate(GRUPOS)
             check(qs and qs[0][0] == "Nós mesmos" and sum(g[1] for g in qs) == pend, f"{w}: Quem faz: Nós mesmos primeiro ({[g[0] for g in qs]})")
+            check(await a.locator(".list-grp").first.locator(".item[data-drag]").count() == qs[0][1], f"{w}: Quem faz: arrastar dentro do grupo, na ordem da lista")
             # o bloco fecha pelo título, com o escolhido ao lado; o aparelho lembra
             await a.locator("#lista-agrupar").click(); await pg.wait_for_timeout(200)
             check((await a.locator("#lista-agrupar").inner_text()).split() == ["Agrupar", "por", "·", "Quem", "faz"], f"{w}: fechado, o escolhido ao lado")
@@ -75,8 +79,10 @@ async def main():
             await a.locator("#lista-agrupar").click(); await pg.wait_for_timeout(200)
             await a.locator(".agrupar-seg button", has_text="Prazo").click(); await pg.wait_for_timeout(300)
             check(await a.locator(".list-grp[data-group] .grp-h[aria-expanded=false]").count() == 1, f"{w}: o grupo fechado continua fechado")
-            await a.locator(".agrupar-seg button", has_text="Nenhum").click(); await pg.wait_for_timeout(300)
-            check(await a.locator(".list-grp").count() == 0 and await a.locator(".panel.items .item").count() == pend, f"{w}: de volta ao Nenhum")
+            # o que estava guardado de antes (o Nenhum, "") vira o Prazo
+            await pg.evaluate("() => localStorage.setItem('resolvia-lista-agrupar', '\"\"')")
+            await a.evaluate("(el) => el.requestUpdate()"); await pg.wait_for_timeout(300)
+            check(await a.locator(".agrupar-seg button[aria-checked=true]").inner_text() == "Prazo", f"{w}: o Nenhum de antes vira o Prazo")
             await ctx.close()
         check(not errs, f"sem erros na tela ({errs[:2]})")
         await b.close()

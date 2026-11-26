@@ -1,5 +1,9 @@
 # Mudanças
 
+## 2.96.1
+
+- **Agrupar por** dentro de cada lista: sem o **Nenhum**; a lista abre por **Prazo**. Arrastar para mudar a ordem continua dentro do grupo, onde a ordem é a da lista: por Cômodo, por Quem faz e no Sem prazo.
+
 ## 2.96.0
 
 - **Agrupar por dentro de cada lista**, o mesmo do Buscar.

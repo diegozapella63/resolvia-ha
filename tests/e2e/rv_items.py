@@ -68,6 +68,8 @@ async def main():
             await row(text).first.locator(".it-body").click(); await pg.wait_for_timeout(300)
 
         await pg.goto(LISTAS); await pg.wait_for_timeout(1300)
+        # 2.96.1: a lista abre agrupada por Prazo (arrastar só no Sem prazo); por Quem faz, tudo em Nós mesmos, na ordem da lista
+        await pg.evaluate("() => localStorage.setItem('resolvia-lista-agrupar', '\"quem\"')")
         await pg.locator(".list-card", has_text="Casa").click(); await pg.wait_for_timeout(600)
         check(await pg.locator(".detail-head h1").inner_text() == "Casa", "Casa opens")
 

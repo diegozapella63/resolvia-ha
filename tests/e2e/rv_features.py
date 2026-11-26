@@ -69,6 +69,8 @@ async def main():
         close = lambda: pg.locator(".sheet .icon-btn[aria-label='Fechar']").click()
 
         await pg.goto(LISTAS); await pg.wait_for_timeout(1500)
+        # 2.96.1: a lista abre agrupada por Prazo (arrastar só no Sem prazo); por Quem faz, tudo em Nós mesmos, na ordem da lista
+        await pg.evaluate("() => localStorage.setItem('resolvia-lista-agrupar', '\"quem\"')")
         names = await pg.locator(".list-card .lc-title").all_inner_texts()
         check(len(names) == 9 and {"Lista de compras", "Google Tasks", "Avisos do condomínio", "Chamados", "CalDAV"} <= set(names), f"nine lists on the home ({names})")
         cal = pg.locator(".list-card", has=pg.locator(".lc-title", has_text="CalDAV"))

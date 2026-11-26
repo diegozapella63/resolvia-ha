@@ -2125,22 +2125,27 @@ class ResolviaPanel extends MemoriaIaMixin(CorreriaMixin(ChartsMixin(PhotosMixin
         r.classList.remove("shifting", "dragging");
         r.style.transform = "";
       });
-      if (st.target !== index) this._commitMove(list, item, rows.map((r) => r.dataset.key), index, st.target);
+      if (st.target !== index) this._commitMove(list, item, rows.map((r) => r.dataset.key), index, st.target, container.classList.contains("list-grp"));
     };
     handle.addEventListener("pointermove", move);
     handle.addEventListener("pointerup", end);
     handle.addEventListener("pointercancel", end);
   }
 
-  async _commitMove(list, item, keys, from, to) {
+  async _commitMove(list, item, keys, from, to, inGroup = false) {
     const order = keys.slice();
     const [moved] = order.splice(from, 1);
     order.splice(to, 0, moved);
-    const previous = to === 0 ? undefined : order[to - 1];
     // Optimistic reorder of the full list (completed items keep their spots).
     const items = list.items.slice();
     const curIdx = items.findIndex((i) => keyOf(i) === moved);
     const [obj] = items.splice(curIdx, 1);
+    // 2.96.1: inside a group, the first place is right before the one that was first (the list goes on above it)
+    let previous = to === 0 ? undefined : order[to - 1];
+    if (inGroup && to === 0 && order.length > 1) {
+      const at = items.findIndex((i) => keyOf(i) === order[1]);
+      previous = at > 0 ? keyOf(items[at - 1]) : undefined;
+    }
     const prevIdx = previous ? items.findIndex((i) => keyOf(i) === previous) : -1;
     items.splice(prevIdx + 1, 0, obj);
     this._setItems(list.id, items);
@@ -2482,7 +2487,7 @@ class ResolviaPanel extends MemoriaIaMixin(CorreriaMixin(ChartsMixin(PhotosMixin
             ? html`<div class="panel">${[70, 52, 84].map((w) => html`<div class="skeleton" style="width:${w}%"></div>`)}</div>`
             : pending.length
               ? html`${this._renderListAgrupar(l, pending)}${this._listGroupNow(pending)
-                  ? this._renderListGroups(l, pending, { selectable: canDelete })
+                  ? this._renderListGroups(l, pending, { selectable: canDelete, drag: canMove && canUpdate })
                   : html`<div class="panel items">
                   ${repeat(pending, keyOf, (i) => this._renderItem(l, i, { draggable: canMove && canUpdate && !isDone(i), selectable: canDelete && !isDone(i) }))}
                 </div>`}`
@@ -2515,23 +2520,23 @@ class ResolviaPanel extends MemoriaIaMixin(CorreriaMixin(ChartsMixin(PhotosMixin
     `;
   }
 
-  // ---------- 2.96.0: Agrupar por dentro de uma lista (o dono: "aqui também ter o agrupamento"): Nenhum (a ordem da lista,
-  // que se arrasta), Prazo, Cômodo (com Usar cômodos) e Quem faz (com Serviços externos); o mesmo bloco do Buscar
+  // ---------- 2.96.0: Agrupar por dentro de uma lista (o dono: "aqui também ter o agrupamento"): Prazo, Cômodo (com Usar
+  // cômodos) e Quem faz (com Serviços externos); o mesmo bloco do Buscar. 2.96.1 (o dono: "tira o nenhum e deixa o prazo por
+  // padrão"): sem o Nenhum; arrastar vale dentro de um grupo que segue a ordem da lista (Cômodo, Quem faz e o Sem prazo)
 
   _listGroupOps() {
     return [
-      ["", "Nenhum", "list-checks"],
       ["prazo", "Prazo", "calendar-days"],
       ...(this._rooms && this._rooms.encontrado && this._roomsOn() ? [["comodo", "Cômodo", "door-open"]] : []),
       ...(this._extOn() ? [["quem", "Quem faz", "hard-hat"]] : []),
     ];
   }
 
-  /** The grouping chosen for the lists ("" = Nenhum); only with more than one item. */
+  /** The grouping chosen for the lists (Prazo to begin with); "" with a single item (no groups). */
   _listGroupNow(rows = null) {
     if (rows && rows.length < 2) return "";
-    const v = store.get(LISTA_AGRUPAR_KEY, "") || "";
-    return this._listGroupOps().some(([k]) => k === v) ? v : "";
+    const v = store.get(LISTA_AGRUPAR_KEY, "prazo") || "prazo";
+    return this._listGroupOps().some(([k]) => k === v) ? v : "prazo";
   }
 
   _renderListAgrupar(l, rows) {
@@ -2591,9 +2596,12 @@ class ResolviaPanel extends MemoriaIaMixin(CorreriaMixin(ChartsMixin(PhotosMixin
   }
 
   /** The groups of a list: each a card with the icon, the name and how many, folding by its title (kept on the device). */
-  _renderListGroups(l, rows, { selectable }) {
+  _renderListGroups(l, rows, { selectable, drag = false }) {
     const shut = new Set(store.get(LISTA_GRUPOS_KEY, []) || []);
-    return this._listGroups(l, rows, this._listGroupNow(rows)).map((g) => {
+    const how = this._listGroupNow(rows);
+    return this._listGroups(l, rows, how).map((g) => {
+      // the order inside a group is the list's (and so it can be dragged), but by Prazo the sooner comes first
+      const inOrder = how !== "prazo" || g.id === "prazo:none";
       const id = `${l.id}|${g.id}`;
       const off = shut.has(id);
       return html`<div class="panel items search-list list-grp" data-group=${g.id} style=${colorVars(l.color, this._dark)}>
@@ -2603,7 +2611,7 @@ class ResolviaPanel extends MemoriaIaMixin(CorreriaMixin(ChartsMixin(PhotosMixin
           store.set(LISTA_GRUPOS_KEY, [...shut]);
           this.requestUpdate();
         }}><span class="tile">${icon(g.icon)}</span><b>${g.name}</b><span class="grp-n">${plural(g.rows.length, "item", "itens")}</span></button>
-        ${off ? nothing : repeat(g.rows, keyOf, (i) => this._renderItem(l, i, { selectable: selectable && !isDone(i) }))}
+        ${off ? nothing : repeat(g.rows, keyOf, (i) => this._renderItem(l, i, { draggable: drag && inOrder && !isDone(i), selectable: selectable && !isDone(i) }))}
       </div>`;
     });
   }
