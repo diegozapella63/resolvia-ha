@@ -58,8 +58,8 @@ async def main():
         check(await a.locator(".home-top .facts").is_visible() and await a.locator(".facts .fact-row").count() >= 3, "the numbers beside the notebook")
         late = await a.locator(".fact-row", has_text="Atrasados").inner_text()
         check("Pagar conta de luz" in late, f"Atrasados names the first late item ({late.splitlines()})")
-        hero_box = await a.locator(".home-top .hero").bounding_box(); facts_box = await a.locator(".home-top .facts").bounding_box()
-        check(facts_box["x"] > hero_box["x"] + hero_box["width"], "beside it, on the right")
+        # 2.97.0: the notebook page went to Agora; in Listas, only the numbers
+        check(await a.locator(".home-top .hero").count() == 0, "Listas: no notebook page")
         bg = await a.locator(".panel.grp").first.evaluate("e => getComputedStyle(e).backgroundColor")
         check(bg in ("rgba(0, 0, 0, 0)", "transparent"), f"sections, not cards ({bg})")
         check(await a.locator(".grp-head h2").first.evaluate("e => parseFloat(getComputedStyle(e).fontSize)") >= 24, "big section titles")

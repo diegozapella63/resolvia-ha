@@ -332,6 +332,9 @@ export const SuggestMixin = (Base) =>
       if (due.late) bits.push(plural(due.late, "atrasado", "atrasados"));
       if (due.today) bits.push(`${due.today} para hoje`);
       const any = s.pending || due.comingN;
+      // 2.97.0: a folha do caderno (o olá e quantos pendentes) no alto, no lugar da linha embaixo do título; tudo resolvido,
+      // a própria folha diz
+      const listed = this._visible().length > 0;
       const cards = due.cards || {};
       const parts = {
         ...cards,
@@ -360,10 +363,13 @@ export const SuggestMixin = (Base) =>
       this._nowShown = Object.fromEntries(NOW_CARDS.map((id) => [id, !!parts[id] && parts[id] !== nothing]));
       return html`
         <section class="page">
-          ${this._renderPageHead("Agora", { text: bits.length ? bits.join(" · ") : "Nada pendente", tone: due.late ? "late" : "" })}
+          ${this._renderPageHead("Agora", listed ? null : { text: "Nada pendente" })}
+          ${listed ? this._renderHero() : nothing}
           ${any
             ? html`${this._nowOrder().map((id) => parts[id] || nothing)}
                 <button class="add-line now-order" @click=${() => this._openSheet("cards")}>${icon("sliders-horizontal")}Ordem dos cards</button>`
+            : listed
+            ? nothing
             : html`<div class="panel">
                 <div class="empty">
                   <div class="em-icon">${icon("circle-check")}</div>

@@ -48,7 +48,8 @@ async def main():
         badge = pg.locator("nav .tab", has_text="Agora").locator(".badge")
         # 2.60.0: each card with its icon, the title and the count (the heading of Comece por aqui and Compras)
         groups = lambda: pg.evaluate("""() => [...document.querySelector('resolvia-panel').shadowRoot.querySelectorAll('.page .due-group > .due-head')].map((h) => h.querySelector('h2').textContent + ' · ' + h.querySelector('.mh-count').textContent)""")
-        status = lambda: pg.locator(".brand-head .status").inner_text()
+        # 2.97.0: quantos pendentes, os de hoje e os atrasados na folha do caderno, no alto do Agora
+        status = lambda: pg.locator(".now-hero .hero-sub").inner_text()
         group = lambda title: pg.locator(".page .panel.items", has=pg.locator(".due-head", has_text=title))
         async def prazos():
             await pg.locator("nav .tab", has_text="Agora").click(); await pg.wait_for_timeout(500)
@@ -69,7 +70,7 @@ async def main():
         check(order[:3] == ["Atrasados", "Hoje", "Comece por aqui"] and order.index("Amanhã") > order.index("Comece por aqui"), f"late and today first, then Comece por aqui, then the rest ({order})")
         start = await pg.locator(".panel.start").inner_text()
         check("Pagar conta de luz" not in start, "Comece por aqui doesn't repeat what is late")
-        check((await status()).endswith("· 1 atrasado · 1 para hoje"), f"status ({await status()})")
+        check((await status()).endswith("· 1 pra hoje · 1 atrasado") and await pg.locator(".brand-head .status").count() == 0, f"the notebook page, no status line under the title ({await status()})")
         late = group("Atrasados").locator(".item")
         check(await late.locator(".it-text").inner_text() == "Pagar conta de luz" and await late.locator(".tag.late").count() == 1 and await late.locator(".tag.list").inner_text() == "Casa", "Atrasados: the item, in red, with its list")
         check("Luz do Banheiro" not in " ".join(await pg.locator(".page .panel.due-group").all_inner_texts()), "the dates of the Problem List are not deadlines")
@@ -79,7 +80,7 @@ async def main():
         await late.locator(".check").click(); await pg.wait_for_timeout(300)
         check((await item("Pagar conta de luz"))["status"] == "completed" and (await pg.locator(".toast span").inner_text()).startswith("Resolvido: Pagar conta de luz"), "completed from Prazos")
         await pg.wait_for_timeout(1300)
-        check("Atrasados · 1" not in await groups() and await badge.inner_text() == "1" and (await status()).endswith("· 1 para hoje"), "it leaves Prazos; badge and status follow")
+        check("Atrasados · 1" not in await groups() and await badge.inner_text() == "1" and (await status()).endswith("· 1 pra hoje"), "it leaves Prazos; badge and status follow")
         # change a deadline from Prazos: it moves to its group
         await group("Mais adiante").locator(".it-body").click(); await pg.wait_for_timeout(300)
         await pg.locator(".sheet .pick", has_text="Hoje").first.click()

@@ -51,7 +51,12 @@ class Base extends hostOf(PointsMixin, RoomsMixin, ExternalMixin) {
     return html`<div class="it">${i.summary} (${o.why})</div>`;
   }
   _renderPageHead(title, o) {
-    return html`<h1>${title}</h1><p>${o.text}</p>`;
+    return html`<h1>${title}</h1>${o ? html`<p>${o.text}</p>` : ""}`;
+  }
+  // 2.97.0: the notebook page of the panel (resolvia-panel.js › _renderHero)
+  _renderHero() {
+    const n = this._visible().reduce((k, l) => k + l.items.filter((i) => i.status !== "completed").length, 0);
+    return html`<div class="hero">Folha ${n}</div>`;
   }
   _go(path) {
     this.went = path;
@@ -213,16 +218,16 @@ describe("suggest: the AI", () => {
 });
 
 describe("suggest: the page", () => {
-  it("nothing pending: Tudo em dia (Agora since 2.60.0), without Ordem dos cards", () => {
-    const t = text(new Panel([list("todo.a", [])])._renderSuggest());
-    assert.equal(t, "Agora Nada pendente Tudo em dia");
+  it("nothing pending: the notebook page says it (2.97.0), without Ordem dos cards; without lists, Tudo em dia", () => {
+    assert.equal(text(new Panel([list("todo.a", [])])._renderSuggest()), "Agora Folha 0");
+    assert.equal(text(new Panel([])._renderSuggest()), "Agora Nada pendente Tudo em dia");
   });
   it("Comece por aqui with the reasons, and Compras with the oldest item; a shopping list opens", () => {
     const p = new Panel([list("todo.casa", ["Varrer", "Lavar"]), list("todo.mercado", ["leite", "ovos"], { icon: "shopping-cart" }), list("todo.feira", ["alface"], { icon: "shopping-cart" })]);
     p._ages = { "todo.mercado": { "todo.mercado-0": ago(15) } };
     const v = p._renderSuggest();
     const t = text(v);
-    assert.match(t, /Agora 5 pendentes em 3 listas Comece por aqui 2 Varrer \(Faltam 2 para zerar a lista\) Lavar \(Faltam 2 para zerar a lista\)/);
+    assert.match(t, /^Agora Folha 5 Comece por aqui 2 Varrer \(Faltam 2 para zerar a lista\) Lavar \(Faltam 2 para zerar a lista\)/);
     assert.match(t, /Compras 3 mercado O mais antigo está há 2 semanas 2 leite \(\) ovos \(\) feira 1 alface \(\) Ordem dos cards$/, "2.80.0: the items right in the card");
     click(v, /^feira/);
     assert.equal(p.went, "/lista/todo.feira");
@@ -243,13 +248,13 @@ describe("suggest: the page", () => {
   };
   it("2.48.0: the start of the app: late and today first, then Comece por aqui (without them), then the rest of what is due", () => {
     const t = text(dated()._renderSuggest());
-    assert.match(t, /^Agora 4 pendentes em 1 lista · 1 atrasado Atrasados 1 Comece por aqui 2 Varrer .* Lavar .* Próximos 7 dias 1 Voltam sozinhas 1 Ordem dos cards$/);
+    assert.match(t, /^Agora Folha 4 Atrasados 1 Comece por aqui 2 Varrer .* Lavar .* Próximos 7 dias 1 Voltam sozinhas 1 Ordem dos cards$/);
     assert.doesNotMatch(t, /Comece por aqui.*Pagar luz/, "a late one is not repeated in Comece por aqui");
   });
   it("2.48.0: nothing pending but a task that comes back by itself: it shows", () => {
     const p = new Panel([list("todo.a", [])]);
     p.due = { cards: {}, coming: html`<div>Voltam sozinhas 1</div>`, comingN: 1, rows: [], late: 0, today: 0 };
-    assert.match(text(p._renderSuggest()), /Agora Nada pendente Voltam sozinhas 1 Ordem dos cards$/);
+    assert.match(text(p._renderSuggest()), /^Agora Folha 0 Voltam sozinhas 1 Ordem dos cards$/);
   });
   it("2.60.0: nowOrder: every card, without repeats or unknowns; one missing goes after the one before it by default", () => {
     assert.deepEqual(nowOrder(null), NOW_CARDS);

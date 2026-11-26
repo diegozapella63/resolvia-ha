@@ -2286,6 +2286,33 @@ class ResolviaPanel extends MemoriaIaMixin(CorreriaMixin(ChartsMixin(PhotosMixin
 
   // ---------- home
 
+  /** 2.97.0 (o dono: "esse card de boa noite deve ir para o Agora"): a folha do caderno com o olá, quantos pendentes, em
+   *  quantas listas, os de hoje e os atrasados; no alto do Agora (antes, em Listas). */
+  _renderHero() {
+    const lists = this._visible();
+    const pending = lists.reduce((n, l) => n + l.pending, 0);
+    const late = lists.reduce((n, l) => n + l.late, 0);
+    const today = lists.reduce((n, l) => n + l.today, 0);
+    const withPending = lists.filter((l) => l.pending > 0).length;
+    const subBits = [];
+    if (pending) subBits.push(`em ${plural(withPending, "lista", "listas")}`);
+    if (today) subBits.push(`${today} pra hoje`);
+    if (late) subBits.push(`${plural(late, "atrasado", "atrasados")}`);
+    return html`<div class="hero now-hero">
+      <div class="rings">${Array.from({ length: 9 }, () => html`<span class="ring"></span>`)}</div>
+      <div class="hero-card">
+        <div class="hero-kicker">${greeting(this.hass.user && this.hass.user.name)}</div>
+        ${pending
+          ? html`<div class="hero-big">${pending}<small>${pending === 1 ? "pendente" : "pendentes"}</small></div>
+              <div class="hero-sub">${subBits.join(" · ")}</div>`
+          : html`<div class="hero-big">Tudo<small>resolvido</small></div>
+              <div class="hero-sub">Nenhum item pendente. Aproveita.</div>
+              <div class="stamp">RESOLVIDO</div>`}
+        <div class="hero-fold"></div>
+      </div>
+    </div>`;
+  }
+
   /** The lists with more pending first (ties keep the order of Mais › Listas). */
   _byPending(lists) {
     return [...lists].sort((a, b) => b.pending - a.pending);
@@ -2296,14 +2323,6 @@ class ResolviaPanel extends MemoriaIaMixin(CorreriaMixin(ChartsMixin(PhotosMixin
     const lists = this._byPending(this._visible());
     // the ones hidden (Ocultar do início) at the end, folded under Inativas
     const off = this._L.filter((l) => l.hidden);
-    const pending = lists.reduce((n, l) => n + l.pending, 0);
-    const late = lists.reduce((n, l) => n + l.late, 0);
-    const today = lists.reduce((n, l) => n + l.today, 0);
-    const withPending = lists.filter((l) => l.pending > 0).length;
-    const subBits = [];
-    if (pending) subBits.push(`em ${plural(withPending, "lista", "listas")}`);
-    if (today) subBits.push(`${today} pra hoje`);
-    if (late) subBits.push(`${plural(late, "atrasado", "atrasados")}`);
 
     const groupBy = this._app("group_by_device", true);
     const groups = [];
@@ -2328,22 +2347,7 @@ class ResolviaPanel extends MemoriaIaMixin(CorreriaMixin(ChartsMixin(PhotosMixin
           text: `${plural(lists.length, "lista", "listas")} · ao vivo com o Home Assistant`,
         })}
 
-        <div class="home-top">
-        <div class="hero">
-          <div class="rings">${Array.from({ length: 9 }, () => html`<span class="ring"></span>`)}</div>
-          <div class="hero-card">
-            <div class="hero-kicker">${greeting(this.hass.user && this.hass.user.name)}</div>
-            ${pending
-              ? html`<div class="hero-big">${pending}<small>${pending === 1 ? "pendente" : "pendentes"}</small></div>
-                  <div class="hero-sub">${subBits.join(" · ")}</div>`
-              : html`<div class="hero-big">Tudo<small>resolvido</small></div>
-                  <div class="hero-sub">Nenhum item pendente. Aproveita.</div>
-                  <div class="stamp">RESOLVIDO</div>`}
-            <div class="hero-fold"></div>
-          </div>
-        </div>
-        ${this._L.length ? this._renderHomeFacts(lists) : nothing}
-        </div>
+        ${this._L.length ? html`<div class="home-top no-hero">${this._renderHomeFacts(lists)}</div>` : nothing}
 
         ${this._L.length ? this._renderHomeSearch() : nothing}
 
@@ -3016,6 +3020,18 @@ class ResolviaPanel extends MemoriaIaMixin(CorreriaMixin(ChartsMixin(PhotosMixin
     return [...order.map((id) => ({ id: `comodo:${id}`, name: this._roomName(id), icon: "door-open", rows: by.get(id) })), ...(by.has("") ? [{ id: "comodo:", name: "Sem cômodo", icon: "ban", rows: by.get("") }] : [])];
   }
 
+  /** 2.97.0 (PADROES.md): o Filtros fechado diz os que estão ligados ao lado do nome. */
+  _filtrosVal(selecting) {
+    const r = this._rooms && this._rooms.encontrado;
+    const on = [
+      !selecting && this._searchDone && "Concluídos",
+      this._extOn() && this._searchExt && "Serviços externos",
+      r && this._roomsOn() && this._searchRooms && "Cômodos",
+      r && this._equipsOn() && this._searchEquips && "Equipamentos",
+    ].filter(Boolean);
+    return on.join(", ");
+  }
+
   _searchToggle(ic, label, on, toggle) {
     return html`<button class="pick ${on ? "on" : ""}" aria-pressed=${on ? "true" : "false"} @click=${toggle}>${icon(ic)}<span>${label}</span></button>`;
   }
@@ -3099,7 +3115,7 @@ class ResolviaPanel extends MemoriaIaMixin(CorreriaMixin(ChartsMixin(PhotosMixin
           this._incluirShut = !this._incluirShut;
           store.set(INCLUIR_KEY, this._incluirShut);
           this.requestUpdate();
-        }}>${icon("sliders-horizontal", "lbl-ic")}Filtros</button>
+        }}>${icon("sliders-horizontal", "lbl-ic")}Filtros${this._incluirShut && this._filtrosVal(selecting) ? html`<span class="filters-val">· ${this._filtrosVal(selecting)}</span>` : nothing}</button>
         <div class="incluir ${this._incluirShut ? "shut" : ""}">
         <div class="filters" role="group" aria-labelledby="incluir">
           ${selecting ? nothing : this._searchToggle("circle-check", "Concluídos", this._searchDone, () => (this._searchDone = !this._searchDone))}

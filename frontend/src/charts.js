@@ -313,7 +313,7 @@ export const chartStyles = `
   .g-more-t { flex: 1; text-align: left; }
   .g-more .g-n { color: var(--rv-muted); font-size: 18px; }
   .g-more .chev { width: 18px; height: 18px; color: var(--rv-muted); transition: transform 0.2s; }
-  .g-more.open .chev { transform: rotate(180deg); }
+  .g-more:not(.open) .chev { transform: rotate(-90deg); } /* PADROES.md: fechado, para o lado; aberto, para baixo */
   .g-more:active { background: var(--rv-surface-2); }
   .g-foot { margin: 4px 0 6px; font-size: 13.5px; color: var(--rv-muted); }
   .g-foot b { color: var(--rv-text); font-weight: 600; font-variant-numeric: tabular-nums; }

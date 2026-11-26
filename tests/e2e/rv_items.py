@@ -335,8 +335,11 @@ async def main():
         total = 0
         for eid in (CASA, SHOP, TODO, "todo.analise_dos_dispositivos_problem_list"):
             total += len([i for i in await items(eid) if i["status"] == "needs_action"])
-        big = (await pg.locator(".hero-big").inner_text()).split("\n")[0].strip()
-        check(big == str(total), f"the home counts every pending item ({big} == {total})")
+        await pg.locator("nav .tab", has_text="Agora").click(); await pg.wait_for_timeout(500)
+        big = (await pg.locator(".now-hero .hero-big").inner_text()).split("\n")[0].strip()
+        check(big == str(total), f"Agora: the notebook page counts every pending item ({big} == {total})")
+        await pg.locator("nav .tab", has_text="Listas").click(); await pg.wait_for_timeout(500)
+        check(await pg.locator(".hero").count() == 0, "2.97.0: Listas without the notebook page")
         casa_n = len([i for i in await items() if i["status"] == "needs_action"])
         meta = await pg.locator(".list-card", has_text="Casa").locator(".lc-meta").inner_text()
         check(meta.startswith(f"{casa_n} pendentes"), f"the Casa card ({meta})")

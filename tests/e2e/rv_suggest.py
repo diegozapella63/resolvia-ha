@@ -69,9 +69,13 @@ async def main():
 
         # home and list: dates are information only
         for _ in range(3):
-            if await pg.locator(".hero").count(): break
-            await pg.locator("nav .tab", has_text="Listas").click(); await pg.wait_for_timeout(400)
-        check("atrasado" not in await pg.locator(".hero").inner_text() and await pg.locator(".list-card .tag.late").count() == 0, "home: nothing late")
+            if await pg.locator(".now-hero").count(): break
+            await pg.locator("nav .tab", has_text="Agora").click(); await pg.wait_for_timeout(500)
+        check("atrasado" not in await pg.locator(".now-hero").inner_text(), "Agora: nothing late on the notebook page")
+        for _ in range(3):
+            if await pg.locator(".list-card", has_text="Casa").count(): break
+            await pg.locator("nav .tab", has_text="Listas").click(); await pg.wait_for_timeout(500)
+        check(await pg.locator(".list-card .tag.late").count() == 0, "Listas: nothing late")
         await pg.locator(".list-card", has_text="Casa").click(); await pg.wait_for_timeout(500)
         check(await pg.locator(".item .tag.late").count() == 0 and await pg.locator(".item .tag.info", has_text="Ontem").count() == 1, "list: the date is grey information")
         await pg.locator(".item .it-text", has_text="Pagar conta de luz").click(); await pg.wait_for_timeout(400)
@@ -93,7 +97,7 @@ async def main():
         n = await top.count()
         texts = [await top.nth(k).inner_text() for k in range(n)]
         print("TOP:", [t.replace("\n", " / ") for t in texts])
-        check("Agora" in page and "pendentes em" in page, "Sugestões page with the count")
+        check("Agora" in page and await pg.locator(".now-hero .hero-big").count() == 1 and "pendentes" in page, "Agora with the count on the notebook page (2.97.0)")
         check(n == 5, f"Comece por aqui: 5 ({n})")
         check(texts and "TV da Sala" in texts[0] and "Assim há 2 meses" in texts[0], "first: the device problem of 2 months")
         cfg = [t for t in texts if "Configurar modo claro" in t]

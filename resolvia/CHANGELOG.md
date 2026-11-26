@@ -1,5 +1,11 @@
 # Mudanças
 
+## 2.97.0
+
+- **O caderno do olá foi para o Agora**: «Boa noite», quantos pendentes, em quantas listas, os de hoje e os atrasados ficam no alto da tela onde o app abre (na aba **Listas** ficam as listas e os números).
+- **O alto das listas igual em todos os apps**: o **Filtros** e o **Agrupar por** são linhas do mesmo tamanho, uma embaixo da outra, com o ícone na cor do app; fechado, o **Filtros** mostra ao lado os que estão ligados. A contagem e o **Selecionar** ficam na mesma linha, logo antes da lista.
+- **Setas**: tudo o que fecha e abre (Concluídos, as Últimas chamadas do Uso da IA, os gráficos) mostra a seta para o lado quando fechado e para baixo quando aberto, como no resto do app.
+
 ## 2.96.1
 
 - **Agrupar por** dentro de cada lista: sem o **Nenhum**; a lista abre por **Prazo**. Arrastar para mudar a ordem continua dentro do grupo, onde a ordem é a da lista: por Cômodo, por Quem faz e no Sem prazo.

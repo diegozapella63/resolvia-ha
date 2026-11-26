@@ -1156,16 +1156,22 @@ export const styles = css`
     align-self: center;
   }
   /* Buscar: how many, and Selecionar (2.51.0); selecting: X, how many, Todos/Nenhum */
+  /* 2.97.0 (PADROES.md): a contagem à esquerda, em 15 px, cinza; o Selecionar à direita, na cor do app */
   .res-head {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 8px;
-    margin: -8px 2px 12px;
+    margin: 4px 2px 12px;
     min-height: 40px;
   }
   .res-head .page-sub {
     margin: 0;
+    font-size: 15px;
+  }
+  .res-head .text-btn {
+    font-size: 15px;
+    font-weight: 600;
   }
   .res-head .text-btn {
     display: inline-flex;
@@ -1305,12 +1311,14 @@ export const styles = css`
   .done-toggle .count {
     color: var(--rv-muted);
   }
+  /* PADROES.md (setas): fechado, para o lado; aberto, para baixo */
   .done-toggle .i {
     transition: transform 0.2s;
     color: var(--rv-muted);
+    transform: rotate(-90deg);
   }
   .done-toggle.open .i {
-    transform: rotate(180deg);
+    transform: none;
   }
 
   .empty {
@@ -1433,21 +1441,32 @@ export const styles = css`
     }
   }
   /* Buscar › Incluir: buttons of the same width, two by row */
+  /* 2.97.0 (PADROES.md, "O alto das listas"): o Filtros e o Agrupar por, uma linha cada, iguais nos apps: o ícone na cor do
+     app, 15 px, peso 500, na cor do texto; um embaixo do outro, sem vão; o conteúdo aberto logo abaixo */
   .filters-label {
     display: flex;
     align-items: center;
     gap: 8px;
     width: 100%;
-    padding: 2px 0;
+    min-height: 40px;
+    padding: 0 2px;
     background: none;
     border: 0;
     text-align: left;
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 500;
-    color: var(--rv-text-2);
-    margin: 0 0 8px;
+    color: var(--rv-text);
+    margin: 0;
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
+  }
+  .filters-label > .lbl-ic {
+    width: 18px;
+    height: 18px;
+    color: var(--rv-accent-ink);
+  }
+  .incluir:not(.shut) {
+    margin: 4px 0 8px;
   }
   /* 2.67.0: Incluir folds with a tap (the arrow at the end); closed, only the ones on; open again on each visit */
   .filters-label::after {
@@ -1471,7 +1490,7 @@ export const styles = css`
   /* 2.94.0: o Agrupar por fechado mostra o escolhido ao lado do título */
   .filters-label .filters-val {
     color: var(--rv-muted);
-    font-weight: 400;
+    font-weight: 500;
   }
   /* 2.68.0: Incluir › De quem é, a person's lists (with the ones of everyone) */
   .filters-sub {
@@ -1565,9 +1584,9 @@ export const styles = css`
     -webkit-tap-highlight-color: transparent;
   }
   .panel.search-list > .grp-h .tile {
-    width: 34px;
-    height: 34px;
-    border-radius: 10px;
+    width: 36px;
+    height: 36px;
+    border-radius: 11px;
   }
   /* sem a cor de uma lista (Prazo, Cômodo): o ícone na cor do app */
   .panel.search-list:not([style*="--cs"]) > .grp-h .tile {
@@ -3916,6 +3935,12 @@ export const styles = css`
       gap: 40px;
       align-items: center;
       margin: 6px 0 4px;
+    }
+    .home-top.no-hero {
+      display: block;
+    }
+    .now-hero {
+      max-width: 540px;
     }
     .home-top .hero {
       margin: 30px 4px 18px;

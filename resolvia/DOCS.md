@@ -26,11 +26,11 @@ As caixas de seleção (como **Fala para texto**, o horário do aviso ou a lista
 
 ### No computador
 
-Com a tela larga (1000 pixels ou mais, como no InventarIA), as abas de baixo viram uma **barra lateral**, com as seções (Agora, Buscar, Listas, Mais) e as **listas**, cada uma com o que falta. No alto, à direita, ficam a **Conversa**, o **Falar**, **Ler com IA** e **Adicionar item**; na aba **Listas**, ao lado do caderno, **Atrasados**, **Para hoje**, **Próximo prazo** e **Mais cheia** (cada um abre o que mostra). As janelas (Novo item, editar) abrem no meio da tela. O **Buscar** já abre com o cursor no campo, e a tecla **/** abre o Buscar de qualquer tela (como no InventarIA). No celular e no tablet nada muda; lá o Buscar não abre o teclado sozinho.
+Com a tela larga (1000 pixels ou mais, como no InventarIA), as abas de baixo viram uma **barra lateral**, com as seções (Agora, Buscar, Listas, Mais) e as **listas**, cada uma com o que falta. No alto, à direita, ficam a **Conversa**, o **Falar**, **Ler com IA** e **Adicionar item**; na aba **Listas**, no alto, **Atrasados**, **Para hoje**, **Próximo prazo** e **Mais cheia** (cada um abre o que mostra). As janelas (Novo item, editar) abrem no meio da tela. O **Buscar** já abre com o cursor no campo, e a tecla **/** abre o Buscar de qualquer tela (como no InventarIA). No celular e no tablet nada muda; lá o Buscar não abre o teclado sozinho.
 
 ## Listas e itens
 
-- Na aba **Listas** ("Minhas listas"), com o caderno do que está pendente, as listas com mais pendências vêm primeiro, agrupadas pelo dispositivo de onde vêm ("Notas e Rotinas do Alexa To-do list" vira **To-do list** no grupo *Notas e Rotinas do Alexa*); as outras ficam em **Listas locais**. As ocultas (**Ocultar do início**) ficam no fim, recolhidas em **Inativas (n)**: um toque abre, e dali dá para abrir a lista.
+- Na aba **Listas** ("Minhas listas"), as listas com mais pendências vêm primeiro, agrupadas pelo dispositivo de onde vêm ("Notas e Rotinas do Alexa To-do list" vira **To-do list** no grupo *Notas e Rotinas do Alexa*); as outras ficam em **Listas locais**. As ocultas (**Ocultar do início**) ficam no fim, recolhidas em **Inativas (n)**: um toque abre, e dali dá para abrir a lista.
 - Numa lista, escreva no campo do alto e toque em **+** (colar várias linhas cria um item por linha). Tocar no quadrado conclui, com **Desfazer** no aviso de baixo; a alça à direita arrasta para reordenar; os concluídos ficam recolhidos no fim, em **Concluídos (n)**, com **Limpar**.
 - Tocar num item abre **Editar item**: texto, **Prazo** (Hoje, Amanhã, Sábado, Próx. semana ou **Outra data**, que abre o mês logo abaixo: **‹** e **›** trocam o mês, tocar no nome do mês mostra os meses do ano e um toque no dia escolhe) e, quando a lista aceita, **Horário** (**Dia todo**, **08:00** ou **Outro horário**, de meia em meia hora), **Repetir depois de concluir**, **Cômodo** e **Equipamento** (com o InventarIA), **Quem faz** (com **Serviços externos** ligado), **Pontos para quem concluir** (com as Recompensas) e **Lista**, para mover. Só aparece o que a lista e as opções ligadas permitem.
 - Os campos de texto (o item, as **Notas**, o **Colar mensagem**) aumentam puxando o canto de baixo, e o tamanho fica guardado no aparelho: abertos de novo, voltam como você deixou (como nos outros apps da família). A caixa da Conversa cresce sozinha e fica de fora.
@@ -54,7 +54,7 @@ A aba **Buscar** abre com todos os pendentes das listas que aparecem (as ocultas
 
 **Selecionar** (ao lado da contagem, ou segurando um item) escolhe vários pendentes, de listas diferentes (sair da tela desfaz a seleção); **Todos** pega os que estão à vista (com o que foi digitado). **Alterar N itens** abre uma janela com **Prazo** (e o **Horário**), **Cômodo**, **Equipamento**, **Quem faz** e **Lista** (mover), cada um começando em **Manter**: só muda o que você escolher, e cada campo só aparece com a opção dele ligada (**Controlar prazos**, **Usar cômodos**, **Usar equipamentos**, **Serviços externos**). O que uma lista não aceita fica como estava: prazo numa lista sem datas, mover de uma lista que não apaga e, numa tarefa com equipamento, o cômodo (que vem dele). O aviso no fim diz quantos mudaram. Manutenções e rotinas do CronologIA não entram (mude por lá).
 
-Na aba **Listas**, logo abaixo do caderno, fica o campo **Buscar entre N itens**, como no InventarIA: a primeira letra já abre o **Buscar** com o que você digitou, e dá para continuar digitando lá.
+Na aba **Listas**, logo abaixo dos números do alto, fica o campo **Buscar entre N itens**, como no InventarIA: a primeira letra já abre o **Buscar** com o que você digitou, e dá para continuar digitando lá.
 
 ## Falar
 
@@ -210,7 +210,7 @@ O cartão mostra quem usou por último (**Claude usou hoje às 09:41**). Desliga
 
 ## Prazos
 
-A **Agora** (a tela inicial) junta o que tem prazo nas listas que aparecem: **Atrasados** e **Hoje** no alto, depois o **Comece por aqui**, **Amanhã**, **Próximos 7 dias**, **Mais adiante** e o que vai voltar sozinho em **Voltam sozinhas**. O número na aba é o que está atrasado ou vence hoje.
+A **Agora** (a tela inicial) abre com o caderno: o olá, quantos itens estão pendentes, em quantas listas, quantos são para hoje e quantos estão atrasados (sem nada pendente, **Tudo resolvido**). Embaixo, junta o que tem prazo nas listas que aparecem: **Atrasados** e **Hoje** no alto, depois o **Comece por aqui**, **Amanhã**, **Próximos 7 dias**, **Mais adiante** e o que vai voltar sozinho em **Voltam sozinhas**. O número na aba é o que está atrasado ou vence hoje.
 
 No **Comece por aqui**, a IA dá preferência ao que está atrasado ou vence hoje e ao que dá para resolver em casa. Um **serviço externo sem prazo** ainda não foi combinado com ninguém: entra no máximo um, por último, com o primeiro passo (pedir um orçamento ou marcar o dia). Com prazo, ele entra pelo prazo.
 
