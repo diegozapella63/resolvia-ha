@@ -230,7 +230,7 @@ async def main():
         res = lambda: a.locator(".panel.items .item").all_inner_texts()
         found = lambda txts, w: any(w in t for t in txts)
         fl = [t.strip() for t in await a.locator(".filters .pick").all_inner_texts()]
-        check(fl == ["Concluídos", "Serviços externos", "Cômodos", "Equipamentos"] and (await a.locator(".filters-label").inner_text()).strip() == "Filtros", f"Buscar › Incluir: the switches ({fl})")
+        check(fl == ["Concluídos", "Serviços externos", "Cômodos", "Equipamentos"] and (await a.locator("#incluir").inner_text()).strip() == "Filtros", f"Buscar › Incluir: the switches ({fl})")
         check(await a.locator(".filters .pick.on", has_text="Cômodos").count() == 1 and await a.locator(".filters .pick.on", has_text="Equipamentos").count() == 1, "both on by default")
         # 2.85.0: Agrupar por: with the rooms on, also Cômodo (the rooms in the order of the InventarIA, then Sem cômodo)
         ops = [t.strip() for t in await a.locator(".agrupar .pick").all_inner_texts()]
