@@ -8,8 +8,8 @@ livres (pode rodar junto com os testes visuais), e põe listas, prazos, repetiç
 equipamentos e serviços externos de exemplo. Celular 390x844 em 2x (PNG 780x1688), tema escuro, a cor
 vermelha fixa (sem a Cor do dia), usuária "Ana", relógio parado às 10h de hoje.
 
-Telas: inicio.png (Minhas listas), lista.png (a lista Casa), item.png (Editar item) e importar.png
-(a revisão de uma mensagem lida pela IA). Com --todas, também graficos.png e conversa.png.
+Telas: inicio.png (Minhas listas), lista.png (a lista Casa), item.png (Editar item), importar.png
+(a revisão de uma mensagem lida pela IA) e agora.png (o Agora). Com --todas, também graficos.png e conversa.png.
 """
 import json
 import os
@@ -216,7 +216,9 @@ def main():
             pg.route(url + "moldura.html", lambda route: route.fulfill(content_type="text/html", body=FRAME))
             pg.goto(url + "moldura.html")
             pg.wait_for_timeout(1500)
-            ws = lambda m: pg.evaluate(WS, m)
+            # pela moldura (servida pelo Playwright) a conexão não abre: os dados vão pela tela do app, no quadro dela
+            pg.wait_for_function("document.querySelector('iframe') && document.querySelector('iframe').contentDocument && document.querySelector('iframe').contentDocument.readyState === 'complete'")
+            ws = lambda m: next(f for f in pg.frames if f != pg.main_frame).evaluate(WS, m)
 
             def ok(r, what):
                 if isinstance(r, dict) and "__error" in r:
@@ -288,6 +290,10 @@ def main():
             sheet.locator(".imp-row").first.wait_for()
             shot("importar.png", 900)
             close_sheet()
+            # Agora: o que está atrasado e vence hoje, por onde começar e os prazos
+            a.evaluate("(el) => el._go('')")
+            a.locator(".page-title").wait_for()
+            shot("agora.png", 1200)
 
             if ALL:
                 a.evaluate("(el) => el._go('/mais')")
