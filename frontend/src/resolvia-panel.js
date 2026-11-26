@@ -118,6 +118,7 @@ const FIELD_KEY = "resolvia-campos";
 // Buscar › Incluir: closed or open, and De quem é (the person whose lists are shown), kept on the device (2.68.0)
 const INCLUIR_KEY = "resolvia-incluir-fechado";
 const AGRUPAR_KEY = "resolvia-buscar-agrupar"; // 2.85.0: Buscar › Agrupar por (lista ou comodo), kept on the device
+const AGRUPAR_FECHADO_KEY = "resolvia-agrupar-fechado"; // 2.94.0: o bloco Agrupar por fechado
 const WHO_KEY = "resolvia-busca-quem";
 export const fieldKeyOf = (field) => {
   const l = field && field.querySelector(":scope > .flabel");
@@ -178,6 +179,7 @@ class ResolviaPanel extends MemoriaIaMixin(CorreriaMixin(ChartsMixin(PhotosMixin
     this._searchShut = new Set();
     // Buscar › Incluir: closed or open (kept), and De quem é ("" = everyone's lists)
     this._incluirShut = store.get(INCLUIR_KEY, false) === true;
+    this._agruparShut = store.get(AGRUPAR_FECHADO_KEY, false) === true;
     // 2.72.0: o app abre sempre em quem está usando (null); outra escolha vale até fechar o app
     this._searchWho = null;
     store.set(WHO_KEY, null); // (a escolha guardada antes da 2.72.0 sai do aparelho)
@@ -1576,7 +1578,8 @@ class ResolviaPanel extends MemoriaIaMixin(CorreriaMixin(ChartsMixin(PhotosMixin
     const md = navigator.mediaDevices;
     // 2.71.0: from the clip of the Conversa (Tirar foto), the photos go to the chat
     const chat = !!opts.chat;
-    const appending = !chat && !!(this._form && this._form.step === "review");
+    const fotos = !!opts.fotos; // 2.94.0: o Tirar foto das fotos da tarefa
+    const appending = !chat && !fotos && !!(this._form && this._form.step === "review");
     if (!md || !md.getUserMedia) {
       // http:// (not the https address): the browser does not let a page use the camera. Say so
       // instead of opening the gallery as if it were the camera.
@@ -1584,6 +1587,7 @@ class ResolviaPanel extends MemoriaIaMixin(CorreriaMixin(ChartsMixin(PhotosMixin
         status: "error",
         shots: [],
         chat,
+        fotos,
         appending,
         flash: 0,
         error: window.isSecureContext === false
@@ -1597,7 +1601,7 @@ class ResolviaPanel extends MemoriaIaMixin(CorreriaMixin(ChartsMixin(PhotosMixin
       }
       return;
     }
-    this._cam = { status: "starting", shots: [], torch: false, torchOk: false, appending, chat, flash: 0 };
+    this._cam = { status: "starting", shots: [], torch: false, torchOk: false, appending, chat, fotos, flash: 0 };
     try {
       history.pushState({ ...(history.state || {}), rvCam: true }, "");
     } catch (e) {
@@ -1682,9 +1686,11 @@ class ResolviaPanel extends MemoriaIaMixin(CorreriaMixin(ChartsMixin(PhotosMixin
     const shots = this._cam.shots;
     const appending = this._cam.appending;
     const chat = this._cam.chat;
+    const fotos = this._cam.fotos;
     this._cam = { ...this._cam, used: true };
     this._closeCamera();
     if (chat) return this._chatAddShots(shots);
+    if (fotos) return this._addTaskShots(shots); // 2.94.0: o Tirar foto da tarefa
     if (this._sheet !== "import") this._openImport(null, "pick");
     this._readImages(shots, appending && this._form.step === "review");
   }
@@ -1694,6 +1700,10 @@ class ResolviaPanel extends MemoriaIaMixin(CorreriaMixin(ChartsMixin(PhotosMixin
     if (this._cam && this._cam.chat) {
       this._closeCamera();
       return this._chatAttach("fotos");
+    }
+    if (this._cam && this._cam.fotos) {
+      this._closeCamera();
+      return this._taskPhotoInput();
     }
     this._closeCamera();
     if (appending && this._form) this._setForm({ step: "review" });
@@ -1705,12 +1715,12 @@ class ResolviaPanel extends MemoriaIaMixin(CorreriaMixin(ChartsMixin(PhotosMixin
     if (!c) return nothing;
     const n = c.shots.length;
     return html`
-      <div class="cam" role="dialog" aria-label="Digitalizar com IA">
+      <div class="cam" role="dialog" aria-label=${c.chat || c.fotos ? "Tirar foto" : "Digitalizar com IA"}>
         <video playsinline muted autoplay></video>
         ${c.flash ? html`<div class="cam-flash" .key=${c.flash}></div>` : nothing}
         <div class="cam-top">
           <button class="cam-btn" aria-label="Fechar" @click=${() => this._closeCamera()}>${icon("x")}</button>
-          <span class="cam-title">${c.chat ? "Tirar foto" : "Digitalizar com IA"}</span>
+          <span class="cam-title">${c.chat || c.fotos ? "Tirar foto" : "Digitalizar com IA"}</span>
           ${c.torchOk
             ? html`<button class="cam-btn ${c.torch ? "on" : ""}" aria-label="Lanterna" @click=${() => this._toggleTorch()}>${icon("zap")}</button>`
             : html`<span class="cam-btn ghost"></span>`}
@@ -1722,7 +1732,7 @@ class ResolviaPanel extends MemoriaIaMixin(CorreriaMixin(ChartsMixin(PhotosMixin
               <button class="btn primary" @click=${() => this._cameraFallback()}>${icon("images")}Escolher foto</button>
             </div>`
           : html`<div class="cam-frame"><i></i><i></i><i></i><i></i></div>
-              <p class="cam-hint">${c.status === "starting" ? "Abrindo a câmera…" : n ? `${plural(n, "página", "páginas")}. Fotografe outra ou toque em Pronto.` : "Enquadre a lista e toque no botão"}</p>`}
+              <p class="cam-hint">${c.status === "starting" ? "Abrindo a câmera…" : n ? `${c.fotos ? plural(n, "foto", "fotos") : plural(n, "página", "páginas")}. Fotografe outra ou toque em Pronto.` : c.fotos ? "Enquadre e toque no botão" : "Enquadre a lista e toque no botão"}</p>`}
         <div class="cam-bottom">
           <div class="cam-shots">${c.shots.slice(-3).map((s) => html`<img src=${s.url} alt="" />`)}${n > 3 ? html`<span>+${n - 3}</span>` : nothing}</div>
           <button class="cam-shutter" aria-label="Fotografar" ?disabled=${c.status !== "live" || n >= 6} @click=${() => this._shoot()}><span></span></button>
@@ -2854,8 +2864,18 @@ class ResolviaPanel extends MemoriaIaMixin(CorreriaMixin(ChartsMixin(PhotosMixin
       this.requestUpdate();
     };
     const op = (k, ic, nome) => html`<button class="pick ${cur === k ? "on" : ""}" role="radio" aria-checked=${cur === k ? "true" : "false"} @click=${() => pick(k)}>${icon(ic)}<span>${nome}</span></button>`;
-    return html`<span class="filters-sub" id="agrupar-por">${icon("layers", "lbl-ic")}Agrupar por</span>
-      <div class="agrupar" role="radiogroup" aria-labelledby="agrupar-por">${op("lista", "list-checks", "Lista")}${op("prazo", "calendar-days", "Prazo")}${rooms ? op("comodo", "door-open", "Cômodo") : nothing}</div>`;
+    // 2.94.0 (o dono: "Agrupar ficou bom, mas tirar dos Filtros, deixar separado e com opção de retrair"): um bloco dele,
+    // embaixo dos Filtros, que fecha e abre pelo título como eles (o aparelho lembra); fechado, o escolhido ao lado
+    const nome = { lista: "Lista", prazo: "Prazo", comodo: "Cômodo" }[cur];
+    return html`<button type="button" class="filters-label" id="agrupar-por" aria-expanded=${this._agruparShut ? "false" : "true"} @click=${() => {
+        this._haptic("light");
+        this._agruparShut = !this._agruparShut;
+        store.set(AGRUPAR_FECHADO_KEY, this._agruparShut);
+        this.requestUpdate();
+      }}>${icon("layers", "lbl-ic")}Agrupar por${this._agruparShut ? html`<span class="filters-val">· ${nome}</span>` : nothing}</button>
+      <div class="incluir ${this._agruparShut ? "shut" : ""}">
+        <div class="agrupar" role="radiogroup" aria-labelledby="agrupar-por">${op("lista", "list-checks", "Lista")}${op("prazo", "calendar-days", "Prazo")}${rooms ? op("comodo", "door-open", "Cômodo") : nothing}</div>
+      </div>`;
   }
 
   /** The hits of Buscar by when they are due, like the cards of Agora; the sooner first inside each group. */
@@ -2980,8 +3000,8 @@ class ResolviaPanel extends MemoriaIaMixin(CorreriaMixin(ChartsMixin(PhotosMixin
           ${this._rooms && this._rooms.encontrado && this._equipsOn() ? this._searchToggle("package", "Equipamentos", this._searchEquips, () => (this._searchEquips = !this._searchEquips)) : nothing}
         </div>
         ${this._renderSearchWho()}
-        ${this._renderSearchGroup()}
         </div>
+        ${this._renderSearchGroup()}
         ${results.length
           ? html`${head}
               ${groups.map((g) => {

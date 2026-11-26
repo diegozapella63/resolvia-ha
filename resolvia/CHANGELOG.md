@@ -1,5 +1,11 @@
 # Mudanças
 
+## 2.94.0
+
+- **Fotos da tarefa** no app do Home Assistant no Android: **Tirar foto** abre a câmera do próprio app (a mesma do Digitalizar com IA; antes abria a galeria) e **Escolher fotos** pega uma foto de cada vez (escolhendo várias, o app do Android não entregava nenhuma, e nada acontecia).
+- No item, o campo **Equipamento** fechado mostra o equipamento escolhido ao lado do título; com mais de um, **Vários equipamentos**.
+- No **Buscar**, o **Agrupar por** saiu dos Filtros: é um bloco dele, logo abaixo, que fecha e abre pelo título (fechado, mostra o escolhido, como **Agrupar por · Prazo**). O aparelho lembra.
+
 ## 2.93.1
 
 - As **perguntas prontas** da Conversa (e as **Mais perguntas** do **Editar perguntas**) ficaram gerais, para valer em qualquer casa: saíram as que citavam itens, valores, compromissos ou cômodos inventados, como «Adiciona leite na lista de compras» e «O que tem para fazer na cozinha?». As perguntas que você já editou continuam como estão.

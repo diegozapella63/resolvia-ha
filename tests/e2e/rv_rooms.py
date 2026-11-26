@@ -167,12 +167,16 @@ async def main():
         await eq.locator(".eq-row", has_text="Geladeira").click(); await pg.wait_for_timeout(200)
         cards = [t.split("\n")[0] for t in await eq.locator(".eq-sel .eq-tx b").all_inner_texts()]
         check(cards == ["Ar-condicionado", "Geladeira"] and await sheet.locator(".flabel", has_text="Equipamentos").count() == 1, f"two equipments ({cards})")
+        # 2.94.0 (o dono: "quando eu retraio e tem só um equipamento, coloca do lado o equipamento; senão, «Vários equipamentos»")
+        check(await eq.locator(":scope > .flabel").get_attribute("data-val") == "Vários equipamentos", "dois: «Vários equipamentos» ao lado do título")
         on = sorted(t.strip() for t in await room_field.locator(".pick.on").all_inner_texts())
         check(on == ["Cozinha", "Sala"] and "Vem dos equipamentos." in await room_field.inner_text() and await sheet.locator(".flabel", has_text="Cômodos").count() == 1, f"both rooms, locked ({on})")
         await sheet.screenshot(path=f"{T}/two-equips.png")
         # × on one: it goes; the other stays
         await eq.locator(".eq-sel", has_text="Geladeira").locator("button").click(); await pg.wait_for_timeout(200)
         check([t.split("\n")[0] for t in await eq.locator(".eq-sel .eq-tx b").all_inner_texts()] == ["Ar-condicionado"], "× takes that one out")
+        await pg.wait_for_timeout(150)
+        check(await eq.locator(":scope > .flabel").get_attribute("data-val") == "Ar-condicionado", "um: o nome dele ao lado do título")
         await eq.locator(".eq-add").click(); await pg.wait_for_timeout(200)
         await eq.locator("input").fill("gela"); await pg.wait_for_timeout(200)
         await eq.locator(".eq-row", has_text="Geladeira").click(); await pg.wait_for_timeout(200)

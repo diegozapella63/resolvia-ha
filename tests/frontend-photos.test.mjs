@@ -155,12 +155,48 @@ describe("photos: sending (the browser parts imitated)", () => {
       await assert.rejects(shrinkPhoto({}), /Não consegui abrir a foto/);
       fail = "blob";
       await assert.rejects(shrinkPhoto({}), /Não consegui preparar a foto/);
-      // the button opens the chooser
-      let clicked = 0;
-      p.renderRoot = { querySelector: (s) => (s === "#rv-task-cam" ? { click: () => clicked++ } : null) };
-      p._pickPhoto("rv-task-cam");
-      p._pickPhoto("rv-outro");
-      assert.equal(clicked, 1);
+      // 2.94.0: Escolher fotos: a chooser made on the spot in the document (one at a time in the Home Assistant app on
+      // Android, which loses what is chosen with multiple); Tirar foto: the camera of the app, or (http) the chooser with it
+      const made = [];
+      globalThis.document = {
+        createElement: () => {
+          const el = { style: {}, attrs: {}, listeners: {}, files: [], setAttribute(k, v) { this.attrs[k] = v; }, addEventListener(k, f) { this.listeners[k] = f; }, click() { this.clicked = true; }, remove() { this.removed = true; } };
+          made.push(el);
+          return el;
+        },
+        body: { appendChild: (el) => (el.inBody = true) },
+      };
+      const r = panel();
+      r._form = { photos: [] };
+      const got = [];
+      r._addPhotoFiles = async (l) => got.push(l);
+      r._isHaAndroid = () => false;
+      r._taskPhotoInput();
+      assert.deepEqual([made[0].type, made[0].accept, made[0].multiple, made[0].inBody, made[0].clicked, made[0].attrs.capture], ["file", "image/*", true, true, true, undefined]);
+      made[0].files = [{ type: "image/jpeg" }];
+      made[0].listeners.change();
+      assert.deepEqual([made[0].removed, got.length], [true, 1]);
+      r._isHaAndroid = () => true;
+      r._taskPhotoInput();
+      assert.equal(made[1].multiple, false, "the Android app: one at a time");
+      let cam = null;
+      r._camOk = () => true;
+      r._openCamera = (o) => (cam = o);
+      r._taskPhotoCamera();
+      assert.deepEqual(cam, { fotos: true }, "the camera of the app");
+      r._camOk = () => false;
+      r._taskPhotoCamera();
+      assert.equal(made[2].attrs.capture, "environment", "without it (http): the chooser with the camera");
+      // the shots of the camera (Pronto) join the task like the chosen ones
+      const oldFetch = globalThis.fetch;
+      globalThis.fetch = async (u) => (u === "blob:x" ? { blob: async () => ({ type: "image/jpeg", u }) } : Promise.reject(new Error("foi")));
+      try {
+        got.length = 0;
+        await r._addTaskShots([{ url: "blob:x" }, { url: "blob:y" }]);
+        assert.deepEqual(got, [[{ type: "image/jpeg", u: "blob:x" }]], "the shot that is gone is left out");
+      } finally {
+        globalThis.fetch = oldFetch;
+      }
     } finally {
       globalThis.Image = old.Image;
       globalThis.document = old.document;

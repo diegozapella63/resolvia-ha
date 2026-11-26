@@ -58,9 +58,18 @@ async def main():
         check(abs(cx[0][0] - cx[1][0]) <= 1 and cx[0][1] == cx[1][1] and cx[0][2] == cx[1][2] and all(c[3] for c in cx) and not any(c[4] for c in cx), f"os dois do mesmo tamanho, lado a lado, com ícone ({cx})")
         ia = await campo.locator(".imp-tiles").first.locator(".imp-tile").evaluate_all("(bs) => bs.map((b) => Math.round(b.getBoundingClientRect().height))")
         check(cx[0][1] < min(ia), f"os de anexar mais baixos que os de ler com a IA ({cx[0][1]} < {ia})")
-        check(await campo.locator("#rv-task-cam").get_attribute("capture") == "environment" and await campo.locator("#rv-task-pick").get_attribute("multiple") is not None, "Tirar foto abre a câmera do celular; Escolher fotos aceita várias")
+        # 2.94.0: Tirar foto abre a câmera do app (a do Digitalizar com IA): o app do Home Assistant no Android ignora o capture
+        await bts.nth(0).click(); await pg.wait_for_timeout(500)
+        check(await a.locator(".cam .cam-title").inner_text() == "Tirar foto", "Tirar foto: a câmera do app, com o título dela")
+        await a.locator(".cam .cam-btn[aria-label='Fechar']").click(); await pg.wait_for_timeout(300)
+        check(await a.locator(".cam").count() == 0 and await sheet.count() == 1, "fechar a câmera volta para a janela")
         await sheet.locator("textarea").first.fill("Arrumar o piso do banheiro")
-        await campo.locator("#rv-task-pick").set_input_files([FOTO1, FOTO2]); await pg.wait_for_timeout(1500)
+        # Escolher fotos: o seletor feito na hora no documento, com várias (no app do Android, uma de cada vez)
+        async with pg.expect_file_chooser() as fc:
+            await bts.nth(1).click()
+        ch = await fc.value
+        check(ch.is_multiple(), "Escolher fotos aceita várias (fora do app do Android)")
+        await ch.set_files([FOTO1, FOTO2]); await pg.wait_for_timeout(1500)
         check(await campo.locator(".photo img").count() == 2 and (await campo.locator(".photos-sub").inner_text()).upper().split() == ["ANEXAR", "NA", "TAREFA", "(2)"], "as duas fotos no bloco de cima, e a contagem na linha")
         ok = await campo.locator(".photo img").evaluate_all("(is) => is.map((i) => i.complete && i.naturalWidth > 0)")
         check(ok == [True, True], f"as fotos carregam do servidor ({ok})")

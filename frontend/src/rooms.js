@@ -171,7 +171,7 @@ export const RoomsMixin = (Base) =>
       const bens = this._inBens(f);
       // with every room (Todos), the search is the whole house; Bens: the bens
       const room = bens ? this._bensId() : this._roomsOn() ? (ids.length ? this._roomsOfEquips(ids)[0] || null : this._allRooms(this._pickedRooms(f)) ? null : f.room) : null;
-      return html`<div class="field">
+      return html`<div class="field" data-varios=${bens ? "Vários bens" : "Vários equipamentos"}>
         <span class="flabel">${icon(bens ? "car" : "package", "lbl-ic")}${bens ? (ids.length > 1 ? "Bens" : "Bem") : ids.length > 1 ? "Equipamentos" : "Equipamento"}</span>
         ${renderEquipPicker({
           lit: { html, nothing },

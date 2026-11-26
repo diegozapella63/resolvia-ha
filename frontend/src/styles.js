@@ -1468,6 +1468,11 @@ export const styles = css`
   .incluir.shut {
     display: none;
   }
+  /* 2.94.0: o Agrupar por fechado mostra o escolhido ao lado do título */
+  .filters-label .filters-val {
+    color: var(--rv-muted);
+    font-weight: 400;
+  }
   /* 2.68.0: Incluir › De quem é, a person's lists (with the ones of everyone) */
   .filters-sub {
     display: flex;

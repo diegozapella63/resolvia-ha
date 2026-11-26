@@ -83,8 +83,13 @@ export const PhotosMixin = (Base) =>
     /** The files chosen (from the camera or the gallery) into the form: made small, sent, shown. */
     async _addPhotos(e) {
       const input = e.target;
-      const files = [...(input.files || [])].filter((x) => /^image\//.test(x.type || "image/"));
+      const files = [...(input.files || [])];
       input.value = "";
+      return this._addPhotoFiles(files);
+    }
+
+    async _addPhotoFiles(list) {
+      const files = [...(list || [])].filter((x) => /^image\//.test(x.type || "image/"));
       const f = this._form;
       if (!f || !files.length) return;
       const room = MAX_PHOTOS - clean(f.photos).length;
@@ -104,9 +109,45 @@ export const PhotosMixin = (Base) =>
       if (files.length > room) this._showToast(`No máximo ${MAX_PHOTOS} fotos por tarefa`);
     }
 
-    _pickPhoto(id) {
-      const input = this.renderRoot.querySelector(`#${id}`);
-      if (input) input.click();
+    /**
+     * 2.94.0 (o dono: "Tirar foto não funciona (abre a galeria) e Escolher fotos abre, escolho a foto, mas nada acontece"):
+     * o app do Home Assistant no Android ignora o capture e perde o que se escolhe com multiple. Tirar foto abre a câmera
+     * do app (a do Digitalizar com IA); sem ela (http), o seletor do celular com a câmera.
+     */
+    _taskPhotoCamera() {
+      if (this._camOk && this._camOk()) return this._openCamera({ fotos: true });
+      return this._taskPhotoInput(true);
+    }
+
+    /** The chooser, made on the spot in the document (like the clip of the Conversa); one at a time in the Android app. */
+    _taskPhotoInput(camera = false) {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = "image/*";
+      if (camera) input.setAttribute("capture", "environment");
+      else input.multiple = !(this._isHaAndroid && this._isHaAndroid());
+      input.style.display = "none";
+      input.addEventListener("change", () => {
+        const list = [...(input.files || [])];
+        input.remove();
+        this._addPhotoFiles(list);
+      });
+      document.body.appendChild(input);
+      input.click();
+    }
+
+    /** The photos of the camera (Pronto): they join the task, like the chosen ones. */
+    async _addTaskShots(shots) {
+      const files = [];
+      for (const s of shots || []) {
+        try {
+          files.push(await (await fetch(s.url)).blob());
+        } catch (e) {
+          /* a shot that is gone */
+        }
+        if (s.url) URL.revokeObjectURL(s.url);
+      }
+      return this._addPhotoFiles(files);
     }
 
     /** On the task in a list: how many photos it has. */
@@ -132,25 +173,23 @@ export const PhotosMixin = (Base) =>
               ${Array.from({ length: f.photosBusy || 0 }, () => html`<div class="photo busy" aria-label="Enviando">${icon("loader-circle", "ai-spin")}</div>`)}
             </div>`
           : nothing;
-      const inputs = html`<input id="rv-task-cam" class="sr" type="file" accept="image/*" capture="environment" tabindex="-1" aria-hidden="true" @change=${(e) => this._addPhotos(e)} />
-        <input id="rv-task-pick" class="sr" type="file" accept="image/*" multiple tabindex="-1" aria-hidden="true" @change=${(e) => this._addPhotos(e)} />`;
       // 2.83.0: in Novo item, inside the block at the top (Fotos e mensagens), as a second row of tiles: only to keep the
       // photo with the task, without the AI reading it
       if (inline) {
         return html`<div class="imp-sub photos-sub">Anexar na tarefa${list.length ? html` <span class="count">(${list.length})</span>` : nothing}</div>
           <div class="imp-tiles photo-tiles">
-            <button type="button" class="imp-tile" ?disabled=${full} @click=${() => this._pickPhoto("rv-task-cam")}>${icon("camera")}<span>Tirar foto</span></button>
-            <button type="button" class="imp-tile" ?disabled=${full} @click=${() => this._pickPhoto("rv-task-pick")}>${icon("images")}<span>Escolher fotos</span></button>
+            <button type="button" class="imp-tile" ?disabled=${full} @click=${() => this._taskPhotoCamera()}>${icon("camera")}<span>Tirar foto</span></button>
+            <button type="button" class="imp-tile" ?disabled=${full} @click=${() => this._taskPhotoInput()}>${icon("images")}<span>Escolher fotos</span></button>
           </div>
-          ${grid}${inputs}`;
+          ${grid}`;
       }
       return html`<div class="field photos-field">
         <span class="flabel">${icon("camera", "lbl-ic")}Fotos${list.length ? html` <span class="count">(${list.length})</span>` : nothing}</span>
         <div class="chip-row grid photo-acts">
-          <button class="pick" ?disabled=${full} @click=${() => this._pickPhoto("rv-task-cam")}>${icon("camera")}<span>Tirar foto</span></button>
-          <button class="pick" ?disabled=${full} @click=${() => this._pickPhoto("rv-task-pick")}>${icon("images")}<span>Escolher fotos</span></button>
+          <button class="pick" ?disabled=${full} @click=${() => this._taskPhotoCamera()}>${icon("camera")}<span>Tirar foto</span></button>
+          <button class="pick" ?disabled=${full} @click=${() => this._taskPhotoInput()}>${icon("images")}<span>Escolher fotos</span></button>
         </div>
-        ${grid}${inputs}
+        ${grid}
       </div>`;
     }
 
