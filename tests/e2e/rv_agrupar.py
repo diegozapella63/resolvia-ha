@@ -8,7 +8,7 @@ SP = _os.environ["E2E_TMP"]; REPO = RESOLVIA
 HA_PORT = _os.environ.get("E2E_HA_PORT", "8123")
 APP_PORT = _os.environ.get("E2E_APP_PORT", "8099")
 URL = f"http://127.0.0.1:{APP_PORT}/"
-DATA, SHARE = f"{SP}/rvag-data", f"{SP}/rvag-share"
+DATA, SHARE = f"{SP}/rvagr-data", f"{SP}/rvagr-share"  # não o rvag-data do rv_agora, que roda logo antes
 for d in (DATA, SHARE): shutil.rmtree(d, ignore_errors=True); os.makedirs(d)
 os.makedirs(f"{SP}/shots", exist_ok=True)
 n_ok, failed = 0, []
