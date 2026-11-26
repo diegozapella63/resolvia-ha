@@ -45,6 +45,19 @@ async def main():
             # 2.94.0 (o dono: "tirar dos Filtros, deixar separado e com opção de retrair")
             fora = await a.evaluate("(el) => { const g = el.renderRoot.querySelector('#agrupar-por'); return !g.closest('.incluir') && g.parentElement.querySelector('#incluir') !== null; }")
             check(fora, f"{w}: o Agrupar por fora dos Filtros, um bloco dele")
+            # 2.97.1 (o dono: "ali dos filtros não criar segunda linha, colocar ... no final se não couber"): todos ligados e o
+            # Filtros fechado: uma linha só, de 40 px, com os ligados ao lado e as reticências no fim
+            liguei = []
+            for k in range(await a.locator(".filters .pick").count()):
+                chip = a.locator(".filters .pick").nth(k)
+                if "on" not in (await chip.get_attribute("class") or "").split():
+                    await chip.click(); await pg.wait_for_timeout(150); liguei.append(k)
+            await a.locator("#incluir").click(); await pg.wait_for_timeout(200)
+            linha = await a.evaluate("(el) => { const f = el.renderRoot.querySelector('#incluir'), v = f.querySelector('.filters-val'); return [Math.round(f.getBoundingClientRect().height), v ? getComputedStyle(v).whiteSpace + ' ' + getComputedStyle(v).textOverflow : '', v ? v.textContent : '']; }")
+            check(linha[0] <= 41 and linha[1] == "nowrap ellipsis" and "·" in linha[2], f"{w}: fechado, os ligados numa linha só, com … ({linha})")
+            await a.locator("#incluir").click(); await pg.wait_for_timeout(200)
+            for k in liguei:
+                await a.locator(".filters .pick").nth(k).click(); await pg.wait_for_timeout(150)
             await a.locator("#agrupar-por").click(); await pg.wait_for_timeout(200)
             check(await a.locator(".agrupar-seg").count() == 0 or not await a.locator(".agrupar-seg").is_visible(), f"{w}: fecha pelo título")
             check((await a.locator("#agrupar-por").inner_text()).split() == ["Agrupar", "por", "·", "Lista"], f"{w}: fechado, o escolhido ao lado")

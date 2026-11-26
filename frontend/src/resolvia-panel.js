@@ -3115,7 +3115,7 @@ class ResolviaPanel extends MemoriaIaMixin(CorreriaMixin(ChartsMixin(PhotosMixin
           this._incluirShut = !this._incluirShut;
           store.set(INCLUIR_KEY, this._incluirShut);
           this.requestUpdate();
-        }}>${icon("sliders-horizontal", "lbl-ic")}Filtros${this._incluirShut && this._filtrosVal(selecting) ? html`<span class="filters-val">· ${this._filtrosVal(selecting)}</span>` : nothing}</button>
+        }}>${icon("sliders-horizontal", "lbl-ic")}Filtros${this._incluirShut ? html`<span class="filters-val">· ${this._filtrosVal(selecting) || "Só pendentes"}</span>` : nothing}</button>
         <div class="incluir ${this._incluirShut ? "shut" : ""}">
         <div class="filters" role="group" aria-labelledby="incluir">
           ${selecting ? nothing : this._searchToggle("circle-check", "Concluídos", this._searchDone, () => (this._searchDone = !this._searchDone))}

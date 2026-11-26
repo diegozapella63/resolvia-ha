@@ -1,5 +1,9 @@
 # Mudanças
 
+## 2.97.1
+
+- **Filtros** fechado: os que estão ligados ficam numa linha só, ao lado do nome (sem nenhum, «Só pendentes»); o que não cabe termina em «…».
+
 ## 2.97.0
 
 - **O caderno do olá foi para o Agora**: «Boa noite», quantos pendentes, em quantas listas, os de hoje e os atrasados ficam no alto da tela onde o app abre (na aba **Listas** ficam as listas e os números).

@@ -1461,6 +1461,7 @@ export const styles = css`
     -webkit-tap-highlight-color: transparent;
   }
   .filters-label > .lbl-ic {
+    flex: none;
     width: 18px;
     height: 18px;
     color: var(--rv-accent-ink);
@@ -1488,7 +1489,13 @@ export const styles = css`
     display: none;
   }
   /* 2.94.0: o Agrupar por fechado mostra o escolhido ao lado do título */
+  /* 2.97.1 (o dono: "ali dos filtros não criar segunda linha, colocar ... no final se não couber") */
   .filters-label .filters-val {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
     color: var(--rv-muted);
     font-weight: 500;
   }
