@@ -1,5 +1,9 @@
 # Mudanças
 
+## 2.97.2
+
+- Nas janelas, um campo fechado **sem nada escolhido nem escrito** diz ao lado **Nenhum** (ou **Nenhuma**, **Ninguém**, **Sem categoria**), como nos outros apps.
+
 ## 2.97.1
 
 - **Filtros** fechado: os que estão ligados ficam numa linha só, ao lado do nome (sem nenhum, «Só pendentes»); o que não cabe termina em «…».
