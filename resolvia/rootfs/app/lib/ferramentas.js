@@ -210,6 +210,17 @@ export function toolList(on) {
       grava: true,
     },
   );
+  // 2.98.0 (o dono, às ferramentas que faltavam para o CorrerIA: "pode seguir neles"): o Alterar do Selecionar
+  const lote = taskProps(on, true);
+  delete lote.texto;
+  delete lote.notas;
+  tools.push({
+    nome: "alterar_tarefas",
+    titulo: "Alterar várias tarefas",
+    descricao: "Muda de uma vez várias tarefas (só o que vier), como o Alterar do Selecionar: o prazo, os cômodos, os equipamentos, quem faz, ou leva todas para outra lista (mover_para).",
+    entrada: obj({ ids: { type: "array", minItems: 1, maxItems: 100, items: { type: "string" }, description: "Os ids das tarefas (todo.lista:…)." }, ...lote, mover_para: { ...LISTA, description: "Move para esta lista (id ou nome)." } }, ["ids"]),
+    grava: true,
+  });
   return tools.map((t) => ({ ...t, apaga: !!t.apaga }));
 }
 
@@ -301,9 +312,32 @@ export class Ferramentas {
       nova_lista: () => this.novaLista(a),
       editar_lista: () => this.editarLista(a, on),
       ler_arquivo: () => this.lerArquivo(a, anexo),
+      alterar_tarefas: () => this.alterarVarias(a, on),
     }[String(nome || "")];
     if (!run) throw new FerramentaDesconhecida(nome);
     return run();
+  }
+
+  /** 2.98.0: o Alterar do Selecionar: a mesma mudança em várias tarefas, uma por uma, pelo editar (as mesmas regras). */
+  async alterarVarias(a, on) {
+    const ids = Array.isArray(a.ids) ? [...new Set(a.ids.filter((x) => typeof x === "string" && x.trim()))].slice(0, 100) : [];
+    if (!ids.length) throw err("ids: a lista dos ids das tarefas (de resolvia_tarefas).");
+    const campos = {};
+    for (const k of EDITS) if (k !== "texto" && k !== "notas" && a[k] !== undefined && a[k] !== null) campos[k] = a[k];
+    if (!Object.keys(campos).length) throw err(`Diga o que muda: ${EDITS.filter((k) => k !== "texto" && k !== "notas").join(", ")}.`);
+    const falhas = [];
+    let feitas = 0;
+    for (const id of ids) {
+      try {
+        await this.editar({ id, ...campos }, on);
+        feitas += 1;
+      } catch (e) {
+        if (!(e instanceof ErroFerramenta)) throw e;
+        falhas.push(`${id}: ${e.message}`);
+      }
+    }
+    if (!feitas) throw err(`Nenhuma mudou. ${falhas.join(" ")}`);
+    return `${feitas} ${feitas === 1 ? "tarefa alterada" : "tarefas alteradas"}.${falhas.length ? ` Não deu em ${falhas.length}: ${falhas.join(" ")}` : ""}`;
   }
 
   // ---------------------------------------------------------------- 2.91.0: Comece por aqui e as listas

@@ -1,5 +1,9 @@
 # Mudanças
 
+## 2.98.0
+
+- **Pelo CorrerIA** (WhatsApp, Claude, Gemini e a Conversa de lá): agora dá para **mudar várias tarefas de uma vez** ("põe essas três para sexta", "leva todas para a lista Casa"), como o Alterar do Selecionar.
+
 ## 2.97.2
 
 - Nas janelas, um campo fechado **sem nada escolhido nem escrito** diz ao lado **Nenhum** (ou **Nenhuma**, **Ninguém**, **Sem categoria**), como nos outros apps.

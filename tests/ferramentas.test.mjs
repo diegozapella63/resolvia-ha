@@ -169,7 +169,7 @@ const PLACAR = { placar: { ativo: true, periodo: "quinzena", participantes: ["An
 describe("ferramentas: the list", () => {
   it("everything on: 8 tools, the reads first, apagar marked", () => {
     const t = toolList(ON);
-    assert.deepEqual(t.map((x) => x.nome), ["resumo", "tarefas", "repeticoes", "pontos", "criar_tarefa", "editar_tarefa", "concluir_tarefa", "apagar_tarefa", "anexar_foto", "ler_arquivo", "comece_por_aqui", "nova_lista", "editar_lista"]);
+    assert.deepEqual(t.map((x) => x.nome), ["resumo", "tarefas", "repeticoes", "pontos", "criar_tarefa", "editar_tarefa", "concluir_tarefa", "apagar_tarefa", "anexar_foto", "ler_arquivo", "comece_por_aqui", "nova_lista", "editar_lista", "alterar_tarefas"]);
     for (const x of t) {
       assert.match(x.nome, /^[a-z0-9_]{1,40}$/);
       assert.ok(x.titulo && x.descricao);
@@ -187,12 +187,12 @@ describe("ferramentas: the list", () => {
   });
   it("only what is on: no points, no repetition, no rooms", () => {
     const t = toolList(OFF);
-    assert.deepEqual(t.map((x) => x.nome), ["resumo", "tarefas", "criar_tarefa", "editar_tarefa", "concluir_tarefa", "apagar_tarefa", "anexar_foto", "ler_arquivo", "comece_por_aqui", "nova_lista", "editar_lista"]);
+    assert.deepEqual(t.map((x) => x.nome), ["resumo", "tarefas", "criar_tarefa", "editar_tarefa", "concluir_tarefa", "apagar_tarefa", "anexar_foto", "ler_arquivo", "comece_por_aqui", "nova_lista", "editar_lista", "alterar_tarefas"]);
     assert.deepEqual(Object.keys(t[2].entrada.properties), ["lista", "texto", "notas"]);
     assert.deepEqual(Object.keys(t[3].entrada.properties), ["id", "lista", "texto", "notas", "mover_para"]);
     assert.deepEqual(Object.keys(t[4].entrada.properties), ["id", "lista", "concluida"]);
     assert.deepEqual(Object.keys(t[1].entrada.properties), ["lista", "busca", "situacao", "limite"]);
-    assert.equal(setup({ on: OFF }).tools.lista().length, 11);
+    assert.equal(setup({ on: OFF }).tools.lista().length, 12);
     assert.deepEqual(Object.keys(t[10].entrada.properties), ["lista", "nome", "cor", "ativa"], "sem De quem é: sem de_quem");
     assert.ok("de_quem" in toolList({ ...OFF, owners: true })[10].entrada.properties);
   });
@@ -738,5 +738,19 @@ describe("ferramentas: 2.91.0, Comece por aqui and the lists", () => {
     await s.fails("editar_lista", { lista: "todo.mercado", nome: "google tasks" }, /Já existe a lista/);
     await s.fails("editar_lista", { lista: "todo.mercado", ativa: "sim" }, /ativa: true ou false/);
     await setup().fails("editar_lista", { lista: "todo.mercado", de_quem: "Ana" }, /De quem é está desligado/);
+  });
+});
+
+describe("ferramentas: 2.98.0, alterar_tarefas (o Alterar do Selecionar)", () => {
+  it("a mesma mudança em várias, com as regras do editar; o que não dá vem dito", async () => {
+    const s = setup();
+    const def = s.tools.lista().find((t) => t.nome === "alterar_tarefas");
+    assert.equal(def.grava, true);
+    assert.ok(!("texto" in def.entrada.properties) && "prazo" in def.entrada.properties);
+    const txt = await s.run("alterar_tarefas", { ids: ["todo.casa:u1", "todo.casa:u2", "todo.casa:nao-existe"], prazo: "2026-11-20" });
+    assert.match(txt, /^2 tarefas alteradas\. Não deu em 1: todo\.casa:nao-existe: /);
+    await s.fails("alterar_tarefas", { ids: ["todo.casa:u1"] }, /Diga o que muda: prazo/);
+    await s.fails("alterar_tarefas", { ids: [], prazo: "hoje" }, /ids: a lista/);
+    await s.fails("alterar_tarefas", { ids: ["todo.casa:nao-existe"], prazo: "hoje" }, /Nenhuma mudou/);
   });
 });

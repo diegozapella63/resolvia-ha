@@ -157,3 +157,5 @@ Respostas curtas, em português. Ao terminar uma mudança: o que mudou, a versã
 2.97.1 (o dono: "ali dos filtros não criar segunda linha, colocar ... no final se não couber"): o `.filters-val` numa linha só (`white-space: nowrap`, `text-overflow: ellipsis`, `flex: 0 1 auto`); no `PADROES.md`, «numa linha só: o que não cabe termina em «…»». Teste: `rv_agrupar`.
 
 2.97.2 (o dono: "quando retraído sem selecionar nada deve estar como nenhum… em todos os apps"): o `campovalor.js` (igual nos três) tem o `vazioDe(titulo)` («Sem categoria», «Ninguém», «Nenhuma» de uma palavra feminina ou «Nenhum»), usado pelo `paintFieldVals` quando o campo não tem nada.
+
+2.98.0 (o dono, às ferramentas que faltavam para o CorrerIA: "pode seguir neles"): a ferramenta `alterar_tarefas` (`ids` e os campos do `editar_tarefa`, sem o `texto` e as `notas`; `mover_para`): o Alterar do Selecionar, pelo `alterarVarias` (o `editar` de cada uma, com as mesmas regras; o que não dá vem dito, e nenhuma é erro). Fica no fim da lista. Teste: o de 2.98.0 no `tests/ferramentas.test.mjs`.

@@ -80,7 +80,7 @@ describe("CorrerIA on", () => {
     const body = await res.json();
     assert.equal(body.versao, APP_VERSION);
     assert.match(body.instrucoes, /^ResolvIA: .*resolvia_resumo/);
-    assert.deepEqual(body.ferramentas.map((t) => t.nome), ["resumo", "tarefas", "pontos", "criar_tarefa", "editar_tarefa", "concluir_tarefa", "apagar_tarefa", "anexar_foto", "ler_arquivo", "comece_por_aqui", "nova_lista", "editar_lista"]);
+    assert.deepEqual(body.ferramentas.map((t) => t.nome), ["resumo", "tarefas", "pontos", "criar_tarefa", "editar_tarefa", "concluir_tarefa", "apagar_tarefa", "anexar_foto", "ler_arquivo", "comece_por_aqui", "nova_lista", "editar_lista", "alterar_tarefas"]);
     assert.ok(body.ferramentas.every((t) => t.titulo && t.descricao && t.entrada.type === "object" && typeof t.grava === "boolean" && typeof t.apaga === "boolean"));
     assert.equal((await list("errada")).status, 401);
     assert.equal((await fetch(`${stack.appUrl}${ROUTE}`)).status, 401);
