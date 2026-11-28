@@ -170,7 +170,7 @@ const PLACAR = { placar: { ativo: true, periodo: "quinzena", participantes: ["An
 describe("ferramentas: the list", () => {
   it("everything on: 8 tools, the reads first, apagar marked", () => {
     const t = toolList(ON);
-    assert.deepEqual(t.map((x) => x.nome), ["resumo", "tarefas", "repeticoes", "pontos", "criar_tarefa", "editar_tarefa", "concluir_tarefa", "apagar_tarefa", "anexar_foto", "ler_arquivo", "comece_por_aqui", "nova_lista", "editar_lista", "alterar_tarefas"]);
+    assert.deepEqual(t.map((x) => x.nome), ["resumo", "tarefas", "repeticoes", "pontos", "criar_tarefa", "editar_tarefa", "concluir_tarefa", "apagar_tarefa", "anexar_foto", "ler_arquivo", "comece_por_aqui", "nova_lista", "editar_lista", "alterar_tarefas", "relatorio"]);
     for (const x of t) {
       assert.match(x.nome, /^[a-z0-9_]{1,40}$/);
       assert.ok(x.titulo && x.descricao);
@@ -178,7 +178,7 @@ describe("ferramentas: the list", () => {
       assert.equal(x.entrada.additionalProperties, false);
       assert.equal(typeof x.grava, "boolean");
       assert.equal(x.apaga, x.nome === "apagar_tarefa");
-      assert.equal(x.grava, !["resumo", "tarefas", "repeticoes", "pontos", "ler_arquivo", "comece_por_aqui"].includes(x.nome));
+      assert.equal(x.grava, !["resumo", "tarefas", "repeticoes", "pontos", "ler_arquivo", "comece_por_aqui", "relatorio"].includes(x.nome));
     }
     assert.deepEqual(Object.keys(t[4].entrada.properties), ["lista", "texto", "prazo", "horario", "notas", "repetir_dias", "pontos", "comodos", "equipamentos", "externo"]);
     assert.deepEqual(t[4].entrada.required, ["lista", "texto"]);
@@ -188,12 +188,12 @@ describe("ferramentas: the list", () => {
   });
   it("only what is on: no points, no repetition, no rooms", () => {
     const t = toolList(OFF);
-    assert.deepEqual(t.map((x) => x.nome), ["resumo", "tarefas", "criar_tarefa", "editar_tarefa", "concluir_tarefa", "apagar_tarefa", "anexar_foto", "ler_arquivo", "comece_por_aqui", "nova_lista", "editar_lista", "alterar_tarefas"]);
+    assert.deepEqual(t.map((x) => x.nome), ["resumo", "tarefas", "criar_tarefa", "editar_tarefa", "concluir_tarefa", "apagar_tarefa", "anexar_foto", "ler_arquivo", "comece_por_aqui", "nova_lista", "editar_lista", "alterar_tarefas", "relatorio"]);
     assert.deepEqual(Object.keys(t[2].entrada.properties), ["lista", "texto", "notas"]);
     assert.deepEqual(Object.keys(t[3].entrada.properties), ["id", "lista", "texto", "notas", "mover_para"]);
     assert.deepEqual(Object.keys(t[4].entrada.properties), ["id", "lista", "concluida"]);
     assert.deepEqual(Object.keys(t[1].entrada.properties), ["lista", "busca", "situacao", "na_lista_ha_dias", "limite"]);
-    assert.equal(setup({ on: OFF }).tools.lista().length, 12);
+    assert.equal(setup({ on: OFF }).tools.lista().length, 13);
     assert.deepEqual(Object.keys(t[10].entrada.properties), ["lista", "nome", "cor", "ativa"], "sem De quem é: sem de_quem");
     assert.ok("de_quem" in toolList({ ...OFF, owners: true })[10].entrada.properties);
   });
@@ -771,5 +771,25 @@ describe("ferramentas: 2.99.0, as tarefas paradas (na_lista_ha_dias)", () => {
     await s.fails("tarefas", { na_lista_ha_dias: 30, situacao: "todas" }, /só para as pendentes/);
     // sem a idade guardada (o app ainda não viu), a tarefa não conta como parada
     assert.equal((await setup().read("tarefas", { na_lista_ha_dias: 1 })).encontradas, 0);
+  });
+});
+
+describe("ferramentas: 2.100.0, relatorio (os números do Relatório de pendências)", () => {
+  it("os totais, por lista, por prazo e por cômodo", async () => {
+    const s = setup();
+    s.store.setRoom("todo.casa", "Passar pano", ["cozinha"]);
+    const r = await s.read("relatorio", {});
+    assert.equal(r.pendentes, r.por_lista.reduce((n, l) => n + l.pendentes, 0));
+    const casa = r.por_lista.find((l) => l.lista === "Casa");
+    assert.ok(casa.pendentes >= 5 && casa.atrasadas >= 1);
+    assert.ok(r.atrasadas >= 1 && r.para_hoje >= 1 && r.sem_prazo >= 1);
+    assert.ok(r.por_prazo.some((p) => p.nome === "Atrasadas"));
+    assert.deepEqual(r.por_comodo[0], { nome: "Cozinha", pendentes: 1 });
+    const uma = await s.read("relatorio", { lista: "Casa" });
+    assert.deepEqual(uma.por_lista.map((l) => l.lista), ["Casa"]);
+    assert.equal(uma.pendentes, casa.pendentes);
+    const off = await setup({ on: OFF }).read("relatorio", {});
+    assert.ok(!("atrasadas" in off) && !("por_prazo" in off) && !("por_comodo" in off) && off.pendentes > 0);
+    await s.fails("relatorio", { lista: "Não existe" }, /./);
   });
 });

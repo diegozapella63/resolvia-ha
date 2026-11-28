@@ -7,7 +7,7 @@
 // points, no points; without rooms, no rooms (the same as the screens).
 import { MIMES } from "./anexos.js";
 import { taskKey, externalValue, MAX_PHOTOS } from "./store.js";
-import { dueText } from "./report.js";
+import { dueText, pendencias, graficos } from "./report.js";
 
 const F = { CREATE: 1, DELETE: 2, UPDATE: 4, DUE_DATE: 16, DUE_DATETIME: 32, DESCRIPTION: 64 };
 const has = (features, flag) => ((features || 0) & flag) === flag;
@@ -223,6 +223,14 @@ export function toolList(on) {
     entrada: obj({ ids: { type: "array", minItems: 1, maxItems: 100, items: { type: "string" }, description: "Os ids das tarefas (todo.lista:…)." }, ...lote, mover_para: { ...LISTA, description: "Move para esta lista (id ou nome)." } }, ["ids"]),
     grava: true,
   });
+  // 2.99.0: os números do Relatório de pendências (Mais › Relatório), sem a lista das tarefas
+  tools.push({
+    nome: "relatorio",
+    titulo: "Relatório de pendências",
+    descricao: `Os números do Relatório do app: quantas pendentes${on.due ? ", atrasadas e para hoje" : ""}, por lista${on.due ? ", por prazo" : ""}${on.rooms ? ", por cômodo" : ""}${on.equips ? ", por equipamento" : ""}${on.ext ? " e quem faz" : ""}. De uma lista ou de todas as que aparecem. As tarefas em si vêm de resolvia_tarefas.`,
+    entrada: obj({ lista: LISTA }),
+    grava: false,
+  });
   return tools.map((t) => ({ ...t, apaga: !!t.apaga }));
 }
 
@@ -303,6 +311,7 @@ export class Ferramentas {
     const run = {
       resumo: () => this.resumo(on, pessoa),
       tarefas: () => this.tarefas(a, on),
+      relatorio: () => this.relatorio(a, on),
       repeticoes: () => this.repeticoes(on),
       pontos: () => this.pontos(on, pessoa),
       criar_tarefa: () => this.criar(a, on),
@@ -698,6 +707,34 @@ export class Ferramentas {
       out.placar = p && p.ativo ? { participantes: p.participantes, voce: await this.whoIs(pessoa) } : "desligado ou sem CronologIA: as tarefas não dão pontos agora";
     }
     if (on.rooms) out.comodos = this.c.inventario.state.comodos.map((c) => c.nome);
+    return json(out);
+  }
+
+  /** 2.99.0: os números do Relatório de pendências (o pendencias e o graficos do lib/report.js, os mesmos da página). */
+  async relatorio(a, on) {
+    const lists = await this.lists();
+    const pick = a.lista ? this.findList(lists, a.lista) : null;
+    const shown = pick ? [{ ...pick, hidden: false }] : lists.filter((l) => !l.hidden && !l.unavailable);
+    const items = new Map();
+    for (const l of shown) items.set(l.id, await this.items(l));
+    const st = this.c.store;
+    const inv = this.c.inventario;
+    const itemName = (id) => (inv.state.itens.find((i) => i.id === id) || {}).nome || "";
+    const extra = (listId, i) => ({
+      rooms: on.rooms ? st.roomsFor(listId, i.summary).map((id) => inv.nameOf(id)).filter(Boolean) : [],
+      equips: on.equips ? st.equipsFor(listId, i.summary).map(itemName).filter(Boolean) : [],
+      external: on.ext ? st.externalFor(listId, i.summary) : null,
+    });
+    const rep = pendencias({ lists: shown, items, pick: pick ? pick.id : "", now: this.now().getTime(), extra });
+    const g = graficos(rep);
+    const rows = (c) => (c ? c.rows.map((r) => ({ nome: r.name, pendentes: r.n, ...(r.sub ? { quem: r.sub } : {}) })) : undefined);
+    const out = { pendentes: rep.total };
+    if (on.due) Object.assign(out, { atrasadas: rep.late, para_hoje: rep.today, sem_prazo: rep.undated });
+    out.por_lista = rep.sections.map((s) => ({ lista: s.name, pendentes: s.rows.length, ...(on.due ? { atrasadas: s.late } : {}) }));
+    if (on.due && g.due) out.por_prazo = rows(g.due);
+    if (g.rooms) out.por_comodo = rows(g.rooms);
+    if (g.equips) out.por_equipamento = rows(g.equips);
+    if (g.who) out.quem_faz = rows(g.who);
     return json(out);
   }
 

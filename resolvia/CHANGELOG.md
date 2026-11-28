@@ -1,5 +1,9 @@
 # Mudanças
 
+## 2.100.0
+
+- **Pelo CorrerIA**: os números do **Relatório** ("quantas pendências tem cada lista?"): as pendentes, as atrasadas, por lista, por prazo e por cômodo.
+
 ## 2.99.0
 
 - **Pelo CorrerIA**: dá para perguntar pelas tarefas paradas ("o que está na lista há mais de um mês?"). O app conta desde o dia em que viu cada tarefa na lista.
