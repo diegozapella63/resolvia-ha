@@ -384,6 +384,7 @@ const ferramentas = new Ferramentas({
   on: () => ({ due: store.prefs.app.due_off !== true, repeat: repeatOn(), points: !!store.prefs.app.points_on, rooms: roomsOn(), equips: equipsOn(), ext: store.prefs.app.ext_off !== true, owners: ownersOn() }),
   // 2.91.0: o Comece por aqui (a última escolha da IA) e uma lista nova no Home Assistant, para as ferramentas do CorrerIA
   suggest: () => lastSuggest,
+  ages: () => ages.all(), // 2.99.0: há quanto tempo cada pendente está na lista (na_lista_ha_dias)
   createList,
   userOf,
   pointsPlan,

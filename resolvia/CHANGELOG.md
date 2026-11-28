@@ -1,5 +1,9 @@
 # Mudanças
 
+## 2.99.0
+
+- **Pelo CorrerIA**: dá para perguntar pelas tarefas paradas ("o que está na lista há mais de um mês?"). O app conta desde o dia em que viu cada tarefa na lista.
+
 ## 2.98.0
 
 - **Pelo CorrerIA** (WhatsApp, Claude, Gemini e a Conversa de lá): agora dá para **mudar várias tarefas de uma vez** ("põe essas três para sexta", "leva todas para a lista Casa"), como o Alterar do Selecionar.

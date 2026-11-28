@@ -50,7 +50,7 @@ function baseLists() {
 }
 
 /** The tools over lists in memory. opts: {on, lists, placar (the file of the CronologIA), mangle (add_item keeps another name), broken (a list id whose items fail)}. */
-function setup({ on = ON, lists = baseLists(), placar = null, mangle = false, broken = null, users = { "person.ana": "u-ana" }, comodos = null, suggest = null } = {}) {
+function setup({ on = ON, lists = baseLists(), placar = null, mangle = false, broken = null, users = { "person.ana": "u-ana" }, comodos = null, suggest = null, idades = {} } = {}) {
   const dir = tmpDir();
   const log = fakeLog();
   const store = new Store(path.join(dir, "data"), log);
@@ -142,6 +142,7 @@ function setup({ on = ON, lists = baseLists(), placar = null, mangle = false, br
     },
     changed: () => changed++,
     suggest: () => suggest,
+    ages: () => idades,
     createList: async (nome) => {
       if (nome === "Falha") throw new Error("HTTP 401");
       criadas.push(nome);
@@ -191,7 +192,7 @@ describe("ferramentas: the list", () => {
     assert.deepEqual(Object.keys(t[2].entrada.properties), ["lista", "texto", "notas"]);
     assert.deepEqual(Object.keys(t[3].entrada.properties), ["id", "lista", "texto", "notas", "mover_para"]);
     assert.deepEqual(Object.keys(t[4].entrada.properties), ["id", "lista", "concluida"]);
-    assert.deepEqual(Object.keys(t[1].entrada.properties), ["lista", "busca", "situacao", "limite"]);
+    assert.deepEqual(Object.keys(t[1].entrada.properties), ["lista", "busca", "situacao", "na_lista_ha_dias", "limite"]);
     assert.equal(setup({ on: OFF }).tools.lista().length, 12);
     assert.deepEqual(Object.keys(t[10].entrada.properties), ["lista", "nome", "cor", "ativa"], "sem De quem é: sem de_quem");
     assert.ok("de_quem" in toolList({ ...OFF, owners: true })[10].entrada.properties);
@@ -752,5 +753,23 @@ describe("ferramentas: 2.98.0, alterar_tarefas (o Alterar do Selecionar)", () =>
     await s.fails("alterar_tarefas", { ids: ["todo.casa:u1"] }, /Diga o que muda: prazo/);
     await s.fails("alterar_tarefas", { ids: [], prazo: "hoje" }, /ids: a lista/);
     await s.fails("alterar_tarefas", { ids: ["todo.casa:nao-existe"], prazo: "hoje" }, /Nenhuma mudou/);
+  });
+});
+
+describe("ferramentas: 2.99.0, as tarefas paradas (na_lista_ha_dias)", () => {
+  it("só as pendentes que estão na lista há tantos dias, a mais antiga primeiro", async () => {
+    const dia = 86400000;
+    const s = setup({ idades: { "todo.casa": { u5: NOW.getTime() - 45 * dia, u4: NOW.getTime() - 90 * dia, u3: NOW.getTime() - 10 * dia, u6: NOW.getTime() - 200 * dia } } });
+    const def = s.tools.lista().find((t) => t.nome === "tarefas");
+    assert.ok("na_lista_ha_dias" in def.entrada.properties);
+    const r = await s.read("tarefas", { na_lista_ha_dias: 30 });
+    assert.deepEqual(r.tarefas.map((t) => [t.texto, t.na_lista_ha_dias]), [["Limpar a calha", 90], ["Passar pano", 45]]);
+    const sem = await s.read("tarefas", { na_lista_ha_dias: 30, quando: "sem_prazo" });
+    assert.deepEqual(sem.tarefas.map((t) => t.texto), ["Passar pano"]);
+    assert.equal((await s.read("tarefas", { na_lista_ha_dias: 365 })).encontradas, 0);
+    await s.fails("tarefas", { na_lista_ha_dias: 0 }, /de 1 a 3650/);
+    await s.fails("tarefas", { na_lista_ha_dias: 30, situacao: "todas" }, /só para as pendentes/);
+    // sem a idade guardada (o app ainda não viu), a tarefa não conta como parada
+    assert.equal((await setup().read("tarefas", { na_lista_ha_dias: 1 })).encontradas, 0);
   });
 });

@@ -109,6 +109,8 @@ export function toolList(on) {
         ...(on.due ? { quando: { type: "string", enum: ["atrasadas", "hoje", "proximos_7_dias", "sem_prazo", "com_prazo"], description: "Pelo prazo." } } : {}),
         situacao: { type: "string", enum: ["pendentes", "concluidas", "todas"], description: "Padrão: pendentes." },
         ...(on.rooms ? { comodo: { type: "string", description: "Só as de um cômodo (nome ou id)." } } : {}),
+        // 2.99.0: as paradas (a etapa Tarefas paradas das rondas do CorrerIA 1.41.0)
+        na_lista_ha_dias: { type: "integer", minimum: 1, maximum: 3650, description: "Só as pendentes que estão na lista há pelo menos tantos dias (a mais antiga primeiro); cada uma vem com na_lista_ha_dias. O app conta desde que viu a tarefa." },
         limite: { type: "integer", minimum: 1, maximum: MAX_LIMIT, description: "Padrão: 200." },
       }),
       grava: false,
@@ -711,6 +713,13 @@ export class Ferramentas {
     const room = a.comodo ? this.roomIds(a.comodo)[0] : null;
     const busca = fold(a.busca);
     const limite = Math.max(1, Math.min(MAX_LIMIT, Math.round(Number(a.limite)) || 200));
+    let parada = 0;
+    if (a.na_lista_ha_dias != null) {
+      parada = Math.round(Number(a.na_lista_ha_dias));
+      if (!(parada >= 1 && parada <= 3650)) throw err("na_lista_ha_dias: um número de 1 a 3650.");
+      if (sit !== "pendentes") throw err("na_lista_ha_dias vale só para as pendentes.");
+    }
+    const ages = parada && this.c.ages ? this.c.ages() : {};
     const found = [];
     for (const l of pick) {
       for (const i of await this.items(l)) {
@@ -723,6 +732,14 @@ export class Ferramentas {
         if (quando) {
           const ok = { atrasadas: d && d.late && !done, hoje: d && !d.late && d.days === 0, proximos_7_dias: d && !d.late && d.days >= 0 && d.days < 7, sem_prazo: !d, com_prazo: !!d }[quando];
           if (!ok) continue;
+        }
+        let seen = 0;
+        if (parada) {
+          seen = Number((ages[l.id] || {})[i.uid]) || 0;
+          const dias = seen ? Math.floor((now.getTime() - seen) / 86400000) : 0;
+          if (dias < parada) continue;
+          found.push({ done, at: seen, v: { ...this.view(l, i, on, now), na_lista_ha_dias: dias } });
+          continue;
         }
         found.push({ done, at: d ? Date.parse(i.due.length > 10 ? i.due : `${i.due}T00:00:00`) : Infinity, v: this.view(l, i, on, now) });
       }
